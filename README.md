@@ -1,6 +1,8 @@
 # FriendSheep
 
-<img src=".\assets\logo-app.jpg" title="" alt="FriendSheep Logo" data-align="center">
+<div align="center">
+  <img src="./assets/logo-app.jpg" alt="FriendSheep Logo" width="350">
+</div>
 
 **Команда:** NecroDwarf  
 **Тип проекта:** Дипломная работа  
@@ -93,4 +95,6 @@ project-root/
 
 Проект **FriendSheep** является частью дипломной работы команды **NecroDwarf**. Он демонстрирует реальные навыки командной разработки, проектирования архитектуры, работы с современными технологиями и пользовательским интерфейсом.
 
-<img src=".\assets\logo-necrodwarf.jpg" title="" alt="FriendSheep Logo" data-align="center">
+<div align="center">
+  <img src=".\assets\logo-necrodwarf.jpg" alt="FriendSheep Logo" width="350">
+</div>
