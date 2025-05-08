@@ -93,4 +93,4 @@ project-root/
 
 Проект **FriendSheep** является частью дипломной работы команды **NecroDwarf**. Он демонстрирует реальные навыки командной разработки, проектирования архитектуры, работы с современными технологиями и пользовательским интерфейсом.
 
-![NecroDwarf Logo](.\assets\logo-necrodwarf.jpg)
+<img src=".\assets\logo-necrodwarf.jpg" title="" alt="FriendSheep Logo" data-align="center">
