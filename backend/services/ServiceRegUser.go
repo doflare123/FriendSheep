@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"friendship/db"
 	"friendship/models"
+	"friendship/utils"
 	"math/rand"
 	"time"
 
@@ -25,14 +26,15 @@ func CreateUser(input CreateUserInput) (*models.User, error) {
 		return nil, err
 	}
 
-	// 2) генерируем Us = Name + случайное число 1-10000
 	rand.Seed(time.Now().UnixNano())
-	us := fmt.Sprintf("%s%d", input.Name, rand.Intn(10000)+1)
+	us := fmt.Sprintf("%s%d", input.Name, rand.Intn(100000)+1)
 
-	// 3) создаём модель
+	hashPass, salt := utils.HashPassword(input.Password)
+
 	user := models.User{
 		Name:     input.Name,
-		Password: input.Password,
+		Password: hashPass,
+		Salt:     salt,
 		Email:    input.Email,
 		Us:       us,
 	}
