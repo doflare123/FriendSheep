@@ -26,8 +26,8 @@ func CreateUser(input CreateUserInput) (*models.User, error) {
 		return nil, err
 	}
 
-	rand.Seed(time.Now().UnixNano())
-	us := fmt.Sprintf("%s%d", input.Name, rand.Intn(100000)+1)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	us := fmt.Sprintf("%s%d", input.Name, r.Intn(100000)+1)
 
 	hashPass, salt := utils.HashPassword(input.Password)
 

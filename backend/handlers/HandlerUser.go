@@ -9,11 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetAllUsers(c *gin.Context) {
-	users := storage.GetAllUsers()
-	c.JSON(http.StatusAccepted, users)
-}
-
 func GetUserByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Params.ByName("id"))
 

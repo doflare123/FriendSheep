@@ -2,25 +2,27 @@ package utils
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 
-	"golang.org/x/crypto/blake2b"
+	"golang.org/x/crypto/argon2"
 )
 
-func generateSalt() string {
-	salt := make([]byte, 16)
+func generateSaltRaw(length int) []byte {
+	salt := make([]byte, length)
 	rand.Read(salt)
-	return hex.EncodeToString([]byte(salt))
+	return salt
 }
 
-func HashPassword(password string) (hashHex, Salt string) {
-	Salt = generateSalt()
-	combo := []byte(password + Salt)
-	hash := blake2b.Sum256(combo)
-	hashHex = hex.EncodeToString(hash[:])
-	return
+func HashPassword(password string) (hashHex, saltHex string) {
+	salt := generateSaltRaw(16)
+	hash := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
+	return hex.EncodeToString(hash), hex.EncodeToString(salt)
 }
 
-func CompareSalts(salt1, salt2 string) bool {
-	return salt1 == salt2
+func ComparePasswords(password, storedHash, saltHex string) bool {
+	salt, _ := hex.DecodeString(saltHex)
+	hash := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
+	hashHex := hex.EncodeToString(hash)
+	return subtle.ConstantTimeCompare([]byte(hashHex), []byte(storedHash)) == 1
 }
