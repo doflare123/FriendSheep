@@ -1,30 +1,32 @@
 package handlers
 
 import (
-	storage "friendship/db"
 	"friendship/services"
+	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-func GetUserByID(c *gin.Context) {
-	id, err := strconv.Atoi(c.Params.ByName("id"))
+type SessionEmailInput struct {
+	Email string `json:"email" validate:"required,email"`
+}
 
+func CreateSessionRegisterHandler(c *gin.Context) {
+	var input SessionEmailInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email"})
+		return
+	}
+
+	session, err := services.CreateSessionRegister(input.Email)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid note ID"})
+		log.Printf("Ошибка при создании сессии: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot create session"})
 		return
 	}
 
-	user := storage.GetUserByID(id)
-	if user == nil {
-		// Возвращение ошибки 404 (Not Found), если заметка не найдена
-		c.JSON(http.StatusNotFound, gin.H{"error": "Note not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, session)
 }
 
 func CreateUserHandler(c *gin.Context) {
@@ -40,37 +42,34 @@ func CreateUserHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"validation_error": err.Error()})
 		return
 	}
+	if user != nil {
+		log.Printf("Что-то не так")
+	}
 
-	c.JSON(http.StatusCreated, user)
+	c.JSON(http.StatusCreated, gin.H{"messege": "Пользователь зарегистрирован"})
 }
 
-func UpdateUser(c *gin.Context) {
-	id, err := strconv.Atoi(c.Params.ByName("id"))
-	if err != nil {
-		// Возвращение ошибки 400 (Bad Request), если ID некорректен
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid note ID"})
-		return
-	}
-	// Структура для хранения входных данных
-	var input struct {
-		Name  string `json:"name" binding:"required"`
-		Email string `json:"email" binding:"required"`
-	}
-	// Привязка входных данных в формате JSON к структуре input
+func VerifySessionHandler(c *gin.Context) {
+	var input services.VerifySessionInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		// Возвращение ошибки 400 (Bad Request), если входные данные некорректны
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
 		return
 	}
-	// Обновление заметки в хранилище
-	User := storage.UpdateUser(id, input.Name, input.Email)
-	if User == nil {
-		// Возвращение ошибки 404 (Not Found), если заметка не найдена
-		c.JSON(http.StatusNotFound, gin.H{"error": "Note not found"})
+
+	verified, err := services.VerifySession(input)
+	if err != nil {
+		if err.Error() == "session not found or incomplete" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "session not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
 		return
 	}
-	// Возвращение обновленной заметки в формате JSON с кодом 200 (OK)
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Новый пользователь зарегистрирован",
-	})
+
+	if !verified {
+		c.JSON(http.StatusUnauthorized, gin.H{"verified": false, "error": "code or type incorrect"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"verified": true})
 }

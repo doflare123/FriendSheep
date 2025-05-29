@@ -7,9 +7,10 @@ import (
 )
 
 func RoutesUsers(r *gin.Engine) {
-	UserGroup := r.Group("api/users")
+	RegisretGroup := r.Group("api/users")
 	{
-		UserGroup.POST("/register", handlers.CreateUserHandler)
-		UserGroup.POST("/sessionsReg")
+		RegisretGroup.POST("/register", handlers.CreateUserHandler)
+		RegisretGroup.GET("/sessionsReg", handlers.CreateSessionRegisterHandler)
+		RegisretGroup.PATCH("/verifySessionsReg", handlers.VerifySessionHandler)
 	}
 }

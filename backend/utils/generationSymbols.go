@@ -6,6 +6,7 @@ import (
 	"math/big"
 )
 
+// сессии для регистрации
 func GenerateSessioID(n int) string {
 	b := make([]byte, n)
 	_, _ = rand.Read(b)
