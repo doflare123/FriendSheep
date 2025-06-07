@@ -23,14 +23,14 @@ func (s *SessionStore) CreateSession(sessionID, code string, sessionType models.
 	fields := map[string]interface{}{
 		"code":        code,
 		"is_verified": "0",
-		"type":        string(sessionType), // <- обязательно привести к string
+		"type":        string(sessionType),
+		"attempts":    "0",
 	}
 	err := s.redisClient.HSet(ctx, sessionID, fields).Err()
 	if err != nil {
 		return err
 	}
 
-	// Можно задать TTL сессии, если нужно:
 	return s.redisClient.Expire(ctx, sessionID, expiration).Err()
 }
 
@@ -42,7 +42,6 @@ func (s *SessionStore) GetSessionFields(sessionID string, fields ...string) (map
 
 	result := make(map[string]string)
 	for i, field := range fields {
-		// Redis может вернуть nil если поля нет, проверим это
 		if values[i] != nil {
 			result[field] = values[i].(string)
 		}
@@ -52,4 +51,8 @@ func (s *SessionStore) GetSessionFields(sessionID string, fields ...string) (map
 
 func (s *SessionStore) UpdateSessionField(sessionID, field string, value interface{}) error {
 	return s.redisClient.HSet(ctx, sessionID, field, value).Err()
+}
+
+func (s *SessionStore) DeleteSession(sessionID string) error {
+	return s.redisClient.Del(ctx, sessionID).Err()
 }

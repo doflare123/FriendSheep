@@ -9,10 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// Объявление глобальной переменной для хранения экземпляра базы данных
 var db *gorm.DB
 
-// Функция инициализации базы данных
 func InitDatabase() error {
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
@@ -32,8 +30,6 @@ func InitDatabase() error {
 	return db.AutoMigrate(&models.User{}, &models.SessionType{}, &models.SessionUser{}, &models.Session{})
 }
 
-// Функция для получения экземпляра базы данных
 func GetDB() *gorm.DB {
-	// Возвращение глобальной переменной db, содержащей подключение к базе данных
 	return db
 }

@@ -14,7 +14,8 @@ type SessionRegResponse struct {
 }
 
 type SessionReg struct {
-	Code        string      // 6-значный код подтверждения
-	is_verified bool        // подтверждена ли сессия
-	Type        SessionType // тип сессии: регистрация или восстановление
+	Code        string
+	is_verified bool
+	Type        SessionType
+	attempts    uint8
 }

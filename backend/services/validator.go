@@ -7,3 +7,7 @@ var Validate *validator.Validate
 func InitValidator(v *validator.Validate) {
 	Validate = v
 }
+
+func GetValidator() *validator.Validate {
+	return Validate
+}

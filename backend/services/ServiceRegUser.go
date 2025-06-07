@@ -14,13 +14,14 @@ import (
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type CreateUserInput struct {
-	Name      string `json:"name"     validate:"required"`
-	Password  string `json:"password" validate:"required,password"`
-	Email     string `json:"email"    validate:"required,email"`
-	SessionID string `json:"session_id" validate:"required"`
+	Name      string `json:"name"     binding:"required"`
+	Password  string `json:"password" binding:"required,password"`
+	Email     string `json:"email"    binding:"required,email"`
+	SessionID string `json:"session_id" binding:"required"`
 }
 
 type VerifySessionInput struct {
@@ -33,10 +34,7 @@ var validate = binding.Validator.Engine().(*validator.Validate)
 
 func CreateUser(input CreateUserInput) (*models.User, error) {
 	store := db.NewSessionStore(os.Getenv("REDIS_URI"))
-	// 1) валидация
-	if err := validate.Struct(input); err != nil {
-		return nil, err
-	}
+
 	field, err := store.GetSessionFields(input.SessionID, "is_verified")
 	if err != nil {
 		return nil, err
@@ -65,8 +63,17 @@ func CreateUser(input CreateUserInput) (*models.User, error) {
 		Us:       us,
 	}
 
-	if err := db.GetDB().Create(&user).Error; err != nil {
+	err = db.GetDB().Create(&user).Error
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, fmt.Errorf("пользователь с таким email уже существует")
+		}
 		return nil, err
+	}
+
+	if err := store.DeleteSession(input.SessionID); err != nil {
+		fmt.Printf("Не удалось удалить сессию %s: %v\n", input.SessionID, err)
 	}
 
 	return nil, nil
@@ -78,15 +85,14 @@ func CreateSessionRegister(email string) (*models.SessionRegResponse, error) {
 
 	store := db.NewSessionStore(os.Getenv("REDIS_URI"))
 
-	err := store.CreateSession(Id, codeSession, models.SessionTypeRegister, 5*time.Minute)
+	err := store.CreateSession(Id, codeSession, models.SessionTypeRegister, 10*time.Minute)
 	if err != nil {
 		return nil, err
 	}
 
-	// Отправка письма в отдельной горутине (не блокирует HTTP)
 	go func(email, code string) {
 		subject := "Код подтверждения"
-		body := fmt.Sprintf("Ваш код подтверждения: %s\nОн действителен 5 минут.", code)
+		body := fmt.Sprintf("Ваш код подтверждения: %s\nОн действителен 10 минут.", code)
 		err := utils.SendEmail(email, subject, body)
 		if err != nil {
 			log.Printf("Ошибка отправки email: %v", err)
@@ -99,26 +105,48 @@ func CreateSessionRegister(email string) (*models.SessionRegResponse, error) {
 func VerifySession(input VerifySessionInput) (bool, error) {
 	store := db.NewSessionStore(os.Getenv("REDIS_URI"))
 
-	fields, err := store.GetSessionFields(input.SessionID, "code", "type")
+	fields, err := store.GetSessionFields(input.SessionID, "code", "type", "attempts")
 	if err != nil {
 		return false, err
 	}
 
-	// Проверка: сессия не найдена (нет поля code или type)
 	if fields["code"] == "" || fields["type"] == "" {
-		return false, fmt.Errorf("session not found or incomplete")
+		return false, fmt.Errorf("сессия не найдена или удалена")
 	}
 
-	// Проверка кода и типа
-	if fields["code"] != input.Code || fields["type"] != input.Type {
+	if fields["type"] != input.Type {
 		return false, nil
 	}
 
-	// Обновляем статус
+	attemptsStr := fields["attempts"]
+	attempts, err := strconv.Atoi(attemptsStr)
+	if err != nil {
+		attempts = 0
+	}
+
+	if fields["code"] != input.Code {
+		attempts++
+		if attempts >= 3 {
+			err := store.DeleteSession(input.SessionID)
+			if err != nil {
+				return false, err
+			}
+			return false, fmt.Errorf("превышено количество попыток ввода кода, сессия удалена")
+		}
+
+		err = store.UpdateSessionField(input.SessionID, "attempts", attempts)
+		if err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+
 	err = store.UpdateSessionField(input.SessionID, "is_verified", "1")
 	if err != nil {
 		return false, err
 	}
+
+	_ = store.UpdateSessionField(input.SessionID, "attempts", 0)
 
 	return true, nil
 }
