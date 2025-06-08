@@ -1,0 +1,253 @@
+definitions:
+  handlers.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  handlers.SessionEmailInput:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  handlers.UserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  models.SessionRegResponse:
+    properties:
+      session_id:
+        type: string
+    type: object
+  services.CreateUserInput:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      session_id:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - session_id
+    type: object
+  services.VerifySessionInput:
+    properties:
+      code:
+        type: string
+      session_id:
+        type: string
+      type:
+        type: string
+    required:
+    - code
+    - session_id
+    - type
+    type: object
+info:
+  contact: {}
+paths:
+  /api/sessions/register:
+    post:
+      consumes:
+      - application/json
+      description: Создает сессию для подтверждения email пользователя при регистрации
+      parameters:
+      - description: Email пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SessionEmailInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SessionRegResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать сессию регистрации
+      tags:
+      - sessions
+  /api/sessions/verify:
+    patch:
+      consumes:
+      - application/json
+      description: Проверяет код сессии, отправленный на email
+      parameters:
+      - description: Данные сессии для проверки
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/services.VerifySessionInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "429":
+          description: Too Many Requests
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Проверить сессию
+      tags:
+      - sessions
+  /api/users:
+    post:
+      consumes:
+      - application/json
+      description: Регистрирует нового пользователя по данным из запроса
+      parameters:
+      - description: Данные для создания пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/services.CreateUserInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать пользователя
+      tags:
+      - users
+  /api/users/login:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет email и пароль, возвращает access и refresh токены
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Токены успешно созданы
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный JSON или параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Неверный пароль
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Аутентификация пользователя
+      tags:
+      - auth
+  /api/users/refresh:
+    post:
+      consumes:
+      - application/json
+      description: По refresh токену выдает новые access и refresh токены
+      parameters:
+      - description: Refresh токен
+        in: body
+        name: refreshRequest
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Новые токены успешно созданы
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Отсутствует или неверный refresh_token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Невалидный или просроченный refresh token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Обновление токенов
+      tags:
+      - auth
+swagger: "2.0"

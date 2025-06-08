@@ -6,11 +6,16 @@ import (
 	"friendship/services"
 	"friendship/utils"
 	"log"
+	"net/http"
+
+	_ "friendship/docs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func init() {
@@ -30,6 +35,11 @@ func main() {
 	db.InitDatabase()
 	db.InitMongoDB()
 	routes.RoutesUsers(r)
+	routes.RoutesAuth(r)
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.GET("/docs", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
+	})
 	// Запускаем сервер на порту 8080
 	r.Run(":8080")
 }

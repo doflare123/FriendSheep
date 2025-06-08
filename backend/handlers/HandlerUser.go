@@ -12,6 +12,17 @@ type SessionEmailInput struct {
 	Email string `json:"email" binding:"required,email"`
 }
 
+// CreateSessionRegisterHandler создает сессию регистрации по email
+// @Summary Создать сессию регистрации
+// @Description Создает сессию для подтверждения email пользователя при регистрации
+// @Tags sessions
+// @Accept json
+// @Produce json
+// @Param input body SessionEmailInput true "Email пользователя"
+// @Success 200 {object} models.SessionRegResponse
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/sessions/register [post]
 func CreateSessionRegisterHandler(c *gin.Context) {
 	var input SessionEmailInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -29,6 +40,18 @@ func CreateSessionRegisterHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, session)
 }
 
+// VerifySessionHandler проверяет код сессии
+// @Summary Проверить сессию
+// @Description Проверяет код сессии, отправленный на email
+// @Tags sessions
+// @Accept json
+// @Produce json
+// @Param input body services.VerifySessionInput true "Данные сессии для проверки"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 429 {object} map[string]string
+// @Router /api/sessions/verify [patch]
 func VerifySessionHandler(c *gin.Context) {
 	var input services.VerifySessionInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -54,6 +77,16 @@ func VerifySessionHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"verified": true})
 }
 
+// CreateUserHandler регистрирует нового пользователя
+// @Summary Создать пользователя
+// @Description Регистрирует нового пользователя по данным из запроса
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param input body services.CreateUserInput true "Данные для создания пользователя"
+// @Success 201 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Router /api/users [post]
 func CreateUserHandler(c *gin.Context) {
 	var input services.CreateUserInput
 
