@@ -1,4 +1,34 @@
 definitions:
+  handlers.CreateGroupInputDoc:
+    properties:
+      categories:
+        description: <- просто строка, swag так принимает
+        example:
+        - 1
+        - 2
+        - 3
+        items:
+          type: integer
+        type: array
+      city:
+        example: Москва
+        type: string
+      description:
+        example: Полное описание
+        type: string
+      image:
+        example: https://example.com/image.png
+        type: string
+      isPrivate:
+        example: "true"
+        type: string
+      name:
+        example: Моя группа
+        type: string
+      smallDescription:
+        example: Краткое описание
+        type: string
+    type: object
   handlers.RefreshRequest:
     properties:
       refresh_token:
@@ -60,6 +90,49 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/groups/createGroup:
+    post:
+      consumes:
+      - application/json
+      description: Создает новую группу
+      parameters:
+      - description: Данные для создания группы
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateGroupInputDoc'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Группа успешно создана
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создание группы
+      tags:
+      - groups
   /api/sessions/register:
     post:
       consumes:
@@ -250,4 +323,10 @@ paths:
       summary: Обновление токенов
       tags:
       - auth
+securityDefinitions:
+  BearerAuth:
+    description: 'Введите токен в формате: Bearer <your_token>'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

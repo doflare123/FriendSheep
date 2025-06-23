@@ -9,5 +9,5 @@ type GroupUsers struct {
 	GroupID uint  `json:"groupId"`
 	Group   Group `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 
-	Role string `json:"role"`
+	RoleInGroup string `json:"role"`
 }

@@ -85,3 +85,34 @@ func RefreshTokens(refreshTokenString string) (TokenPair, error) {
 
 	return GenerateTokenPair(email, us)
 }
+
+func ParseJWT(tokenString string) (string, error) {
+	secretKey := os.Getenv("SECRET_KEY_JWT")
+	if secretKey == "" {
+		return "", fmt.Errorf("секретный ключ JWT не найден в переменных окружения")
+	}
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Проверка типа подписи
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("неподдерживаемый метод подписи: %v", token.Header["alg"])
+		}
+		return []byte(secretKey), nil
+	})
+
+	if err != nil || !token.Valid {
+		return "", fmt.Errorf("некорректный токен: %v", err)
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", fmt.Errorf("некорректные claims")
+	}
+
+	email, ok := claims["Email"].(string)
+	if !ok {
+		return "", fmt.Errorf("email не найден в токене")
+	}
+
+	return email, nil
+}

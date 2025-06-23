@@ -25,6 +25,10 @@ func init() {
 	}
 }
 
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Введите токен в формате: Bearer <your_token>
 func main() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		_ = v.RegisterValidation("password", utils.PasswordValidation)
@@ -33,9 +37,11 @@ func main() {
 	// Создаем новый экземпляр роутера
 	r := gin.Default()
 	db.InitDatabase()
+	db.SeedCategories()
 	db.InitMongoDB()
 	routes.RoutesUsers(r)
 	routes.RoutesAuth(r)
+	routes.RouterGroups(r)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/docs", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")

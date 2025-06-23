@@ -13,9 +13,11 @@ type User struct {
 	Salt         string    `json:"-" gorm:"not null" validate:"required"`
 	Us           string    `json:"us" gorm:"uniqueIndex;not null" validate:"required"`
 	Email        string    `json:"email" gorm:"uniqueIndex;not null" validate:"required,email"`
+	Image        string    `json:"image" gorm:"default:https://cdn-icons-png.flaticon.com/512/149/149071.png"`
 	DataRegister time.Time `json:"data_register" gorm:"autoCreateTime"`
 	Enterprise   bool      `json:"enterprise" gorm:"default:false"`
 	VerifiedUser bool      `json:"-" gorm:"default:false"`
+	Role         string    `json:"-" gorm:"default:user"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

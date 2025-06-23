@@ -1,7 +1,8 @@
-package utils
+package services
 
 func ValidateInput(input interface{}) error {
-	err := validate.Struct(input)
+	validator := GetValidator()
+	err := validator.Struct(input)
 	if err != nil {
 		return err
 	}

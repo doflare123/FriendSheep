@@ -15,6 +15,73 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/groups/createGroup": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создает новую группу",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Создание группы",
+                "parameters": [
+                    {
+                        "description": "Данные для создания группы",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CreateGroupInputDoc"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Группа успешно создана",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/sessions/register": {
             "post": {
                 "description": "Создает сессию для подтверждения email пользователя при регистрации",
@@ -307,6 +374,47 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handlers.CreateGroupInputDoc": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "description": "\u003c- просто строка, swag так принимает",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "example": [
+                        1,
+                        2,
+                        3
+                    ]
+                },
+                "city": {
+                    "type": "string",
+                    "example": "Москва"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Полное описание"
+                },
+                "image": {
+                    "type": "string",
+                    "example": "https://example.com/image.png"
+                },
+                "isPrivate": {
+                    "type": "string",
+                    "example": "true"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Моя группа"
+                },
+                "smallDescription": {
+                    "type": "string",
+                    "example": "Краткое описание"
+                }
+            }
+        },
         "handlers.RefreshRequest": {
             "type": "object",
             "required": [
@@ -393,6 +501,14 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Введите токен в формате: Bearer \u003cyour_token\u003e",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`
