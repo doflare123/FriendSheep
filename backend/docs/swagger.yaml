@@ -29,6 +29,13 @@ definitions:
         example: Краткое описание
         type: string
     type: object
+  handlers.JoinGroupInputDoc:
+    properties:
+      groupId:
+        type: integer
+    required:
+    - groupId
+    type: object
   handlers.RefreshRequest:
     properties:
       refresh_token:
@@ -131,6 +138,49 @@ paths:
       security:
       - BearerAuth: []
       summary: Создание группы
+      tags:
+      - groups
+  /api/groups/joinToGroup:
+    post:
+      consumes:
+      - application/json
+      description: Новый пользователь присоединяется к группе
+      parameters:
+      - description: Данные для присоединения к группе
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.JoinGroupInputDoc'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пользователь успешно присоеденен к группе
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Присоединение к группе
       tags:
       - groups
   /api/sessions/register:

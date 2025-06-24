@@ -71,6 +71,73 @@
                 }
             }
         },
+        "/api/groups/joinToGroup": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Новый пользователь присоединяется к группе",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Присоединение к группе",
+                "parameters": [
+                    {
+                        "description": "Данные для присоединения к группе",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.JoinGroupInputDoc"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пользователь успешно присоеденен к группе",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/sessions/register": {
             "post": {
                 "description": "Создает сессию для подтверждения email пользователя при регистрации",
@@ -401,6 +468,17 @@
                 "smallDescription": {
                     "type": "string",
                     "example": "Краткое описание"
+                }
+            }
+        },
+        "handlers.JoinGroupInputDoc": {
+            "type": "object",
+            "required": [
+                "groupId"
+            ],
+            "properties": {
+                "groupId": {
+                    "type": "integer"
                 }
             }
         },

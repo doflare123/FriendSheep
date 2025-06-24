@@ -29,7 +29,6 @@ func (input *CreateGroupInput) IsPrivateBool() (bool, error) {
 
 type JoinGroupInput struct {
 	GroupID uint `json:"groupId" binding:"required"`
-	UserID  uint `json:"userId" binding:"required"`
 }
 
 func CreateGroup(email string, input CreateGroupInput) (*models.Group, error) {
@@ -83,15 +82,23 @@ func CreateGroup(email string, input CreateGroupInput) (*models.Group, error) {
 	return &group, nil
 }
 
-func JoinGroup(input JoinGroupInput) (*models.Group, error) {
+func JoinGroup(email string, input JoinGroupInput) (*models.Group, error) {
 	if err := ValidateInput(input); err != nil {
 		return nil, fmt.Errorf("невалидная структура данных: %v", err)
 	}
 
+	var member models.User
+	if err := db.GetDB().Where("email = ?", email).First(&member).Error; err != nil {
+		return nil, fmt.Errorf("создатель не найден по email (%s): %v", email, err)
+	}
+
 	newMember := models.GroupUsers{
-		UserID:      input.UserID,
+		UserID:      member.ID,
 		GroupID:     input.GroupID,
 		RoleInGroup: "member",
+	}
+	if err := db.GetDB().Where("user_id = ? AND group_id = ?", member.ID, input.GroupID).First(&newMember).Error; err == nil {
+		return nil, fmt.Errorf("пользователь уже в группе")
 	}
 	if err := db.GetDB().Create(&newMember).Error; err != nil {
 		return nil, fmt.Errorf("ошибка добавления пользователя в группу: %v", err)
