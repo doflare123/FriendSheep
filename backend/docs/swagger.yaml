@@ -29,12 +29,59 @@ definitions:
         example: Краткое описание
         type: string
     type: object
+  handlers.GetJoinRequestsResponseDoc:
+    properties:
+      requests:
+        items:
+          $ref: '#/definitions/handlers.GroupJoinRequestDoc'
+        type: array
+    type: object
+  handlers.GroupJoinRequestDoc:
+    properties:
+      group:
+        $ref: '#/definitions/handlers.GroupPreviewDoc'
+      groupId:
+        example: 5
+        type: integer
+      id:
+        example: 3
+        type: integer
+      status:
+        example: pending
+        type: string
+      user:
+        $ref: '#/definitions/handlers.UserPreviewDoc'
+      userId:
+        example: 42
+        type: integer
+    type: object
+  handlers.GroupPreviewDoc:
+    properties:
+      id:
+        example: 5
+        type: integer
+      image:
+        example: https://img.com/group.png
+        type: string
+      name:
+        example: Закрытая группа
+        type: string
+    type: object
   handlers.JoinGroupInputDoc:
     properties:
       groupId:
         type: integer
     required:
     - groupId
+    type: object
+  handlers.JoinGroupResponseDoc:
+    properties:
+      joined:
+        example: false
+        type: boolean
+      message:
+        example: Заявка на вступление отправлена
+        type: string
     type: object
   handlers.RefreshRequest:
     properties:
@@ -49,6 +96,21 @@ definitions:
         type: string
     required:
     - email
+    type: object
+  handlers.UserPreviewDoc:
+    properties:
+      email:
+        example: ivan@example.com
+        type: string
+      id:
+        example: 42
+        type: integer
+      image:
+        example: https://img.com/avatar.png
+        type: string
+      name:
+        example: Иван
+        type: string
     type: object
   handlers.UserRequest:
     properties:
@@ -97,6 +159,144 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/groups/{groupId}:
+    delete:
+      description: Удаляет группу. Только администратор группы может удалить её. Удаляются
+        также участники и заявки на вступление.
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Группа успешно удалена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный ID группы
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет прав или группа не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удаление группы
+      tags:
+      - groups
+  /api/groups/{groupId}/leave:
+    delete:
+      description: Удаляет текущего пользователя из группы. Админ не может покинуть
+        группу, если он единственный админ.
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Вы покинули группу
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка — пользователь не найден, не состоит в группе или единственный
+            админ
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Покинуть группу
+      tags:
+      - groups
+  /api/groups/{groupId}/members/{userId}:
+    delete:
+      description: Удаляет участника из группы, если текущий пользователь — админ
+        или оператор
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      - description: ID пользователя, которого нужно удалить
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пользователь удалён из группы
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректные параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет прав на удаление
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден или не в группе
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить участника из группы
+      tags:
+      - groups
   /api/groups/createGroup:
     post:
       consumes:
@@ -156,11 +356,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Пользователь успешно присоеденен к группе
+          description: 'Успешный ответ: вступил или заявка отправлена'
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.JoinGroupResponseDoc'
         "400":
           description: Bad Request
           schema:
@@ -181,6 +379,136 @@ paths:
       security:
       - BearerAuth: []
       summary: Присоединение к группе
+      tags:
+      - groups
+  /api/groups/requests:
+    get:
+      description: Получение всех заявок на вступление в закрытые группы, где текущий
+        пользователь является администратором
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список заявок
+          schema:
+            $ref: '#/definitions/handlers.GetJoinRequestsResponseDoc'
+        "401":
+          description: Ошибка авторизации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа или пользователь не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить заявки на вступление
+      tags:
+      - groups
+  /api/groups/requests/{requestId}/approve:
+    post:
+      description: Одобрение заявки на вступление в закрытую группу. Только админ
+        может это сделать.
+      parameters:
+      - description: ID заявки
+        in: path
+        name: requestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Заявка одобрена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'Ошибка: заявка не найдена или уже обработана'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Ошибка авторизации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Вы не админ
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Одобрить заявку
+      tags:
+      - groups
+  /api/groups/requests/{requestId}/reject:
+    post:
+      description: Отклонение заявки на вступление в закрытую группу. Только админ
+        может это сделать.
+      parameters:
+      - description: ID заявки
+        in: path
+        name: requestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Заявка отклонена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'Ошибка: заявка не найдена или уже обработана'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Ошибка авторизации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Вы не админ
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отклонить заявку
       tags:
       - groups
   /api/sessions/register:

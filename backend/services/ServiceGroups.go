@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"friendship/db"
 	"friendship/models"
@@ -14,6 +15,11 @@ type CreateGroupInput struct {
 	IsPrivate        string `json:"isPrivate" binding:"required" example:"true/1/0/false"` // true / false
 	City             string `json:"city,omitempty" example:"Москва"`
 	Categories       []uint `json:"categories" binding:"required" example:"[1, 2, 3]"`
+}
+
+type JoinGroupResult struct {
+	Message string
+	Joined  bool
 }
 
 func (input *CreateGroupInput) IsPrivateBool() (bool, error) {
@@ -82,26 +88,102 @@ func CreateGroup(email string, input CreateGroupInput) (*models.Group, error) {
 	return &group, nil
 }
 
-func JoinGroup(email string, input JoinGroupInput) (*models.Group, error) {
-	if err := ValidateInput(input); err != nil {
-		return nil, fmt.Errorf("невалидная структура данных: %v", err)
+func JoinGroup(email string, input JoinGroupInput) (*JoinGroupResult, error) {
+	// Найти пользователя
+	var user models.User
+	if err := db.GetDB().Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, fmt.Errorf("пользователь не найден")
 	}
 
-	var member models.User
-	if err := db.GetDB().Where("email = ?", email).First(&member).Error; err != nil {
-		return nil, fmt.Errorf("создатель не найден по email (%s): %v", email, err)
-	}
-
-	newMember := models.GroupUsers{
-		UserID:      member.ID,
-		GroupID:     input.GroupID,
-		RoleInGroup: "member",
-	}
-	if err := db.GetDB().Where("user_id = ? AND group_id = ?", member.ID, input.GroupID).First(&newMember).Error; err == nil {
+	// Проверить, есть ли уже заявка или участие
+	var existing models.GroupUsers
+	if err := db.GetDB().
+		Where("user_id = ? AND group_id = ?", user.ID, input.GroupID).
+		First(&existing).Error; err == nil {
 		return nil, fmt.Errorf("пользователь уже в группе")
 	}
-	if err := db.GetDB().Create(&newMember).Error; err != nil {
-		return nil, fmt.Errorf("ошибка добавления пользователя в группу: %v", err)
+
+	// Проверка на уже поданную заявку
+	var existingRequest models.GroupJoinRequest
+	if err := db.GetDB().
+		Where("user_id = ? AND group_id = ?", user.ID, input.GroupID).
+		First(&existingRequest).Error; err == nil {
+		if existingRequest.Status == "pending" {
+			return nil, fmt.Errorf("заявка уже отправлена и ожидает подтверждения")
+		}
 	}
-	return nil, nil
+
+	// Получить группу
+	var group models.Group
+	if err := db.GetDB().Where("id = ?", input.GroupID).First(&group).Error; err != nil {
+		return nil, fmt.Errorf("группа не найдена")
+	}
+
+	if group.IsPrivate {
+		// Группа закрыта — создаём заявку
+		request := models.GroupJoinRequest{
+			UserID:  user.ID,
+			GroupID: group.ID,
+			Status:  "pending",
+		}
+		if err := db.GetDB().Create(&request).Error; err != nil {
+			return nil, fmt.Errorf("ошибка создания заявки: %v", err)
+		}
+		return &JoinGroupResult{
+			Message: "Заявка на вступление отправлена, ожидайте подтверждения от администратора группы",
+			Joined:  false,
+		}, nil // возвращаем группу с инфой, но не добавляем в participants
+	} else {
+		// Открытая группа — добавляем напрямую
+		member := models.GroupUsers{
+			UserID:      user.ID,
+			GroupID:     group.ID,
+			RoleInGroup: "member",
+		}
+		if err := db.GetDB().Create(&member).Error; err != nil {
+			return nil, fmt.Errorf("ошибка добавления пользователя в группу: %v", err)
+		}
+		return &JoinGroupResult{
+			Message: "Пользователь успешно присоединился к группе",
+			Joined:  true,
+		}, nil
+	}
+}
+
+func DeleteGroup(requesterEmail string, groupID uint) error {
+	var requester models.User
+	if err := db.GetDB().Where("email = ?", requesterEmail).First(&requester).Error; err != nil {
+		return errors.New("пользователь не найден")
+	}
+
+	role, err := getUserRole(requester.ID, groupID)
+	if err != nil || role != "admin" {
+		return errors.New("только админ может удалить группу")
+	}
+
+	var group models.Group
+	if err := db.GetDB().First(&group, groupID).Error; err != nil {
+		return errors.New("группа не найдена")
+	}
+
+	tx := db.GetDB().Begin()
+
+	if err := tx.Where("group_id = ?", groupID).Delete(&models.GroupUsers{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Where("group_id = ?", groupID).Delete(&models.GroupJoinRequest{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Where("group_id = ?", groupID).Delete(&models.GroupGroupCategory{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Delete(&group).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
 }

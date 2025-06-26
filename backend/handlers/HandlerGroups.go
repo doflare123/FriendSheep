@@ -3,6 +3,7 @@ package handlers
 import (
 	"friendship/services"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,6 +20,11 @@ type CreateGroupInputDoc struct {
 
 type JoinGroupInputDoc struct {
 	GroupID uint `json:"groupId" binding:"required"`
+}
+
+type JoinGroupResponseDoc struct {
+	Message string `json:"message" example:"Заявка на вступление отправлена"`
+	Joined  bool   `json:"joined" example:"false"`
 }
 
 // @Security BearerAuth
@@ -69,7 +75,7 @@ func CreateGroup(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param input body JoinGroupInputDoc true "Данные для присоединения к группе"
-// @Success 200 {object} map[string]string "Пользователь успешно присоеденен к группе"
+// @Success 200 {object} JoinGroupResponseDoc "Успешный ответ: вступил или заявка отправлена"
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -88,16 +94,42 @@ func JoinGroup(c *gin.Context) {
 		return
 	}
 	res, err := services.JoinGroup(email, input)
-
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if res != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Неудалось приисоединиться к группе"})
+	c.JSON(http.StatusOK, gin.H{
+		"message": res.Message,
+		"joined":  res.Joined,
+	})
+}
+
+// DeleteGroups godoc
+// @Summary Удаление группы
+// @Description Удаляет группу. Только администратор группы может удалить её. Удаляются также участники и заявки на вступление.
+// @Tags groups
+// @Security BearerAuth
+// @Param groupId path int true "ID группы"
+// @Produce json
+// @Success 200 {object} map[string]string "Группа успешно удалена"
+// @Failure 400 {object} map[string]string "Некорректный ID группы"
+// @Failure 403 {object} map[string]string "Нет прав или группа не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router /api/groups/{groupId} [delete]
+func DeleteGroups(c *gin.Context) {
+	email := c.MustGet("email").(string)
+	groupIDParam := c.Param("groupId")
+	groupID, err := strconv.ParseUint(groupIDParam, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID группы"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Пользователь успешно присоеденен к группе"})
+	if err := services.DeleteGroup(email, uint(groupID)); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Вы удалили группу"})
 }
