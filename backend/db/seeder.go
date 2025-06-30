@@ -1,12 +1,12 @@
 package db
 
 import (
-	"friendship/models"
+	"friendship/models/groups"
 	"log"
 )
 
 func SeedCategories() {
-	categories := []models.GroupCategory{
+	categories := []groups.GroupCategory{
 		{Name: "Фильмы"},
 		{Name: "Игры"},
 		{Name: "Настольные игры"},
@@ -14,7 +14,7 @@ func SeedCategories() {
 	}
 
 	for _, category := range categories {
-		var existing models.GroupCategory
+		var existing groups.GroupCategory
 		err := GetDB().Where("name = ?", category.Name).First(&existing).Error
 		if err == nil {
 			continue // Категория уже существует — пропускаем

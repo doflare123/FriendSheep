@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"friendship/models"
+	"friendship/models/groups"
 	"os"
 
 	"gorm.io/driver/postgres"
@@ -27,7 +28,7 @@ func InitDatabase() error {
 		return fmt.Errorf("failed to connect to database: %v", err)
 	}
 
-	return db.AutoMigrate(&models.User{}, &models.Group{}, &models.GroupCategory{}, &models.GroupUsers{}, &models.GroupJoinRequest{})
+	return db.AutoMigrate(&models.User{}, &groups.Group{}, &groups.GroupCategory{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{})
 }
 
 func GetDB() *gorm.DB {

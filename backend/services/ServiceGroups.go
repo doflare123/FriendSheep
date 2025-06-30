@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"friendship/db"
 	"friendship/models"
+	"friendship/models/groups"
 )
 
 type CreateGroupInput struct {
@@ -37,7 +38,7 @@ type JoinGroupInput struct {
 	GroupID uint `json:"groupId" binding:"required"`
 }
 
-func CreateGroup(email string, input CreateGroupInput) (*models.Group, error) {
+func CreateGroup(email string, input CreateGroupInput) (*groups.Group, error) {
 	if err := ValidateInput(input); err != nil {
 		return nil, fmt.Errorf("невалидная структура данных: %v", err)
 	}
@@ -53,14 +54,14 @@ func CreateGroup(email string, input CreateGroupInput) (*models.Group, error) {
 	}
 
 	// Загрузка категорий
-	var categories []models.GroupCategory
+	var categories []groups.GroupCategory
 	if len(input.Categories) > 0 {
 		if err := db.GetDB().Where("id IN ?", input.Categories).Find(&categories).Error; err != nil {
 			return nil, fmt.Errorf("ошибка загрузки категорий: %v", err)
 		}
 	}
 
-	group := models.Group{
+	group := groups.Group{
 		Name:             input.Name,
 		Discription:      input.Description,
 		SmallDiscription: input.SmallDescription,
@@ -75,7 +76,7 @@ func CreateGroup(email string, input CreateGroupInput) (*models.Group, error) {
 		return nil, fmt.Errorf("ошибка создания группы: %v", err)
 	}
 
-	groupUser := models.GroupUsers{
+	groupUser := groups.GroupUsers{
 		UserID:      creator.ID,
 		GroupID:     group.ID,
 		RoleInGroup: "admin",
@@ -96,7 +97,7 @@ func JoinGroup(email string, input JoinGroupInput) (*JoinGroupResult, error) {
 	}
 
 	// Проверить, есть ли уже заявка или участие
-	var existing models.GroupUsers
+	var existing groups.GroupUsers
 	if err := db.GetDB().
 		Where("user_id = ? AND group_id = ?", user.ID, input.GroupID).
 		First(&existing).Error; err == nil {
@@ -104,7 +105,7 @@ func JoinGroup(email string, input JoinGroupInput) (*JoinGroupResult, error) {
 	}
 
 	// Проверка на уже поданную заявку
-	var existingRequest models.GroupJoinRequest
+	var existingRequest groups.GroupJoinRequest
 	if err := db.GetDB().
 		Where("user_id = ? AND group_id = ?", user.ID, input.GroupID).
 		First(&existingRequest).Error; err == nil {
@@ -114,14 +115,14 @@ func JoinGroup(email string, input JoinGroupInput) (*JoinGroupResult, error) {
 	}
 
 	// Получить группу
-	var group models.Group
+	var group groups.Group
 	if err := db.GetDB().Where("id = ?", input.GroupID).First(&group).Error; err != nil {
 		return nil, fmt.Errorf("группа не найдена")
 	}
 
 	if group.IsPrivate {
 		// Группа закрыта — создаём заявку
-		request := models.GroupJoinRequest{
+		request := groups.GroupJoinRequest{
 			UserID:  user.ID,
 			GroupID: group.ID,
 			Status:  "pending",
@@ -135,7 +136,7 @@ func JoinGroup(email string, input JoinGroupInput) (*JoinGroupResult, error) {
 		}, nil // возвращаем группу с инфой, но не добавляем в participants
 	} else {
 		// Открытая группа — добавляем напрямую
-		member := models.GroupUsers{
+		member := groups.GroupUsers{
 			UserID:      user.ID,
 			GroupID:     group.ID,
 			RoleInGroup: "member",
@@ -161,22 +162,22 @@ func DeleteGroup(requesterEmail string, groupID uint) error {
 		return errors.New("только админ может удалить группу")
 	}
 
-	var group models.Group
+	var group groups.Group
 	if err := db.GetDB().First(&group, groupID).Error; err != nil {
 		return errors.New("группа не найдена")
 	}
 
 	tx := db.GetDB().Begin()
 
-	if err := tx.Where("group_id = ?", groupID).Delete(&models.GroupUsers{}).Error; err != nil {
+	if err := tx.Where("group_id = ?", groupID).Delete(&groups.GroupUsers{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
-	if err := tx.Where("group_id = ?", groupID).Delete(&models.GroupJoinRequest{}).Error; err != nil {
+	if err := tx.Where("group_id = ?", groupID).Delete(&groups.GroupJoinRequest{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
-	if err := tx.Where("group_id = ?", groupID).Delete(&models.GroupGroupCategory{}).Error; err != nil {
+	if err := tx.Where("group_id = ?", groupID).Delete(&groups.GroupGroupCategory{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}

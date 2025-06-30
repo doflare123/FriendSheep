@@ -4,15 +4,16 @@ import (
 	"errors"
 	"friendship/db"
 	"friendship/models"
+	"friendship/models/groups"
 )
 
-func GetPendingJoinRequestsForAdmin(email string) ([]models.GroupJoinRequest, error) {
+func GetPendingJoinRequestsForAdmin(email string) ([]groups.GroupJoinRequest, error) {
 	var user models.User
 	if err := db.GetDB().Where("email = ?", email).First(&user).Error; err != nil {
 		return nil, errors.New("пользователь не найден")
 	}
 
-	var requests []models.GroupJoinRequest
+	var requests []groups.GroupJoinRequest
 	err := db.GetDB().
 		Table("group_join_requests").
 		Joins("JOIN groups ON group_join_requests.group_id = groups.id").
@@ -31,12 +32,12 @@ func ApproveJoinRequestByID(email string, requestID string) error {
 		return errors.New("пользователь не найден")
 	}
 
-	var request models.GroupJoinRequest
+	var request groups.GroupJoinRequest
 	if err := db.GetDB().Preload("Group").First(&request, requestID).Error; err != nil {
 		return errors.New("заявка не найдена")
 	}
 
-	var adminCheck models.GroupUsers
+	var adminCheck groups.GroupUsers
 	if err := db.GetDB().Where("user_id = ? AND group_id = ? AND role_in_group = ?", user.ID, request.GroupID, "admin").First(&adminCheck).Error; err != nil {
 		return errors.New("вы не администратор этой группы")
 	}
@@ -46,7 +47,7 @@ func ApproveJoinRequestByID(email string, requestID string) error {
 		return err
 	}
 
-	member := models.GroupUsers{
+	member := groups.GroupUsers{
 		UserID:      request.UserID,
 		GroupID:     request.GroupID,
 		RoleInGroup: "member",
@@ -60,12 +61,12 @@ func RejectJoinRequestByID(email string, requestID string) error {
 		return errors.New("пользователь не найден")
 	}
 
-	var request models.GroupJoinRequest
+	var request groups.GroupJoinRequest
 	if err := db.GetDB().Preload("Group").First(&request, requestID).Error; err != nil {
 		return errors.New("заявка не найдена")
 	}
 
-	var adminCheck models.GroupUsers
+	var adminCheck groups.GroupUsers
 	if err := db.GetDB().Where("user_id = ? AND group_id = ? AND role_in_group = ?", user.ID, request.GroupID, "admin").First(&adminCheck).Error; err != nil {
 		return errors.New("вы не администратор этой группы")
 	}

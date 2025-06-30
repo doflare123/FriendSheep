@@ -1,4 +1,4 @@
-package models
+package groups
 
 type GroupGroupCategory struct {
 	GroupID         uint `gorm:"column:group_id"`

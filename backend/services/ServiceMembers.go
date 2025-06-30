@@ -4,11 +4,12 @@ import (
 	"errors"
 	"friendship/db"
 	"friendship/models"
+	"friendship/models/groups"
 )
 
 // Проверка роли пользователя в группе
 func getUserRole(userID, groupID uint) (string, error) {
-	var groupUser models.GroupUsers
+	var groupUser groups.GroupUsers
 	err := db.GetDB().Where("user_id = ? AND group_id = ?", userID, groupID).First(&groupUser).Error
 	if err != nil {
 		return "", errors.New("пользователь не состоит в группе")
@@ -36,7 +37,7 @@ func RemoveUserFromGroup(requesterEmail string, groupID, targetUserID uint) erro
 		return errors.New("используйте /leave для выхода")
 	}
 
-	return db.GetDB().Where("user_id = ? AND group_id = ?", targetUserID, groupID).Delete(&models.GroupUsers{}).Error
+	return db.GetDB().Where("user_id = ? AND group_id = ?", targetUserID, groupID).Delete(&groups.GroupUsers{}).Error
 }
 
 func LeaveGroup(email string, groupID uint) error {
@@ -52,7 +53,7 @@ func LeaveGroup(email string, groupID uint) error {
 
 	if role == "admin" {
 		var adminCount int64
-		db.GetDB().Model(&models.GroupUsers{}).
+		db.GetDB().Model(&groups.GroupUsers{}).
 			Where("group_id = ? AND role_in_group = ?", groupID, "admin").
 			Count(&adminCount)
 
@@ -61,5 +62,5 @@ func LeaveGroup(email string, groupID uint) error {
 		}
 	}
 
-	return db.GetDB().Where("user_id = ? AND group_id = ?", user.ID, groupID).Delete(&models.GroupUsers{}).Error
+	return db.GetDB().Where("user_id = ? AND group_id = ?", user.ID, groupID).Delete(&groups.GroupUsers{}).Error
 }
