@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+/* Локальные шрифты */
+@font-face {
+  font-family: 'Alexandria';
+  src: url('/fonts/Alexandria-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* Меняешь здесь на нужный шрифт */
+  --font-inter: 'Inter', sans-serif;
+  --font-alexandria: 'Alexandria', sans-serif;
+  /* или */
+  /* --font-sans: 'Inter', sans-serif; */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-inter: var(--font-inter);
+  --font-alexandria: var(--font-alexandria); /* если используешь моноширинный */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter);
+}
