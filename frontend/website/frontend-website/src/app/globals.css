@@ -52,3 +52,36 @@ body {
   color: var(--foreground);
   font-family: var(--font-inter);
 }
+
+
+.form-container {
+  @apply bg-white rounded-2xl p-10 w-full max-w-2xl font-alexandria border-2 border-[#316BC2] min-h-[475px] text-2xl;
+}
+
+.page-wrapper {
+  @apply h-full bg-[url('/bg_login.png')] bg-cover bg-center bg-no-repeat;
+}
+
+.main-center {
+  @apply flex items-center justify-center h-full;
+}
+
+.heading-title {
+  @apply text-4xl text-center text-[#37A2E6] font-bold mb-6;
+}
+
+.label-style {
+  @apply block mb-1 text-gray-700;
+}
+
+.input-style {
+  @apply w-full rounded-lg border-2 border-[#316BC2] p-3 text-xl;
+}
+
+.button-primary {
+  @apply w-full rounded-lg bg-[#37A2E6] border-2 border-[#316BC2] text-white py-3 hover:bg-[#2d93d5] transition mt-5;
+}
+
+.link-small-note {
+  @apply text-right text-xl text-gray-600 -mt-2 font-semibold; /* Был font-bold, заменили на полужирный */
+}
