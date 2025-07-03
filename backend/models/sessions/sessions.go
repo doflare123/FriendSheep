@@ -10,13 +10,13 @@ type Session struct {
 	ID            uint             `gorm:"primaryKey;autoIncrement"`
 	Title         string           `gorm:"not null"`
 	SessionTypeID uint             `gorm:"not null"`
-	SessionType   sessionGroupType `gorm:"foreignKey:SessionTypeID"`
+	SessionType   SessionGroupType `gorm:"foreignKey:SessionTypeID"`
 
 	GroupID uint         `gorm:"not null"`
 	Group   groups.Group `gorm:"foreignKey:GroupID"`
 
 	StartTime time.Time `gorm:"not null"`
-	Duration  uint16    `gorm:"not null"`
+	Duration  uint16    `gorm:"null"`
 
 	UserID uint        `gorm:"not null"` // создатель
 	User   models.User `gorm:"foreignKey:UserID"`

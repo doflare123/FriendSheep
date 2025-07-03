@@ -2,6 +2,7 @@ package main
 
 import (
 	"friendship/db"
+	"friendship/middlewares"
 	"friendship/routes"
 	"friendship/services"
 	"friendship/utils"
@@ -34,14 +35,19 @@ func main() {
 		_ = v.RegisterValidation("password", utils.PasswordValidation)
 		services.InitValidator(v)
 	}
+	utils.Init()
 	// Создаем новый экземпляр роутера
 	r := gin.Default()
+	r.Use(middlewares.RequestLogger())
+	r.Static("/uploads", "./uploads")
 	db.InitDatabase()
 	db.SeedCategories()
+	db.SeedCategoriesSessions()
 	db.InitMongoDB()
 	routes.RoutesUsers(r)
 	routes.RoutesAuth(r)
 	routes.RouterGroups(r)
+	routes.RouterSessions(r)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/docs", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
