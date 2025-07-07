@@ -552,6 +552,161 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/sessions/createSession": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создает сессию в группе с возможностью загрузки изображения и добавления метаданных",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Сессии"
+                ],
+                "summary": "Создание новой сессии",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Название сессии",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID типа сессии",
+                        "name": "session_type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "group_id",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Время начала (в формате RFC3339, напр. 2025-07-10T19:00:00+02:00)",
+                        "name": "start_time",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Длительность в минутах",
+                        "name": "duration",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Максимальное количество участников",
+                        "name": "count_users",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Тип метаданных (например: киновечер)",
+                        "name": "meta_type",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Жанры (через запятую, напр: драма,комедия)",
+                        "name": "genres",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Доп. поля (напр: ключ:значение,ключ2:знач2)",
+                        "name": "fields",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Место проведения",
+                        "name": "location",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Год (например: 2023)",
+                        "name": "year",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Страна",
+                        "name": "country",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Возрастное ограничение (напр: 16+)",
+                        "name": "age_limit",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Примечания",
+                        "name": "notes",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Изображение",
+                        "name": "image",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Сессия создана",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка запроса",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Не передан JWT",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера или валидации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/sessions/register": {
             "post": {
                 "description": "Создает сессию для подтверждения email пользователя при регистрации",
@@ -594,6 +749,85 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sessions/sessions/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет сессию, если пользователь является admin или operator в группе",
+                "tags": [
+                    "Сессии"
+                ],
+                "summary": "Удаление сессии",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID сессии для удаления",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Сессия удалена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "JWT не передан",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Сессия не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера или БД",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {

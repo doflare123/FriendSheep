@@ -7,7 +7,7 @@ type Notification struct {
 	UserID             uint             `gorm:"not null;index"`
 	SessionID          uint             `gorm:"not null;index"`
 	NotificationTypeID uint             `gorm:"not null;index"`
-	NotificationType   NotificationType `gorm:"foreignKey:NotificationTypeID"`
+	NotificationType   NotificationType `gorm:"foreignKey:NotificationTypeID;references:ID"`
 	SendAt             time.Time        `gorm:"not null;index"`
 	Sent               bool             `gorm:"default:false"`
 	CreatedAt          time.Time

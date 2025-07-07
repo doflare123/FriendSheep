@@ -511,6 +511,110 @@ paths:
       summary: Отклонить заявку
       tags:
       - groups
+  /api/sessions/createSession:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Создает сессию в группе с возможностью загрузки изображения и добавления
+        метаданных
+      parameters:
+      - description: Название сессии
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: ID типа сессии
+        in: formData
+        name: session_type
+        required: true
+        type: integer
+      - description: ID группы
+        in: formData
+        name: group_id
+        required: true
+        type: integer
+      - description: Время начала (в формате RFC3339, напр. 2025-07-10T19:00:00+02:00)
+        in: formData
+        name: start_time
+        required: true
+        type: string
+      - description: Длительность в минутах
+        in: formData
+        name: duration
+        type: integer
+      - description: Максимальное количество участников
+        in: formData
+        name: count_users
+        required: true
+        type: integer
+      - description: 'Тип метаданных (например: киновечер)'
+        in: formData
+        name: meta_type
+        type: string
+      - description: 'Жанры (через запятую, напр: драма,комедия)'
+        in: formData
+        name: genres
+        type: string
+      - description: 'Доп. поля (напр: ключ:значение,ключ2:знач2)'
+        in: formData
+        name: fields
+        type: string
+      - description: Место проведения
+        in: formData
+        name: location
+        type: string
+      - description: 'Год (например: 2023)'
+        in: formData
+        name: year
+        type: integer
+      - description: Страна
+        in: formData
+        name: country
+        type: string
+      - description: 'Возрастное ограничение (напр: 16+)'
+        in: formData
+        name: age_limit
+        type: string
+      - description: Примечания
+        in: formData
+        name: notes
+        type: string
+      - description: Изображение
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Сессия создана
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка запроса
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не передан JWT
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера или валидации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создание новой сессии
+      tags:
+      - Сессии
   /api/sessions/register:
     post:
       consumes:
@@ -545,6 +649,58 @@ paths:
       summary: Создать сессию регистрации
       tags:
       - sessions
+  /api/sessions/sessions/{id}:
+    delete:
+      description: Удаляет сессию, если пользователь является admin или operator в
+        группе
+      parameters:
+      - description: ID сессии для удаления
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: Сессия удалена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: JWT не передан
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Сессия не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера или БД
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удаление сессии
+      tags:
+      - Сессии
   /api/sessions/verify:
     patch:
       consumes:

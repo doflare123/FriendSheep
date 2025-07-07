@@ -28,7 +28,7 @@ func InitDatabase() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %v", err)
 	}
-
+	db.AutoMigrate(&sessions.Notification{})
 	return db.AutoMigrate(&models.User{},
 		&groups.Group{}, &groups.GroupCategory{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{},
 		&sessions.Session{}, &sessions.SessionGroupType{}, &sessions.SessionMetadata{}, &sessions.SessionUser{})

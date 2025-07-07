@@ -3,7 +3,6 @@ package sessions
 //mongodb
 
 type SessionMetadata struct {
-	ID        uint                   `bson:"_id" json:"id"`
 	SessionID uint                   `bson:"session_id"`
 	Type      string                 `bson:"type"`
 	Fields    map[string]interface{} `bson:"fields"`

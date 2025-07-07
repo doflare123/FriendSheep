@@ -63,8 +63,8 @@ func CreateGroup(email string, input CreateGroupInput) (*groups.Group, error) {
 
 	group := groups.Group{
 		Name:             input.Name,
-		Discription:      input.Description,
-		SmallDiscription: input.SmallDescription,
+		Description:      input.Description,
+		SmallDescription: input.SmallDescription,
 		Image:            input.Image,
 		Creater:          creator,
 		IsPrivate:        isPrivate,
