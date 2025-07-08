@@ -1,0 +1,8 @@
+# Разработка (из папки docker/)
+docker compose up -d --build
+
+# Продакшен (из папки docker/)  
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+# Остановка
+docker compose down

@@ -1,0 +1,14 @@
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "8080:8080"
+    environment:
+      - ../.env
+    depends_on:
+      - redis
+      - mongo
+      - db
+    restart: unless-stopped

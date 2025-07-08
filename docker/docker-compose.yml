@@ -1,26 +1,15 @@
 services:
-  backend:
-    build: ../backend
-    ports:
-      - "8080:8080"
-    environment:
-      - ../.env
-    depends_on:
-      - redis
-      - mongo
-      - db
-    restart: unless-stopped
-
   redis:
     image: "redis:alpine"
     ports:
-    - "6666:6666"
+      - "6666:6666"
+    restart: unless-stopped
 
   mongo:
     image: mongo
     restart: always
     ports:
-      - "27017:27017"  # Стандартный порт MongoDB
+      - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: FriendSheep
       MONGO_INITDB_ROOT_PASSWORD: password
@@ -39,7 +28,7 @@ services:
       ME_CONFIG_BASICAUTH: false
     depends_on:
       - mongo
-  
+
   db:
     image: postgres
     restart: always
@@ -51,6 +40,7 @@ services:
       POSTGRES_DB: FriendSheep
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
   adminer:
     image: adminer
     restart: always
@@ -58,6 +48,7 @@ services:
       - "8082:8080"
     depends_on:
       - db
+
 volumes:
   mongo_data:
   postgres_data:

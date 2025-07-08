@@ -2,3 +2,4 @@ backend/.env
 backend/go.sum
 /backend/uploads
 /backend/logs
+/backend/tmp
