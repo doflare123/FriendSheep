@@ -24,7 +24,7 @@ const docTemplate = `{
                 ],
                 "description": "Создает новую группу",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -35,13 +35,56 @@ const docTemplate = `{
                 "summary": "Создание группы",
                 "parameters": [
                     {
-                        "description": "Данные для создания группы",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.CreateGroupInputDoc"
-                        }
+                        "type": "string",
+                        "description": "Название сессии",
+                        "name": "name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Описание группы",
+                        "name": "description",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Короткое описание",
+                        "name": "smallDescription",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Город локации группы (опционально)",
+                        "name": "city",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Категории группы (записываются в виде массива целых чисел)",
+                        "name": "categories",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Приватная ли группа",
+                        "name": "isPrivate",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Изображение",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1078,47 +1121,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handlers.CreateGroupInputDoc": {
-            "type": "object",
-            "properties": {
-                "categories": {
-                    "description": "\u003c- просто строка, swag так принимает",
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "example": [
-                        1,
-                        2,
-                        3
-                    ]
-                },
-                "city": {
-                    "type": "string",
-                    "example": "Москва"
-                },
-                "description": {
-                    "type": "string",
-                    "example": "Полное описание"
-                },
-                "image": {
-                    "type": "string",
-                    "example": "https://example.com/image.png"
-                },
-                "isPrivate": {
-                    "type": "string",
-                    "example": "true"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Моя группа"
-                },
-                "smallDescription": {
-                    "type": "string",
-                    "example": "Краткое описание"
-                }
-            }
-        },
         "handlers.GetJoinRequestsResponseDoc": {
             "type": "object",
             "properties": {

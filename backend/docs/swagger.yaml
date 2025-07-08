@@ -1,34 +1,4 @@
 definitions:
-  handlers.CreateGroupInputDoc:
-    properties:
-      categories:
-        description: <- просто строка, swag так принимает
-        example:
-        - 1
-        - 2
-        - 3
-        items:
-          type: integer
-        type: array
-      city:
-        example: Москва
-        type: string
-      description:
-        example: Полное описание
-        type: string
-      image:
-        example: https://example.com/image.png
-        type: string
-      isPrivate:
-        example: "true"
-        type: string
-      name:
-        example: Моя группа
-        type: string
-      smallDescription:
-        example: Краткое описание
-        type: string
-    type: object
   handlers.GetJoinRequestsResponseDoc:
     properties:
       requests:
@@ -300,15 +270,46 @@ paths:
   /api/groups/createGroup:
     post:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Создает новую группу
       parameters:
-      - description: Данные для создания группы
-        in: body
-        name: input
+      - description: Название сессии
+        in: formData
+        name: name
         required: true
-        schema:
-          $ref: '#/definitions/handlers.CreateGroupInputDoc'
+        type: string
+      - description: Описание группы
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Короткое описание
+        in: formData
+        name: smallDescription
+        required: true
+        type: string
+      - description: Город локации группы (опционально)
+        in: formData
+        name: city
+        type: string
+      - collectionFormat: csv
+        description: Категории группы (записываются в виде массива целых чисел)
+        in: formData
+        items:
+          type: integer
+        name: categories
+        required: true
+        type: array
+      - description: Приватная ли группа
+        in: formData
+        name: isPrivate
+        required: true
+        type: boolean
+      - description: Изображение
+        in: formData
+        name: image
+        required: true
+        type: file
       produces:
       - application/json
       responses:

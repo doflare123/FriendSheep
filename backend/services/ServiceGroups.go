@@ -9,13 +9,13 @@ import (
 )
 
 type CreateGroupInput struct {
-	Name             string `json:"name" binding:"required" example:"Моя группа"`
-	Description      string `json:"description" binding:"required" example:"Полное описание группы"`
-	SmallDescription string `json:"smallDescription" binding:"required" example:"Короткое описание"`
-	Image            string `json:"image" binding:"required" example:"https://example.com/image.png"`
-	IsPrivate        string `json:"isPrivate" binding:"required" example:"true/1/0/false"` // true / false
-	City             string `json:"city,omitempty" example:"Москва"`
-	Categories       []uint `json:"categories" binding:"required" example:"[1, 2, 3]"`
+	Name             string `form:"name" binding:"required" example:"Моя группа"`
+	Description      string `form:"description" binding:"required" example:"Полное описание группы"`
+	SmallDescription string `form:"smallDescription" binding:"required" example:"Короткое описание"`
+	Image            string `form:"-"`
+	IsPrivate        string `form:"isPrivate" binding:"required" example:"true/1/0/false"` // true / false
+	City             string `form:"city,omitempty" example:"Москва"`
+	Categories       []uint `form:"categories" binding:"required" example:"[1, 2, 3]"`
 }
 
 type JoinGroupResult struct {

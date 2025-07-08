@@ -35,10 +35,63 @@ type SessionInput struct {
 	Notes     string `form:"notes"`
 }
 
+// Валидация времени начала сессии
+func (input *SessionInput) ValidateStartTime() error {
+	now := time.Now()
+
+	if input.StartTime.Before(now) {
+		return fmt.Errorf("время начала сессии не может быть в прошлом")
+	}
+
+	maxFutureTime := now.AddDate(1, 0, 0)
+	if input.StartTime.After(maxFutureTime) {
+		return fmt.Errorf("время начала сессии не может быть более чем через год")
+	}
+
+	return nil
+}
+
+// Валидация продолжительности
+func (input *SessionInput) ValidateDuration() error {
+	if input.Duration == 0 {
+		return fmt.Errorf("продолжительность сессии обязательна")
+	}
+
+	if input.Duration == 0 {
+		return fmt.Errorf("продолжительность сессии должна быть больше 0")
+	}
+
+	// Максимальная продолжительность 12 часов (720 минут)
+	if input.Duration > 720 {
+		return fmt.Errorf("продолжительность сессии не может превышать 12 часов")
+	}
+
+	return nil
+}
+
+// Расчет времени окончания
+func (input SessionInput) CalculateEndTime() time.Time {
+	if input.Duration <= 0 {
+		return input.StartTime
+	}
+	return input.StartTime.Add(time.Duration(input.Duration) * time.Minute)
+}
+
 func CreateSession(email string, input SessionInput) (bool, error) {
 	if email == "" {
 		return false, fmt.Errorf("не передан jwt")
 	}
+
+	// Валидация времени начала
+	if err := input.ValidateStartTime(); err != nil {
+		return false, fmt.Errorf("ошибка валидации времени: %v", err)
+	}
+
+	// Валидация продолжительности
+	if err := input.ValidateDuration(); err != nil {
+		return false, fmt.Errorf("ошибка валидации продолжительности: %v", err)
+	}
+
 	if err := ValidateInput(input); err != nil {
 		return false, fmt.Errorf("невалидная структура данных: %v", err)
 	}
@@ -58,39 +111,56 @@ func CreateSession(email string, input SessionInput) (bool, error) {
 		return false, fmt.Errorf("тип сессии не найден (%v): %v", input.SessionType, err)
 	}
 
+	// Расчет времени окончания
+	endTime := input.CalculateEndTime()
+
 	session := sessions.Session{
 		Title:         input.Title,
 		SessionType:   sessionType,
 		GroupID:       input.GroupID,
 		StartTime:     input.StartTime,
+		EndTime:       endTime,
 		Duration:      input.Duration,
 		CurrentUsers:  1,
 		CountUsersMax: input.CountUsers,
 		ImageURL:      input.Image,
 		UserID:        creator.ID,
 	}
+
 	if err := db.GetDB().Create(&session).Error; err != nil {
 		return false, fmt.Errorf("ошибка создания сессии: %v", err)
 	}
 
-	genres := strings.Split(input.GenresRaw, ",")
-	fields := make(map[string]interface{})
-
-	for _, pair := range strings.Split(input.FieldsRaw, ",") {
-		kv := strings.SplitN(pair, ":", 2)
-		if len(kv) != 2 {
-			continue
+	// Обработка метаданных
+	var genres []string
+	if input.GenresRaw != "" {
+		genres = strings.Split(input.GenresRaw, ",")
+		// Очищаем от лишних пробелов
+		for i, genre := range genres {
+			genres[i] = strings.TrimSpace(genre)
 		}
-		key := strings.TrimSpace(kv[0])
-		value := strings.TrimSpace(kv[1])
+	}
 
-		// Попробуем определить тип
-		if value == "true" || value == "false" {
-			fields[key] = (value == "true")
-		} else if i, err := strconv.Atoi(value); err == nil {
-			fields[key] = i
-		} else {
-			fields[key] = value
+	fields := make(map[string]interface{})
+	if input.FieldsRaw != "" {
+		for _, pair := range strings.Split(input.FieldsRaw, ",") {
+			kv := strings.SplitN(pair, ":", 2)
+			if len(kv) != 2 {
+				continue
+			}
+			key := strings.TrimSpace(kv[0])
+			value := strings.TrimSpace(kv[1])
+
+			// Попробуем определить тип
+			if value == "true" || value == "false" {
+				fields[key] = (value == "true")
+			} else if i, err := strconv.Atoi(value); err == nil {
+				fields[key] = i
+			} else if f, err := strconv.ParseFloat(value, 64); err == nil {
+				fields[key] = f
+			} else {
+				fields[key] = value
+			}
 		}
 	}
 
@@ -109,7 +179,18 @@ func CreateSession(email string, input SessionInput) (bool, error) {
 	collection := db.GetMongoDB().Collection("session_metadata")
 	_, err := collection.InsertOne(context.TODO(), meta)
 	if err != nil {
+		// Откатываем создание сессии если не удалось сохранить метаданные
+		db.GetDB().Delete(&session)
 		return false, fmt.Errorf("не удалось сохранить метаданные Mongo: %v", err)
+	}
+
+	addNewUserToSession := sessions.SessionUser{
+		SessionID: session.ID,
+		UserID:    creator.ID,
+	}
+
+	if err := db.GetDB().Create(&addNewUserToSession).Error; err != nil {
+		return false, fmt.Errorf("ошибка создания сессии: %v", err)
 	}
 
 	return true, nil

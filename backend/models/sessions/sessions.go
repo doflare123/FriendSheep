@@ -16,6 +16,7 @@ type Session struct {
 	Group   groups.Group `gorm:"foreignKey:GroupID"`
 
 	StartTime time.Time `gorm:"not null"`
+	EndTime   time.Time `gorm:"not null"`
 	Duration  uint16    `gorm:"null"`
 
 	UserID uint        `gorm:"not null"` // создатель

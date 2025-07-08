@@ -50,6 +50,7 @@ func CreateSession(c *gin.Context) {
 		return
 	}
 
+	var imageURL string
 	header, err := c.FormFile("image")
 	if err == nil { // Если файл есть
 		file, err := header.Open()
@@ -59,13 +60,12 @@ func CreateSession(c *gin.Context) {
 		}
 		defer file.Close()
 
-		filePath := fmt.Sprintf("uploads/%s", header.Filename)
-		url, err := middlewares.UploadImage(file, filePath)
+		imageURL, err = middlewares.UploadImage(file, header.Filename, "sessions")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки изображения: " + err.Error()})
 			return
 		}
-		input.Image = url
+		input.Image = imageURL
 	}
 
 	ok, err := services.CreateSession(email, input)

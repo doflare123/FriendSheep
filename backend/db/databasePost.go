@@ -29,9 +29,11 @@ func InitDatabase() error {
 		return fmt.Errorf("failed to connect to database: %v", err)
 	}
 	db.AutoMigrate(&sessions.Notification{})
-	return db.AutoMigrate(&models.User{},
+	db.AutoMigrate(&models.User{},
 		&groups.Group{}, &groups.GroupCategory{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{},
-		&sessions.Session{}, &sessions.SessionGroupType{}, &sessions.SessionMetadata{}, &sessions.SessionUser{})
+		&sessions.Session{}, &sessions.SessionGroupType{}, &sessions.SessionMetadata{})
+
+	return db.AutoMigrate(&sessions.SessionUser{})
 }
 
 func GetDB() *gorm.DB {
