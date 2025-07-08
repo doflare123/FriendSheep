@@ -55,7 +55,7 @@ body {
 
 
 .form-container {
-  @apply bg-white rounded-2xl p-10 w-full max-w-2xl font-alexandria border-2 border-[#316BC2] min-h-[475px] text-2xl;
+  @apply bg-white rounded-2xl p-10 w-full max-w-2xl font-inter border-2 border-[#316BC2] min-h-[475px] text-2xl;
 }
 
 .page-wrapper {
@@ -67,11 +67,11 @@ body {
 }
 
 .heading-title {
-  @apply text-4xl text-center text-[#37A2E6] font-bold mb-6;
+  @apply text-5xl text-center text-[#37A2E6] mb-6;
 }
 
 .label-style {
-  @apply block mb-1 text-gray-700;
+  @apply block mb-1;
 }
 
 .input-style {
@@ -79,7 +79,7 @@ body {
 }
 
 .button-primary {
-  @apply w-full rounded-lg bg-[#37A2E6] border-2 border-[#316BC2] text-white py-3 hover:bg-[#2d93d5] transition mt-5;
+  @apply w-[80%] block mx-auto rounded-lg bg-[#37A2E6] border-2 border-[#316BC2] text-white py-3 hover:bg-[#2d93d5] transition mt-5;
 }
 
 .link-small-note {

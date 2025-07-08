@@ -8,7 +8,7 @@ export default function Header() {
         <header className="flex justify-between items-center px-6 py-5 bg-white shadow relative">
             {/* Логотип слева */}
             <div className="flex items-center gap-2">
-                <Image src="/logo.png" alt="Логотип" width={64} height={64} />
+                <Image src="/logo.png" alt="Логотип" width={64} height={64} className="rounded-[1.0rem]"/>
                 <span className="text-sky-500 text-3xl font-inter">FriendShip</span>
             </div>
 
