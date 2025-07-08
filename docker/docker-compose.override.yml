@@ -13,4 +13,5 @@ services:
       - db
     restart: unless-stopped
     volumes:
-      - ../backend:/app  # Монтируем код для hot reload
+      - ../backend:/app  # Монтируем весь код
+      - /app/tmp        # Исключаем tmp директорию из синхронизации
