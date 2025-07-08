@@ -3,3 +3,6 @@ backend/go.sum
 /frontend/website/frontend-website/node_modules
 **/node_modules
 /frontend/website/frontend-website/.next
+/backend/tmp
+/backend/logs
+/backend/uploads
