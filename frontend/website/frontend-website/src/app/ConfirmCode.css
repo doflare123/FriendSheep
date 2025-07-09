@@ -1,0 +1,85 @@
+.dots-animation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 42px;
+    gap: 12px;
+    height: 24px;
+    position: relative;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #2196f3;
+    position: relative;
+}
+
+/* Прыгающая точка */
+.dot1 {
+    animation: jump 1.5s ease-in-out infinite;
+}
+
+/* Остальные сдвигаются влево */
+.dot2 {
+    animation: slideLeft1 1.5s ease-in-out infinite;
+}
+
+.dot3 {
+    animation: slideLeft2 1.5s ease-in-out infinite;
+}
+
+/* Прыжок */
+@keyframes jump {
+    0% {
+        transform: translateX(0) translateY(0);
+        z-index: 1;
+    }
+    20% {
+        transform: translateX(12px) translateY(-15px);
+    }
+    40% {
+        transform: translateX(24px) translateY(0);
+    }
+    60% {
+        transform: translateX(36px) translateY(-15px);
+    }
+    80% {
+        transform: translateX(48px) translateY(0);
+    }
+    100% {
+        transform: translateX(0) translateY(0);
+    }
+}
+
+/* Сдвиг остальных влево, но не дальше нужного */
+@keyframes slideLeft1 {
+    0% {
+        transform: translateX(0);
+    }
+    45% {
+        transform: translateX(-24px);
+    }
+    85% {
+        transform: translateX(-24px);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideLeft2 {
+    0% {
+        transform: translateX(0);
+    }
+    45% {
+        transform: translateX(0);
+    }
+    85% {
+        transform: translateX(-24px);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
