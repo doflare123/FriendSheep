@@ -1,0 +1,17 @@
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+    environment:
+      - ../.env
+    depends_on:
+      - redis
+      - mongo
+      - db
+    restart: unless-stopped
+    volumes:
+      - ../backend:/app  # Монтируем весь код
+      - /app/tmp        # Исключаем tmp директорию из синхронизации

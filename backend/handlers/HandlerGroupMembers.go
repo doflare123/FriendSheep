@@ -11,7 +11,7 @@ import (
 // RemoveUserHandler godoc
 // @Summary Удалить участника из группы
 // @Description Удаляет участника из группы, если текущий пользователь — админ или оператор
-// @Tags groups
+// @Tags groups_admin
 // @Security BearerAuth
 // @Param groupId path int true "ID группы"
 // @Param userId path int true "ID пользователя, которого нужно удалить"
@@ -21,7 +21,7 @@ import (
 // @Failure 403 {object} map[string]string "Нет прав на удаление"
 // @Failure 404 {object} map[string]string "Пользователь не найден или не в группе"
 // @Failure 500 {object} map[string]string "Внутренняя ошибка"
-// @Router /api/groups/{groupId}/members/{userId} [delete]
+// @Router /api/admin/groups/{groupId}/members/{userId} [delete]
 func RemoveUserHandler(c *gin.Context) {
 	email := c.MustGet("email").(string)
 	groupID, _ := strconv.ParseUint(c.Param("groupId"), 10, 64)

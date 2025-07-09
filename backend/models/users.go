@@ -18,6 +18,7 @@ type User struct {
 	Enterprise   bool      `json:"enterprise" gorm:"default:false"`
 	VerifiedUser bool      `json:"-" gorm:"default:false"`
 	Role         string    `json:"-" gorm:"default:user"`
+	Status       string    `json:"-"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

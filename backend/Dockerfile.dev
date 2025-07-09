@@ -1,0 +1,17 @@
+FROM golang:1.24
+
+WORKDIR /app
+
+# Устанавливаем Air
+RUN go install github.com/air-verse/air@latest
+
+# Копируем go.mod и go.sum для кеширования зависимостей
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Копируем конфигурацию Air
+COPY .air.toml ./
+
+EXPOSE 8080
+
+CMD ["air"]

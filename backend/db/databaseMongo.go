@@ -33,3 +33,11 @@ func InitMongoDB() {
 	MongoClient = client
 	MongoDB = client.Database(dbName)
 }
+
+func GetMongoDB() *mongo.Database {
+	return MongoDB
+}
+
+func Database() *mongo.Database {
+	return MongoClient.Database("friendship")
+}

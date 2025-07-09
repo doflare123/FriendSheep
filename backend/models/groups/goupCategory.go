@@ -1,4 +1,4 @@
-package models
+package groups
 
 type GroupCategory struct {
 	ID   uint   `json:"id" gorm:"primaryKey;autoIncrement"`

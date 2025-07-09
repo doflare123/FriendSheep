@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"friendship/middlewares"
 	"friendship/services"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,10 +34,16 @@ type JoinGroupResponseDoc struct {
 // CreateGroup godoc
 // @Summary Создание группы
 // @Description Создает новую группу
-// @Tags groups
-// @Accept  json
-// @Produce  json
-// @Param input body CreateGroupInputDoc true "Данные для создания группы"
+// @Tags groups_admin
+// @Accept multipart/form-data
+// @Produce json
+// @Param name formData string true "Название группы"
+// @Param description formData string true "Описание группы"
+// @Param smallDescription formData string true "Короткое описание"
+// @Param city formData string false "Город локации группы (опционально)"
+// @Param categories formData []int true "Категории группы (записываются в виде массива целых чисел)"
+// @Param isPrivate formData bool true "Приватная ли группа"
+// @Param image formData file true "Изображение"
 // @Success 200 {object} map[string]string "Группа успешно создана"
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]string
@@ -49,16 +58,54 @@ func CreateGroup(c *gin.Context) {
 	email := emailValue.(string)
 
 	var input services.CreateGroupInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный json", "details": err.Error()})
+	if err := c.ShouldBind(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректные данные формы", "details": err.Error()})
 		return
+	}
+
+	var imageURL string
+	header, err := c.FormFile("image")
+	if err == nil {
+		if err := middlewares.ValidateImageMIME(header); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неподдерживаемый тип файла", "details": err.Error()})
+			return
+		}
+
+		if header.Size > 10*1024*1024 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Файл слишком большой, максимум 10MB"})
+			return
+		}
+
+		file, err := header.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "не удалось открыть изображение"})
+			return
+		}
+		defer file.Close()
+
+		imageURL, err = middlewares.UploadImage(file, header.Filename, "groups")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки изображения: " + err.Error()})
+			return
+		}
+		input.Image = imageURL
 	}
 
 	group, err := services.CreateGroup(email, input)
 	if err != nil {
+		// Удаляем загруженное изображение при ошибке создания группы
+		if imageURL != "" {
+			// Извлекаем имя файла из URL
+			parts := strings.Split(imageURL, "/")
+			if len(parts) > 0 {
+				filename := parts[len(parts)-1]
+				middlewares.DeleteImage(filepath.Join("uploads", "groups", filename))
+			}
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	if group == nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Группа не создана"})
 		return
@@ -108,7 +155,7 @@ func JoinGroup(c *gin.Context) {
 // DeleteGroups godoc
 // @Summary Удаление группы
 // @Description Удаляет группу. Только администратор группы может удалить её. Удаляются также участники и заявки на вступление.
-// @Tags groups
+// @Tags groups_admin
 // @Security BearerAuth
 // @Param groupId path int true "ID группы"
 // @Produce json
@@ -116,7 +163,7 @@ func JoinGroup(c *gin.Context) {
 // @Failure 400 {object} map[string]string "Некорректный ID группы"
 // @Failure 403 {object} map[string]string "Нет прав или группа не найдена"
 // @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
-// @Router /api/groups/{groupId} [delete]
+// @Router /api/admin/groups/{groupId} [delete]
 func DeleteGroups(c *gin.Context) {
 	email := c.MustGet("email").(string)
 	groupIDParam := c.Param("groupId")
@@ -132,4 +179,43 @@ func DeleteGroups(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Вы удалили группу"})
+}
+
+// UpdateGroupHandler godoc
+// @Summary Обновить информацию о группе
+// @Description Позволяет администратору группы изменить её данные
+// @Tags groups_admin
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param groupId path int true "ID группы"
+// @Param input body services.GroupUpdateInput true "Новые данные группы"
+// @Success 200 {object} map[string]string "Группа успешно обновлена"
+// @Failure 400 {object} map[string]string "Ошибка валидации или некорректный ID"
+// @Failure 403 {object} map[string]string "Нет прав на редактирование"
+// @Failure 404 {object} map[string]string "Группа не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка"
+// @Router /api/admin/groups/{groupId} [patch]
+func UpdateGroupHandler(c *gin.Context) {
+	email := c.MustGet("email").(string)
+
+	groupIDStr := c.Param("groupId")
+	groupID, err := strconv.ParseUint(groupIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID группы"})
+		return
+	}
+
+	var input services.GroupUpdateInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ошибка в теле запроса: " + err.Error()})
+		return
+	}
+
+	if err := services.UpdateGroup(email, uint(groupID), input); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Группа успешно обновлена"})
 }

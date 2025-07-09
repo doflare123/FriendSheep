@@ -1,34 +1,4 @@
 definitions:
-  handlers.CreateGroupInputDoc:
-    properties:
-      categories:
-        description: <- просто строка, swag так принимает
-        example:
-        - 1
-        - 2
-        - 3
-        items:
-          type: integer
-        type: array
-      city:
-        example: Москва
-        type: string
-      description:
-        example: Полное описание
-        type: string
-      image:
-        example: https://example.com/image.png
-        type: string
-      isPrivate:
-        example: "true"
-        type: string
-      name:
-        example: Моя группа
-        type: string
-      smallDescription:
-        example: Краткое описание
-        type: string
-    type: object
   handlers.GetJoinRequestsResponseDoc:
     properties:
       requests:
@@ -97,6 +67,16 @@ definitions:
     required:
     - email
     type: object
+  handlers.SessionJoinInputDoc:
+    properties:
+      group_id:
+        type: integer
+      session_id:
+        type: integer
+    required:
+    - group_id
+    - session_id
+    type: object
   handlers.UserPreviewDoc:
     properties:
       email:
@@ -143,6 +123,34 @@ definitions:
     - password
     - session_id
     type: object
+  services.GroupUpdateInput:
+    properties:
+      city:
+        type: string
+      description:
+        type: string
+      image:
+        type: string
+      is_private:
+        type: boolean
+      name:
+        type: string
+      small_description:
+        type: string
+    type: object
+  services.SessionUpdateInput:
+    properties:
+      count_users_max:
+        type: integer
+      duration:
+        type: integer
+      image_url:
+        type: string
+      start_time:
+        type: string
+      title:
+        type: string
+    type: object
   services.VerifySessionInput:
     properties:
       code:
@@ -159,7 +167,7 @@ definitions:
 info:
   contact: {}
 paths:
-  /api/groups/{groupId}:
+  /api/admin/groups/{groupId}:
     delete:
       description: Удаляет группу. Только администратор группы может удалить её. Удаляются
         также участники и заявки на вступление.
@@ -200,35 +208,46 @@ paths:
       - BearerAuth: []
       summary: Удаление группы
       tags:
-      - groups
-  /api/groups/{groupId}/leave:
-    delete:
-      description: Удаляет текущего пользователя из группы. Админ не может покинуть
-        группу, если он единственный админ.
+      - groups_admin
+    patch:
+      consumes:
+      - application/json
+      description: Позволяет администратору группы изменить её данные
       parameters:
       - description: ID группы
         in: path
         name: groupId
         required: true
         type: integer
+      - description: Новые данные группы
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/services.GroupUpdateInput'
       produces:
       - application/json
       responses:
         "200":
-          description: Вы покинули группу
+          description: Группа успешно обновлена
           schema:
             additionalProperties:
               type: string
             type: object
         "400":
-          description: Ошибка — пользователь не найден, не состоит в группе или единственный
-            админ
+          description: Ошибка валидации или некорректный ID
           schema:
             additionalProperties:
               type: string
             type: object
-        "401":
-          description: Не авторизован
+        "403":
+          description: Нет прав на редактирование
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Группа не найдена
           schema:
             additionalProperties:
               type: string
@@ -241,10 +260,10 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Покинуть группу
+      summary: Обновить информацию о группе
       tags:
-      - groups
-  /api/groups/{groupId}/members/{userId}:
+      - groups_admin
+  /api/admin/groups/{groupId}/members/{userId}:
     delete:
       description: Удаляет участника из группы, если текущий пользователь — админ
         или оператор
@@ -296,19 +315,245 @@ paths:
       - BearerAuth: []
       summary: Удалить участника из группы
       tags:
-      - groups
-  /api/groups/createGroup:
+      - groups_admin
+  /api/admin/groups/requests/{requestId}/approve:
     post:
+      description: Одобрение заявки на вступление в закрытую группу. Только админ
+        может это сделать.
+      parameters:
+      - description: ID заявки
+        in: path
+        name: requestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Заявка одобрена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'Ошибка: заявка не найдена или уже обработана'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Ошибка авторизации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Вы не админ
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Одобрить заявку
+      tags:
+      - groups_admin
+  /api/admin/groups/requests/{requestId}/reject:
+    post:
+      description: Отклонение заявки на вступление в закрытую группу. Только админ
+        может это сделать.
+      parameters:
+      - description: ID заявки
+        in: path
+        name: requestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Заявка отклонена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'Ошибка: заявка не найдена или уже обработана'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Ошибка авторизации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Вы не админ
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отклонить заявку
+      tags:
+      - groups_admin
+  /api/admin/sessions/{sessionId}:
+    patch:
       consumes:
       - application/json
-      description: Создает новую группу
+      description: Позволяет администратору группы изменить данные сессии, принадлежащей
+        этой группе
       parameters:
-      - description: Данные для создания группы
+      - description: ID сессии
+        in: path
+        name: sessionId
+        required: true
+        type: integer
+      - description: Новые данные сессии
         in: body
         name: input
         required: true
         schema:
-          $ref: '#/definitions/handlers.CreateGroupInputDoc'
+          $ref: '#/definitions/services.SessionUpdateInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Сессия успешно обновлена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка валидации или некорректный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет прав на редактирование
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Сессия не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить информацию о сессии
+      tags:
+      - Сессии_админ
+  /api/groups/{groupId}/leave:
+    delete:
+      description: Удаляет текущего пользователя из группы. Админ не может покинуть
+        группу, если он единственный админ.
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Вы покинули группу
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка — пользователь не найден, не состоит в группе или единственный
+            админ
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Покинуть группу
+      tags:
+      - groups
+  /api/groups/createGroup:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Создает новую группу
+      parameters:
+      - description: Название группы
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Описание группы
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Короткое описание
+        in: formData
+        name: smallDescription
+        required: true
+        type: string
+      - description: Город локации группы (опционально)
+        in: formData
+        name: city
+        type: string
+      - collectionFormat: csv
+        description: Категории группы (записываются в виде массива целых чисел)
+        in: formData
+        items:
+          type: integer
+        name: categories
+        required: true
+        type: array
+      - description: Приватная ли группа
+        in: formData
+        name: isPrivate
+        required: true
+        type: boolean
+      - description: Изображение
+        in: formData
+        name: image
+        required: true
+        type: file
       produces:
       - application/json
       responses:
@@ -339,7 +584,7 @@ paths:
       - BearerAuth: []
       summary: Создание группы
       tags:
-      - groups
+      - groups_admin
   /api/groups/joinToGroup:
     post:
       consumes:
@@ -415,102 +660,214 @@ paths:
       summary: Получить заявки на вступление
       tags:
       - groups
-  /api/groups/requests/{requestId}/approve:
-    post:
-      description: Одобрение заявки на вступление в закрытую группу. Только админ
-        может это сделать.
+  /api/sessions/{sessionId}/leave:
+    delete:
+      description: Позволяет пользователю покинуть сессию, в которой он участвует
       parameters:
-      - description: ID заявки
+      - description: ID сессии
         in: path
-        name: requestId
+        name: sessionId
         required: true
         type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: Заявка одобрена
+          description: Вы успешно покинули сессию
           schema:
             additionalProperties:
               type: string
             type: object
         "400":
-          description: 'Ошибка: заявка не найдена или уже обработана'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Ошибка авторизации
+          description: Некорректный ID
           schema:
             additionalProperties:
               type: string
             type: object
         "403":
-          description: Вы не админ
+          description: Вы не состоите в сессии или нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Сессия не найдена
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Ошибка сервера
+          description: Внутренняя ошибка
           schema:
             additionalProperties:
               type: string
             type: object
       security:
       - BearerAuth: []
-      summary: Одобрить заявку
+      summary: Отписаться от сессии
       tags:
-      - groups
-  /api/groups/requests/{requestId}/reject:
+      - Сессии
+  /api/sessions/createSession:
     post:
-      description: Отклонение заявки на вступление в закрытую группу. Только админ
-        может это сделать.
+      consumes:
+      - multipart/form-data
+      description: Создает сессию в группе с возможностью загрузки изображения и добавления
+        метаданных
       parameters:
-      - description: ID заявки
-        in: path
-        name: requestId
+      - description: Название сессии
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: ID типа сессии
+        in: formData
+        name: session_type
         required: true
         type: integer
+      - description: ID группы
+        in: formData
+        name: group_id
+        required: true
+        type: integer
+      - description: Время начала (в формате RFC3339, напр. 2025-07-10T19:00:00+02:00)
+        in: formData
+        name: start_time
+        required: true
+        type: string
+      - description: Длительность в минутах
+        in: formData
+        name: duration
+        type: integer
+      - description: Максимальное количество участников
+        in: formData
+        name: count_users
+        required: true
+        type: integer
+      - description: 'Тип метаданных (например: киновечер)'
+        in: formData
+        name: meta_type
+        type: string
+      - description: 'Жанры (через запятую, напр: драма,комедия)'
+        in: formData
+        name: genres
+        type: string
+      - description: 'Доп. поля (напр: ключ:значение,ключ2:знач2)'
+        in: formData
+        name: fields
+        type: string
+      - description: Место проведения
+        in: formData
+        name: location
+        type: string
+      - description: 'Год (например: 2023)'
+        in: formData
+        name: year
+        type: integer
+      - description: Страна
+        in: formData
+        name: country
+        type: string
+      - description: 'Возрастное ограничение (напр: 16+)'
+        in: formData
+        name: age_limit
+        type: string
+      - description: Примечания
+        in: formData
+        name: notes
+        type: string
+      - description: Изображение
+        in: formData
+        name: image
+        type: file
       produces:
       - application/json
       responses:
         "200":
-          description: Заявка отклонена
+          description: Сессия создана
           schema:
             additionalProperties:
               type: string
             type: object
         "400":
-          description: 'Ошибка: заявка не найдена или уже обработана'
+          description: Ошибка запроса
           schema:
             additionalProperties:
               type: string
             type: object
         "401":
-          description: Ошибка авторизации
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Вы не админ
+          description: Не передан JWT
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Ошибка сервера
+          description: Ошибка сервера или валидации
           schema:
             additionalProperties:
               type: string
             type: object
       security:
       - BearerAuth: []
-      summary: Отклонить заявку
+      summary: Создание новой сессии
       tags:
-      - groups
+      - Сессии
+  /api/sessions/join:
+    post:
+      consumes:
+      - application/json
+      description: Позволяет пользователю присоединиться к выбранной сессии, если
+        она не заполнена
+      parameters:
+      - description: Данные для присоединения к группе
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SessionJoinInputDoc'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Вы успешно присоединились к сессии
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка разбора формы
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Сессия или пользователь не найдены
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Сессия заполнена или пользователь уже присоединился
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Присоединение к сессии
+      tags:
+      - Сессии
   /api/sessions/register:
     post:
       consumes:
@@ -545,6 +902,58 @@ paths:
       summary: Создать сессию регистрации
       tags:
       - sessions
+  /api/sessions/sessions/{id}:
+    delete:
+      description: Удаляет сессию, если пользователь является admin или operator в
+        группе
+      parameters:
+      - description: ID сессии для удаления
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: Сессия удалена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: JWT не передан
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Сессия не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера или БД
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удаление сессии
+      tags:
+      - Сессии
   /api/sessions/verify:
     patch:
       consumes:
