@@ -188,3 +188,54 @@ func DeleteGroup(requesterEmail string, groupID uint) error {
 
 	return tx.Commit().Error
 }
+
+//Admin часть групп
+
+type GroupUpdateInput struct {
+	Name             *string `json:"name"`
+	Description      *string `json:"description"`
+	SmallDescription *string `json:"small_description"`
+	Image            *string `json:"image"`
+	IsPrivate        *bool   `json:"is_private"`
+	City             *string `json:"city"`
+}
+
+func UpdateGroup(email string, groupID uint, input GroupUpdateInput) error {
+	var user models.User
+	if err := db.GetDB().Where("email = ?", email).First(&user).Error; err != nil {
+		return nil
+	}
+	isAdmin, err := getUserRole(user.ID, groupID)
+	if isAdmin != "admin" {
+		return err
+	}
+
+	var group groups.Group
+	if err := db.GetDB().First(&group, groupID).Error; err != nil {
+		return fmt.Errorf("группа не найдена")
+	}
+	if input.Name != nil {
+		group.Name = *input.Name
+	}
+	if input.Description != nil {
+		group.Description = *input.Description
+	}
+	if input.SmallDescription != nil {
+		group.SmallDescription = *input.SmallDescription
+	}
+	if input.Image != nil {
+		group.Image = *input.Image
+	}
+	if input.IsPrivate != nil {
+		group.IsPrivate = *input.IsPrivate
+	}
+	if input.City != nil {
+		group.City = *input.City
+	}
+
+	if err := db.GetDB().Save(&group).Error; err != nil {
+		return fmt.Errorf("не удалось сохранить изменения: %v", err)
+	}
+
+	return nil
+}

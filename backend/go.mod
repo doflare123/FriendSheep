@@ -18,7 +18,7 @@ require (
 	gorm.io/gorm v1.25.10
 )
 
-require github.com/google/uuid v1.6.0 // indirect
+require github.com/google/uuid v1.6.0 // direct
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect

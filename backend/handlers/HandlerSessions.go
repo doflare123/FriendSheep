@@ -10,6 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type SessionJoinInputDoc struct {
+	SessionID uint `json:"session_id" binding:"required"`
+	GroupID   uint `json:"group_id" binding:"required"`
+}
+
 // CreateSession godoc
 // @Summary Создание новой сессии
 // @Description Создает сессию в группе с возможностью загрузки изображения и добавления метаданных
@@ -80,6 +85,41 @@ func CreateSession(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Сессия создана"})
 }
 
+// JoinToSession godoc
+// @Summary Присоединение к сессии
+// @Description Позволяет пользователю присоединиться к выбранной сессии, если она не заполнена
+// @Tags Сессии
+// @Security BearerAuth
+// @Accept  json
+// @Produce  json
+// @Param input body SessionJoinInputDoc true "Данные для присоединения к группе"
+// @Success 200 {object} map[string]string "Вы успешно присоединились к сессии"
+// @Failure 400 {object} map[string]string "Ошибка разбора формы"
+// @Failure 401 {object} map[string]string "Пользователь не авторизован"
+// @Failure 404 {object} map[string]string "Сессия или пользователь не найдены"
+// @Failure 409 {object} map[string]string "Сессия заполнена или пользователь уже присоединился"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router /api/sessions/join [post]
+func JoinToSession(c *gin.Context) {
+	email := c.MustGet("email").(string)
+	if email == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
+		return
+	}
+	var input services.SessionJoinInput
+	if err := c.ShouldBind(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не удалось разобрать форму: " + err.Error()})
+		return
+	}
+	res := services.JoinToSession(email, input)
+	if res != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": res.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Вы успешно присоединились к сессии"})
+}
+
 // DeleteSession.
 //
 // @Summary Удаление сессии
@@ -110,4 +150,76 @@ func DeleteSession(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Сессия удалена"})
+}
+
+// LeaveSessionHandler godoc
+// @Summary Отписаться от сессии
+// @Description Позволяет пользователю покинуть сессию, в которой он участвует
+// @Tags Сессии
+// @Security BearerAuth
+// @Produce json
+// @Param sessionId path int true "ID сессии"
+// @Success 200 {object} map[string]string "Вы успешно покинули сессию"
+// @Failure 400 {object} map[string]string "Некорректный ID"
+// @Failure 403 {object} map[string]string "Вы не состоите в сессии или нет доступа"
+// @Failure 404 {object} map[string]string "Сессия не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка"
+// @Router /api/sessions/{sessionId}/leave [delete]
+func LeaveSessionHandler(c *gin.Context) {
+	email := c.MustGet("email").(string)
+
+	sessionIDStr := c.Param("sessionId")
+	sessionID, err := strconv.ParseUint(sessionIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID сессии"})
+		return
+	}
+
+	if err := services.LeaveSession(email, uint(sessionID)); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Вы успешно покинули сессию"})
+}
+
+//admin функционал
+
+// UpdateSessionHandler godoc
+// @Summary Обновить информацию о сессии
+// @Description Позволяет администратору группы изменить данные сессии, принадлежащей этой группе
+// @Tags Сессии_админ
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param sessionId path int true "ID сессии"
+// @Param input body services.SessionUpdateInput true "Новые данные сессии"
+// @Success 200 {object} map[string]string "Сессия успешно обновлена"
+// @Failure 400 {object} map[string]string "Ошибка валидации или некорректный ID"
+// @Failure 403 {object} map[string]string "Нет прав на редактирование"
+// @Failure 404 {object} map[string]string "Сессия не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка"
+// @Router /api/admin/sessions/{sessionId} [patch]
+func UpdateSessionHandler(c *gin.Context) {
+	email := c.MustGet("email").(string)
+
+	sessionIDStr := c.Param("sessionId")
+	sessionID, err := strconv.ParseUint(sessionIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID сессии"})
+		return
+	}
+
+	var input services.SessionUpdateInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ошибка в теле запроса: " + err.Error()})
+		return
+	}
+
+	if err := services.UpdateSession(email, uint(sessionID), input); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Сессия успешно обновлена"})
 }

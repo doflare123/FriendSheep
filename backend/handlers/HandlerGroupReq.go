@@ -57,7 +57,7 @@ func GetJoinRequests(c *gin.Context) {
 // ApproveJoinRequest godoc
 // @Summary Одобрить заявку
 // @Description Одобрение заявки на вступление в закрытую группу. Только админ может это сделать.
-// @Tags groups
+// @Tags groups_admin
 // @Security BearerAuth
 // @Param requestId path int true "ID заявки"
 // @Produce json
@@ -66,7 +66,7 @@ func GetJoinRequests(c *gin.Context) {
 // @Failure 401 {object} map[string]string "Ошибка авторизации"
 // @Failure 403 {object} map[string]string "Вы не админ"
 // @Failure 500 {object} map[string]string "Ошибка сервера"
-// @Router /api/groups/requests/{requestId}/approve [post]
+// @Router /api/admin/groups/requests/{requestId}/approve [post]
 func ApproveJoinRequest(c *gin.Context) {
 	email, _ := c.Get("email")
 	requestId := c.Param("requestId")
@@ -82,7 +82,7 @@ func ApproveJoinRequest(c *gin.Context) {
 // RejectJoinRequest godoc
 // @Summary Отклонить заявку
 // @Description Отклонение заявки на вступление в закрытую группу. Только админ может это сделать.
-// @Tags groups
+// @Tags groups_admin
 // @Security BearerAuth
 // @Param requestId path int true "ID заявки"
 // @Produce json
@@ -91,7 +91,7 @@ func ApproveJoinRequest(c *gin.Context) {
 // @Failure 401 {object} map[string]string "Ошибка авторизации"
 // @Failure 403 {object} map[string]string "Вы не админ"
 // @Failure 500 {object} map[string]string "Ошибка сервера"
-// @Router /api/groups/requests/{requestId}/reject [post]
+// @Router /api/admin/groups/requests/{requestId}/reject [post]
 func RejectJoinRequest(c *gin.Context) {
 	email, _ := c.Get("email")
 	requestId := c.Param("requestId")

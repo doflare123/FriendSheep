@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"gorm.io/gorm"
 )
 
 type SessionInput struct {
@@ -33,6 +34,11 @@ type SessionInput struct {
 	Country   string `form:"country"`
 	AgeLimit  string `form:"age_limit"`
 	Notes     string `form:"notes"`
+}
+
+type SessionJoinInput struct {
+	SessionID uint `json:"session_id" binding:"required"`
+	GroupID   uint `json:"group_id" binding:"required"`
 }
 
 // Валидация времени начала сессии
@@ -196,7 +202,7 @@ func CreateSession(email string, input SessionInput) (bool, error) {
 	return true, nil
 }
 
-func DeleteSession(userEmail string, sessionID uint) error {
+func JoinToSession(email string, input SessionJoinInput) error {
 	dbTx := db.GetDB().Begin()
 
 	defer func() {
@@ -206,7 +212,102 @@ func DeleteSession(userEmail string, sessionID uint) error {
 	}()
 
 	var user models.User
-	if err := dbTx.Where("email = ?", userEmail).First(&user).Error; err != nil {
+	if err := dbTx.Where("email = ?", email).First(&user).Error; err != nil {
+		dbTx.Rollback()
+		return fmt.Errorf("пользователь не найден: %v", err)
+	}
+	var session sessions.Session
+	if err := dbTx.Preload("Group").Where("id = ? AND group_id = ?", input.SessionID, input.GroupID).First(&session).Error; err != nil {
+		dbTx.Rollback()
+		return fmt.Errorf("сессия не найдена: %v", err)
+	}
+	if session.CurrentUsers >= session.CountUsersMax {
+		dbTx.Rollback()
+		return fmt.Errorf("сессия заполнена")
+	}
+	var exists sessions.SessionUser
+	if err := dbTx.Where("session_id = ? AND user_id = ?", session.ID, user.ID).First(&exists).Error; err == nil {
+		dbTx.Rollback()
+		return fmt.Errorf("пользователь уже присоединился к сессии")
+	}
+	if err := dbTx.Model(&session).Update("current_users", gorm.Expr("current_users + ?", 1)).Error; err != nil {
+		dbTx.Rollback()
+		return fmt.Errorf("ошибка обновления сессии: %v", err)
+	}
+	if err := dbTx.Create(&sessions.SessionUser{
+		SessionID: session.ID,
+		UserID:    user.ID,
+	}).Error; err != nil {
+		dbTx.Rollback()
+		return fmt.Errorf("ошибка добавления пользователя в сессию: %v", err)
+	}
+
+	return dbTx.Commit().Error
+}
+
+func LeaveSession(email string, sessionID uint) error {
+	dbTx := db.GetDB().Begin()
+
+	defer func() {
+		if r := recover(); r != nil {
+			dbTx.Rollback()
+		}
+	}()
+
+	var user models.User
+	if err := dbTx.Where("email = ?", email).First(&user).Error; err != nil {
+		dbTx.Rollback()
+		return fmt.Errorf("пользователь не найден")
+	}
+
+	var session sessions.Session
+	if err := dbTx.First(&session, sessionID).Error; err != nil {
+		dbTx.Rollback()
+		return fmt.Errorf("сессия не найдена")
+	}
+
+	var sessionUser sessions.SessionUser
+	if err := dbTx.Where("session_id = ? AND user_id = ?", sessionID, user.ID).First(&sessionUser).Error; err != nil {
+		dbTx.Rollback()
+		return fmt.Errorf("вы не состоите в этой сессии")
+	}
+
+	if err := dbTx.Delete(&sessionUser).Error; err != nil {
+		dbTx.Rollback()
+		return fmt.Errorf("ошибка при выходе из сессии: %v", err)
+	}
+
+	if session.CurrentUsers > 0 {
+		if err := dbTx.Model(&session).Update("current_users", gorm.Expr("current_users - ?", 1)).Error; err != nil {
+			dbTx.Rollback()
+			return fmt.Errorf("ошибка при обновлении счётчика сессии: %v", err)
+		}
+	}
+
+	return dbTx.Commit().Error
+}
+
+//admin функционал
+
+type SessionUpdateInput struct {
+	Title         *string    `json:"title"`
+	StartTime     *time.Time `json:"start_time"`
+	Duration      *uint16    `json:"duration"`
+	ImageURL      *string    `json:"image_url"`
+	CountUsersMax *uint16    `json:"count_users_max"`
+}
+
+func DeleteSession(email string, sessionID uint) error {
+	dbTx := db.GetDB().Begin()
+
+	defer func() {
+		if r := recover(); r != nil {
+			dbTx.Rollback()
+		}
+	}()
+
+	var user models.User
+	if err := dbTx.Where("email = ?", email).First(&user).Error; err != nil {
 		dbTx.Rollback()
 		return fmt.Errorf("пользователь не найден: %v", err)
 	}
@@ -259,4 +360,42 @@ func DeleteSession(userEmail string, sessionID uint) error {
 	}
 
 	return dbTx.Commit().Error
+}
+
+func UpdateSession(email string, sessionID uint, input SessionUpdateInput) error {
+	var session sessions.Session
+	if err := db.GetDB().Preload("Group").First(&session, sessionID).Error; err != nil {
+		return fmt.Errorf("сессия не найдена")
+	}
+
+	var user models.User
+	if err := db.GetDB().Where("email = ?", email).First(&user).Error; err != nil {
+		return nil
+	}
+	isAdmin, err := getUserRole(user.ID, session.GroupID)
+	if isAdmin != "admin" {
+		return err
+	}
+
+	if input.Title != nil {
+		session.Title = *input.Title
+	}
+	if input.StartTime != nil {
+		session.StartTime = *input.StartTime
+	}
+	if input.Duration != nil {
+		session.Duration = *input.Duration
+	}
+	if input.ImageURL != nil {
+		session.ImageURL = *input.ImageURL
+	}
+	if input.CountUsersMax != nil {
+		session.CountUsersMax = *input.CountUsersMax
+	}
+
+	if err := db.GetDB().Save(&session).Error; err != nil {
+		return fmt.Errorf("не удалось обновить сессию: %v", err)
+	}
+
+	return nil
 }
