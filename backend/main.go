@@ -11,6 +11,7 @@ import (
 
 	_ "friendship/docs"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -35,6 +36,8 @@ func main() {
 		_ = v.RegisterValidation("password", utils.PasswordValidation)
 		services.InitValidator(v)
 	}
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
 	utils.Init()
 	// Создаем новый экземпляр роутера
 	r := gin.Default()
