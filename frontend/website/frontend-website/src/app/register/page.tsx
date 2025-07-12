@@ -14,15 +14,9 @@ export default function RegisterPage() {
         e.preventDefault();
         try {
             const sessionId = await registerSession(email);
-            router.push({
-                pathname: '/register/confirm',
-                query: {
-                    password,
-                    email,
-                    username,
-                    sessionId,
-                },
-            });
+            const expiry = Math.floor(Date.now() / 1000) + 10 * 60;
+            localStorage.setItem('codeExpiryTime', expiry.toString());
+            router.push(`/register/confirm?username=${userName}&email=${email}&password=${password}&sessionId=${sessionId}`);
         } catch (error) {
             console.error('Ошибка при регистрации:', error);
             alert('Что-то пошло не так при регистрации');
