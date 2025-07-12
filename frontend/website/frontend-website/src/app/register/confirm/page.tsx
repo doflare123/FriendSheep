@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import "../../ConfirmCode.css"; // подключим CSS отдельно
+import "../../ConfirmCode.css";
+import { useRouter } from 'next/router';
 
 export default function ConfirmCode() {
-    const email = 'pochta@gmail.com';
     const [values, setValues] = useState(['', '', '', '', '', '']);
     const inputsRef = useRef([]);
 
-    const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 минут в секундах
+    const [timeLeft, setTimeLeft] = useState(15 * 60);
     const [resendAvailable, setResendAvailable] = useState(false);
+
+    const router = useRouter();
+    const { email, username, session_id } = router.query;
 
     useEffect(() => {
         if (timeLeft <= 0) {
@@ -55,7 +58,7 @@ export default function ConfirmCode() {
 
     const handleKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Backspace' && !values[index] && index > 0) {
-        inputsRef.current[index - 1]?.focus();
+            inputsRef.current[index - 1]?.focus();
         }
     };
 
