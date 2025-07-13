@@ -11,6 +11,17 @@ export default function RegisterPage() {
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
+        const isValid =
+            password.length >= 10 &&
+            /[A-Z]/.test(password) &&
+            /[a-z]/.test(password) &&
+            /[^A-Za-z0-9]/.test(password);
+
+        if (!isValid){
+            alert("Вы ввели пароль неправильно!");
+            return;
+        }
+
         e.preventDefault();
         try {
             const sessionId = await registerSession(email);
