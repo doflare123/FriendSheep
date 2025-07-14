@@ -8,9 +8,11 @@ import (
 	"friendship/utils"
 	"log"
 	"net/http"
+	"time"
 
 	_ "friendship/docs"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -39,6 +41,19 @@ func main() {
 	// Создаем новый экземпляр роутера
 	r := gin.Default()
 	r.Use(middlewares.RequestLogger())
+
+	r.Use(cors.New(cors.Config{
+        AllowOrigins:     []string{"http://localhost:3000"}, // разреши фронтенд
+        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+        AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+        ExposeHeaders:    []string{"Content-Length"},
+        AllowCredentials: true,
+        MaxAge: 12 * time.Hour,
+    }))
+	r.OPTIONS("/*path", func(c *gin.Context) {
+		c.AbortWithStatus(200)
+	})
+
 	r.Static("/uploads", "./uploads")
 	db.InitDatabase()
 	db.SeedCategories()

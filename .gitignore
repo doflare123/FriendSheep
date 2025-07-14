@@ -6,3 +6,4 @@ backend/go.sum
 /backend/tmp
 /backend/logs
 /backend/uploads
+frontend/website/frontend-website/package-lock.json
