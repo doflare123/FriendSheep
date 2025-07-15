@@ -53,9 +53,13 @@ body {
   font-family: var(--font-inter);
 }
 
+* {
+  color: #000000;
+}
+
 
 .form-container {
-  @apply bg-white rounded-2xl p-10 w-full max-w-2xl font-inter border-2 border-[#316BC2] min-h-[475px] text-2xl;
+  @apply bg-white rounded-2xl p-10 w-[50vw] max-w-2xl font-inter border-2 border-[#316BC2] min-h-[475px] text-2xl;
 }
 
 .page-wrapper {
@@ -83,5 +87,5 @@ body {
 }
 
 .link-small-note {
-  @apply text-right text-xl text-gray-600 -mt-2 font-semibold; /* Был font-bold, заменили на полужирный */
+  @apply text-right text-xl text-gray-600 -mt-2;
 }

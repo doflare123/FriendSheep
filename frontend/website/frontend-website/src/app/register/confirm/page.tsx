@@ -7,6 +7,9 @@ import { registerSession } from '../../../api/sessions';
 import { confirm_code } from '../../../api/confirm_code';
 import { createUser } from '../../../api/create_user';
 
+import FormButton from '../../../components/FormButton';
+import VerifiContainer from '../../../components/VerifiContainer';
+
 export default function ConfirmCode() {
     const [values, setValues] = useState(['', '', '', '', '', '']);
     const inputsRef = useRef([]);
@@ -108,7 +111,6 @@ export default function ConfirmCode() {
         }
         setValues(newValues);
 
-        // Перевод фокуса на следующую пустую ячейку
         const nextIndex = paste.length < values.length ? paste.length : values.length - 1;
         inputsRef.current[nextIndex]?.focus();
     };
@@ -133,64 +135,50 @@ export default function ConfirmCode() {
     };
 
     return (
-        <div className="page-wrapper">
-            <main className="main-center">
-                <div className="max-w-xl min-h-[800px]">
-                    <div className="form-container">
-                        <h1 className="heading-title">Код подтверждения</h1>
+		<VerifiContainer title="Код подтверждения" onSubmit={handleSubmit}>
+			
+			<div className="text-center text-base text-black font-medium leading-tight">
+                Введите код подтверждения из письма, отправленного на почту <br />
+                <span className="font-bold">{email}</span>
+            </div>
 
-                        <div className="dots-animation">
-                            <div className="dot dot1" />
-                            <div className="dot dot2" />
-                            <div className="dot dot3" />
-                        </div>
+			<div className="flex gap-3 justify-center">
+                {values.map((val, index) => (
+                    <input
+                        key={index}
+                        ref={(el) => (inputsRef.current[index] = el)}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        className="w-16 h-16 border-2 border-[#316BC2] rounded-lg text-center text-2xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        value={val}
+                        onChange={(e) => handleChange(index, e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(index, e)}
+                        onPaste={handlePaste}
+                    />
+                ))}
+            </div>
 
-                        <form className="space-y-4 mt-12" onSubmit={handleSubmit}>
-                            <div className="text-center text-base text-black font-medium leading-tight">
-                                Введите код подтверждения из письма, отправленного на почту <br />
-                                <span className="font-bold">{email}</span>
-                            </div>
+			<div className="text-center text-sm text-black/50 mt-2">
+                {resendAvailable ? (
+                <button
+                    type="button"
+                    className="text-blue-600 font-bold hover:underline text-xl"
+                    onClick={handleResendCode}
+                >
+                    Отправить код
+                </button>
+                ) : (
+                formatTime()
+                )}
+            </div>
 
-                            <div className="flex gap-3 justify-center">
-                                {values.map((val, index) => (
-                                    <input
-                                        key={index}
-                                        ref={(el) => (inputsRef.current[index] = el)}
-                                        type="text"
-                                        inputMode="numeric"
-                                        maxLength={1}
-                                        className="w-16 h-16 border-2 border-[#316BC2] rounded-lg text-center text-2xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                        value={val}
-                                        onChange={(e) => handleChange(index, e.target.value)}
-                                        onKeyDown={(e) => handleKeyDown(index, e)}
-                                        onPaste={handlePaste}
-                                    />
-                                ))}
-                            </div>
-
-                            <div className="text-center text-sm text-black/50 mt-2">
-                                {resendAvailable ? (
-                                <button
-                                    type="button"
-                                    className="text-blue-600 font-bold hover:underline text-xl"
-                                    onClick={handleResendCode}
-                                >
-                                    Отправить код
-                                </button>
-                                ) : (
-                                formatTime()
-                                )}
-                            </div>
-
-                            <div className="mt-15">
-                                <button className="button-primary" type="submit">
-                                    Подтвердить
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </main>
-        </div>
-    );
+			<div className="mt-15">
+				<FormButton type="submit">
+					Подтвердить
+				</FormButton>
+			</div>
+			
+		</VerifiContainer>
+	);
 }

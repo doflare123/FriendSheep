@@ -4,6 +4,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { login } from '../../api/login';
 
+import FormContainer from '../../components/FormContainer';
+import FormInput from '../../components/FormInput';
+import FormButton from '../../components/FormButton';
+import FormLink from '../../components/FormLink';
+import LinkNote from '../../components/LinkNote';
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,58 +29,39 @@ export default function LoginPage() {
     };
 
   return (
-    <div className="page-wrapper">
-      <main className="main-center">
-        <div className="form-container">
-          <h1 className="heading-title">Вход</h1>
+		<FormContainer title="Вход" onSubmit={handleSubmit}>
+			
+			<FormInput
+				id="email"
+				label="Почта"
+				type="email"
+				placeholder="user_email@gmail.com"
+				value={email}
+				onChange={(e) => setEmail(e.target.value)}
+				required
+			/>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div>
-              <label className="label-style" htmlFor="email">
-                Почта
-              </label>
-              <input
-                id="email"
-                className="input-style"
-                placeholder="user_email@gmail.com"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+			<FormInput
+				id="password"
+				label="Пароль"
+				type="password"
+				placeholder="Пароль"
+				value={password}
+				onChange={(e) => setPassword(e.target.value)}
+				required
+			/>
 
-            <div>
-              <label className="label-style" htmlFor="password">
-                Пароль
-              </label>
-              <input
-                id="password"
-                className="input-style"
-                placeholder="Пароль"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+			<LinkNote>
+				<FormLink href="#">
+					Нет аккаунта?
+				</FormLink>
+			</LinkNote>
 
-            <div className="link-small-note">
-              <a href="#" className="hover:underline">
-                Нет аккаунта?
-              </a>
-            </div>
-
-            <button
-              className="button-primary"
-              type="submit"
-            >
-              Войти
-            </button>
-          </form>
-        </div>
-      </main>
-    </div>
-  );
+			<FormButton type="submit">
+				Войти
+			</FormButton>
+			
+		</FormContainer>
+	);
 }
 
