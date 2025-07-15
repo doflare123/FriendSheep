@@ -12,7 +12,7 @@ import VerifiContainer from '../../../components/VerifiContainer';
 
 export default function ConfirmCode() {
     const [values, setValues] = useState(['', '', '', '', '', '']);
-    const inputsRef = useRef([]);
+    const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
     const [timeLeft, setTimeLeft] = useState(1 * 60);
     const [resendAvailable, setResendAvailable] = useState(false);
@@ -20,10 +20,10 @@ export default function ConfirmCode() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    const email: string = searchParams.get('email');
-    const userName = searchParams.get('username');
-    const password = searchParams.get('password');
-    const [sessionId, setSessionId] = useState<string | null>(searchParams.get('sessionId'));
+    const email: string = searchParams.get('email') || "";
+    const userName: string = searchParams.get('username') || "";
+    const password: string = searchParams.get('password') || "";
+    const [sessionId, setSessionId] = useState<string>(searchParams.get('sessionId')  || "");
 
     useEffect(() => {
         const storedExpiry = localStorage.getItem('codeExpiryTime');
@@ -38,7 +38,7 @@ export default function ConfirmCode() {
                 setResendAvailable(true);
             }
         } else {
-            const expiry = Math.floor(Date.now() / 1000) + 10 * 60;
+            const expiry = Math.floor(Date.now() / 1000) + 1 * 60;
             localStorage.setItem('codeExpiryTime', expiry.toString());
         }
     }, []);
@@ -137,20 +137,19 @@ export default function ConfirmCode() {
     return (
 		<VerifiContainer title="Код подтверждения" onSubmit={handleSubmit}>
 			
-			<div className="text-center text-base text-black font-medium leading-tight">
-                Введите код подтверждения из письма, отправленного на почту <br />
-                <span className="font-bold">{email}</span>
+			<div className="text-center text-base text-black">
+                Введите код подтверждения из письма, отправленного на почту <span className="font-bold">{email}</span>
             </div>
 
-			<div className="flex gap-3 justify-center">
+			<div className="flex gap-3 justify-center mt-8">
                 {values.map((val, index) => (
                     <input
                         key={index}
-                        ref={(el) => (inputsRef.current[index] = el)}
+                        ref={(el) => { inputsRef.current[index] = el; }}
                         type="text"
                         inputMode="numeric"
                         maxLength={1}
-                        className="w-16 h-16 border-2 border-[#316BC2] rounded-lg text-center text-2xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className="w-16 h-17 border-2 border-[#316BC2] rounded-lg text-center text-2xl focus:outline-none focus:ring-2 focus:ring-blue-400"
                         value={val}
                         onChange={(e) => handleChange(index, e.target.value)}
                         onKeyDown={(e) => handleKeyDown(index, e)}
@@ -159,11 +158,11 @@ export default function ConfirmCode() {
                 ))}
             </div>
 
-			<div className="text-center text-sm text-black/50 mt-2">
+			<div className="text-center text-sm text-black/50 mt-4">
                 {resendAvailable ? (
                 <button
                     type="button"
-                    className="text-blue-600 font-bold hover:underline text-xl"
+                    className="hover:underline text-xl text-black"
                     onClick={handleResendCode}
                 >
                     Отправить код
@@ -173,7 +172,7 @@ export default function ConfirmCode() {
                 )}
             </div>
 
-			<div className="mt-15">
+			<div className="mt-25">
 				<FormButton type="submit">
 					Подтвердить
 				</FormButton>

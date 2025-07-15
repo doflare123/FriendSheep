@@ -45,6 +45,8 @@
 html,
 body {
   height: 100%;
+  color: #000000;
+  font-family: 'Inter', sans-serif;
 }
 
 body {
@@ -53,13 +55,9 @@ body {
   font-family: var(--font-inter);
 }
 
-* {
-  color: #000000;
-}
-
 
 .form-container {
-  @apply bg-white rounded-2xl p-10 w-[50vw] max-w-2xl font-inter border-2 border-[#316BC2] min-h-[475px] text-2xl;
+  @apply bg-white rounded-2xl p-10 w-[50vw] font-inter border-2 border-[#316BC2] min-h-[475px] text-2xl;
 }
 
 .page-wrapper {

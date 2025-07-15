@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 
 import FormContainer from '../../../components/FormContainer';
 import FormButton from '../../../components/FormButton';
+import Image from 'next/image'
 
 export default function CompleteReg() {
     const router = useRouter();
@@ -15,7 +16,7 @@ export default function CompleteReg() {
     return (
         <FormContainer title="Аккаунт создан!" onSubmit={handleSubmit}>
             
-            <img src="/accept.png" alt="Успешно" className="w-24 h-24 mb-4 mx-auto" />
+            <Image src="/accept.png" alt="Успешно" width={96} height={96} className="mb-4 mx-auto" />
 
             <p className="label-style text-center text-xl">
                 Ваш аккаунт успешно подтвержден и активирован.<br />
@@ -23,7 +24,7 @@ export default function CompleteReg() {
                 Спасибо, что выбрали нас!
             </p>
 
-            <img src="/logo.png" alt="Логотип" className="w-52 h-52 mb-4 mx-auto mt-8 rounded-3xl" />
+            <Image src="/logo.png" alt="Логотип" width={208} height={208} className="mb-4 mx-auto mt-8 rounded-3xl" />
 
             <FormButton type="submit">
                 Перейти ко входу

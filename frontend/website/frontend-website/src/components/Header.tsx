@@ -9,27 +9,30 @@ export default function Header() {
             {/* Логотип слева */}
             <div className="flex items-center gap-2">
                 <Image src="/logo.png" alt="Логотип" width={64} height={64} className="rounded-[1.0rem]"/>
-                <span className="text-sky-500 text-3xl font-inter">FriendShip</span>
+                <span className="text-3xl font-inter text-[#37A2E6]">FriendShip</span>
             </div>
 
             {/* Центрированные ссылки */}
             <nav className="absolute left-1/2 -translate-x-1/2 flex gap-6 text-2xl text-black font-inter">
                 <Link href="#" className="hover:underline">
-                Главная
+                    Главная
                 </Link>
                 <Link href="#" className="hover:underline">
-                Новости
+                    Новости
+                </Link>
+                <Link href="#" className="hover:underline">
+                    Группы
                 </Link>
             </nav>
 
             {/* Кнопки справа */}
             <div className="text-2xl text-black font-inter flex items-center gap-2">
                 <Link href="#" className="hover:underline px-1">
-                Войти
+                    Войти
                 </Link>
                 <span className="select-none">/</span>
                 <Link href="#" className="hover:underline px-1">
-                Регистрация
+                    Регистрация
                 </Link>
             </div>
         </header>

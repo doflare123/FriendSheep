@@ -1,7 +1,7 @@
 // src/app/login/page.tsx
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { login } from '../../api/login';
 
 import FormContainer from '../../components/FormContainer';
@@ -29,7 +29,7 @@ export default function LoginPage() {
     };
 
   return (
-		<FormContainer title="Вход" onSubmit={handleSubmit}>
+		<FormContainer title="Вход" onSubmit={handleSubmit} conteinerSize='max-w-xl'>
 			
 			<FormInput
 				id="email"
@@ -52,7 +52,7 @@ export default function LoginPage() {
 			/>
 
 			<LinkNote>
-				<FormLink href="#">
+				<FormLink href="/register" color="#000000">
 					Нет аккаунта?
 				</FormLink>
 			</LinkNote>
