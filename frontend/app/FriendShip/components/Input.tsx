@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
   input: {
     color: Colors.black,
     borderWidth: 3,
-    borderColor: Colors.lightBlue,
+    borderColor: Colors.blue,
     borderRadius: 12,
     padding: 6,
     fontFamily: '../assets/fonts/Inter-Regular.otf',

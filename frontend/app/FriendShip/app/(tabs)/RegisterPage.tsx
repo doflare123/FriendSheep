@@ -1,18 +1,24 @@
+import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Linking, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import Logo from '../../components/Logo';
 import authorizeStyle from '../styles/authorizeStyle';
 
-
 const Register = () => {
+  const navigation = useNavigation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
 
-  const handleRegister = () => { };
+  const handleRegister = () => {
+  };
+
+  const openURL = (url: string) => {
+  Linking.openURL(url).catch(err => console.error('Не удалось открыть ссылку:', err));
+};
 
   return (
     <KeyboardAwareScrollView
@@ -47,18 +53,18 @@ const Register = () => {
       />
 
       <View style={authorizeStyle.account}>
-        <TouchableOpacity onPress={() => console.log('Переход на страницу входа')}>
+        <TouchableOpacity onPress={() => navigation.navigate('Login' as never)}>
           <Text>Есть аккаунт?</Text>
         </TouchableOpacity>
       </View>
 
       <Text style={authorizeStyle.terms}>
         При создании аккаунта вы соглашаетесь с условиями{' '}
-        <Text style={authorizeStyle.link} onPress={() => console.log('Открыть соглашение')}>
+        <Text style={authorizeStyle.link} onPress={() => openURL('https://www.youtube.com/@adventurekabanchikov')}>
           Пользовательского соглашения
         </Text>{' '}
         и{' '}
-        <Text style={authorizeStyle.link} onPress={() => console.log('Открыть политику')}>
+        <Text style={authorizeStyle.link} onPress={() => openURL('https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1')}>
           Политики конфиденциальности
         </Text>
       </Text>

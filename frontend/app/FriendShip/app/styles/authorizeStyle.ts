@@ -34,11 +34,15 @@ const authorizeStyle = StyleSheet.create({
     color: Colors.lightGrey,
   },
   footer: {
-    marginTop: 40,
+    position: 'absolute',
+    bottom: 45,
+    left: 0,
+    right: 0,
     textAlign: 'center',
     fontSize: 12,
     color: Colors.lightGrey,
-  },
+    paddingVertical: 10,
+  }
 });
 
 export default authorizeStyle;
