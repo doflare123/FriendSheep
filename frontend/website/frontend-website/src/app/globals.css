@@ -73,11 +73,11 @@ body {
 }
 
 .label-style {
-  @apply block mb-1;
+  @apply block mb-1 text-black;
 }
 
 .input-style {
-  @apply w-full rounded-lg border-2 border-[#316BC2] p-3 text-xl;
+  @apply w-full rounded-lg border-2 border-[#316BC2] p-3 text-xl text-black;
 }
 
 .button-primary {
