@@ -16,8 +16,16 @@ const authorizeStyle = StyleSheet.create({
     marginBottom: 40,
   },
   label: {
-    fontSize: 21,
+    fontFamily: '../assets/fonts/Inter-Regular.otf',
+    fontSize: 20,
     marginBottom: 8,
+  },
+  hintLabel: {
+    fontFamily: '../assets/fonts/Inter-Regular.otf',
+    fontSize: 16,
+    marginBottom: 8,
+    color: Colors.lightGrey,
+    textAlign: 'center'
   },
   account: {
     flexDirection: 'row',
@@ -26,14 +34,17 @@ const authorizeStyle = StyleSheet.create({
     marginTop: -8,
   },
   link: {
+    fontFamily: '../assets/fonts/Inter-Regular.otf',
     fontSize: 12,
     color: Colors.lightBlue,
   },
   terms: {
+    fontFamily: '../assets/fonts/Inter-Regular.otf',
     fontSize: 12,
     color: Colors.lightGrey,
   },
   footer: {
+    fontFamily: '../assets/fonts/Inter-Regular.otf',
     position: 'absolute',
     bottom: 45,
     left: 0,
@@ -42,6 +53,12 @@ const authorizeStyle = StyleSheet.create({
     fontSize: 12,
     color: Colors.lightGrey,
     paddingVertical: 10,
+  },
+  doneImage:{
+    width: 60,
+    height: 60,
+    marginBottom: 20,
+    alignSelf: 'center'
   }
 });
 

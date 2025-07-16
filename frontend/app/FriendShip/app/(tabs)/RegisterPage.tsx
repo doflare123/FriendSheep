@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Linking, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
@@ -13,64 +13,66 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
 
-  const handleRegister = () => {
-  };
-
   const openURL = (url: string) => {
-  Linking.openURL(url).catch(err => console.error('Не удалось открыть ссылку:', err));
-};
+    Linking.openURL(url).catch(err => console.error('Не удалось открыть ссылку:', err));
+  };
 
   return (
     <KeyboardAwareScrollView
-      contentContainerStyle={authorizeStyle.container}
+      contentContainerStyle={{ flexGrow: 1 }}
       enableOnAndroid
-      keyboardShouldPersistTaps="always"
+      keyboardShouldPersistTaps="handled"
+      extraScrollHeight={Platform.OS === 'ios' ? 20 : 100}
     >
-      <Logo />
-      <Text style={authorizeStyle.title}>Регистрация</Text>
+      <View style={[authorizeStyle.container, { flex: 1, justifyContent: 'space-between', paddingBottom: 30 }]}>
+        <View>
+          <Logo />
+          <Text style={authorizeStyle.title}>Регистрация</Text>
 
-      <Text style={authorizeStyle.label}>Имя пользователя</Text>
-      <Input
-        placeholder="Имя пользователя"
-        value={username}
-        onChangeText={setUsername}
-      />
+          <Text style={authorizeStyle.label}>Имя пользователя</Text>
+          <Input
+            placeholder="Имя пользователя"
+            value={username}
+            onChangeText={setUsername}
+          />
 
-      <Text style={authorizeStyle.label}>Пароль</Text>
-      <Input
-        placeholder="Пароль"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+          <Text style={authorizeStyle.label}>Пароль</Text>
+          <Input
+            placeholder="Пароль"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
 
-      <Text style={authorizeStyle.label}>Почта</Text>
-      <Input
-        placeholder="user_email@gmail.com"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-      />
+          <Text style={authorizeStyle.label}>Почта</Text>
+          <Input
+            placeholder="user_email@gmail.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+          />
 
-      <View style={authorizeStyle.account}>
-        <TouchableOpacity onPress={() => navigation.navigate('Login' as never)}>
-          <Text>Есть аккаунт?</Text>
-        </TouchableOpacity>
+          <View style={authorizeStyle.account}>
+            <TouchableOpacity onPress={() => navigation.navigate('Login' as never)}>
+              <Text>Есть аккаунт?</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={authorizeStyle.terms}>
+            При создании аккаунта вы соглашаетесь с условиями{' '}
+            <Text style={authorizeStyle.link} onPress={() => openURL('https://example.com/terms')}>
+              Пользовательского соглашения
+            </Text>{' '}
+            и{' '}
+            <Text style={authorizeStyle.link} onPress={() => openURL('https://example.com/privacy')}>
+              Политики конфиденциальности
+            </Text>
+          </Text>
+
+        <Button title="Зарегистрироваться" onPress={() => navigation.navigate('Confirm' as never)} />
+        </View>
       </View>
-
-      <Text style={authorizeStyle.terms}>
-        При создании аккаунта вы соглашаетесь с условиями{' '}
-        <Text style={authorizeStyle.link} onPress={() => openURL('https://www.youtube.com/@adventurekabanchikov')}>
-          Пользовательского соглашения
-        </Text>{' '}
-        и{' '}
-        <Text style={authorizeStyle.link} onPress={() => openURL('https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1')}>
-          Политики конфиденциальности
-        </Text>
-      </Text>
-
-      <Button title="Зарегистрироваться" onPress={handleRegister} />
-
+      
       <Text style={authorizeStyle.footer}>©NecroDwarf</Text>
     </KeyboardAwareScrollView>
   );
