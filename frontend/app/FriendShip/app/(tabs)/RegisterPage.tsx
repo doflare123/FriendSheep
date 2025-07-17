@@ -60,11 +60,11 @@ const Register = () => {
 
           <Text style={authorizeStyle.terms}>
             При создании аккаунта вы соглашаетесь с условиями{' '}
-            <Text style={authorizeStyle.link} onPress={() => openURL('https://example.com/terms')}>
+            <Text style={authorizeStyle.link} onPress={() => openURL('https://www.youtube.com/@adventurekabanchikov')}>
               Пользовательского соглашения
             </Text>{' '}
             и{' '}
-            <Text style={authorizeStyle.link} onPress={() => openURL('https://example.com/privacy')}>
+            <Text style={authorizeStyle.link} onPress={() => openURL('https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1')}>
               Политики конфиденциальности
             </Text>
           </Text>

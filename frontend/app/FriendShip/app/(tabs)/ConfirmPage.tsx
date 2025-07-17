@@ -1,4 +1,4 @@
-import InputNums from '@/components/InputNums';
+import InputSmall from '@/components/InputSmall';
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { Platform, Text, View } from 'react-native';
@@ -33,7 +33,7 @@ const Confirm = () => {
         <PointAnimation />
 
         <Text style={[authorizeStyle.label, {fontSize: 16, textAlign: 'center'}]}>Введите код подтверждения из письма, отправленного на почту {user_email_name}@{user_email_domain}</Text>
-        <InputNums/>
+        <InputSmall/>
 
         <Text style={authorizeStyle.hintLabel}>Повторно код можно отправить через {time} мин</Text>
 

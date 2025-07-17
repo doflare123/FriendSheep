@@ -1,3 +1,4 @@
+import { inter } from '@/constants/Inter';
 import { StyleSheet } from 'react-native';
 import { Colors } from '../../constants/Colors';
 
@@ -9,42 +10,43 @@ const authorizeStyle = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   title: {
-    fontSize: 35,
-    fontFamily: '../assets/fonts/Inter-Regular.otf',
+    fontSize: 30,
+    fontFamily: inter.regular,
     color: Colors.lightBlue,
     textAlign: 'center',
     marginBottom: 40,
   },
   label: {
-    fontFamily: '../assets/fonts/Inter-Regular.otf',
+    fontFamily: inter.regular,
     fontSize: 20,
     marginBottom: 8,
   },
   hintLabel: {
-    fontFamily: '../assets/fonts/Inter-Regular.otf',
+    fontFamily: inter.regular,
     fontSize: 16,
     marginBottom: 8,
     color: Colors.lightGrey,
     textAlign: 'center'
   },
   account: {
+    fontFamily: inter.regular,
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginBottom: 12,
     marginTop: -8,
   },
   link: {
-    fontFamily: '../assets/fonts/Inter-Regular.otf',
+    fontFamily: inter.regular,
     fontSize: 12,
     color: Colors.lightBlue,
   },
   terms: {
-    fontFamily: '../assets/fonts/Inter-Regular.otf',
+    fontFamily: inter.regular,
     fontSize: 12,
     color: Colors.lightGrey,
   },
   footer: {
-    fontFamily: '../assets/fonts/Inter-Regular.otf',
+    fontFamily: inter.regular,
     position: 'absolute',
     bottom: 45,
     left: 0,
