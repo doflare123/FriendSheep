@@ -4,10 +4,30 @@ import { Colors } from '../../constants/Colors';
 
 const authorizeStyle = StyleSheet.create({
   container: {
-    padding: 24,
     flex: 1,
-    justifyContent: 'center',
     backgroundColor: Colors.white,
+    padding: 24,
+    position: 'relative',
+  },
+  topContainer: {
+    alignItems: 'center',
+    marginTop: 60,
+    marginBottom: 20,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+    paddingBottom: 80,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 60,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontSize: 12,
+    color: Colors.lightGrey,
+    fontFamily: inter.regular,
   },
   title: {
     fontSize: 30,
@@ -15,6 +35,9 @@ const authorizeStyle = StyleSheet.create({
     color: Colors.lightBlue,
     textAlign: 'center',
     marginBottom: 40,
+  },
+  centerContainer:{
+    justifyContent: 'center',
   },
   label: {
     fontFamily: inter.regular,
@@ -32,7 +55,6 @@ const authorizeStyle = StyleSheet.create({
     fontFamily: inter.regular,
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: 12,
     marginTop: -8,
   },
   link: {
@@ -41,20 +63,10 @@ const authorizeStyle = StyleSheet.create({
     color: Colors.lightBlue,
   },
   terms: {
+    marginTop: 12,
     fontFamily: inter.regular,
     fontSize: 12,
     color: Colors.lightGrey,
-  },
-  footer: {
-    fontFamily: inter.regular,
-    position: 'absolute',
-    bottom: 45,
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontSize: 12,
-    color: Colors.lightGrey,
-    paddingVertical: 10,
   },
   doneImage:{
     width: 60,

@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Platform, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
@@ -16,16 +16,18 @@ const Login = () => {
   };
 
   return (
-    <KeyboardAwareScrollView
-      contentContainerStyle={{ flexGrow: 1 }}
-      enableOnAndroid
-      keyboardShouldPersistTaps="handled"
-      extraScrollHeight={Platform.OS === 'ios' ? 20 : 100}
-    >
-      <View style={[authorizeStyle.container, { flex: 1, justifyContent: 'space-between', paddingBottom: 30 }]}>
-        <View>
-          <Logo />
-          <Text style={authorizeStyle.title}>Вход</Text>
+    <View style={authorizeStyle.container}>
+      <View style={authorizeStyle.topContainer}>
+        <Logo />
+        <Text style={authorizeStyle.title}>Вход</Text>
+      </View>
+
+      <KeyboardAwareScrollView
+        enableOnAndroid
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={authorizeStyle.scrollContent}
+        extraScrollHeight={20}
+        showsVerticalScrollIndicator={false}>
 
           <Text style={authorizeStyle.label}>Почта</Text>
           <Input
@@ -50,12 +52,10 @@ const Login = () => {
           </View>
 
           <Button title="Войти" onPress={handleLogin} />
+      </KeyboardAwareScrollView>
 
-        </View>
-      </View>
-      
       <Text style={authorizeStyle.footer}>©NecroDwarf</Text>
-    </KeyboardAwareScrollView>
+    </View>
   );
 };
 

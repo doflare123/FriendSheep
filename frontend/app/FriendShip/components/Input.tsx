@@ -1,3 +1,4 @@
+import { inter } from '@/constants/Inter';
 import React from 'react';
 import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
 import { Colors } from '../constants/Colors';
@@ -22,7 +23,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.blue,
     borderRadius: 12,
     padding: 6,
-    fontFamily: '../assets/fonts/Inter-Regular.otf',
+    fontFamily: inter.regular,
     fontSize: 18,
   },
 });
