@@ -118,7 +118,7 @@ const InputSmall = ({ length = 6, onChange } : { length?: number; onChange?: (co
           autoCapitalize="characters"
           autoCorrect={false}
           keyboardType="default"
-          maxLength={6}
+          maxLength={1}
           style={styles.input}
           textAlign="center"
         />

@@ -1,50 +1,82 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
-import { Colors } from '../../constants/Colors';
 
-const POINT_SIZE = 20;
-const POINT_SPACING = 12;
+const POINT_SIZE = 22;
+const POINT_SPACING = 18;
+const POINT_DISTANCE = POINT_SIZE + POINT_SPACING;
+const JUMP_HEIGHT = 32;
 
 const PointAnimation = () => {
-  const dot1Anim = useRef(new Animated.Value(0)).current;
-  const dot2Anim = useRef(new Animated.Value(0)).current;
-  const dot3Anim = useRef(new Animated.Value(0)).current;
+  const positions = [0, 1, 2].map(i => i * POINT_DISTANCE);
+
+  const translateXs = useRef([
+    new Animated.Value(positions[0]),
+    new Animated.Value(positions[1]),
+    new Animated.Value(positions[2]),
+  ]).current;
+
+  const translateYs = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current;
+
+  const orderRef = useRef([0, 1, 2]);
+
+  const animate = () => {
+    const [a, b, c] = orderRef.current;
+    const nextOrder = [b, c, a];
+
+    const xAnimations = nextOrder.map((dotIndex, posIndex) =>
+      Animated.timing(translateXs[dotIndex], {
+        toValue: positions[posIndex],
+        duration: 600,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      })
+    );
+
+    const jumpUp = Animated.timing(translateYs[a], {
+      toValue: -JUMP_HEIGHT,
+      duration: 300,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    });
+
+    const fallDown = Animated.timing(translateYs[a], {
+      toValue: 0,
+      duration: 300,
+      easing: Easing.in(Easing.quad),
+      useNativeDriver: true,
+    });
+
+    Animated.parallel([
+      ...xAnimations,
+      Animated.sequence([jumpUp, fallDown]),
+    ]).start(() => {
+      orderRef.current = nextOrder;
+      animate();
+    });
+  };
 
   useEffect(() => {
-    const jump = (anim: Animated.Value, delay: number) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(anim, {
-            toValue: -15,
-            duration: 300,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: 0,
-            duration: 300,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      );
-    };
-
-    jump(dot1Anim, 0).start();
-    jump(dot2Anim, 150).start();
-    jump(dot3Anim, 300).start();
+    animate();
   }, []);
 
   return (
     <View style={styles.container}>
-      {[dot1Anim, dot2Anim, dot3Anim].map((anim, i) => (
+      {[0, 1, 2].map((i) => (
         <Animated.View
           key={i}
           style={[
             styles.dot,
             {
-              transform: [{ translateY: anim }],
+              transform: [
+                { translateX: translateXs[i] },
+                { translateY: translateYs[i] },
+              ],
+              position: 'absolute',
+              left: 0,
             },
           ]}
         />
@@ -55,19 +87,18 @@ const PointAnimation = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    marginTop: 5,
-    marginBottom: 30,
+    width: POINT_DISTANCE * 3 + 20,
+    height: POINT_SIZE * 4,
     justifyContent: 'center',
-    alignItems: 'center',
-    gap: POINT_SPACING,
+    alignItems: 'flex-start',
+    position: 'relative',
+    marginStart: 30,
   },
   dot: {
     width: POINT_SIZE,
     height: POINT_SIZE,
     borderRadius: POINT_SIZE / 2,
-    backgroundColor: Colors.lightBlue,
-    marginHorizontal: 6,
+    backgroundColor: '#3399FF',
   },
 });
 
