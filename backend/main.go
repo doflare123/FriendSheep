@@ -43,13 +43,13 @@ func main() {
 	r.Use(middlewares.RequestLogger())
 
 	r.Use(cors.New(cors.Config{
-        AllowOrigins:     []string{"http://localhost:3000"}, // разреши фронтенд
-        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
-        AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-        ExposeHeaders:    []string{"Content-Length"},
-        AllowCredentials: true,
-        MaxAge: 12 * time.Hour,
-    }))
+		AllowOrigins:     []string{"http://localhost:3000"}, // разреши фронтенд
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 	r.OPTIONS("/*path", func(c *gin.Context) {
 		c.AbortWithStatus(200)
 	})
@@ -57,7 +57,7 @@ func main() {
 	r.Static("/uploads", "./uploads")
 	db.InitDatabase()
 	db.SeedCategories()
-	db.SeedCategoriesSessions()
+	db.SeedCategoriesSessionsVisibility()
 	db.InitMongoDB()
 	routes.RoutesUsers(r)
 	routes.RoutesAuth(r)

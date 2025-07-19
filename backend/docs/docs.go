@@ -791,8 +791,15 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "ID типа сессии",
+                        "description": "Тип сессии",
                         "name": "session_type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID типа видимости сессии",
+                        "name": "session_visibility",
                         "in": "formData",
                         "required": true
                     },
@@ -822,12 +829,6 @@ const docTemplate = `{
                         "name": "count_users",
                         "in": "formData",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Тип метаданных (например: киновечер)",
-                        "name": "meta_type",
-                        "in": "formData"
                     },
                     {
                         "type": "string",

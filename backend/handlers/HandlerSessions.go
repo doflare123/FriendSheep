@@ -22,12 +22,12 @@ type SessionJoinInputDoc struct {
 // @Accept multipart/form-data
 // @Produce json
 // @Param title formData string true "Название сессии"
-// @Param session_type formData uint true "ID типа сессии"
+// @Param session_type formData uint true "Тип сессии"
+// @Param session_visibility formData uint true "ID типа видимости сессии"
 // @Param group_id formData uint true "ID группы"
 // @Param start_time formData string true "Время начала (в формате RFC3339, напр. 2025-07-10T19:00:00+02:00)"
 // @Param duration formData uint false "Длительность в минутах"
 // @Param count_users formData uint true "Максимальное количество участников"
-// @Param meta_type formData string false "Тип метаданных (например: киновечер)"
 // @Param genres formData string false "Жанры (через запятую, напр: драма,комедия)"
 // @Param fields formData string false "Доп. поля (напр: ключ:значение,ключ2:знач2)"
 // @Param location formData string false "Место проведения"

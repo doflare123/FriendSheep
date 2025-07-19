@@ -54,7 +54,7 @@ func CreateGroup(email string, input CreateGroupInput) (*groups.Group, error) {
 	}
 
 	// Загрузка категорий
-	var categories []groups.GroupCategory
+	var categories []models.Category
 	if len(input.Categories) > 0 {
 		if err := db.GetDB().Where("id IN ?", input.Categories).Find(&categories).Error; err != nil {
 			return nil, fmt.Errorf("ошибка загрузки категорий: %v", err)

@@ -12,7 +12,7 @@ type Group struct {
 	CreaterID uint        `json:"createrId"`
 	Creater   models.User `json:"creater" gorm:"foreignKey:CreaterID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 
-	IsPrivate  bool            `json:"isPrivate" gorm:"default:false"`
-	City       string          `json:"city"`
-	Categories []GroupCategory `gorm:"many2many:group_group_categories;joinForeignKey:GroupID;JoinReferences:GroupCategoryID"`
+	IsPrivate  bool              `json:"isPrivate" gorm:"default:false"`
+	City       string            `json:"city"`
+	Categories []models.Category `gorm:"many2many:group_group_categories;joinForeignKey:GroupID;JoinReferences:GroupCategoryID"`
 }

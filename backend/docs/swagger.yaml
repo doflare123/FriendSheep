@@ -719,9 +719,14 @@ paths:
         name: title
         required: true
         type: string
-      - description: ID типа сессии
+      - description: Тип сессии
         in: formData
         name: session_type
+        required: true
+        type: integer
+      - description: ID типа видимости сессии
+        in: formData
+        name: session_visibility
         required: true
         type: integer
       - description: ID группы
@@ -743,10 +748,6 @@ paths:
         name: count_users
         required: true
         type: integer
-      - description: 'Тип метаданных (например: киновечер)'
-        in: formData
-        name: meta_type
-        type: string
       - description: 'Жанры (через запятую, напр: драма,комедия)'
         in: formData
         name: genres

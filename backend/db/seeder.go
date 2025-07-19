@@ -1,13 +1,13 @@
 package db
 
 import (
-	"friendship/models/groups"
+	"friendship/models"
 	"friendship/models/sessions"
 	"log"
 )
 
 func SeedCategories() {
-	categories := []groups.GroupCategory{
+	categories := []models.Category{
 		{Name: "Фильмы"},
 		{Name: "Игры"},
 		{Name: "Настольные игры"},
@@ -15,10 +15,10 @@ func SeedCategories() {
 	}
 
 	for _, category := range categories {
-		var existing groups.GroupCategory
+		var existing models.Category
 		err := GetDB().Where("name = ?", category.Name).First(&existing).Error
 		if err == nil {
-			continue // Категория уже существует — пропускаем
+			continue
 		}
 
 		if err := GetDB().Create(&category).Error; err != nil {
@@ -27,19 +27,18 @@ func SeedCategories() {
 	}
 }
 
-func SeedCategoriesSessions() {
-	categories := []sessions.SessionGroupType{
+func SeedCategoriesSessionsVisibility() {
+	categories := []sessions.SessionGroupVisibility{
 		{Title: "Онлайн"},
 		{Title: "Оффлайн"},
 	}
 
 	for _, category := range categories {
-		var existing sessions.SessionGroupType
+		var existing sessions.SessionGroupVisibility
 		err := GetDB().Where("title = ?", category.Title).First(&existing).Error
 		if err == nil {
-			continue // уже существует
+			continue
 		}
-		// ❗️ ты забывал это:
 		if err := GetDB().Create(&category).Error; err != nil {
 			log.Printf("Ошибка при создании типа сессии %s: %v", category.Title, err)
 		}

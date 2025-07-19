@@ -18,15 +18,15 @@ import (
 )
 
 type SessionInput struct {
-	Title       string    `form:"title" binding:"required"`
-	SessionType uint      `form:"session_type" binding:"required"`
-	GroupID     uint      `form:"group_id" binding:"required"`
-	StartTime   time.Time `form:"start_time" time_format:"2006-01-02T15:04:05Z07:00" binding:"required"`
-	Duration    uint16    `form:"duration"`
-	CountUsers  uint16    `form:"count_users" binding:"required"`
-	Image       string    `form:"-"`
+	Title             string    `form:"title" binding:"required"`
+	SessionType       string    `form:"session_type" binding:"required"`
+	SessionVisibility uint      `form:"session_visibility" binding:"required"`
+	GroupID           uint      `form:"group_id" binding:"required"`
+	StartTime         time.Time `form:"start_time" time_format:"2006-01-02T15:04:05Z07:00" binding:"required"`
+	Duration          uint16    `form:"duration"`
+	CountUsers        uint16    `form:"count_users" binding:"required"`
+	Image             string    `form:"-"`
 
-	MetaType  string `form:"meta_type"`
 	GenresRaw string `form:"genres"`
 	FieldsRaw string `form:"fields"`
 	Location  string `form:"location"`
@@ -112,8 +112,13 @@ func CreateSession(email string, input SessionInput) (bool, error) {
 		return false, fmt.Errorf("группа не найдена (%d): %v", input.GroupID, err)
 	}
 
-	var sessionType sessions.SessionGroupType
-	if err := db.GetDB().Where("id = ?", input.SessionType).First(&sessionType).Error; err != nil {
+	var sessionVisibility sessions.SessionGroupVisibility
+	if err := db.GetDB().Where("id = ?", input.SessionVisibility).First(&sessionVisibility).Error; err != nil {
+		return false, fmt.Errorf("тип сессии(видимости) не найден (%v): %v", input.SessionVisibility, err)
+	}
+
+	var sessionType models.Category
+	if err := db.GetDB().Where("Name = ?", input.SessionType).First(&sessionType).Error; err != nil {
 		return false, fmt.Errorf("тип сессии не найден (%v): %v", input.SessionType, err)
 	}
 
@@ -121,16 +126,17 @@ func CreateSession(email string, input SessionInput) (bool, error) {
 	endTime := input.CalculateEndTime()
 
 	session := sessions.Session{
-		Title:         input.Title,
-		SessionType:   sessionType,
-		GroupID:       input.GroupID,
-		StartTime:     input.StartTime,
-		EndTime:       endTime,
-		Duration:      input.Duration,
-		CurrentUsers:  1,
-		CountUsersMax: input.CountUsers,
-		ImageURL:      input.Image,
-		UserID:        creator.ID,
+		Title:             input.Title,
+		SessionType:       sessionType,
+		SessionVisibility: sessionVisibility,
+		GroupID:           input.GroupID,
+		StartTime:         input.StartTime,
+		EndTime:           endTime,
+		Duration:          input.Duration,
+		CurrentUsers:      1,
+		CountUsersMax:     input.CountUsers,
+		ImageURL:          input.Image,
+		UserID:            creator.ID,
 	}
 
 	if err := db.GetDB().Create(&session).Error; err != nil {
@@ -172,7 +178,6 @@ func CreateSession(email string, input SessionInput) (bool, error) {
 
 	meta := sessions.SessionMetadata{
 		SessionID: session.ID,
-		Type:      input.MetaType,
 		Fields:    fields,
 		Location:  input.Location,
 		Genres:    genres,
