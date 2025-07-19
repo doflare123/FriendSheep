@@ -25,7 +25,7 @@ const Done = () => {
         extraScrollHeight={20}
         showsVerticalScrollIndicator={false}>
 
-        <Text style={[authorizeStyle.label, {fontSize: 18, textAlign: 'center', marginBottom: 40}]}>Ваш аккаунт успешно подтвержден и активирован. Теперь вы можете приступить к пользованию сервисом.{"\n\n"}Спасибо, что выбрали нас!</Text>
+        <Text style={[authorizeStyle.label, {fontSize: 16, textAlign: 'center', marginBottom: 40}]}>Ваш аккаунт успешно подтвержден и активирован. Теперь вы можете приступить к пользованию сервисом.{"\n\n"}Спасибо, что выбрали нас!</Text>
 
         <Button title="Перейти ко входу" onPress={() => navigation.navigate('Login' as never)} />
       </KeyboardAwareScrollView>
