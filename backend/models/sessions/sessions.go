@@ -7,12 +7,12 @@ import (
 )
 
 type Session struct {
-	ID                  uint                   `gorm:"primaryKey;autoIncrement"`
-	Title               string                 `gorm:"not null"`
-	SessionTypeID       uint                   `gorm:"not null"`
-	SessionType         models.Category        `gorm:"foreignKey:SessionTypeID"`
-	SessionVisibilityID uint                   `gorm:"not null"`
-	SessionVisibility   SessionGroupVisibility `gorm:"foreignKey:SessionTypeID"`
+	ID             uint              `gorm:"primaryKey;autoIncrement"`
+	Title          string            `gorm:"not null"`
+	SessionTypeID  uint              `gorm:"not null"`
+	SessionType    models.Category   `gorm:"foreignKey:SessionTypeID"`
+	SessionPlaceID uint              `gorm:"not null"`
+	SessionPlace   SessionGroupPlace `gorm:"foreignKey:SessionTypeID"`
 
 	GroupID uint         `gorm:"not null"`
 	Group   groups.Group `gorm:"foreignKey:GroupID"`

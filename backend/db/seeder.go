@@ -28,13 +28,13 @@ func SeedCategories() {
 }
 
 func SeedCategoriesSessionsVisibility() {
-	categories := []sessions.SessionGroupVisibility{
+	categories := []sessions.SessionGroupPlace{
 		{Title: "Онлайн"},
 		{Title: "Оффлайн"},
 	}
 
 	for _, category := range categories {
-		var existing sessions.SessionGroupVisibility
+		var existing sessions.SessionGroupPlace
 		err := GetDB().Where("title = ?", category.Title).First(&existing).Error
 		if err == nil {
 			continue

@@ -14,7 +14,7 @@ type TokenPair struct {
 }
 
 // Создаёт access token и refresh token
-func GenerateTokenPair(email, us string) (TokenPair, error) {
+func GenerateTokenPair(email, us, image string) (TokenPair, error) {
 	secretKey := os.Getenv("SECRET_KEY_JWT")
 	if len(secretKey) == 0 {
 		return TokenPair{}, fmt.Errorf("пустой секретный ключ")
@@ -26,7 +26,8 @@ func GenerateTokenPair(email, us string) (TokenPair, error) {
 	accessClaims := jwt.MapClaims{
 		"Email": email,
 		"Us":    us,
-		"exp":   now.Add(6 * time.Hour).Unix(),
+		"Image": image,
+		"exp":   now.Add(20 * time.Minute).Unix(),
 		"iat":   now.Unix(),
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
@@ -38,7 +39,7 @@ func GenerateTokenPair(email, us string) (TokenPair, error) {
 	refreshClaims := jwt.MapClaims{
 		"Email": email,
 		"Us":    us,
-		"exp":   now.Add(7 * 24 * time.Hour).Unix(),
+		"exp":   now.Add(30 * 24 * time.Hour).Unix(),
 		"iat":   now.Unix(),
 		"typ":   "refresh",
 	}
@@ -79,11 +80,12 @@ func RefreshTokens(refreshTokenString string) (TokenPair, error) {
 
 	email, okEmail := claims["Email"].(string)
 	us, okUs := claims["Us"].(string)
-	if !okEmail || !okUs {
+	image, okImage := claims["Image"].(string)
+	if !okEmail || !okUs || !okImage {
 		return TokenPair{}, fmt.Errorf("недостаточно данных в refresh токене")
 	}
 
-	return GenerateTokenPair(email, us)
+	return GenerateTokenPair(email, us, image)
 }
 
 func ParseJWT(tokenString string) (string, error) {

@@ -2,7 +2,7 @@ package sessions
 
 import "time"
 
-type SessionGroupVisibility struct {
+type SessionGroupPlace struct {
 	ID        uint   `gorm:"primaryKey;autoIncrement"`
 	Title     string `gorm:"unique"`
 	CreatedAt time.Time
