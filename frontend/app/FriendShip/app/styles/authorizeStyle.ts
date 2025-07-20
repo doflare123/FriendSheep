@@ -36,9 +36,6 @@ const authorizeStyle = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 40,
   },
-  centerContainer:{
-    justifyContent: 'center',
-  },
   label: {
     fontFamily: inter.regular,
     fontSize: 20,
@@ -46,7 +43,7 @@ const authorizeStyle = StyleSheet.create({
   },
   hintLabel: {
     fontFamily: inter.regular,
-    fontSize: 16,
+    fontSize: 14,
     marginBottom: 8,
     color: Colors.lightGrey,
     textAlign: 'center'

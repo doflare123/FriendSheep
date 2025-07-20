@@ -121,7 +121,7 @@ const PointAnimation = () => {
 const styles = StyleSheet.create({
   container: {
     width: POINT_DISTANCE * 3 + 20,
-    height: POINT_SIZE * 4,
+    height: POINT_SIZE * 3,
     justifyContent: 'center',
     alignItems: 'flex-start',
     position: 'relative',
