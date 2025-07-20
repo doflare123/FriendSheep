@@ -27,6 +27,10 @@ func init() {
 	}
 }
 
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Введите токен в формате: Bearer <your_token>
 func main() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		_ = v.RegisterValidation("password", utils.PasswordValidation)
