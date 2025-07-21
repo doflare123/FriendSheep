@@ -1,4 +1,15 @@
 definitions:
+  handlers.CachedPopularSessionsDoc:
+    properties:
+      count:
+        type: integer
+      sessions:
+        items:
+          $ref: '#/definitions/handlers.PopularSessionResponseDoc'
+        type: array
+      updated_at:
+        type: string
+    type: object
   handlers.GetJoinRequestsResponseDoc:
     properties:
       requests:
@@ -64,6 +75,37 @@ definitions:
         type: boolean
       message:
         example: Заявка на вступление отправлена
+        type: string
+    type: object
+  handlers.PopularSessionResponseDoc:
+    properties:
+      count_users_max:
+        type: integer
+      current_users:
+        type: integer
+      duration:
+        type: integer
+      end_time:
+        type: string
+      genres:
+        items:
+          type: string
+        type: array
+      group_name:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      popularity_rate:
+        type: number
+      session_place:
+        type: string
+      session_type:
+        type: string
+      start_time:
+        type: string
+      title:
         type: string
     type: object
   handlers.RefreshRequest:
@@ -1115,7 +1157,43 @@ paths:
       summary: Аутентификация пользователя
       tags:
       - auth
-  /api/users/new:
+  /api/users/refresh:
+    post:
+      consumes:
+      - application/json
+      description: По refresh токену выдает новые access и refresh токены
+      parameters:
+      - description: Refresh токен
+        in: body
+        name: refreshRequest
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Новые токены успешно созданы
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Отсутствует или неверный refresh_token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Невалидный или просроченный refresh token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Обновление токенов
+      tags:
+      - auth
+  /api/users/sessions/new:
     get:
       consumes:
       - application/json
@@ -1156,42 +1234,36 @@ paths:
       summary: Получение новых сессий
       tags:
       - Сессии
-  /api/users/refresh:
-    post:
+  /api/users/sessions/popular:
+    get:
       consumes:
       - application/json
-      description: По refresh токену выдает новые access и refresh токены
-      parameters:
-      - description: Refresh токен
-        in: body
-        name: refreshRequest
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.RefreshRequest'
+      description: Возвращает 10 самых популярных сессий из кэша Redis (обновляется
+        каждые 4 часа)
       produces:
       - application/json
       responses:
         "200":
-          description: Новые токены успешно созданы
+          description: Список популярных сессий из кэша
           schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Отсутствует или неверный refresh_token
-          schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.CachedPopularSessionsDoc'
         "401":
-          description: Невалидный или просроченный refresh token
+          description: Пользователь не авторизован
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Обновление токенов
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение популярных сессий
       tags:
-      - auth
+      - Сессии
 securityDefinitions:
   BearerAuth:
     description: 'Введите токен в формате: Bearer <your_token>'

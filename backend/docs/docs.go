@@ -1393,7 +1393,62 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/new": {
+        "/api/users/refresh": {
+            "post": {
+                "description": "По refresh токену выдает новые access и refresh токены",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Обновление токенов",
+                "parameters": [
+                    {
+                        "description": "Refresh токен",
+                        "name": "refreshRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.RefreshRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Новые токены успешно созданы",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Отсутствует или неверный refresh_token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Невалидный или просроченный refresh token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/sessions/new": {
             "get": {
                 "security": [
                     {
@@ -1457,9 +1512,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/refresh": {
-            "post": {
-                "description": "По refresh токену выдает новые access и refresh токены",
+        "/api/users/sessions/popular": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает 10 самых популярных сессий из кэша Redis (обновляется каждые 4 часа)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1467,41 +1527,27 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "Сессии"
                 ],
-                "summary": "Обновление токенов",
-                "parameters": [
-                    {
-                        "description": "Refresh токен",
-                        "name": "refreshRequest",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.RefreshRequest"
-                        }
-                    }
-                ],
+                "summary": "Получение популярных сессий",
                 "responses": {
                     "200": {
-                        "description": "Новые токены успешно созданы",
+                        "description": "Список популярных сессий из кэша",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Отсутствует или неверный refresh_token",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.CachedPopularSessionsDoc"
                         }
                     },
                     "401": {
-                        "description": "Невалидный или просроченный refresh token",
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1514,6 +1560,23 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handlers.CachedPopularSessionsDoc": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handlers.PopularSessionResponseDoc"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "handlers.GetJoinRequestsResponseDoc": {
             "type": "object",
             "properties": {
@@ -1610,6 +1673,53 @@ const docTemplate = `{
                 "message": {
                     "type": "string",
                     "example": "Заявка на вступление отправлена"
+                }
+            }
+        },
+        "handlers.PopularSessionResponseDoc": {
+            "type": "object",
+            "properties": {
+                "count_users_max": {
+                    "type": "integer"
+                },
+                "current_users": {
+                    "type": "integer"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "group_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "popularity_rate": {
+                    "type": "number"
+                },
+                "session_place": {
+                    "type": "string"
+                },
+                "session_type": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },

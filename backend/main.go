@@ -72,6 +72,17 @@ func main() {
 	db.SeedCategories()
 	db.SeedCategoriesSessionsVisibility()
 	db.InitMongoDB()
+	if err := db.InitRedis(); err != nil {
+		log.Fatal("Ошибка инициализации Redis:", err)
+	}
+
+	if err := services.InitPopularSessionsCache(); err != nil {
+		log.Fatal("Ошибка инициализации кэша популярных сессий:", err)
+	}
+
+	defer func() {
+		services.StopPopularSessionsCache()
+	}()
 
 	routes.RoutesUsers(r)
 	routes.RoutesAuth(r)
