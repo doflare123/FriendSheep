@@ -9,18 +9,25 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.FriendShip"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.FriendShip"
     },
-    "plugins": [],
+    "plugins": [
+      "expo-asset"
+    ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "assetBundlePatterns":[
+      "**/*"
+    ]
   }
 }

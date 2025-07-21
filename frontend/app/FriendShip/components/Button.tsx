@@ -1,3 +1,4 @@
+import { inter } from '@/constants/Inter';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { Colors } from '../constants/Colors';
@@ -19,7 +20,7 @@ const styles = StyleSheet.create({
   text: {
     color: Colors.white,
     fontSize: 20,
-    fontFamily: '../assets/fonts/Inter-Regular.otf',
+    fontFamily: inter.regular,
   },
 });
 
