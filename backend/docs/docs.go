@@ -790,7 +790,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Тип сессии",
                         "name": "session_type",
                         "in": "formData",
@@ -798,8 +798,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "ID типа видимости сессии",
-                        "name": "session_visibility",
+                        "description": "Типа проведения сессии",
+                        "name": "session_place",
                         "in": "formData",
                         "required": true
                     },
@@ -1393,6 +1393,70 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/users/new": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Получает новые сессии, созданные сегодня, с пагинацией по 6 штук",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Сессии"
+                ],
+                "summary": "Получение новых сессий",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Номер страницы (по умолчанию 1)",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список новых сессий",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.GetNewSessionsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные параметры запроса",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users/refresh": {
             "post": {
                 "description": "По refresh токену выдает новые access и refresh токены",
@@ -1458,6 +1522,26 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/handlers.GroupJoinRequestDoc"
                     }
+                }
+            }
+        },
+        "handlers.GetNewSessionsResponse": {
+            "type": "object",
+            "properties": {
+                "has_more": {
+                    "type": "boolean"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.SessionResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -1652,6 +1736,47 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "small_description": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.SessionResponse": {
+            "type": "object",
+            "properties": {
+                "count_users_max": {
+                    "type": "integer"
+                },
+                "current_users": {
+                    "type": "integer"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "group_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "session_place": {
+                    "type": "string"
+                },
+                "session_type": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "title": {
                     "type": "string"
                 }
             }

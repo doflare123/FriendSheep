@@ -114,7 +114,7 @@ func CreateSession(email string, input SessionInput) (bool, error) {
 
 	var sessionPlace sessions.SessionGroupPlace
 	if err := db.GetDB().Where("id = ?", input.SessionPlace).First(&sessionPlace).Error; err != nil {
-		return false, fmt.Errorf("тип сессии(видимости) не найден (%v): %v", input.SessionPlace, err)
+		return false, fmt.Errorf("тип сессии(проведения) не найден (%v): %v", input.SessionPlace, err)
 	}
 
 	var sessionType models.Category
@@ -126,18 +126,19 @@ func CreateSession(email string, input SessionInput) (bool, error) {
 	endTime := input.CalculateEndTime()
 
 	session := sessions.Session{
-		Title:         input.Title,
-		SessionType:   sessionType,
-		SessionPlace:  sessionPlace,
-		GroupID:       input.GroupID,
-		StartTime:     input.StartTime,
-		EndTime:       endTime,
-		Duration:      input.Duration,
-		CurrentUsers:  1,
-		CountUsersMax: input.CountUsers,
-		ImageURL:      input.Image,
-		UserID:        creator.ID,
+		Title:          input.Title,
+		SessionTypeID:  sessionType.ID,
+		SessionPlaceID: sessionPlace.ID,
+		GroupID:        input.GroupID,
+		StartTime:      input.StartTime,
+		EndTime:        endTime,
+		Duration:       input.Duration,
+		CurrentUsers:   1,
+		CountUsersMax:  input.CountUsers,
+		ImageURL:       input.Image,
+		UserID:         creator.ID,
 	}
+	fmt.Print("session", "session", session)
 
 	if err := db.GetDB().Create(&session).Error; err != nil {
 		return false, fmt.Errorf("ошибка создания сессии: %v", err)

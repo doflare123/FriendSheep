@@ -77,6 +77,7 @@ func main() {
 	routes.RoutesAuth(r)
 	routes.RouterGroups(r)
 	routes.RouterSessions(r)
+	routes.RouterUsersInfo(r)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/docs", func(c *gin.Context) {

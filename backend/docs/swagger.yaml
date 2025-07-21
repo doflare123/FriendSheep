@@ -6,6 +6,19 @@ definitions:
           $ref: '#/definitions/handlers.GroupJoinRequestDoc'
         type: array
     type: object
+  handlers.GetNewSessionsResponse:
+    properties:
+      has_more:
+        type: boolean
+      page:
+        type: integer
+      sessions:
+        items:
+          $ref: '#/definitions/services.SessionResponse'
+        type: array
+      total:
+        type: integer
+    type: object
   handlers.GroupJoinRequestDoc:
     properties:
       group:
@@ -136,6 +149,33 @@ definitions:
       name:
         type: string
       small_description:
+        type: string
+    type: object
+  services.SessionResponse:
+    properties:
+      count_users_max:
+        type: integer
+      current_users:
+        type: integer
+      duration:
+        type: integer
+      genres:
+        items:
+          type: string
+        type: array
+      group_name:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      session_place:
+        type: string
+      session_type:
+        type: string
+      start_time:
+        type: string
+      title:
         type: string
     type: object
   services.SessionUpdateInput:
@@ -723,10 +763,10 @@ paths:
         in: formData
         name: session_type
         required: true
-        type: integer
-      - description: ID типа видимости сессии
+        type: string
+      - description: Типа проведения сессии
         in: formData
-        name: session_visibility
+        name: session_place
         required: true
         type: integer
       - description: ID группы
@@ -1075,6 +1115,47 @@ paths:
       summary: Аутентификация пользователя
       tags:
       - auth
+  /api/users/new:
+    get:
+      consumes:
+      - application/json
+      description: Получает новые сессии, созданные сегодня, с пагинацией по 6 штук
+      parameters:
+      - description: Номер страницы (по умолчанию 1)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список новых сессий
+          schema:
+            $ref: '#/definitions/handlers.GetNewSessionsResponse'
+        "400":
+          description: Неверные параметры запроса
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение новых сессий
+      tags:
+      - Сессии
   /api/users/refresh:
     post:
       consumes:

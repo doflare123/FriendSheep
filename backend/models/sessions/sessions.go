@@ -12,7 +12,7 @@ type Session struct {
 	SessionTypeID  uint              `gorm:"not null"`
 	SessionType    models.Category   `gorm:"foreignKey:SessionTypeID"`
 	SessionPlaceID uint              `gorm:"not null"`
-	SessionPlace   SessionGroupPlace `gorm:"foreignKey:SessionTypeID"`
+	SessionPlace   SessionGroupPlace `gorm:"foreignKey:SessionPlaceID"`
 
 	GroupID uint         `gorm:"not null"`
 	Group   groups.Group `gorm:"foreignKey:GroupID"`

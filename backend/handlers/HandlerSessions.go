@@ -22,8 +22,8 @@ type SessionJoinInputDoc struct {
 // @Accept multipart/form-data
 // @Produce json
 // @Param title formData string true "Название сессии"
-// @Param session_type formData uint true "Тип сессии"
-// @Param session_visibility formData uint true "ID типа видимости сессии"
+// @Param session_type formData string true "Тип сессии"
+// @Param session_place formData uint true "Типа проведения сессии"
 // @Param group_id formData uint true "ID группы"
 // @Param start_time formData string true "Время начала (в формате RFC3339, напр. 2025-07-10T19:00:00+02:00)"
 // @Param duration formData uint false "Длительность в минутах"
