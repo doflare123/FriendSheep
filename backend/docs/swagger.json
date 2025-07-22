@@ -1627,6 +1627,93 @@
                 }
             }
         },
+        "/api/users/sessions/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Поиск сессий по заданным критериям с учетом приватности групп",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Получение данных о сессиях"
+                ],
+                "summary": "Поиск сессий",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Поисковый запрос для поиска по названию сессии",
+                        "name": "query",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID категории сессии (session_type_id)",
+                        "name": "categoryID",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Тип места проведения сессии (опционально)",
+                        "name": "sessionType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Страница, так как отдает от 9 штук",
+                        "name": "Page",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список найденных сессий",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/services.SessionResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные параметры запроса",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Не передан JWT токен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users/sessions/{sessionId}": {
             "get": {
                 "security": [

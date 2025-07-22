@@ -1440,6 +1440,63 @@ paths:
       summary: Получение популярных сессий
       tags:
       - Получение данных о сессиях
+  /api/users/sessions/search:
+    get:
+      consumes:
+      - application/json
+      description: Поиск сессий по заданным критериям с учетом приватности групп
+      parameters:
+      - description: Поисковый запрос для поиска по названию сессии
+        in: query
+        name: query
+        required: true
+        type: string
+      - description: ID категории сессии (session_type_id)
+        in: query
+        name: categoryID
+        required: true
+        type: integer
+      - description: Тип места проведения сессии (опционально)
+        in: query
+        name: sessionType
+        type: string
+      - description: Страница, так как отдает от 9 штук
+        in: query
+        name: Page
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список найденных сессий
+          schema:
+            items:
+              $ref: '#/definitions/services.SessionResponse'
+            type: array
+        "400":
+          description: Некорректные параметры запроса
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не передан JWT токен
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Поиск сессий
+      tags:
+      - Получение данных о сессиях
 securityDefinitions:
   BearerAuth:
     description: 'Введите токен в формате: Bearer <your_token>'

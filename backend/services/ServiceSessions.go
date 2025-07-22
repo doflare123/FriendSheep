@@ -36,6 +36,13 @@ type SessionInput struct {
 	Notes     string `form:"notes"`
 }
 
+type SearchSessionsRequest struct {
+	Query       string  `form:"query" binding:"required" validate:"min=1,max=100"`
+	CategoryID  uint    `form:"categoryID" binding:"required"`
+	SessionType *string `form:"session_type,omitempty" validate:"omitempty,oneof=Оффлайн Онлайн"`
+	Page        *int    `form:"Page" json:"page"`
+}
+
 type SessionJoinInput struct {
 	SessionID uint `json:"session_id" binding:"required"`
 	GroupID   uint `json:"group_id" binding:"required"`
@@ -58,6 +65,16 @@ type SubSessionDetail struct {
 	CurrantUsers  uint16    `json:"current_users"`
 	CountUsersMax uint16    `json:"count_users_max"`
 	ImageURL      string    `json:"image_url"`
+}
+
+type PaginatedSearchResponse struct {
+	Sessions    []SessionResponse `json:"sessions"`
+	Page        int               `json:"page"`
+	PageSize    int               `json:"page_size"`
+	Total       int               `json:"total"`
+	TotalPages  int               `json:"total_pages"`
+	HasNext     bool              `json:"has_next"`
+	HasPrevious bool              `json:"has_previous"`
 }
 
 // Валидация времени начала сессии
@@ -436,6 +453,229 @@ func UpdateSession(email string, sessionID uint, input SessionUpdateInput) error
 	}
 
 	return nil
+}
+
+func SearchSessions(email, query *string, categoryID *uint, sessionType *string, page *int) (*PaginatedSearchResponse, error) {
+	if email == nil || *email == "" {
+		return nil, fmt.Errorf("email не может быть пустым")
+	}
+	if query == nil || *query == "" {
+		return nil, fmt.Errorf("query не может быть пустым")
+	}
+	if categoryID == nil {
+		return nil, fmt.Errorf("categoryID обязателен")
+	}
+
+	const pageSize = 9
+	currentPage := 1
+	if page != nil && *page > 0 {
+		currentPage = *page
+	}
+
+	var filteredSessions []sessions.Session
+	dbTx := db.GetDB().Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			dbTx.Rollback()
+		}
+	}()
+
+	var user models.User
+	if err := dbTx.Where("email = ?", *email).First(&user).Error; err != nil {
+		dbTx.Rollback()
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("пользователь не найден")
+		}
+		return nil, fmt.Errorf("ошибка при поиске пользователя: %v", err)
+	}
+
+	if user.ID == 0 {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("некорректный ID пользователя")
+	}
+
+	var userGroups []groups.GroupUsers
+	if err := dbTx.Where("user_id = ?", &user.ID).Find(&userGroups).Error; err != nil {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("ошибка при получении групп пользователя: %v", err)
+	}
+
+	userGroupsMap := make(map[uint]bool)
+	for _, ug := range userGroups {
+		if ug.GroupID != 0 {
+			userGroupsMap[ug.GroupID] = true
+		}
+	}
+
+	query_db := dbTx.Table("sessions").
+		Preload("SessionType").
+		Preload("SessionPlace").
+		Preload("Group").
+		Preload("User").
+		Where("session_type_id = ?", *categoryID).
+		Where("title LIKE ?", "%"+*query+"%")
+
+	if sessionType != nil && *sessionType != "" {
+		var placeIDs []uint
+		var places []sessions.SessionGroupPlace
+
+		placeQuery := dbTx.Where("title = ?", *sessionType).Find(&places)
+		if placeQuery.Error != nil {
+			dbTx.Rollback()
+			return nil, fmt.Errorf("ошибка при поиске мест проведения: %v", placeQuery.Error)
+		}
+
+		for _, place := range places {
+			if place.ID != 0 {
+				placeIDs = append(placeIDs, place.ID)
+			}
+		}
+
+		if len(placeIDs) > 0 {
+			query_db = query_db.Where("session_place_id IN ?", placeIDs)
+		} else {
+			// Если не найдено подходящих мест, возвращаем пустой результат
+			dbTx.Commit()
+			return &PaginatedSearchResponse{
+				Sessions:    []SessionResponse{},
+				Page:        currentPage,
+				PageSize:    pageSize,
+				Total:       0,
+				TotalPages:  0,
+				HasNext:     false,
+				HasPrevious: currentPage > 1,
+			}, nil
+		}
+	}
+
+	var allSessions []sessions.Session
+	if err := query_db.Find(&allSessions).Error; err != nil {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("ошибка при поиске сессий: %v", err)
+	}
+
+	// Фильтруем сессии в зависимости от приватности группы
+	for _, session := range allSessions {
+		// Проверяем, что группа загружена
+		if session.GroupID == 0 {
+			continue
+		}
+
+		var group groups.Group
+		if err := dbTx.Where("id = ?", &session.GroupID).First(&group).Error; err != nil {
+			continue
+		}
+
+		if group.IsPrivate {
+			if userGroupsMap[session.GroupID] {
+				filteredSessions = append(filteredSessions, session)
+			}
+		} else {
+			filteredSessions = append(filteredSessions, session)
+		}
+	}
+
+	if err := dbTx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("ошибка при коммите транзакции: %v", err)
+	}
+
+	totalSessions := len(filteredSessions)
+	totalPages := (totalSessions + pageSize - 1) / pageSize
+
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	if currentPage > totalPages {
+		currentPage = totalPages
+	}
+
+	startIndex := (currentPage - 1) * pageSize
+	endIndex := startIndex + pageSize
+
+	if startIndex >= totalSessions {
+		return &PaginatedSearchResponse{
+			Sessions:    []SessionResponse{},
+			Page:        currentPage,
+			PageSize:    pageSize,
+			Total:       totalSessions,
+			TotalPages:  totalPages,
+			HasNext:     false,
+			HasPrevious: currentPage > 1,
+		}, nil
+	}
+
+	if endIndex > totalSessions {
+		endIndex = totalSessions
+	}
+
+	sessionsPaged := filteredSessions[startIndex:endIndex]
+
+	sessionIDs := make([]uint, 0, len(sessionsPaged))
+	for _, session := range sessionsPaged {
+		if session.ID != 0 {
+			sessionIDs = append(sessionIDs, session.ID)
+		}
+	}
+
+	metadataMap, err := db.GetSessionsMetadata(sessionIDs)
+	if err != nil {
+		// Логируем ошибку, но не прерываем выполнение - можем вернуть данные без метаданных
+		fmt.Printf("Ошибка при получении метаданных из MongoDB: %v\n", err)
+		metadataMap = make(map[uint]*sessions.SessionMetadata)
+	}
+
+	result := make([]SessionResponse, 0, len(sessionsPaged))
+	for _, session := range sessionsPaged {
+		response := SessionResponse{
+			ID:            session.ID,
+			Title:         session.Title,
+			StartTime:     session.StartTime,
+			ImageURL:      session.ImageURL,
+			Duration:      session.Duration,
+			CurrentUsers:  session.CurrentUsers,
+			CountUsersMax: session.CountUsersMax,
+		}
+
+		if session.SessionType.Name != "" {
+			response.SessionType = session.SessionType.Name
+		}
+
+		if session.SessionPlace.Title != "" {
+			response.SessionPlace = session.SessionPlace.Title
+		}
+
+		if session.Group.Name != "" {
+			response.GroupName = session.Group.Name
+		}
+
+		if session.ID != 0 {
+			if metadata, exists := metadataMap[session.ID]; exists && metadata != nil {
+				// Добавляем жанры из метаданных
+				if metadata.Genres != nil {
+					response.Genres = metadata.Genres
+				} else {
+					response.Genres = make([]string, 0)
+				}
+			} else {
+				response.Genres = make([]string, 0)
+			}
+		} else {
+			response.Genres = make([]string, 0)
+		}
+
+		result = append(result, response)
+	}
+
+	return &PaginatedSearchResponse{
+		Sessions:    result,
+		Page:        currentPage,
+		PageSize:    pageSize,
+		Total:       totalSessions,
+		TotalPages:  totalPages,
+		HasNext:     currentPage < totalPages,
+		HasPrevious: currentPage > 1,
+	}, nil
 }
 
 func GetInfoAboutSession(email *string, sessionID *uint) (*SessionDetailResponse, error) {

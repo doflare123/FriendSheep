@@ -159,6 +159,41 @@ func GetCategorySessions(c *gin.Context) {
 
 }
 
+// SearchSessions godoc
+// @Summary Поиск сессий
+// @Description Поиск сессий по заданным критериям с учетом приватности групп
+// @Tags Получение данных о сессиях
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param query query string true "Поисковый запрос для поиска по названию сессии"
+// @Param categoryID query uint true "ID категории сессии (session_type_id)"
+// @Param sessionType query string false "Тип места проведения сессии (опционально)"
+// @Param Page query string true "Страница, так как отдает от 9 штук"
+// @Success 200 {array} services.SessionResponse "Список найденных сессий"
+// @Failure 400 {object} map[string]string "Некорректные параметры запроса"
+// @Failure 401 {object} map[string]string "Не передан JWT токен"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router /api/users/sessions/search [get]
+func SearchSessions(c *gin.Context) {
+	email := c.MustGet("email").(string)
+	if email == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
+		return
+	}
+	var input services.SearchSessionsRequest
+	if err := c.ShouldBindQuery(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректные параметры запроса: " + err.Error()})
+		return
+	}
+	result, err := services.SearchSessions(&email, &input.Query, &input.CategoryID, input.SessionType, input.Page)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 // GetDetailedInfo получает детальную информацию о сессии
 // @Summary Получить детальную информацию о сессии
 // @Description Возвращает подробную информацию о сессии, включая метаданные
