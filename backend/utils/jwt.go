@@ -13,7 +13,6 @@ type TokenPair struct {
 	RefreshToken string
 }
 
-// Создаёт access token и refresh token
 func GenerateTokenPair(email, us, image string) (TokenPair, error) {
 	secretKey := os.Getenv("SECRET_KEY_JWT")
 	if len(secretKey) == 0 {
@@ -22,7 +21,7 @@ func GenerateTokenPair(email, us, image string) (TokenPair, error) {
 
 	now := time.Now()
 
-	// Access токен (6 часов жизни)
+	// Access токен (20 минут жизни)
 	accessClaims := jwt.MapClaims{
 		"Email": email,
 		"Us":    us,
@@ -30,19 +29,23 @@ func GenerateTokenPair(email, us, image string) (TokenPair, error) {
 		"exp":   now.Add(20 * time.Minute).Unix(),
 		"iat":   now.Unix(),
 	}
+
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	accessString, err := accessToken.SignedString([]byte(secretKey))
 	if err != nil {
 		return TokenPair{}, err
 	}
 
+	// Refresh токен (30 дней жизни)
 	refreshClaims := jwt.MapClaims{
 		"Email": email,
 		"Us":    us,
+		"Image": image, // Добавляем Image и в refresh токен
 		"exp":   now.Add(30 * 24 * time.Hour).Unix(),
 		"iat":   now.Unix(),
 		"typ":   "refresh",
 	}
+
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshString, err := refreshToken.SignedString([]byte(secretKey))
 	if err != nil {
@@ -62,6 +65,10 @@ func RefreshTokens(refreshTokenString string) (TokenPair, error) {
 	}
 
 	token, err := jwt.Parse(refreshTokenString, func(token *jwt.Token) (interface{}, error) {
+		// Проверка типа подписи
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("неподдерживаемый метод подписи: %v", token.Header["alg"])
+		}
 		return []byte(secretKey), nil
 	})
 
@@ -74,14 +81,24 @@ func RefreshTokens(refreshTokenString string) (TokenPair, error) {
 		return TokenPair{}, fmt.Errorf("невалидный refresh токен")
 	}
 
+	// Правильное извлечение типа токена
 	if typ, ok := claims["typ"].(string); !ok || typ != "refresh" {
 		return TokenPair{}, fmt.Errorf("токен не является refresh токеном")
 	}
 
+	// Правильное извлечение значений из claims
 	email, okEmail := claims["Email"].(string)
 	us, okUs := claims["Us"].(string)
-	image, okImage := claims["Image"].(string)
-	if !okEmail || !okUs || !okImage {
+
+	// Image может отсутствовать в refresh токене, поэтому обрабатываем это
+	image := ""
+	if imageVal, exists := claims["Image"]; exists {
+		if imageStr, ok := imageVal.(string); ok {
+			image = imageStr
+		}
+	}
+
+	if !okEmail || !okUs {
 		return TokenPair{}, fmt.Errorf("недостаточно данных в refresh токене")
 	}
 
@@ -111,6 +128,7 @@ func ParseJWT(tokenString string) (string, error) {
 		return "", fmt.Errorf("некорректные claims")
 	}
 
+	// Правильное извлечение email
 	email, ok := claims["Email"].(string)
 	if !ok {
 		return "", fmt.Errorf("email не найден в токене")

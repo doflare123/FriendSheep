@@ -1437,6 +1437,86 @@
                 }
             }
         },
+        "/api/users/sessions/category": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список из 10 сессий по указанной категории из открытых групп. Вводить вам нужно будет иметь мапу с категориями, где ключ - название категории, а значение - id категории. Сейчас такие значнеия: 1 - Фильмы, 2 - Игры. 3 - Настолки, 4 - Другое",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Получение данных о сессиях"
+                ],
+                "summary": "Получение сессий по категории",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID категории сессии",
+                        "name": "category_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Номер страницы (по умолчанию 1)",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список сессий",
+                        "schema": {
+                            "$ref": "#/definitions/services.CategorySessionsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные параметры запроса",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Категория не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users/sessions/new": {
             "get": {
                 "security": [
@@ -1452,7 +1532,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Сессии"
+                    "Получение данных о сессиях"
                 ],
                 "summary": "Получение новых сессий",
                 "parameters": [
@@ -1516,7 +1596,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Сессии"
+                    "Получение данных о сессиях"
                 ],
                 "summary": "Получение популярных сессий",
                 "responses": {
@@ -1528,6 +1608,89 @@
                     },
                     "401": {
                         "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/sessions/{sessionId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает подробную информацию о сессии, включая метаданные",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Получение данных о сессиях"
+                ],
+                "summary": "Получить детальную информацию о сессии",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Уникальный идентификатор сессии",
+                        "name": "sessionId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешное получение информации о сессии",
+                        "schema": {
+                            "$ref": "#/definitions/services.SessionDetailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные параметры запроса",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Ошибки аутентификации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Сессия не найдена",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1793,6 +1956,26 @@
                 }
             }
         },
+        "services.CategorySessionsResponse": {
+            "type": "object",
+            "properties": {
+                "current_page": {
+                    "type": "integer"
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.SessionResponse"
+                    }
+                },
+                "total_count": {
+                    "type": "integer"
+                }
+            }
+        },
         "services.CreateUserInput": {
             "type": "object",
             "required": [
@@ -1836,6 +2019,17 @@
                 },
                 "small_description": {
                     "type": "string"
+                }
+            }
+        },
+        "services.SessionDetailResponse": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "$ref": "#/definitions/sessions.SessionMetadata"
+                },
+                "session": {
+                    "$ref": "#/definitions/services.SubSessionDetail"
                 }
             }
         },
@@ -1900,6 +2094,44 @@
                 }
             }
         },
+        "services.SubSessionDetail": {
+            "type": "object",
+            "properties": {
+                "count_users_max": {
+                    "type": "integer"
+                },
+                "current_users": {
+                    "type": "integer"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "group_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "session_place": {
+                    "type": "string"
+                },
+                "session_type": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "services.VerifySessionInput": {
             "type": "object",
             "required": [
@@ -1916,6 +2148,39 @@
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "sessions.SessionMetadata": {
+            "type": "object",
+            "properties": {
+                "ageLimit": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "fields": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "location": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "sessionID": {
+                    "type": "integer"
+                },
+                "year": {
+                    "type": "integer"
                 }
             }
         }

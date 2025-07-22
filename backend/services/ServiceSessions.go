@@ -41,6 +41,25 @@ type SessionJoinInput struct {
 	GroupID   uint `json:"group_id" binding:"required"`
 }
 
+type SessionDetailResponse struct {
+	Session  SubSessionDetail          `json:"session"`
+	Metadata *sessions.SessionMetadata `json:"metadata,omitempty"`
+}
+
+type SubSessionDetail struct {
+	ID            uint      `json:"id"`
+	Title         string    `json:"title"`
+	SessionType   string    `json:"session_type"`
+	SessionPlace  string    `json:"session_place"`
+	GroupID       uint      `json:"group_id"`
+	StartTime     time.Time `json:"start_time"`
+	EndTime       time.Time `json:"end_time"`
+	Duration      uint16    `json:"duration"`
+	CurrantUsers  uint16    `json:"current_users"`
+	CountUsersMax uint16    `json:"count_users_max"`
+	ImageURL      string    `json:"image_url"`
+}
+
 // Валидация времени начала сессии
 func (input *SessionInput) ValidateStartTime() error {
 	now := time.Now()
@@ -208,9 +227,8 @@ func CreateSession(email string, input SessionInput) (bool, error) {
 	return true, nil
 }
 
-func JoinToSession(email string, input SessionJoinInput) error {
+func JoinToSession(email *string, input SessionJoinInput) error {
 	dbTx := db.GetDB().Begin()
-
 	defer func() {
 		if r := recover(); r != nil {
 			dbTx.Rollback()
@@ -222,24 +240,38 @@ func JoinToSession(email string, input SessionJoinInput) error {
 		dbTx.Rollback()
 		return fmt.Errorf("пользователь не найден: %v", err)
 	}
+
 	var session sessions.Session
 	if err := dbTx.Preload("Group").Where("id = ? AND group_id = ?", input.SessionID, input.GroupID).First(&session).Error; err != nil {
 		dbTx.Rollback()
 		return fmt.Errorf("сессия не найдена: %v", err)
 	}
+	fmt.Println(session.Group.IsPrivate, "dfkjsldkfjlsdkjflskdjflsdjflsdkjf")
+
+	if session.Group.IsPrivate == true {
+		var groupUser groups.GroupUsers
+		if err := dbTx.Where("group_id = ? AND user_id = ?", session.GroupID, user.ID).First(&groupUser).Error; err != nil {
+			dbTx.Rollback()
+			return fmt.Errorf("пользователь не является участником приватной группы")
+		}
+	}
+
 	if session.CurrentUsers >= session.CountUsersMax {
 		dbTx.Rollback()
 		return fmt.Errorf("сессия заполнена")
 	}
+
 	var exists sessions.SessionUser
 	if err := dbTx.Where("session_id = ? AND user_id = ?", session.ID, user.ID).First(&exists).Error; err == nil {
 		dbTx.Rollback()
 		return fmt.Errorf("пользователь уже присоединился к сессии")
 	}
+
 	if err := dbTx.Model(&session).Update("current_users", gorm.Expr("current_users + ?", 1)).Error; err != nil {
 		dbTx.Rollback()
 		return fmt.Errorf("ошибка обновления сессии: %v", err)
 	}
+
 	if err := dbTx.Create(&sessions.SessionUser{
 		SessionID: session.ID,
 		UserID:    user.ID,
@@ -404,4 +436,101 @@ func UpdateSession(email string, sessionID uint, input SessionUpdateInput) error
 	}
 
 	return nil
+}
+
+func GetInfoAboutSession(email *string, sessionID *uint) (*SessionDetailResponse, error) {
+	if email == nil || *email == "" {
+		return nil, fmt.Errorf("email не может быть пустым")
+	}
+	if sessionID == nil || *sessionID == 0 {
+		return nil, fmt.Errorf("sessionID должен быть больше 0")
+	}
+
+	var sessionInf SessionDetailResponse
+	dbTx := db.GetDB().Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			dbTx.Rollback()
+		}
+	}()
+
+	var user models.User
+	if err := dbTx.Where("email = ?", *email).First(&user).Error; err != nil {
+		dbTx.Rollback()
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("пользователь не найден")
+		}
+		return nil, fmt.Errorf("ошибка при поиске пользователя: %v", err)
+	}
+
+	if user.ID == 0 {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("некорректный ID пользователя")
+	}
+
+	var session sessions.Session
+	if err := dbTx.Preload("SessionType").
+		Preload("SessionPlace").
+		First(&session, *sessionID).Error; err != nil {
+		dbTx.Rollback()
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("сессия не найдена")
+		}
+		return nil, fmt.Errorf("ошибка при поиске сессии: %v", err)
+	}
+
+	var group struct {
+		IsPrivate bool `gorm:"column:is_private"`
+	}
+	if err := dbTx.Table("groups").Select("is_private").Where("id = ?", session.GroupID).First(&group).Error; err != nil {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("ошибка при получении информации о группе: %v", err)
+	}
+
+	// Проверяем доступ к сессии через группу
+	if group.IsPrivate {
+		var membership struct {
+			UserID  *uint `gorm:"column:user_id"`
+			GroupID *uint `gorm:"column:group_id"`
+		}
+		err := dbTx.Table("group_users").
+			Select("user_id, group_id").
+			Where("user_id = ? AND group_id = ?", &user.ID, session.GroupID).
+			First(&membership).Error
+		if err != nil {
+			dbTx.Rollback()
+			if err == gorm.ErrRecordNotFound {
+				return nil, fmt.Errorf("доступ запрещен: пользователь не является членом приватной группы")
+			}
+			return nil, fmt.Errorf("ошибка при проверке членства в группе: %v", err)
+		}
+	}
+
+	subIng := SubSessionDetail{
+		ID:            session.ID,
+		Title:         session.Title,
+		SessionType:   session.SessionType.Name,
+		SessionPlace:  session.SessionPlace.Title,
+		GroupID:       session.GroupID,
+		StartTime:     session.StartTime,
+		EndTime:       session.EndTime,
+		Duration:      session.Duration,
+		CurrantUsers:  session.CurrentUsers,
+		CountUsersMax: session.CountUsersMax,
+		ImageURL:      session.ImageURL,
+	}
+
+	sessionInf.Session = subIng
+
+	metadata, err := db.GetSessionMetadataId(sessionID)
+	if err != nil {
+		fmt.Printf("Ошибка при получении метаданных: %v\n", err)
+	}
+	sessionInf.Metadata = metadata
+
+	if err := dbTx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("ошибка при сохранении транзакции: %v", err)
+	}
+
+	return &sessionInf, nil
 }

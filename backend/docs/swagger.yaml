@@ -162,6 +162,19 @@ definitions:
       session_id:
         type: string
     type: object
+  services.CategorySessionsResponse:
+    properties:
+      current_page:
+        type: integer
+      has_more:
+        type: boolean
+      sessions:
+        items:
+          $ref: '#/definitions/services.SessionResponse'
+        type: array
+      total_count:
+        type: integer
+    type: object
   services.CreateUserInput:
     properties:
       email:
@@ -192,6 +205,13 @@ definitions:
         type: string
       small_description:
         type: string
+    type: object
+  services.SessionDetailResponse:
+    properties:
+      metadata:
+        $ref: '#/definitions/sessions.SessionMetadata'
+      session:
+        $ref: '#/definitions/services.SubSessionDetail'
     type: object
   services.SessionResponse:
     properties:
@@ -233,6 +253,31 @@ definitions:
       title:
         type: string
     type: object
+  services.SubSessionDetail:
+    properties:
+      count_users_max:
+        type: integer
+      current_users:
+        type: integer
+      duration:
+        type: integer
+      end_time:
+        type: string
+      group_id:
+        type: integer
+      id:
+        type: integer
+      image_url:
+        type: string
+      session_place:
+        type: string
+      session_type:
+        type: string
+      start_time:
+        type: string
+      title:
+        type: string
+    type: object
   services.VerifySessionInput:
     properties:
       code:
@@ -245,6 +290,28 @@ definitions:
     - code
     - session_id
     - type
+    type: object
+  sessions.SessionMetadata:
+    properties:
+      ageLimit:
+        type: string
+      country:
+        type: string
+      fields:
+        additionalProperties: true
+        type: object
+      genres:
+        items:
+          type: string
+        type: array
+      location:
+        type: string
+      notes:
+        type: string
+      sessionID:
+        type: integer
+      year:
+        type: integer
     type: object
 info:
   contact: {}
@@ -1193,6 +1260,115 @@ paths:
       summary: Обновление токенов
       tags:
       - auth
+  /api/users/sessions/{sessionId}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает подробную информацию о сессии, включая метаданные
+      parameters:
+      - description: Уникальный идентификатор сессии
+        in: path
+        minimum: 1
+        name: sessionId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное получение информации о сессии
+          schema:
+            $ref: '#/definitions/services.SessionDetailResponse'
+        "400":
+          description: Некорректные параметры запроса
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Ошибки аутентификации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Доступ запрещен
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Сессия не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить детальную информацию о сессии
+      tags:
+      - Получение данных о сессиях
+  /api/users/sessions/category:
+    get:
+      consumes:
+      - application/json
+      description: 'Возвращает список из 10 сессий по указанной категории из открытых
+        групп. Вводить вам нужно будет иметь мапу с категориями, где ключ - название
+        категории, а значение - id категории. Сейчас такие значнеия: 1 - Фильмы, 2
+        - Игры. 3 - Настолки, 4 - Другое'
+      parameters:
+      - description: ID категории сессии
+        in: query
+        name: category_id
+        required: true
+        type: integer
+      - default: 1
+        description: Номер страницы (по умолчанию 1)
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список сессий
+          schema:
+            $ref: '#/definitions/services.CategorySessionsResponse'
+        "400":
+          description: Некорректные параметры запроса
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Категория не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение сессий по категории
+      tags:
+      - Получение данных о сессиях
   /api/users/sessions/new:
     get:
       consumes:
@@ -1233,7 +1409,7 @@ paths:
       - BearerAuth: []
       summary: Получение новых сессий
       tags:
-      - Сессии
+      - Получение данных о сессиях
   /api/users/sessions/popular:
     get:
       consumes:
@@ -1263,7 +1439,7 @@ paths:
       - BearerAuth: []
       summary: Получение популярных сессий
       tags:
-      - Сессии
+      - Получение данных о сессиях
 securityDefinitions:
   BearerAuth:
     description: 'Введите токен в формате: Bearer <your_token>'

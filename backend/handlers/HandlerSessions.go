@@ -111,7 +111,7 @@ func JoinToSession(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "не удалось разобрать форму: " + err.Error()})
 		return
 	}
-	res := services.JoinToSession(email, input)
+	res := services.JoinToSession(&email, input)
 	if res != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": res.Error()})
 		return

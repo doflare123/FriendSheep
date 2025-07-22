@@ -15,14 +15,14 @@ type Session struct {
 	SessionPlace   SessionGroupPlace `gorm:"foreignKey:SessionPlaceID"`
 
 	GroupID uint         `gorm:"not null"`
-	Group   groups.Group `gorm:"foreignKey:GroupID"`
+	Group   groups.Group `json:"-" gorm:"foreignKey:GroupID"`
 
 	StartTime time.Time `gorm:"not null"`
 	EndTime   time.Time `gorm:"not null"`
 	Duration  uint16    `gorm:"null"`
 
 	UserID uint        `gorm:"not null"` // создатель
-	User   models.User `gorm:"foreignKey:UserID"`
+	User   models.User `json:"-" gorm:"foreignKey:UserID"`
 
 	CurrentUsers  uint16 `gorm:"not null;default:0"`
 	CountUsersMax uint16 `gorm:"not null"`

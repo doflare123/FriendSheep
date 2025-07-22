@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"fmt"
 	"friendship/services"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +43,7 @@ type CachedPopularSessionsDoc struct {
 // GetNewSessions godoc
 // @Summary Получение новых сессий
 // @Description Получает новые сессии, созданные сегодня, с пагинацией по 6 штук
-// @Tags Сессии
+// @Tags Получение данных о сессиях
 // @Security BearerAuth
 // @Accept  json
 // @Produce  json
@@ -78,7 +80,7 @@ func GetNewSessions(c *gin.Context) {
 // GetPopularSessions godoc
 // @Summary Получение популярных сессий
 // @Description Возвращает 10 самых популярных сессий из кэша Redis (обновляется каждые 4 часа)
-// @Tags Сессии
+// @Tags Получение данных о сессиях
 // @Security BearerAuth
 // @Accept  json
 // @Produce  json
@@ -102,12 +104,116 @@ func GetPopularSessions(c *gin.Context) {
 	c.JSON(http.StatusOK, cachedSessions)
 }
 
-// func GetCategorySessions(c *gin.Context) {
-// 	email := c.MustGet("email").(string)
+// GetCategorySessions godoc
+// @Summary Получение сессий по категории
+// @Description Возвращает список из 10 сессий по указанной категории из открытых групп. Вводить вам нужно будет иметь мапу с категориями, где ключ - название категории, а значение - id категории. Сейчас такие значнеия: 1 - Фильмы, 2 - Игры. 3 - Настолки, 4 - Другое
+// @Tags Получение данных о сессиях
+// @Security BearerAuth
+// @Accept  json
+// @Produce  json
+// @Param category_id query int true "ID категории сессии"
+// @Param page query int false "Номер страницы (по умолчанию 1)" default(1)
+// @Success 200 {object} services.CategorySessionsResponse "Список сессий"
+// @Failure 400 {object} map[string]string "Некорректные параметры запроса"
+// @Failure 401 {object} map[string]string "Пользователь не авторизован"
+// @Failure 404 {object} map[string]string "Категория не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router /api/users/sessions/category [get]
+func GetCategorySessions(c *gin.Context) {
+	email := c.MustGet("email").(string)
+	if email == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
+		return
+	}
 
-// }
+	var input services.CategorySessionsInput
+	if err := c.ShouldBindQuery(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректные параметры запроса: " + err.Error()})
+		return
+	}
 
-// func GetCategorySessions(c *gin.Context) {
-// 	email := c.MustGet("email").(string)
+	if input.CategoryID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID категории"})
+		return
+	}
 
-// }
+	if input.Page <= 0 {
+		input.Page = 1
+	}
+
+	response, err := services.GetCategorySessions(email, input)
+	if err != nil {
+		if strings.Contains(err.Error(), "категория не найдена") {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if strings.Contains(err.Error(), "пользователь не найден") {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+
+}
+
+// GetDetailedInfo получает детальную информацию о сессии
+// @Summary Получить детальную информацию о сессии
+// @Description Возвращает подробную информацию о сессии, включая метаданные
+// @Tags Получение данных о сессиях
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param sessionId path int true "Уникальный идентификатор сессии" minimum(1)
+// @Success 200 {object} services.SessionDetailResponse "Успешное получение информации о сессии"
+// @Failure 400 {object} map[string]string "Некорректные параметры запроса"
+// @Failure 401 {object} map[string]string "Ошибки аутентификации"
+// @Failure 403 {object} map[string]string "Доступ запрещен"
+// @Failure 404 {object} map[string]string "Сессия не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router /api/users/sessions/{sessionId} [get]
+func GetDetailedInfo(c *gin.Context) {
+	email := c.MustGet("email").(string)
+	if email == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
+		return
+	}
+
+	sessionIDParam := c.Param("sessionId")
+	if sessionIDParam == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "sessionId не указан"})
+		return
+	}
+
+	sessionIDInt, err := strconv.Atoi(sessionIDParam)
+	if err != nil || sessionIDInt <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный sessionId"})
+		return
+	}
+	sessionID := uint(sessionIDInt)
+
+	session, err := services.GetInfoAboutSession(&email, &sessionID)
+	if err != nil {
+		fmt.Printf("Ошибка при получении сессии: %v\n", err)
+
+		if err.Error() == "сессия не найдена" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "сессия не найдена"})
+			return
+		}
+		if err.Error() == "доступ запрещен: пользователь не является членом приватной группы" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "доступ запрещен"})
+			return
+		}
+		if err.Error() == "пользователь не найден" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не найден"})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "внутренняя ошибка сервера"})
+		return
+	}
+
+	c.JSON(http.StatusOK, session)
+}

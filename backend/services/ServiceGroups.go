@@ -13,7 +13,7 @@ type CreateGroupInput struct {
 	Description      string `form:"description" binding:"required" example:"Полное описание группы"`
 	SmallDescription string `form:"smallDescription" binding:"required" example:"Короткое описание"`
 	Image            string `form:"-"`
-	IsPrivate        string `form:"isPrivate" binding:"required" example:"true/1/0/false"` // true / false
+	IsPrivate        bool   `form:"isPrivate" binding:"required" example:"true/1/0/false"` // true / false
 	City             string `form:"city,omitempty" example:"Москва"`
 	Categories       []uint `form:"categories" binding:"required" example:"[1, 2, 3]"`
 }
@@ -23,16 +23,16 @@ type JoinGroupResult struct {
 	Joined  bool
 }
 
-func (input *CreateGroupInput) IsPrivateBool() (bool, error) {
-	switch input.IsPrivate {
-	case "1", "true", "True", "TRUE":
-		return true, nil
-	case "0", "false", "False", "FALSE":
-		return false, nil
-	default:
-		return false, fmt.Errorf("некорректное значение isPrivate: %s", input.IsPrivate)
-	}
-}
+// func (input *CreateGroupInput) IsPrivateBool() (bool, error) {
+// 	switch input.IsPrivate {
+// 	case "1", "true", "True", "TRUE":
+// 		return true, nil
+// 	case "0", "false", "False", "FALSE":
+// 		return false, nil
+// 	default:
+// 		return false, fmt.Errorf("некорректное значение isPrivate: %s", input.IsPrivate)
+// 	}
+// }
 
 type JoinGroupInput struct {
 	GroupID uint `json:"groupId" binding:"required"`
@@ -46,11 +46,6 @@ func CreateGroup(email string, input CreateGroupInput) (*groups.Group, error) {
 	var creator models.User
 	if err := db.GetDB().Where("email = ?", email).First(&creator).Error; err != nil {
 		return nil, fmt.Errorf("создатель не найден по email (%s): %v", email, err)
-	}
-
-	isPrivate, err := input.IsPrivateBool()
-	if err != nil {
-		return nil, fmt.Errorf("не удалось распарсить isPrivate: %v", err)
 	}
 
 	// Загрузка категорий
@@ -67,7 +62,7 @@ func CreateGroup(email string, input CreateGroupInput) (*groups.Group, error) {
 		SmallDescription: input.SmallDescription,
 		Image:            input.Image,
 		Creater:          creator,
-		IsPrivate:        isPrivate,
+		IsPrivate:        input.IsPrivate,
 		City:             input.City,
 		Categories:       categories,
 	}
