@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import "../../ConfirmCode.css";
+import "../../../styles/ConfirmCode.css";
 import { useSearchParams, useRouter } from 'next/navigation';
 import { registerSession } from '../../../api/sessions';
 import { confirm_code } from '../../../api/confirm_code';
@@ -165,7 +165,7 @@ export default function ConfirmCode() {
                     className="hover:underline text-xl text-black"
                     onClick={handleResendCode}
                 >
-                    Отправить код
+                    Отправить код повторно
                 </button>
                 ) : (
                 formatTime()

@@ -49,7 +49,7 @@
         transform: translateX(64px) translateY(0);
     }
     100% {
-        transform: translateX(0) translateY(0);
+        transform: translateX(64px) translateY(0);
     }
 }
 
@@ -65,7 +65,7 @@
         transform: translateX(-32px);
     }
     100% {
-        transform: translateX(0);
+        transform: translateX(-32px);
     }
 }
 
@@ -80,6 +80,6 @@
         transform: translateX(-32px);
     }
     100% {
-        transform: translateX(0);
+        transform: translateX(-32px);
     }
 }

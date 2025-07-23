@@ -1,0 +1,129 @@
+.mainPage {
+    min-height: 100vh;
+    background: url('/bg_login.png') center/cover no-repeat;
+    padding: 20px;
+    font-family: 'Inter', sans-serif;
+}
+
+.section {
+    margin-bottom: 40px;
+}
+
+.sectionTitle {
+    color: #37A2E6;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px 20px;
+    border-radius: 12px;
+    display: inline-block;
+    border: 2px solid #316BC2;
+}
+
+.categoriesHeader {
+    text-align: center;
+    margin: 60px 0 40px 0;
+}
+
+.categoriesHeader h2 {
+    color: #316BC2;
+    font-size: 38px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 15px 40px;
+    border-radius: 38px;
+    display: inline-block;
+    border: 3px solid #316BC2;
+    box-shadow: 0 4px 12px rgba(49, 107, 194, 0.3);
+    width: 75%;
+}
+
+.categorySection {
+    margin-bottom: 30px;
+}
+
+.categoryHeader {
+    margin-bottom: 15px;
+    margin-left: 2%;
+    width: 15%;
+    max-width: 300px;
+}
+
+.categoryTitle {
+    color: #316BC2;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 8px 16px;
+    border-radius: 10px;
+    display: inline-block;
+    border: 2px solid #316BC2;
+}
+
+.categoryTitle:hover {
+    color: #37A2E6;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.cardsContainer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.scrollButton {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #316BC2;
+    color: #316BC2;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.scrollButton:hover {
+    background: rgba(55, 162, 230, 1);
+    color: white;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.scrollLeft {
+    left: calc(2.5% - 45px); /* Позиционируем слева от скролла */
+}
+
+.scrollRight {
+    right: calc(2.5% - 45px); /* Позиционируем справа от скролла */
+}
+
+.cardsScroll {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    padding: 0 20px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    width: 95%;
+    max-width: 95%;
+}
+
+.cardsScroll::-webkit-scrollbar {
+    display: none;
+}
