@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"friendship/models"
 	"os"
 	"time"
 
@@ -13,7 +14,9 @@ type TokenPair struct {
 	RefreshToken string
 }
 
-func GenerateTokenPair(email, us, image string) (TokenPair, error) {
+type UserFinder func(email string) (*models.User, error)
+
+func GenerateTokenPair(email, us, name, image string) (TokenPair, error) {
 	secretKey := os.Getenv("SECRET_KEY_JWT")
 	if len(secretKey) == 0 {
 		return TokenPair{}, fmt.Errorf("пустой секретный ключ")
@@ -23,11 +26,12 @@ func GenerateTokenPair(email, us, image string) (TokenPair, error) {
 
 	// Access токен (20 минут жизни)
 	accessClaims := jwt.MapClaims{
-		"Email": email,
-		"Us":    us,
-		"Image": image,
-		"exp":   now.Add(20 * time.Minute).Unix(),
-		"iat":   now.Unix(),
+		"Email":    email,
+		"Us":       us,
+		"Username": name,
+		"Image":    image,
+		"exp":      now.Add(20 * time.Minute).Unix(),
+		"iat":      now.Unix(),
 	}
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
@@ -38,12 +42,13 @@ func GenerateTokenPair(email, us, image string) (TokenPair, error) {
 
 	// Refresh токен (30 дней жизни)
 	refreshClaims := jwt.MapClaims{
-		"Email": email,
-		"Us":    us,
-		"Image": image, // Добавляем Image и в refresh токен
-		"exp":   now.Add(30 * 24 * time.Hour).Unix(),
-		"iat":   now.Unix(),
-		"typ":   "refresh",
+		"Email":    email,
+		"Us":       us,
+		"Username": name,
+		"Image":    image, // Добавляем Image и в refresh токен
+		"exp":      now.Add(30 * 24 * time.Hour).Unix(),
+		"iat":      now.Unix(),
+		"typ":      "refresh",
 	}
 
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
@@ -58,7 +63,7 @@ func GenerateTokenPair(email, us, image string) (TokenPair, error) {
 	}, nil
 }
 
-func RefreshTokens(refreshTokenString string) (TokenPair, error) {
+func RefreshTokens(refreshTokenString string, findUser UserFinder) (TokenPair, error) {
 	secretKey := os.Getenv("SECRET_KEY_JWT")
 	if len(secretKey) == 0 {
 		return TokenPair{}, fmt.Errorf("пустой секретный ключ")
@@ -88,21 +93,16 @@ func RefreshTokens(refreshTokenString string) (TokenPair, error) {
 
 	// Правильное извлечение значений из claims
 	email, okEmail := claims["Email"].(string)
-	us, okUs := claims["Us"].(string)
-
-	// Image может отсутствовать в refresh токене, поэтому обрабатываем это
-	image := ""
-	if imageVal, exists := claims["Image"]; exists {
-		if imageStr, ok := imageVal.(string); ok {
-			image = imageStr
-		}
+	if !okEmail {
+		return TokenPair{}, fmt.Errorf("неверный формат Email в claims")
 	}
 
-	if !okEmail || !okUs {
-		return TokenPair{}, fmt.Errorf("недостаточно данных в refresh токене")
+	user, err := findUser(email)
+	if err != nil {
+		return TokenPair{}, err
 	}
 
-	return GenerateTokenPair(email, us, image)
+	return GenerateTokenPair(email, user.Name, user.Us, user.Image)
 }
 
 func ParseJWT(tokenString string) (string, error) {

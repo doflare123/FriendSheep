@@ -15,5 +15,6 @@ func RouterUsersInfo(r *gin.Engine) {
 		UserGroup.GET("/sessions/category", middlewares.JWTAuthMiddleware(), handlers.GetCategorySessions)
 		UserGroup.GET("/sessions/:sessionId", middlewares.JWTAuthMiddleware(), handlers.GetDetailedInfo)
 		UserGroup.GET("/sessions/search", middlewares.JWTAuthMiddleware(), handlers.SearchSessions)
+		UserGroup.GET("/sessions/user-groups", middlewares.JWTAuthMiddleware(), handlers.GetSessionsUserGroups)
 	}
 }

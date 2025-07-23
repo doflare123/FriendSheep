@@ -173,6 +173,7 @@ func CreateSession(email string, input SessionInput) (bool, error) {
 		CountUsersMax:  input.CountUsers,
 		ImageURL:       input.Image,
 		UserID:         creator.ID,
+		StatusID:       1,
 	}
 	fmt.Print("session", "session", session)
 
@@ -773,4 +774,152 @@ func GetInfoAboutSession(email *string, sessionID *uint) (*SessionDetailResponse
 	}
 
 	return &sessionInf, nil
+}
+
+func GetSessionsUserGroups(email *string, page int) (*GetNewSessionsResponse, error) {
+	if *email == "" {
+		return nil, fmt.Errorf("email не может быть пустым")
+	}
+	if page < 1 {
+		page = 1
+	}
+	const limit = 9
+	offset := (page - 1) * limit
+	var sessionsUser []SessionResponse
+
+	dbTx := db.GetDB().Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			dbTx.Rollback()
+		}
+	}()
+
+	// Найти пользователя
+	var user models.User
+	if err := dbTx.Where("email = ?", *email).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			dbTx.Rollback()
+			return nil, fmt.Errorf("пользователь не найден")
+		}
+		dbTx.Rollback()
+		return nil, fmt.Errorf("ошибка при поиске пользователя: %v", err)
+	}
+
+	// Получить ID групп пользователя
+	var groupMemberships []struct {
+		GroupID *uint `gorm:"column:group_id"`
+	}
+	if err := dbTx.Table("group_users").
+		Select("group_id").
+		Where("user_id = ?", user.ID).
+		Find(&groupMemberships).Error; err != nil {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("ошибка при получении групп пользователя: %v", err)
+	}
+
+	if len(groupMemberships) == 0 {
+		dbTx.Commit()
+		return &GetNewSessionsResponse{
+			Sessions: sessionsUser,
+			HasMore:  false,
+			Page:     page,
+			Total:    0,
+		}, nil
+	}
+
+	// Извлечь ID групп
+	var groupIDs []*uint
+	for _, membership := range groupMemberships {
+		groupIDs = append(groupIDs, membership.GroupID)
+	}
+
+	// Найти статус "Набор"
+	var recruitmentStatus sessions.Status
+	if err := dbTx.Where("status = ?", "Набор").First(&recruitmentStatus).Error; err != nil {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("статус 'Набор' не найден: %v", err)
+	}
+
+	// Подсчитать общее количество записей
+	var totalCount int64
+	if err := dbTx.Model(&sessions.Session{}).
+		Where("group_id IN ? AND status_id = ?", groupIDs, recruitmentStatus.ID).
+		Count(&totalCount).Error; err != nil {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("ошибка при подсчете общего количества сессий: %v", err)
+	}
+
+	// Получить сессии с пагинацией
+	var sessionModels []sessions.Session
+	query := dbTx.Preload("SessionType").
+		Preload("SessionPlace").
+		Preload("Status").
+		Preload("User").
+		Preload("Group"). // Добавляем Preload для группы, если есть связь
+		Where("group_id IN ? AND status_id = ?", groupIDs, recruitmentStatus.ID).
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset)
+
+	if err := query.Find(&sessionModels).Error; err != nil {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("ошибка при получении сессий: %v", err)
+	}
+
+	// Получить ID сессий для загрузки метаданных
+	var sessionIDs []uint
+	for _, session := range sessionModels {
+		sessionIDs = append(sessionIDs, session.ID)
+	}
+
+	// Получить метаданные из MongoDB
+	metadataMap, err := db.GetSessionsMetadata(sessionIDs)
+	if err != nil {
+		// Логируем ошибку, но не прерываем выполнение
+		// В реальном приложении лучше использовать logger
+		fmt.Printf("Предупреждение: не удалось загрузить метаданные сессий: %v\n", err)
+		metadataMap = make(map[uint]*sessions.SessionMetadata)
+	}
+
+	// Преобразовать в SessionResponse
+	for _, session := range sessionModels {
+		var genres []string
+		var groupName *string
+
+		// Получить метаданные для текущей сессии
+		if metadata, exists := metadataMap[session.ID]; exists {
+			genres = metadata.Genres
+		}
+
+		groupName = &session.Group.Name // Предполагается, что у группы есть поле Name
+
+		sessionResponse := SessionResponse{
+			ID:            session.ID,
+			Title:         session.Title,
+			SessionType:   session.SessionType.Name,
+			SessionPlace:  session.SessionPlace.Title,
+			StartTime:     session.StartTime,
+			Duration:      session.Duration,
+			CurrentUsers:  session.CurrentUsers,
+			CountUsersMax: session.CountUsersMax,
+			ImageURL:      session.ImageURL,
+			Genres:        genres,
+			GroupName:     *groupName,
+		}
+		sessionsUser = append(sessionsUser, sessionResponse)
+	}
+
+	if err := dbTx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("ошибка при коммите транзакции: %v", err)
+	}
+
+	// Вычислить has_more
+	hasMore := int64(offset+len(sessionModels)) < totalCount
+
+	return &GetNewSessionsResponse{
+		Sessions: sessionsUser,
+		HasMore:  hasMore,
+		Page:     page,
+		Total:    int64(totalCount),
+	}, nil
 }

@@ -252,3 +252,59 @@ func GetDetailedInfo(c *gin.Context) {
 
 	c.JSON(http.StatusOK, session)
 }
+
+// @Summary Получить сессии пользователя из групп
+// @Description Возвращает список сессий со статусом "Набор" из групп, в которых состоит пользователь, с пагинацией (9 сессий на страницу)
+// @Tags Получение данных о сессиях
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Номер страницы" default(1) minimum(1)
+// @Success 200 {array} services.SessionResponse "Сессии успешно получены"
+// @Failure 400 {object} object{error=string} "Неверный запрос"
+// @Failure 401 {object} object{error=string} "Не авторизован"
+// @Failure 404 {object} object{error=string} "Пользователь не найден"
+// @Failure 500 {object} object{error=string} "Внутренняя ошибка сервера"
+// @Router /api/users/sessions/user-groups [get]
+func GetSessionsUserGroups(c *gin.Context) {
+	email := c.MustGet("email").(string)
+	if email == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
+		return
+	}
+	pageStr := c.DefaultQuery("page", "1")
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный номер страницы"})
+		return
+	}
+	sessions, err := services.GetSessionsUserGroups(&email, page)
+	if err != nil {
+		switch {
+		case strings.Contains(err.Error(), "пользователь не найден"):
+			c.JSON(http.StatusNotFound, gin.H{"error": "пользователь не найден"})
+			return
+
+		case strings.Contains(err.Error(), "email не может быть пустым"):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "email не может быть пустым"})
+			return
+
+		case strings.Contains(err.Error(), "статус 'Набор' не найден"):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка конфигурации системы"})
+			return
+
+		case strings.Contains(err.Error(), "ошибка при получении групп"):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при получении групп пользователя"})
+			return
+
+		case strings.Contains(err.Error(), "ошибка при получении сессий"):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при получении сессий"})
+			return
+
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "внутренняя ошибка сервера"})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, sessions)
+}

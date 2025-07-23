@@ -179,6 +179,12 @@ func fetchPopularSessionsFromDB() ([]PopularSessionResponse, error) {
 		GroupName         string    `gorm:"column:group_name"`
 	}
 
+	var recruitmentStatus sessions.Status
+	if err := dbConn.Where("status = ?", "Набор").First(&recruitmentStatus).Error; err != nil {
+		dbConn.Rollback()
+		return nil, fmt.Errorf("статус 'Набор' не найден: %v", err)
+	}
+
 	query := `
 		SELECT 
 			s.id, s.title, s.start_time, s.end_time, s.duration,
@@ -194,13 +200,14 @@ func fetchPopularSessionsFromDB() ([]PopularSessionResponse, error) {
 		  AND s.start_time > NOW()
 		  AND s.count_users_max > 0
 		  AND s.current_users > 1
+		  AND s.status_id = ?
 		ORDER BY 
 			(CAST(s.current_users AS FLOAT) / CAST(s.count_users_max AS FLOAT)) DESC,
 			s.current_users DESC
 		LIMIT 10
 	`
 
-	if err := dbConn.Raw(query).Scan(&sessionData).Error; err != nil {
+	if err := dbConn.Raw(query, recruitmentStatus.ID).Scan(&sessionData).Error; err != nil {
 		return nil, fmt.Errorf("ошибка выполнения SQL запроса: %v", err)
 	}
 

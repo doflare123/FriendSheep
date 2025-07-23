@@ -88,6 +88,12 @@ func GetNewSessions(email string, page int) (*GetNewSessionsResponse, error) {
 		return nil, fmt.Errorf("пользователь не найден: %v", err)
 	}
 
+	var recruitmentStatus sessions.Status
+	if err := dbTx.Where("status = ?", "Набор").First(&recruitmentStatus).Error; err != nil {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("статус 'Набор' не найден: %v", err)
+	}
+
 	// Получение начала и конца текущего дня в UTC
 	now := time.Now().UTC()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
@@ -100,7 +106,7 @@ func GetNewSessions(email string, page int) (*GetNewSessionsResponse, error) {
 	baseQuery := dbTx.Table("sessions").
 		Joins("LEFT JOIN groups ON sessions.group_id = groups.id").
 		Joins("LEFT JOIN group_users ON groups.id = group_users.group_id AND group_users.user_id = ?", user.ID).
-		Where("sessions.created_at >= ? AND sessions.created_at < ?", startOfDay, endOfDay).
+		Where("sessions.created_at >= ? AND sessions.created_at < ? AND sessions.status_id = ?", startOfDay, endOfDay, recruitmentStatus.ID).
 		Where("(groups.is_private = ? OR (groups.is_private = ? AND group_users.user_id IS NOT NULL))", false, true)
 
 	// Подсчет общего количества сессий

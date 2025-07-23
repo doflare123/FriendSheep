@@ -44,3 +44,22 @@ func SeedCategoriesSessionsVisibility() {
 		}
 	}
 }
+
+func SeedStatusSessions() {
+	statuses := []sessions.Status{
+		{Status: "Набор"},
+		{Status: "В процессе"},
+		{Status: "Завершена"},
+	}
+
+	for _, status := range statuses {
+		var existing sessions.Status
+		err := GetDB().Where("Status = ?", status.Status).First(&existing).Error
+		if err == nil {
+			continue
+		}
+		if err := GetDB().Create(&status).Error; err != nil {
+			log.Printf("Ошибка при создании типа сессии %s: %v", status.Status, err)
+		}
+	}
+}

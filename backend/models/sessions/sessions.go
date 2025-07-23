@@ -28,6 +28,8 @@ type Session struct {
 	CountUsersMax uint16 `gorm:"not null"`
 
 	ImageURL string `gorm:"type:text"` // путь к картинке
+	StatusID uint   `gorm:"not null"`
+	Status   Status `gorm:"foreignKey:StatusID"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

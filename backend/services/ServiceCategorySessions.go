@@ -35,6 +35,12 @@ func GetCategorySessions(email string, input CategorySessionsInput) (*CategorySe
 		return nil, fmt.Errorf("категория не найдена: %v", err)
 	}
 
+	var recruitmentStatus sessions.Status
+	if err := database.Where("status = ?", "Набор").First(&recruitmentStatus).Error; err != nil {
+		database.Rollback()
+		return nil, fmt.Errorf("статус 'Набор' не найден: %v", err)
+	}
+
 	limit := 10
 	offset := (input.Page - 1) * limit
 
@@ -45,8 +51,8 @@ func GetCategorySessions(email string, input CategorySessionsInput) (*CategorySe
 		Preload("Group").
 		Preload("User").
 		Joins("JOIN groups ON sessions.group_id = groups.id").
-		Where("sessions.session_type_id = ? AND groups.is_private = ? AND sessions.start_time > ?",
-			input.CategoryID, false, time.Now()).
+		Where("sessions.session_type_id = ? AND groups.is_private = ? AND sessions.start_time > ? AND sessions.status_id = ?",
+			input.CategoryID, false, time.Now(), recruitmentStatus.ID).
 		Order("sessions.current_users DESC, sessions.created_at DESC").
 		Limit(limit).
 		Offset(offset)
