@@ -4,7 +4,6 @@ package sessions
 
 type SessionMetadata struct {
 	SessionID uint                   `bson:"session_id"`
-	Type      string                 `bson:"type"`
 	Fields    map[string]interface{} `bson:"fields"`
 	Location  string                 `bson:"location"`
 	Genres    []string               `bson:"genres,omitempty"`

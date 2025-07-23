@@ -7,3 +7,5 @@ backend/go.sum
 /backend/logs
 /backend/uploads
 frontend/website/frontend-website/package-lock.json
+/frontend/app/FriendShip/.expo
+frontend/app/FriendShip/expo-env.d.ts

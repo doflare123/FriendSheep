@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"regexp"
+
 	"github.com/go-playground/validator/v10"
 )
 
@@ -23,4 +25,17 @@ func PasswordValidation(fl validator.FieldLevel) bool {
 		}
 	}
 	return hasLower && hasUpper && hasSpecial
+}
+
+func ValidateNameTag(fl validator.FieldLevel) bool {
+	name := fl.Field().String()
+
+	if name == "" {
+		return false
+	}
+
+	// Паттерн для разрешенных символов: буквы (латиница и кириллица), цифры, пробелы, дефисы, подчеркивания
+	allowedPattern := regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ0-9\s\-_]+$`)
+
+	return allowedPattern.MatchString(name)
 }

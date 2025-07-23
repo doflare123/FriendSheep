@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin/binding"
@@ -18,7 +19,7 @@ import (
 )
 
 type CreateUserInput struct {
-	Name      string `json:"name"     binding:"required"`
+	Name      string `json:"name"     binding:"required,username"`
 	Password  string `json:"password" binding:"required,password"`
 	Email     string `json:"email"    binding:"required,email"`
 	SessionID string `json:"session_id" binding:"required"`
@@ -31,6 +32,13 @@ type VerifySessionInput struct {
 }
 
 var validate = binding.Validator.Engine().(*validator.Validate)
+
+func generateUsername(name string) string {
+	username := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(name), " ", "_"))
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return fmt.Sprintf("%s%d", username, r.Intn(100000)+1)
+}
 
 func CreateUser(input CreateUserInput) (*models.User, error) {
 	store := db.NewSessionStore(os.Getenv("REDIS_URI"))
@@ -50,8 +58,7 @@ func CreateUser(input CreateUserInput) (*models.User, error) {
 		return nil, errors.New("сессия не подтверждена")
 	}
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	us := fmt.Sprintf("%s%d", input.Name, r.Intn(100000)+1)
+	us := generateUsername(input.Name)
 
 	hashPass, salt := utils.HashPassword(input.Password)
 
