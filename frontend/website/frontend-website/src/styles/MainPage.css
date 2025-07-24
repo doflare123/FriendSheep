@@ -1,9 +1,21 @@
 .mainPage {
-    min-height: 100vh;
-    background: url('/bg_login.png') center/cover no-repeat;
+    position: relative;
+    overflow: hidden;
     padding: 20px;
     font-family: 'Inter', sans-serif;
+    z-index: 0;
 }
+
+.mainPage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url('/bg_login.png') center/cover no-repeat;
+    filter: blur(4px);
+    z-index: -1;
+    transform: scale(1.05); /* чтобы края не обрезались */
+}
+
 
 .section {
     margin-bottom: 40px;
@@ -105,11 +117,11 @@
 }
 
 .scrollLeft {
-    left: calc(2.5% - 45px); /* Позиционируем слева от скролла */
+    left: calc(2.5% - 45px);
 }
 
 .scrollRight {
-    right: calc(2.5% - 45px); /* Позиционируем справа от скролла */
+    right: calc(2.5% - 45px);
 }
 
 .cardsScroll {
@@ -122,6 +134,32 @@
     -ms-overflow-style: none;
     width: 95%;
     max-width: 95%;
+    position: relative;
+    
+    /* Создаем градиентную маску для плавного перехода в прозрачность */
+    mask: linear-gradient(
+        to right,
+        transparent 0px,
+        black 60px,
+        black calc(100% - 60px),
+        transparent 100%
+    );
+    -webkit-mask: linear-gradient(
+        to right,
+        transparent 0px,
+        black 60px,
+        black calc(100% - 60px),
+        transparent 100%
+    );
+}
+
+/* Добавляем отступы для первой и последней карточки */
+.cardsScroll > :first-child {
+    margin-left: 30px;
+}
+
+.cardsScroll > :last-child {
+    margin-right: 30px;
 }
 
 .cardsScroll::-webkit-scrollbar {
