@@ -49,7 +49,7 @@ func AuthUser(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateTokenPair(user.Email, user.Us)
+	token, err := utils.GenerateTokenPair(user.Email, user.Name, user.Us, user.Image)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации токена"})
 		return
@@ -80,7 +80,7 @@ func RefreshTokenHandler(c *gin.Context) {
 		return
 	}
 
-	newTokens, err := utils.RefreshTokens(req.RefreshToken)
+	newTokens, err := utils.RefreshTokens(req.RefreshToken, services.FindUserByEmail)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Невалидный или просроченный refresh token"})
 		return

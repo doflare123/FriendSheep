@@ -6,7 +6,7 @@ type GroupUsers struct {
 	ID uint `gorm:"primaryKey;autoIncrement"`
 
 	UserID uint        `json:"userId"`
-	User   models.User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	User   models.User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 
 	GroupID uint  `json:"groupId"`
 	Group   Group `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`

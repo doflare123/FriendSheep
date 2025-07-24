@@ -18,7 +18,10 @@ require (
 	gorm.io/gorm v1.25.10
 )
 
-require github.com/gin-contrib/cors v1.7.6 // indirect
+require (
+	github.com/gin-contrib/cors v1.7.6 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
+)
 
 require github.com/google/uuid v1.6.0 // direct
 

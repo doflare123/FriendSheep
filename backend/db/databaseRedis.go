@@ -2,7 +2,9 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"friendship/models"
+	"os"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -14,9 +16,29 @@ type SessionStore struct {
 	redisClient *redis.Client
 }
 
+var GlobalSessionStore *SessionStore
+
 func NewSessionStore(addr string) *SessionStore {
 	rdb := redis.NewClient(&redis.Options{Addr: addr})
 	return &SessionStore{redisClient: rdb}
+}
+
+func InitRedis() error {
+	redisAddr := os.Getenv("REDIS_URI")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+
+	sessionStore := NewSessionStore(redisAddr)
+
+	ctx := context.Background()
+	_, err := sessionStore.redisClient.Ping(ctx).Result()
+	if err != nil {
+		return fmt.Errorf("не удалось подключиться к Redis: %v", err)
+	}
+
+	SetGlobalSessionStore(sessionStore)
+	return nil
 }
 
 func (s *SessionStore) CreateSession(sessionID, code string, sessionType models.SessionTypeReg, expiration time.Duration) error {
@@ -55,4 +77,19 @@ func (s *SessionStore) UpdateSessionField(sessionID, field string, value interfa
 
 func (s *SessionStore) DeleteSession(sessionID string) error {
 	return s.redisClient.Del(ctx, sessionID).Err()
+}
+
+func (s *SessionStore) GetRedisClient() *redis.Client {
+	return s.redisClient
+}
+
+func SetGlobalSessionStore(store *SessionStore) {
+	GlobalSessionStore = store
+}
+
+func GetRedis() *redis.Client {
+	if GlobalSessionStore == nil {
+		return nil
+	}
+	return GlobalSessionStore.GetRedisClient()
 }

@@ -1,10 +1,6 @@
 package sessions
 
-import "time"
-
 type SessionGroupType struct {
-	ID        uint   `gorm:"primaryKey;autoIncrement"`
-	Title     string `gorm:"unique"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID   uint   `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name string `json:"name" gorm:"uniqueIndex;not null"`
 }
