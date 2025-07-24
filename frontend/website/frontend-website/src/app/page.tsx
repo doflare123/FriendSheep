@@ -1,103 +1,234 @@
 import Image from "next/image";
+import Footer from "../components/Footer";
+
+import '../styles/MainPage.css';
+import {SectionData} from "../types/Events"
+import CategorySection from '../components/Events/CategorySection'
+
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  // Пример данных
+  const mainSections: SectionData[] = [
+    {
+      title: "Популярные события",
+      pattern: "/events/popular_bg.png",
+      categories: [
+        {
+          id: "1",
+          type: "games",
+          image: "/event_card.jpg",
+          date: "25 июля",
+          title: "Командный шутер",
+          genres: ["Шутер", "Многопользовательская"],
+          participants: 5,
+          maxParticipants: 8,
+          location: "online"
+        },
+        {
+          id: "2",
+          type: "games",
+          image: "/event_card.jpg",
+          date: "26 июля",
+          title: "Стратегия в реальном времени",
+          genres: ["Стратегия", "RTS"],
+          participants: 3,
+          maxParticipants: 6,
+          duration: "2 часа",
+          location: "online"
+        },
+        {
+          id: "3",
+          type: "games",
+          image: "/event_card.jpg",
+          date: "27 июля",
+          title: "Исследование подземелий",
+          genres: ["Песочница", "Выживание"],
+          participants: 4,
+          maxParticipants: 6,
+          duration: "3 часа",
+          location: "online"
+        },
+        {
+          id: "4",
+          type: "movies",
+          image: "/event_card.jpg",
+          date: "28 июля",
+          title: "Фантастический триллер",
+          genres: ["Фантастика", "Триллер"],
+          participants: 12,
+          maxParticipants: 20,
+          duration: "2ч 15мин",
+          location: "online"
+        }
+      ]
+    },
+    {
+      title: "Новые события",
+      pattern: "/events/new_bg.png",
+      categories: [
+        {
+          id: "5",
+          type: "games",
+          image: "/event_card.jpg",
+          date: "30 июля",
+          title: "Новая MMORPG",
+          genres: ["MMORPG", "Фэнтези"],
+          participants: 2,
+          maxParticipants: 10,
+          location: "online"
+        },
+        {
+          id: "6",
+          type: "movies",
+          image: "/event_card.jpg",
+          date: "1 августа",
+          title: "Премьера комедии",
+          genres: ["Комедия", "Семейный"],
+          participants: 8,
+          maxParticipants: 15,
+          duration: "1ч 45мин",
+          location: "online"
+        }
+      ]
+    }
+  ];
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const additionalSections: SectionData[] = [
+    {
+      title: "Фильмы",
+      pattern: "/events/new_bg.png",
+      categories: [
+        {
+          id: "7",
+          type: "movies",
+          image: "/event_card.jpg",
+          date: "2 августа",
+          title: "Классика кинематографа",
+          genres: ["Драма", "Классика"],
+          participants: 6,
+          maxParticipants: 12,
+          duration: "2ч 30мин",
+          location: "online"
+        },
+        {
+          id: "8",
+          type: "movies",
+          image: "/event_card.jpg",
+          date: "3 августа",
+          title: "Аниме-марафон",
+          genres: ["Аниме", "Приключения"],
+          participants: 15,
+          maxParticipants: 25,
+          duration: "4 часа",
+          location: "online"
+        }
+      ]
+    },
+    {
+      title: "Игры",
+      pattern: "/events/game_bg.png",
+      categories: [
+        {
+          id: "9",
+          type: "games",
+          image: "/event_card.jpg",
+          date: "4 августа",
+          title: "Турнир по Dota 2",
+          genres: ["MOBA", "Соревновательная"],
+          participants: 10,
+          maxParticipants: 10,
+          duration: "1 час",
+          location: "online"
+        }
+      ]
+    },
+    {
+      title: "Настольные игры",
+      pattern: "/events/board_bg.png",
+      categories: [
+        {
+          id: "10",
+          type: "board",
+          image: "/event_card.jpg",
+          date: "5 августа",
+          title: "Классическая мафия",
+          genres: ["Логическая", "Ролевая"],
+          participants: 8,
+          maxParticipants: 12,
+          duration: "1ч 30мин",
+          location: "online"
+        },
+        {
+          id: "11",
+          type: "board",
+          image: "/event_card.jpg",
+          date: "6 августа",
+          title: "Монополия: Московская версия",
+          genres: ["Экономическая", "Семейная"],
+          participants: 4,
+          maxParticipants: 6,
+          duration: "2 часа",
+          location: "online"
+        }
+      ]
+    },
+    {
+      title: "Другое",
+      pattern: "/events/other_bg.png",
+      categories: [
+        {
+          id: "12",
+          type: "other",
+          image: "/event_card.jpg",
+          date: "7 августа",
+          title: "Пешая экскурсия по центру",
+          genres: ["Туризм", "История"],
+          participants: 12,
+          maxParticipants: 20,
+          duration: "3 часа",
+          location: "online"
+        },
+        {
+          id: "13",
+          type: "other",
+          image: "/event_card.jpg",
+          date: "8 августа",
+          title: "Изучение японских иероглифов",
+          genres: ["Обучение", "Языки"],
+          participants: 5,
+          maxParticipants: 8,
+          duration: "1ч 30мин",
+          location: "online"
+        }
+      ]
+    }
+  ];
+
+  return (
+    <div>
+      <div className='mainPage'>
+        {/* Главные категории */}
+        {mainSections.map((section, sectionIndex) => (
+          <div key={sectionIndex} className='section'>
+            <CategorySection section={section} title={section.title} />
+          </div>
+        ))}
+
+        {/* Заголовок "Категории" */}
+        <div className='categoriesHeader'>
+          <h2>Категории</h2>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Дополнительные категории */}
+        {additionalSections.map((section, sectionIndex) => (
+          <div key={sectionIndex} className='section'>
+            <CategorySection section={section} title={section.title} />
+          </div>
+        ))}
+
+        
+      </div>
+      <Footer/>
     </div>
   );
 }

@@ -45,6 +45,8 @@
 html,
 body {
   height: 100%;
+  color: #000000;
+  font-family: 'Inter', sans-serif;
 }
 
 body {
@@ -55,7 +57,7 @@ body {
 
 
 .form-container {
-  @apply bg-white rounded-2xl p-10 w-full max-w-2xl font-inter border-2 border-[#316BC2] min-h-[475px] text-2xl;
+  @apply bg-white rounded-2xl p-10 w-[50vw] font-inter border-2 border-[#316BC2] min-h-[475px] text-2xl;
 }
 
 .page-wrapper {
@@ -71,11 +73,11 @@ body {
 }
 
 .label-style {
-  @apply block mb-1;
+  @apply block mb-1 text-black;
 }
 
 .input-style {
-  @apply w-full rounded-lg border-2 border-[#316BC2] p-3 text-xl;
+  @apply w-full rounded-lg border-2 border-[#316BC2] p-3 text-xl text-black;
 }
 
 .button-primary {
@@ -83,5 +85,18 @@ body {
 }
 
 .link-small-note {
-  @apply text-right text-xl text-gray-600 -mt-2 font-semibold; /* Был font-bold, заменили на полужирный */
+  @apply text-right text-xl text-gray-600 -mt-2;
+}
+
+
+.footer-links {
+  @apply flex items-center space-x-2 text-gray-600;
+}
+
+.footer-link {
+  @apply hover:text-[#37A2E6] transition-colors cursor-pointer;
+}
+
+.social-icon {
+  @apply rounded-full flex items-center justify-center hover:opacity-80 transition-opacity;
 }

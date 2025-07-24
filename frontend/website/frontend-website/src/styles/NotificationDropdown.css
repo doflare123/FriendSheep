@@ -1,0 +1,241 @@
+/* NotificationDropdown.css */
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% - 16px);
+  right: 50%;
+  width: 350px;
+  max-height: 400px;
+  background: white;
+  border: 2px solid #37A2E6;
+  border-radius: 8px 0 8px 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+/* Треугольник, указывающий на иконку */
+.notification-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 20px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid white;
+  z-index: 1001;
+}
+
+.notification-dropdown::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  right: 20px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid #37A2E6;
+  z-index: 1000;
+}
+
+.notification-header {
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #565555;
+  font-family: 'Inter', sans-serif;
+}
+
+.notification-list {
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease;
+  position: relative;
+}
+
+.notification-item:hover {
+  background-color: #f8f9fa;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-image {
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.notification-image img {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.notification-content {
+  flex-grow: 1;
+  margin-right: 8px;
+}
+
+.news-wrapper {
+  position: relative;
+}
+
+.news-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding-bottom: 18px; /* Место для времени */
+}
+
+.news-text.read {
+  color: #888;
+}
+
+.news-text:hover {
+  color: #666;
+}
+
+.invite-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.invite-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
+}
+
+.invite-buttons-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.invite-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.invite-accept,
+.invite-decline {
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.invite-accept {
+  background-color: #37A2E6;
+  color: white;
+}
+
+.invite-accept:hover {
+  background-color: #2891d4;
+  transform: translateY(-1px);
+}
+
+.invite-decline {
+  background-color: #E6374B;
+  color: white;
+}
+
+.invite-decline:hover {
+  background-color: #d12639;
+  transform: translateY(-1px);
+}
+
+.notification-time {
+  font-size: 12px;
+  color: #888;
+  font-style: italic;
+}
+
+/* Для новостей - время внизу справа */
+.news-wrapper .notification-time {
+  position: absolute;
+  bottom: 0;
+  right: -8px;
+}
+
+/* Для приглашений - время на уровне кнопок */
+.invite-buttons-wrapper .notification-time {
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+/* Webkit скроллбар (Chrome, Safari, Edge) - с закруглением */
+.notification-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.notification-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.notification-list::-webkit-scrollbar-button {
+  display: none;
+}
+
+.notification-list::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Для Firefox - с закруглением */
+@-moz-document url-prefix() {
+  .notification-list {
+    scrollbar-width: thin;
+    scrollbar-color: #c1c1c1 #f1f1f1;
+  }
+}
+
+/* Современный способ для Firefox */
+.notification-list {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+/* Анимация появления */
+.notification-dropdown {
+  animation: fadeInUp 0.2s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
