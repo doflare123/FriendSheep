@@ -5,6 +5,7 @@ import React from 'react';
 import Confirm from './app/(tabs)/ConfirmPage';
 import Done from './app/(tabs)/DonePage';
 import Login from './app/(tabs)/LoginPage';
+import MainPage from './app/(tabs)/MainPage';
 import Register from './app/(tabs)/RegisterPage';
 
 
@@ -18,6 +19,7 @@ export default function App() {
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Confirm" component={Confirm} />
         <Stack.Screen name="Done" component={Done} />
+        <Stack.Screen name="MainPage" component={MainPage} />
       </Stack.Navigator>
     </NavigationContainer>
   );

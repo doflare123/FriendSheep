@@ -9,4 +9,8 @@ export const inter = {
     ios: 'Inter-Bold', 
     android: 'Inter-Bold',
   }),
+  black: Platform.select({
+    ios: 'Inter-Black',
+    android: 'Inter-Black',
+  }),
 };
