@@ -1,0 +1,297 @@
+/* CreateGroupModal.css */
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modalContent {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.modalHeader h2 {
+    color: #000;
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.closeButton {
+    position: absolute;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 32px;
+    color: #666;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+    background: #f0f0f0;
+    color: #000;
+}
+
+.modalForm {
+    padding: 30px;
+}
+
+.formRow {
+    display: flex;
+    gap: 40px;
+}
+
+.leftColumn {
+    flex: 1;
+}
+
+.rightColumn {
+    width: 250px;
+    flex-shrink: 0;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formLabel {
+    display: block;
+    margin-bottom: 8px;
+    color: #000;
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.formInput {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #316BC2;
+    border-radius: 8px;
+    font-size: 16px;
+    color: #000;
+    transition: border-color 0.2s ease;
+}
+
+.formInput:focus {
+    outline: none;
+    border-color: #37A2E6;
+}
+
+.formTextarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #316BC2;
+    border-radius: 8px;
+    font-size: 16px;
+    color: #000;
+    resize: vertical;
+    min-height: 100px;
+    font-family: 'Inter', sans-serif;
+    transition: border-color 0.2s ease;
+}
+
+.formTextarea:focus {
+    outline: none;
+    border-color: #37A2E6;
+}
+
+.socialInputs {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.socialInput {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.socialIconInput {
+    width: 40px;
+    height: 40px;
+    background: white;
+    border: 2px solid #37A2E6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.socialLinkInput {
+    flex: 1;
+    padding: 10px 14px;
+    border: 2px solid #316BC2;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.socialLinkInput:focus {
+    outline: none;
+    border-color: #37A2E6;
+}
+
+.addSocialButton {
+    width: 40px;
+    height: 40px;
+    border: 2px dashed #ccc;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    align-self: flex-start;
+}
+
+.addSocialButton:hover {
+    border-color: #37A2E6;
+    background: #f8f9fa;
+}
+
+.addIcon {
+    font-size: 20px;
+    color: #666;
+}
+
+.groupImageSection {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.groupImagePreview {
+    width: 180px;
+    height: 180px;
+    background: #8B4513;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.previewImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    color: #000;
+    cursor: pointer;
+}
+
+.checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #37A2E6;
+}
+
+.categoriesGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.categoryLabel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.categoryLabel:hover {
+    background: #f8f9fa;
+}
+
+.categoryCheckbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #37A2E6;
+}
+
+.categoryContent {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.categoryText {
+    color: #000;
+    font-size: 16px;
+}
+
+.createButton {
+    width: 100%;
+    background: #37A2E6;
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-top: 20px;
+}
+
+.createButton:hover {
+    background: #2d93d5;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .modalContent {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .formRow {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .rightColumn {
+        width: 100%;
+    }
+}

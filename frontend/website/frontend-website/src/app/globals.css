@@ -55,6 +55,23 @@ body {
   font-family: var(--font-inter);
 }
 
+.bgPage {
+    position: relative;
+    overflow: hidden;
+    padding: 20px;
+    font-family: 'Inter', sans-serif;
+    z-index: 0;
+}
+
+.bgPage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url('/bg_login.png') center/cover no-repeat;
+    filter: blur(4px);
+    z-index: -1;
+    transform: scale(1.05); /* чтобы края не обрезались */
+}
 
 .form-container {
   @apply bg-white rounded-2xl p-10 w-[50vw] font-inter border-2 border-[#316BC2] min-h-[475px] text-2xl;

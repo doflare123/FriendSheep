@@ -206,7 +206,7 @@ export default function Home() {
 
   return (
     <div>
-      <div className='mainPage'>
+      <div className='bgPage'>
         {/* Главные категории */}
         {mainSections.map((section, sectionIndex) => (
           <div key={sectionIndex} className='section'>

@@ -1,0 +1,103 @@
+/* GroupsPage.css */
+
+.bgPage {
+    height: 100%;
+    background: linear-gradient(135deg, #4e79a7 0%, #37A2E6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.contentContainer {
+    width: 75%;
+    height: 75%;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* Первая секция (управляемые группы) занимает больше места */
+.section:first-child {
+    flex: 1.2;
+    margin-bottom: 24px;
+}
+
+/* Вторая секция (подписки) */
+.section:last-child {
+    flex: 1;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+}
+
+.sectionTitle {
+    color: #000000;
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.addButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.addButton:hover {
+    transform: scale(1.1);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .contentContainer {
+        width: 90%;
+        height: 80%;
+        padding: 16px;
+    }
+    
+    .sectionTitle {
+        font-size: 20px;
+    }
+    
+    .section:first-child {
+        margin-bottom: 16px;
+        flex: 1.1;
+    }
+}
+
+@media (max-width: 480px) {
+    .contentContainer {
+        width: 95%;
+        height: 85%;
+        padding: 12px;
+        border-radius: 15px;
+    }
+    
+    .sectionTitle {
+        font-size: 18px;
+    }
+    
+    .section:first-child {
+        flex: 1;
+    }
+}
