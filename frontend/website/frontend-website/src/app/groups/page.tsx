@@ -33,7 +33,6 @@ export default function GroupsPage() {
       name: 'Мега крутая группа',
       description: 'Мы крутые пацантре, ёёёёу 😎\nПрисоединяйтесь к нам!',
       memberCount: 47,
-      image: '/group-default.png',
       categories: ['games', 'movies'],
       socialLinks: {
         ds: 'discord.gg/example',
@@ -48,7 +47,6 @@ export default function GroupsPage() {
       name: 'Киноманы объединяйтесь',
       description: 'Обсуждаем фильмы, сериалы и всё что связано с кинематографом',
       memberCount: 123,
-      image: '/group-default.png',
       categories: ['movies'],
       socialLinks: {
         tg: 't.me/cinephiles'
@@ -77,7 +75,6 @@ export default function GroupsPage() {
       name: 'Геймеры Москвы',
       description: 'Крупнейшее сообщество геймеров столицы',
       memberCount: 1250,
-      image: '/group-default.png',
       categories: ['games'],
       socialLinks: {
         ds: 'discord.gg/gamers_moscow',

@@ -6,35 +6,61 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .contentContainer {
-    width: 75%;
-    height: 75%;
+    width: min(75vw, 1200px); /* Максимум 75% ширины или 1200px */
+    max-height: min(75vh, 800px);  /* Максимум 75% высоты или 800px */
+    min-width: 800px; /* Минимальная ширина для корректного отображения карточек */
+    min-height: 400px; /* Минимальная высота */
+    height: fit-content; /* Высота зависит от содержимого */
     background: white;
     border-radius: 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     padding: 24px;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto; /* Добавляем вертикальный скролл */
+    overflow-x: hidden;
+}
+
+/* Убираем стандартный скроллбар и добавляем кастомный */
+.contentContainer::-webkit-scrollbar {
+    width: 8px;
+}
+
+.contentContainer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.contentContainer::-webkit-scrollbar-thumb {
+    background: #37A2E6;
+    border-radius: 10px;
+}
+
+.contentContainer::-webkit-scrollbar-thumb:hover {
+    background: #2d93d5;
 }
 
 .section {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    min-height: 280px; /* Минимальная высота для размещения карточки + отступы */
+    flex-shrink: 0; /* Секции не сжимаются */
 }
 
-/* Первая секция (управляемые группы) занимает больше места */
+/* Первая секция (управляемые группы) */
 .section:first-child {
-    flex: 1.2;
-    margin-bottom: 24px;
+    margin-bottom: 12px; /* Минимальный отступ */
 }
 
-/* Вторая секция (подписки) */
+/* Вторая секция (подписки) - убираем flex, чтобы она занимала только необходимое место */
 .section:last-child {
-    flex: 1;
+    /* Убираем flex: 1 */
 }
 
 .sectionHeader {
@@ -67,11 +93,30 @@
     transform: scale(1.1);
 }
 
-/* Адаптивность */
-@media (max-width: 768px) {
+/* Адаптивность для планшетов */
+@media (max-width: 1024px) {
     .contentContainer {
-        width: 90%;
-        height: 80%;
+        min-width: 700px;
+        width: min(85vw, 1000px);
+        max-height: min(80vh, 700px);
+    }
+    
+    .sectionTitle {
+        font-size: 22px;
+    }
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .bgPage {
+        padding: 10px;
+    }
+    
+    .contentContainer {
+        width: 95vw;
+        max-height: 90vh;
+        min-width: 360px; /* Минимум для мобильных */
+        min-height: 300px;
         padding: 16px;
     }
     
@@ -80,15 +125,20 @@
     }
     
     .section:first-child {
-        margin-bottom: 16px;
-        flex: 1.1;
+        margin-bottom: 8px; /* Уменьшенный отступ для мобильных */
+    }
+    
+    .section {
+        min-height: 200px; /* Уменьшенная минимальная высота для мобильных */
     }
 }
 
 @media (max-width: 480px) {
     .contentContainer {
-        width: 95%;
-        height: 85%;
+        width: 98vw;
+        max-height: 95vh;
+        min-width: 320px;
+        min-height: 250px;
         padding: 12px;
         border-radius: 15px;
     }
@@ -98,6 +148,18 @@
     }
     
     .section:first-child {
-        flex: 1;
+        margin-bottom: 6px; /* Минимальный отступ для маленьких экранов */
+    }
+    
+    .section {
+        min-height: 180px;
+    }
+}
+
+/* Для очень широких экранов ограничиваем максимальную ширину */
+@media (min-width: 1600px) {
+    .contentContainer {
+        max-width: 1400px;
+        max-height: 900px;
     }
 }

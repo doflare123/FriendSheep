@@ -14,8 +14,9 @@
     display: flex;
     gap: 20px;
     overflow-x: auto;
+    overflow-y: hidden; /* Отключаем вертикальный скролл */
     scroll-behavior: smooth;
-    padding: 0 20px;
+    padding: 10px 20px; /* Добавил отступы сверху и снизу для анимации */
     scrollbar-width: none;
     -ms-overflow-style: none;
     width: 95%;
@@ -47,11 +48,11 @@
 
 /* Добавляем отступы для первой и последней карточки */
 .groupsScroll > :first-child {
-    margin-left: 30px;
+    margin-left: 20px;
 }
 
 .groupsScroll > :last-child {
-    margin-right: 30px;
+    margin-right: 20px;
 }
 
 .scrollButton {
@@ -75,17 +76,15 @@
 }
 
 .scrollButton:hover {
-    background: rgba(55, 162, 230, 1);
-    color: white;
     transform: translateY(-50%) scale(1.1);
 }
 
 .scrollLeft {
-    left: calc(2.5% - 45px);
+    left: calc(2.5% - 32px);
 }
 
 .scrollRight {
-    right: calc(2.5% - 45px);
+    right: calc(2.5% - 32px);
 }
 
 .emptyGroupsMessage {
@@ -108,7 +107,7 @@
 @media (max-width: 768px) {
     .groupsScroll {
         gap: 16px;
-        padding: 0 15px;
+        padding: 10px 15px; /* Сохраняем отступы и для мобильной версии */
     }
     
     .groupsScroll > :first-child {

@@ -2,8 +2,8 @@
 
 .groupCard {
     flex-shrink: 0;
-    width: 300px;
-    height: 400px;
+    width: 350px;
+    height: 250px;
     background: white;
     border-radius: 16px;
     border: 2px solid #316BC2;
@@ -14,6 +14,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    padding: 16px;
 }
 
 .groupCard:hover {
@@ -21,129 +22,105 @@
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
-.groupImage {
-    position: relative;
-    height: 150px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f8f9fa;
-    overflow: hidden;
+.groupImageContainer {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    flex-shrink: 0;
 }
 
 .groupAvatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
+    width: 80px;
+    height: 80px;
     object-fit: cover;
-    border: 3px solid #37A2E6;
-}
-
-.categoryIcons {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.categoryIcon {
-    background: white;
-    padding: 6px;
-    border-radius: 50%;
-    border: 2px solid #37A2E6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
 }
 
 .privateIcon {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: -8px;
+    right: -8px;
     background: white;
     color: #666;
-    padding: 6px 10px;
-    border-radius: 20px;
+    padding: 4px 8px;
+    border-radius: 12px;
     border: 2px solid #37A2E6;
-    font-size: 12px;
+    font-size: 10px;
 }
 
-.groupContent {
-    padding: 16px;
-    flex: 1;
+.groupMainContent {
     display: flex;
     flex-direction: column;
+    height: 100%;
+}
+
+.groupTopSection {
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 8px;
+    padding-left: 96px;
 }
 
 .groupName {
     color: #000000;
     font-size: 18px;
-    font-weight: 600;
-    margin: 0 0 8px 0;
-    line-height: 1.3;
-    text-align: center;
+    margin: 0;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: help;
+}
+
+.categoryIcons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.categoryIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.categoryIcon:hover {
+    transform: scale(1.1);
 }
 
 .groupMemberCount {
-    color: #666;
+    color: #000000;
     font-size: 14px;
-    margin: 0 0 12px 0;
-    text-align: center;
+    margin: 0;
 }
 
 .groupDescription {
-    color: #333;
+    color: #000000;
     font-size: 14px;
     line-height: 1.4;
-    margin-bottom: 12px;
-    flex: 1;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
-}
-
-.socialLinks {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.socialIcon {
-    background: white;
-    padding: 6px;
-    border-radius: 50%;
-    border: 2px solid #37A2E6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.socialIcon:hover {
-    background: #37A2E6;
-    transform: scale(1.1);
+    margin: 16px 0;
+    flex: 1;
 }
 
 .actionButton {
-    width: 100%;
+    width: 85%;
     background: #37A2E6;
     color: white;
     border: none;
-    padding: 12px;
-    border-radius: 25px;
+    padding: 10px 16px;
+    border-radius: 20px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    align-self: center;
     margin-top: auto;
 }
 

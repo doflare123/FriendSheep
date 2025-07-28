@@ -9,11 +9,6 @@ interface Group {
   memberCount: number;
   image?: string;
   categories: ('games' | 'movies' | 'board' | 'other')[];
-  socialLinks: {
-    ds?: string;
-    tg?: string;
-    vk?: string;
-  };
   isPrivate: boolean;
   city: string;
 }
@@ -33,36 +28,27 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
     }
   };
 
-  const getSocialIcon = (social: string) => {
-    return `/social/${social}.png`;
+  const getCategoryName = (category: string) => {
+    switch (category) {
+      case 'games': return 'Игры';
+      case 'movies': return 'Фильмы';
+      case 'board': return 'Настольные игры';
+      default: return 'Другое';
+    }
   };
 
   return (
     <div className='groupCard'>
-      {/* Изображение группы */}
-      <div className='groupImage'>
+      {/* Иконка группы в левом верхнем углу */}
+      <div className='groupImageContainer'>
         <Image
-          src={group.image || '/group-default.png'}
+          src={group.image || '/default/group.jpg'}
           alt={group.name}
-          width={150}
-          height={150}
+          width={80}
+          height={80}
           className='groupAvatar'
         />
         
-        {/* Категории в правом верхнем углу */}
-        <div className='categoryIcons'>
-          {group.categories.map((category, index) => (
-            <div key={index} className='categoryIcon'>
-              <Image
-                src={getCategoryIcon(category)}
-                alt={category}
-                width={16}
-                height={16}
-              />
-            </div>
-          ))}
-        </div>
-
         {/* Индикатор приватности */}
         {group.isPrivate && (
           <div className='privateIcon'>
@@ -71,31 +57,40 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
         )}
       </div>
 
-      {/* Содержимое карточки */}
-      <div className='groupContent'>
-        <h3 className='groupName'>{group.name}</h3>
-        <p className='groupMemberCount'>{group.memberCount} участников</p>
-        
+      {/* Основное содержимое справа от иконки */}
+      <div className='groupMainContent'>
+        {/* Верхняя часть: название, категории, участники */}
+        <div className='groupTopSection'>
+          <h3 className='groupName' title={group.name}>{group.name}</h3>
+          
+          {/* Категории */}
+          <div className='categoryIcons'>
+            {group.categories.map((category, index) => (
+              <div 
+                key={index} 
+                className='categoryIcon'
+                title={getCategoryName(category)}
+              >
+                <Image
+                  src={getCategoryIcon(category)}
+                  alt={category}
+                  width={16}
+                  height={16}
+                />
+              </div>
+            ))}
+          </div>
+
+          <p className='groupMemberCount'>{group.memberCount} участников</p>
+        </div>
+
+        {/* Описание */}
         <div className='groupDescription'>
           {group.description.split('\n').map((line, index) => (
             <React.Fragment key={index}>
               {line}
               {index < group.description.split('\n').length - 1 && <br />}
             </React.Fragment>
-          ))}
-        </div>
-
-        {/* Социальные сети */}
-        <div className='socialLinks'>
-          {Object.entries(group.socialLinks).map(([social, link]) => (
-            <div key={social} className='socialIcon'>
-              <Image
-                src={getSocialIcon(social)}
-                alt={social}
-                width={20}
-                height={20}
-              />
-            </div>
           ))}
         </div>
 
