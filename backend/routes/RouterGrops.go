@@ -18,10 +18,21 @@ func RouterGroups(r *gin.Engine) {
 	}
 	GroupAdminGroups := r.Group("api/admin/groups")
 	{
+		GroupAdminGroups.GET("/", middlewares.JWTAuthMiddleware(), handlers.GetAdminGroups)
 		GroupAdminGroups.POST("/requests/:requestId/approve", middlewares.JWTAuthMiddleware(), handlers.ApproveJoinRequest)
 		GroupAdminGroups.POST("/requests/:requestId/reject", middlewares.JWTAuthMiddleware(), handlers.RejectJoinRequest)
-		GroupAdminGroups.DELETE("/:groupId/members/:userId", middlewares.JWTAuthMiddleware(), handlers.RemoveUserHandler)
-		GroupAdminGroups.DELETE("/:groupId", middlewares.JWTAuthMiddleware(), handlers.DeleteGroups)
-		GroupAdminGroups.PATCH("/:groupId", middlewares.JWTAuthMiddleware(), handlers.UpdateGroupHandler)
+
+		// Роуты, требующие прав администратора или оператора
+		moderatorRequired := GroupAdminGroups.Group("/:groupId", middlewares.JWTAuthMiddleware(), middlewares.GroupRoleMiddleware("admin", "operator"))
+		{
+			moderatorRequired.DELETE("/members/:userId", handlers.RemoveUserHandler)
+		}
+
+		// Роуты, требующие прав только администратора
+		adminRequired := GroupAdminGroups.Group("/:groupId", middlewares.JWTAuthMiddleware(), middlewares.GroupRoleMiddleware("admin"))
+		{
+			adminRequired.DELETE("/", handlers.DeleteGroups)
+			adminRequired.PATCH("/", handlers.UpdateGroupHandler)
+		}
 	}
 }

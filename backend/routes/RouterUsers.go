@@ -8,13 +8,13 @@ import (
 )
 
 func RouterUsersInfo(r *gin.Engine) {
-	UserGroup := r.Group("api/users")
+	GetSessionGroup := r.Group("api/users")
 	{
-		UserGroup.GET("/sessions/new", middlewares.JWTAuthMiddleware(), handlers.GetNewSessions)
-		UserGroup.GET("/sessions/popular", middlewares.JWTAuthMiddleware(), handlers.GetPopularSessions)
-		UserGroup.GET("/sessions/category", middlewares.JWTAuthMiddleware(), handlers.GetCategorySessions)
-		UserGroup.GET("/sessions/:sessionId", middlewares.JWTAuthMiddleware(), handlers.GetDetailedInfo)
-		UserGroup.GET("/sessions/search", middlewares.JWTAuthMiddleware(), handlers.SearchSessions)
-		UserGroup.GET("/sessions/user-groups", middlewares.JWTAuthMiddleware(), handlers.GetSessionsUserGroups)
+		GetSessionGroup.GET("/sessions/new", middlewares.JWTAuthMiddleware(), handlers.GetNewSessions)
+		GetSessionGroup.GET("/sessions/popular", middlewares.JWTAuthMiddleware(), handlers.GetPopularSessions)
+		GetSessionGroup.GET("/sessions/category", middlewares.JWTAuthMiddleware(), handlers.GetCategorySessions)
+		GetSessionGroup.GET("/sessions/:sessionId", middlewares.JWTAuthMiddleware(), handlers.GetDetailedInfo)
+		GetSessionGroup.GET("/sessions/search", middlewares.JWTAuthMiddleware(), handlers.SearchSessions)
+		GetSessionGroup.GET("/sessions/user-groups", middlewares.JWTAuthMiddleware(), handlers.GetSessionsUserGroups)
 	}
 }

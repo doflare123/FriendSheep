@@ -15,4 +15,5 @@ type Group struct {
 	IsPrivate  bool              `json:"isPrivate" gorm:"default:false"`
 	City       string            `json:"city"`
 	Categories []models.Category `gorm:"many2many:group_group_categories;joinForeignKey:GroupID;JoinReferences:GroupCategoryID"`
+	Contacts   []GroupContact    `json:"contacts" gorm:"foreignKey:GroupID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
