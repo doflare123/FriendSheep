@@ -14,7 +14,7 @@ func RouterGroups(r *gin.Engine) {
 		GroupGroup.POST("/joinToGroup", middlewares.JWTAuthMiddleware(), handlers.JoinGroup)
 		GroupGroup.GET("/requests", middlewares.JWTAuthMiddleware(), handlers.GetJoinRequests)
 		GroupGroup.DELETE("/:groupId/leave", middlewares.JWTAuthMiddleware(), handlers.LeaveGroupHandler)
-
+		GroupGroup.GET("/:groupId", middlewares.JWTAuthMiddleware(), handlers.GetGroupInf)
 	}
 	GroupAdminGroups := r.Group("api/admin/groups")
 	{

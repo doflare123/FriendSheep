@@ -6,6 +6,7 @@ import (
 	"friendship/db"
 	"friendship/models"
 	"friendship/models/groups"
+	"friendship/models/sessions"
 	"log"
 	"strings"
 
@@ -134,7 +135,6 @@ func CreateGroup(email *string, input CreateGroupInput) (group *groups.Group, er
 		return nil, fmt.Errorf("ошибка добавления пользователя в группу: %v", err)
 	}
 
-	// Сохраняем контакты, если они есть
 	if len(contacts) > 0 {
 		groupContacts := make([]groups.GroupContact, 0, len(contacts))
 		for name, link := range contacts {
@@ -158,7 +158,6 @@ func CreateGroup(email *string, input CreateGroupInput) (group *groups.Group, er
 		return nil, fmt.Errorf("не удалось закоммитить транзакцию: %v", err)
 	}
 
-	// Перезагружаем группу с ассоциациями
 	if errReload := db.GetDB().Preload("Categories").Preload("Contacts").Preload("Creater").First(newGroup, newGroup.ID).Error; errReload != nil {
 		log.Printf("Не удалось перезагрузить группу с ассоциациями: %v", errReload)
 	}
@@ -167,13 +166,11 @@ func CreateGroup(email *string, input CreateGroupInput) (group *groups.Group, er
 }
 
 func JoinGroup(email string, input JoinGroupInput) (*JoinGroupResult, error) {
-	// Найти пользователя
 	var user models.User
 	if err := db.GetDB().Where("email = ?", email).First(&user).Error; err != nil {
 		return nil, fmt.Errorf("пользователь не найден")
 	}
 
-	// Проверить, есть ли уже заявка или участие
 	var existing groups.GroupUsers
 	if err := db.GetDB().
 		Where("user_id = ? AND group_id = ?", user.ID, input.GroupID).
@@ -181,7 +178,6 @@ func JoinGroup(email string, input JoinGroupInput) (*JoinGroupResult, error) {
 		return nil, fmt.Errorf("пользователь уже в группе")
 	}
 
-	// Проверка на уже поданную заявку
 	var existingRequest groups.GroupJoinRequest
 	if err := db.GetDB().
 		Where("user_id = ? AND group_id = ?", user.ID, input.GroupID).
@@ -191,14 +187,12 @@ func JoinGroup(email string, input JoinGroupInput) (*JoinGroupResult, error) {
 		}
 	}
 
-	// Получить группу
 	var group groups.Group
 	if err := db.GetDB().Where("id = ?", input.GroupID).First(&group).Error; err != nil {
 		return nil, fmt.Errorf("группа не найдена")
 	}
 
 	if group.IsPrivate {
-		// Группа закрыта — создаём заявку
 		request := groups.GroupJoinRequest{
 			UserID:  user.ID,
 			GroupID: group.ID,
@@ -210,9 +204,8 @@ func JoinGroup(email string, input JoinGroupInput) (*JoinGroupResult, error) {
 		return &JoinGroupResult{
 			Message: "Заявка на вступление отправлена, ожидайте подтверждения от администратора группы",
 			Joined:  false,
-		}, nil // возвращаем группу с инфой, но не добавляем в participants
+		}, nil
 	} else {
-		// Открытая группа — добавляем напрямую
 		member := groups.GroupUsers{
 			UserID:      user.ID,
 			GroupID:     group.ID,
@@ -229,11 +222,6 @@ func JoinGroup(email string, input JoinGroupInput) (*JoinGroupResult, error) {
 }
 
 func DeleteGroup(groupID uint) error {
-	// Проверка прав администратора выполняется в middleware.
-	// GORM при удалении записи автоматически удалит связанные данные
-	// из many-to-many таблицы (group_group_categories).
-	// Для has-many связей (GroupUsers, GroupJoinRequest, GroupContact)
-	// мы полагаемся на `ON DELETE CASCADE`, настроенный в БД через теги `constraint`.
 	group := groups.Group{ID: groupID}
 	result := db.GetDB().Select("Categories").Delete(&group)
 
@@ -256,8 +244,8 @@ type GroupInf struct {
 	City         string                  `json:"city"`
 	CountMembers int64                   `json:"count_members"`
 	Users        []UsersGroups           `json:"users"`
-	Categories   []string                `json:"categories"`
-	Contacts     []Contacts              `json:"contacts"`
+	Categories   []*string               `json:"categories"`
+	Contacts     []*Contacts             `json:"contacts"`
 	Sessions     []SessionDetailResponse `json:"sessions"`
 }
 
@@ -267,13 +255,96 @@ type UsersGroups struct {
 }
 
 type Contacts struct {
-	Name string `json:"name"`
-	Link string `json:"link"`
+	Name *string `json:"name"`
+	Link *string `json:"link"`
 }
 
-// func GetGroupInf(groupID uint) (*groups.Group, error) {
+func GetGroupInf(groupID *uint64, email *string) (*GroupInf, error) {
+	if *groupID == 0 {
+		return nil, errors.New("некорректный ID группы")
+	}
+	user, err := FindUserByEmail(*email)
+	if err != nil {
+		return nil, fmt.Errorf("пользователь не найден: %v", err)
+	}
 
-// }
+	var group groups.Group
+	var information GroupInf
+
+	err = db.GetDB().Preload("Categories").
+		Preload("Contacts").
+		Where("id = ?", groupID).
+		First(&group).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("группа не найдена")
+		}
+		return nil, err
+	}
+
+	if group.IsPrivate {
+		isMember, err := checkGroupMembership(groupID, &user.ID)
+		if err != nil {
+			return nil, err
+		}
+		if !isMember {
+			return nil, errors.New("доступ к приватной группе запрещен")
+		}
+	}
+
+	information.ID = group.ID
+	information.Name = group.Name
+	information.Description = group.Description
+	information.Image = group.Image
+	information.City = group.City
+
+	users, err := getGroupUsers(*groupID)
+	if err != nil {
+		return nil, err
+	}
+	information.Users = users
+
+	var totalMembers int64
+	err = db.GetDB().Model(&groups.GroupUsers{}).
+		Where("group_id = ?", groupID).
+		Count(&totalMembers).Error
+	if err != nil {
+		return nil, err
+	}
+	information.CountMembers = totalMembers
+
+	categories := make([]*string, len(group.Categories))
+	for i, category := range group.Categories {
+		if category.Name != "" {
+			categoryName := category.Name
+			categories[i] = &categoryName
+		}
+	}
+	information.Categories = categories
+
+	contacts := make([]*Contacts, 0, len(group.Contacts))
+	for _, contact := range group.Contacts {
+		if contact.Name != "" && contact.Link != "" {
+			contactName := &contact.Name
+			contactLink := &contact.Link
+
+			contacts = append(contacts, &Contacts{
+				Name: contactName,
+				Link: contactLink,
+			})
+		}
+	}
+	information.Contacts = contacts
+
+	sessions, err := getGroupSessions(*groupID)
+	if err != nil {
+		return nil, err
+	}
+	information.Sessions = sessions
+
+	return &information, nil
+}
 
 //Admin часть групп
 
@@ -284,7 +355,7 @@ type GroupUpdateInput struct {
 	Image            *string `json:"image"`
 	IsPrivate        *bool   `json:"is_private"`
 	City             *string `json:"city"`
-	Contacts         *string `json:"contacts"` // Изменено: теперь строка вместо map
+	Contacts         *string `json:"contacts"`
 }
 
 func UpdateGroup(groupID uint, input GroupUpdateInput) (err error) {
@@ -333,7 +404,6 @@ func UpdateGroup(groupID uint, input GroupUpdateInput) (err error) {
 		}
 	}
 
-	// Обрабатываем контакты, если они переданы
 	if input.Contacts != nil {
 		newContacts := parseContacts(*input.Contacts)
 		if err = updateContactsInTx(tx, &groupID, newContacts); err != nil {
@@ -352,7 +422,6 @@ func updateContactsInTx(tx *gorm.DB, groupID *uint, newContacts map[string]strin
 		return fmt.Errorf("ошибка получения существующих контактов: %v", err)
 	}
 
-	// Создаем map для быстрого поиска существующих контактов
 	existingMap := make(map[string]groups.GroupContact)
 	for _, c := range existingContacts {
 		if c.Name != "" {
@@ -369,7 +438,6 @@ func updateContactsInTx(tx *gorm.DB, groupID *uint, newContacts map[string]strin
 					return fmt.Errorf("ошибка обновления контакта '%s': %v", name, err)
 				}
 			}
-			// Убираем из map, чтобы потом не удалить
 			delete(existingMap, name)
 		} else {
 			// Новый контакт - создаем
@@ -396,4 +464,165 @@ func updateContactsInTx(tx *gorm.DB, groupID *uint, newContacts map[string]strin
 	}
 
 	return nil
+}
+
+// вспомогательные для получения данных о группе
+func checkGroupMembership(groupID *uint64, userID *uint) (bool, error) {
+	var count int64
+	err := db.GetDB().Model(&groups.GroupUsers{}).
+		Where("group_id = ? AND user_id = ?", groupID, userID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
+func getGroupUsers(groupID uint64) ([]UsersGroups, error) {
+	var groupUsers []groups.GroupUsers
+
+	err := db.GetDB().
+		Preload("User").
+		Where("group_id = ?", groupID).
+		Limit(6).
+		Find(&groupUsers).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]UsersGroups, 0, len(groupUsers))
+	for _, groupUser := range groupUsers {
+		if groupUser.User.Name != "" {
+			userName := groupUser.User.Name
+			var userImage *string
+			if groupUser.User.Image != "" {
+				userImageCopy := groupUser.User.Image
+				userImage = &userImageCopy
+			}
+
+			users = append(users, UsersGroups{
+				Name:  userName,
+				Image: *userImage,
+			})
+		}
+	}
+
+	return users, nil
+}
+
+func getGroupSessions(groupID uint64) ([]SessionDetailResponse, error) {
+	var Gsessions []sessions.Session
+
+	err := db.GetDB().
+		Preload("SessionType").
+		Preload("SessionPlace").
+		Where("group_id = ?", groupID).
+		Order("start_time ASC").
+		Find(&Gsessions).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(Gsessions) == 0 {
+		return []SessionDetailResponse{}, nil
+	}
+
+	sessionIDs := make([]uint, len(Gsessions))
+	for i, session := range Gsessions {
+		sessionIDs[i] = session.ID
+	}
+
+	metadataMap, err := db.GetSessionsMetadata(sessionIDs)
+	if err != nil {
+		log.Printf("Ошибка получения метаданных: %v", err)
+		metadataMap = make(map[uint]*sessions.SessionMetadata)
+	}
+
+	sessionResponses := make([]SessionDetailResponse, 0, len(Gsessions))
+	for _, session := range Gsessions {
+		if session.ID == 0 {
+			continue
+		}
+
+		var sessionTypeName *string
+		if session.SessionType.Name != "" {
+			typeName := session.SessionType.Name
+			sessionTypeName = &typeName
+		}
+
+		var sessionPlaceName *string
+		if session.SessionPlace.Title != "" {
+			placeName := session.SessionPlace.Title
+			sessionPlaceName = &placeName
+		}
+
+		var title, imageURL *string
+		if session.Title != "" {
+			titleCopy := session.Title
+			title = &titleCopy
+		}
+		if session.ImageURL != "" {
+			imageURLCopy := session.ImageURL
+			imageURL = &imageURLCopy
+		}
+
+		var duration, currentUsers, countUsersMax *uint16
+		if session.Duration != 0 {
+			durationCopy := session.Duration
+			duration = &durationCopy
+		}
+		if session.CurrentUsers != 0 {
+			currentUsersCopy := session.CurrentUsers
+			currentUsers = &currentUsersCopy
+		}
+		if session.CountUsersMax != 0 {
+			countUsersMaxCopy := session.CountUsersMax
+			countUsersMax = &countUsersMaxCopy
+		}
+
+		var groupIDCopy *uint
+		if session.GroupID != 0 {
+			groupID := session.GroupID
+			groupIDCopy = &groupID
+		}
+
+		var sessionIDCopy *uint
+		if session.ID != 0 {
+			sessionID := session.ID
+			sessionIDCopy = &sessionID
+		}
+
+		subSession := SubSessionDetail{
+			ID:            *sessionIDCopy,
+			Title:         *title,
+			SessionType:   *sessionTypeName,
+			SessionPlace:  *sessionPlaceName,
+			GroupID:       *groupIDCopy,
+			StartTime:     session.StartTime,
+			EndTime:       session.EndTime,
+			Duration:      *duration,
+			CurrantUsers:  *currentUsers,
+			CountUsersMax: *countUsersMax,
+			ImageURL:      *imageURL,
+		}
+
+		// Получаем метаданные для текущей сессии
+		var metadata *sessions.SessionMetadata
+		if metaData, exists := metadataMap[session.ID]; exists {
+			metadata = metaData
+		}
+
+		sessionResponse := SessionDetailResponse{
+			Session:  subSession,
+			Metadata: metadata,
+		}
+
+		sessionResponses = append(sessionResponses, sessionResponse)
+	}
+
+	return sessionResponses, nil
 }

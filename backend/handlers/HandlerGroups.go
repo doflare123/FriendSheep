@@ -109,6 +109,39 @@ func CreateGroup(c *gin.Context) {
 	c.JSON(http.StatusOK, group)
 }
 
+// GetGroupInf godoc
+// @Summary Получить информацию о группе
+// @Description Получает информацию о группе по ID, включая список участников, категории, контакты и сессии. Для приватных групп требуется членство.
+// @Tags groups
+// @Security BearerAuth
+// @Param groupId path int true "ID группы"
+// @Produce json
+// @Success 200 {object} services.GroupInf "Информация о группе"
+// @Failure 400 {object} map[string]string "Некорректный ID группы"
+// @Failure 401 {object} map[string]string "Пользователь не авторизован"
+// @Failure 403 {object} map[string]string "Доступ к приватной группе запрещен"
+// @Failure 404 {object} map[string]string "Группа не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router /api/groups/{groupId} [get]
+func GetGroupInf(c *gin.Context) {
+	emailValue, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не найден email в контексте"})
+		return
+	}
+	email := emailValue.(string)
+	groupIDStr := c.Param("groupId")
+	groupID, err := strconv.ParseUint(groupIDStr, 10, 64)
+
+	result, err := services.GetGroupInf(&groupID, &email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 // @Security BearerAuth
 // joinToGroup godoc
 // @Summary Присоединение к группе
