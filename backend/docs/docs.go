@@ -15,6 +15,61 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/groups": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список всех групп, где текущий авторизованный пользователь является создателем. В ответе также будет количество участников.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups_admin"
+                ],
+                "summary": "Получить группы, созданные пользователем",
+                "responses": {
+                    "200": {
+                        "description": "Список групп администратора",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/services.AdminGroupResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/groups/requests/{requestId}/approve": {
             "post": {
                 "security": [
@@ -230,7 +285,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Позволяет администратору группы изменить её данные",
+                "description": "Позволяет администратору группы изменить её данные, включая контакты. Контакты передаются строкой в формате \"название:ссылка, название:ссылка\". Чтобы удалить все контакты, передайте пустую строку.",
                 "consumes": [
                     "application/json"
                 ],
@@ -250,7 +305,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Новые данные группы",
+                        "description": "Новые данные группы. Для контактов используйте формат: 'vk:https://vk.com/mygroup, tg:https://t.me/mygroup'",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -298,6 +353,85 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Внутренняя ошибка",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/groups/{groupId}/infGroup": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает детальную информацию о группе, созданной пользователем, включая заявки на вступление и сессии в статусе 'Набор'. Доступно только создателю группы.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups_admin"
+                ],
+                "summary": "Получить детальную информацию о группе для администратора",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "groupId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Детальная информация о группе",
+                        "schema": {
+                            "$ref": "#/definitions/services.AdminGroupInfResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID группы",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещен (пользователь не является создателем)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Группа не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -480,7 +614,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Создает новую группу",
+                "description": "Создает новую группу. Контакты передаются строкой в формате \"название:ссылка, название:ссылка\". Примеры: \"vk:https://vk.com/mygroup, tg:https://t.me/mygroup, inst:https://instagram.com/mygroup\"",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -494,6 +628,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "example": "\"Моя группа\"",
                         "description": "Название группы",
                         "name": "name",
                         "in": "formData",
@@ -501,13 +636,15 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Описание группы",
+                        "example": "\"Подробное описание того, чем занимается группа\"",
+                        "description": "Полное описание группы",
                         "name": "description",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
+                        "example": "\"Краткое описание\"",
                         "description": "Короткое описание",
                         "name": "smallDescription",
                         "in": "formData",
@@ -515,6 +652,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "example": "\"Москва\"",
                         "description": "Город локации группы (опционально)",
                         "name": "city",
                         "in": "formData"
@@ -525,45 +663,49 @@ const docTemplate = `{
                             "type": "integer"
                         },
                         "collectionFormat": "csv",
-                        "description": "Категории группы (записываются в виде массива целых чисел)",
+                        "description": "Категории группы (массив ID категорий)",
                         "name": "categories",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "boolean",
-                        "description": "Приватная ли группа",
+                        "description": "Приватная ли группа (true/false)",
                         "name": "isPrivate",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "file",
-                        "description": "Изображение",
+                        "description": "Изображение группы (JPG, PNG, максимум 10MB)",
                         "name": "image",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"vk:https://vk.com/mygroup, tg:https://t.me/mygroup\"",
+                        "description": "Контакты в формате 'название:ссылка, название:ссылка'. Поддерживаются любые названия соц. сетей.",
+                        "name": "contacts",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "Группа успешно создана",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/groups.Group"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Некорректные данные или ошибка валидации",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Не авторизован",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -572,7 +714,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -689,6 +831,85 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Внутренняя ошибка",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/groups/{groupId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Получает информацию о группе по ID, включая список участников, категории, контакты и сессии. Для приватных групп требуется членство.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Получить информацию о группе",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "groupId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Информация о группе",
+                        "schema": {
+                            "$ref": "#/definitions/services.GroupInf"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID группы",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ к приватной группе запрещен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Группа не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1892,9 +2113,152 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/users/subscriptions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список групп, на которые подписан пользователь, исключая группы, созданные им.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Получить подписки пользователя на группы",
+                "responses": {
+                    "200": {
+                        "description": "Список групп, на которые подписан пользователь",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/services.GroupResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Не передан jwt",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "groups.Group": {
+            "type": "object",
+            "properties": {
+                "Description": {
+                    "type": "string"
+                },
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Category"
+                    }
+                },
+                "city": {
+                    "type": "string"
+                },
+                "contacts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/groups.GroupContact"
+                    }
+                },
+                "creater": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "createrId": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "isPrivate": {
+                    "type": "boolean"
+                },
+                "nameGroup": {
+                    "type": "string"
+                },
+                "smallDescription": {
+                    "type": "string"
+                }
+            }
+        },
+        "groups.GroupContact": {
+            "type": "object",
+            "properties": {
+                "groupId": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "groups.GroupJoinRequest": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "group": {
+                    "$ref": "#/definitions/groups.Group"
+                },
+                "groupId": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "\"pending\", \"approved\", \"rejected\"",
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
         "handlers.CachedPopularSessionsDoc": {
             "type": "object",
             "properties": {
@@ -2131,10 +2495,129 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Category": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "models.SessionRegResponse": {
             "type": "object",
             "properties": {
                 "session_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.User": {
+            "type": "object",
+            "required": [
+                "email",
+                "name",
+                "password",
+                "us"
+            ],
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "data_register": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "enterprise": {
+                    "type": "boolean"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "us": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.AdminGroupInfResponse": {
+            "type": "object",
+            "properties": {
+                "applications": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/groups.GroupJoinRequest"
+                    }
+                },
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "city": {
+                    "type": "string"
+                },
+                "contacts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.Contacts"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "private": {
+                    "type": "boolean"
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.SessionResponse"
+                    }
+                },
+                "small_description": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.AdminGroupResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "member_count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -2156,6 +2639,17 @@ const docTemplate = `{
                 },
                 "total_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "services.Contacts": {
+            "type": "object",
+            "properties": {
+                "link": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },
@@ -2182,10 +2676,86 @@ const docTemplate = `{
                 }
             }
         },
+        "services.GroupInf": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "city": {
+                    "type": "string"
+                },
+                "contacts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.Contacts"
+                    }
+                },
+                "count_members": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.SessionDetailResponse"
+                    }
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.UsersGroups"
+                    }
+                }
+            }
+        },
+        "services.GroupResponse": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "count_members": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "services.GroupUpdateInput": {
             "type": "object",
             "properties": {
                 "city": {
+                    "type": "string"
+                },
+                "contacts": {
                     "type": "string"
                 },
                 "description": {
@@ -2311,6 +2881,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.UsersGroups": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }
