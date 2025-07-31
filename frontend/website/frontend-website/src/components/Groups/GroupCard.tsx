@@ -48,13 +48,6 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
           height={80}
           className='groupAvatar'
         />
-        
-        {/* Индикатор приватности */}
-        {group.isPrivate && (
-          <div className='privateIcon'>
-            🔒
-          </div>
-        )}
       </div>
 
       {/* Основное содержимое справа от иконки */}
