@@ -1,0 +1,353 @@
+/* Стили для основного модального окна создания группы */
+div.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+div.modalOverlay .modalContent {
+    background: white !important;
+    border-radius: 20px !important;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+    border: none !important;
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.modalHeader h2 {
+    color: #000;
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.closeButton {
+    position: absolute;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 32px;
+    color: #666;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+    background: #f0f0f0;
+    color: #000;
+}
+
+.modalBody {
+    padding: 30px;
+}
+
+.modalContent .createGroupForm {
+    margin: 0;
+    padding: 0;
+}
+
+.createGroupForm {
+    width: 100%;
+}
+
+.formRow {
+    display: flex;
+    gap: 40px;
+}
+
+.leftColumn {
+    flex: 1;
+}
+
+.rightColumn {
+    width: 250px;
+    flex-shrink: 0;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formLabel {
+    display: block;
+    margin-bottom: 8px;
+    color: #000;
+    font-weight: 500;
+    font-size: 16px;
+}
+
+/* Стили для названия (без рамки, только подчеркивание) */
+.nameInput {
+    width: 100%;
+    padding: 12px 0;
+    border: none;
+    border-bottom: 2px solid #316BC2;
+    font-size: 18px;
+    color: #000;
+    background: transparent;
+    transition: border-color 0.2s ease;
+}
+
+.nameInput:focus {
+    outline: none;
+    border-bottom-color: #37A2E6;
+}
+
+.nameInput::placeholder {
+    color: #999;
+    font-size: 18px;
+}
+
+/* Стили для города (аналогично названию) */
+.cityInput {
+    width: 100%;
+    padding: 12px 0;
+    border: none;
+    border-bottom: 2px solid #316BC2;
+    font-size: 16px;
+    color: #000;
+    background: transparent;
+    transition: border-color 0.2s ease;
+}
+
+.cityInput:focus {
+    outline: none;
+    border-bottom-color: #37A2E6;
+}
+
+.cityInput::placeholder {
+    color: #999;
+    font-size: 16px;
+}
+
+.formInput {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #316BC2;
+    border-radius: 12px;
+    font-size: 16px;
+    color: #000;
+    transition: border-color 0.2s ease;
+}
+
+.formInput:focus {
+    outline: none;
+    border-color: #37A2E6;
+}
+
+.formTextarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #316BC2;
+    border-radius: 12px;
+    font-size: 16px;
+    color: #000;
+    resize: vertical;
+    min-height: 100px;
+    font-family: 'Inter', sans-serif;
+    transition: border-color 0.2s ease;
+}
+
+.formTextarea:focus {
+    outline: none;
+    border-color: #37A2E6;
+}
+
+/* Стили для контактов */
+.socialIcons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.socialIcon {
+    width: 40px;
+    height: 40px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.socialIcon:hover {
+    transform: scale(1.1);
+}
+
+.addSocialIcon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.addSocialIcon:hover {
+    transform: scale(1.1);
+}
+
+.groupImageSection {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.groupImagePreview {
+    width: 180px;
+    height: 180px;
+    background: #8B4513;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.groupImagePreview:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.previewImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+    color: #000;
+    cursor: pointer;
+}
+
+/* Стили для приватного чекбокса */
+.privateCheckbox {
+    width: 20px;
+    height: 20px;
+    appearance: none;
+    background: white;
+    border: 2px solid #316BC2;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.privateCheckbox:checked {
+    background: #316BC2;
+    border-color: #316BC2;
+}
+
+.privateCheckbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* Стили для категорий */
+.categoriesRow {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.categoryItem {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: #565555;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.categoryItem.selected {
+    background: #37A2E6;
+}
+
+.createButton {
+    width: 50%;
+    background: #37A2E6;
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-top: 20px;
+}
+
+.createButton:hover {
+    background: #2d93d5;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .modalContent {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .formRow {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .rightColumn {
+        width: 100%;
+    }
+
+    .categoriesRow {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .categoryItem {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}

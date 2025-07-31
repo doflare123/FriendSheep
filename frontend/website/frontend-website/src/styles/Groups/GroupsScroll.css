@@ -1,0 +1,139 @@
+/* GroupsScroll.css */
+
+.groupsContainer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    flex: 1; /* Занимаем оставшееся место в секции */
+    min-height: 0; /* Важно для flex */
+}
+
+.groupsScroll {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    overflow-y: hidden; /* Отключаем вертикальный скролл */
+    scroll-behavior: smooth;
+    padding: 10px 20px; /* Добавил отступы сверху и снизу для анимации */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    width: 95%;
+    max-width: 95%;
+    position: relative;
+    height: 100%; /* Занимаем всю высоту контейнера */
+    align-items: flex-start; /* Карточки выравниваются по верху */
+    
+    /* Создаем градиентную маску для плавного перехода в прозрачность */
+    mask: linear-gradient(
+        to right,
+        transparent 0px,
+        black 60px,
+        black calc(100% - 60px),
+        transparent 100%
+    );
+    -webkit-mask: linear-gradient(
+        to right,
+        transparent 0px,
+        black 60px,
+        black calc(100% - 60px),
+        transparent 100%
+    );
+}
+
+.groupsScroll::-webkit-scrollbar {
+    display: none;
+}
+
+/* Добавляем отступы для первой и последней карточки */
+.groupsScroll > :first-child {
+    margin-left: 20px;
+}
+
+.groupsScroll > :last-child {
+    margin-right: 20px;
+}
+
+.scrollButton {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #316BC2;
+    color: #316BC2;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.scrollButton:hover {
+    transform: translateY(-50%) scale(1.1);
+}
+
+.scrollLeft {
+    left: calc(2.5% - 32px);
+}
+
+.scrollRight {
+    right: calc(2.5% - 32px);
+}
+
+.emptyGroupsMessage {
+    text-align: center;
+    color: #666;
+    font-size: 18px;
+    font-style: italic;
+    padding: 60px 20px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 12px;
+    border: 2px dashed #ccc;
+    margin: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .groupsScroll {
+        gap: 16px;
+        padding: 10px 15px; /* Сохраняем отступы и для мобильной версии */
+    }
+    
+    .groupsScroll > :first-child {
+        margin-left: 20px;
+    }
+    
+    .groupsScroll > :last-child {
+        margin-right: 20px;
+    }
+    
+    .scrollButton {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+    
+    .scrollLeft {
+        left: calc(2.5% - 40px);
+    }
+    
+    .scrollRight {
+        right: calc(2.5% - 40px);
+    }
+    
+    .emptyGroupsMessage {
+        font-size: 16px;
+        padding: 40px 15px;
+    }
+}

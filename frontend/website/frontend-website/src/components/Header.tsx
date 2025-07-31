@@ -126,7 +126,7 @@ export default function Header() {
                 <Link href="#" className="nav-link">
                     Новости
                 </Link>
-                <Link href="#" className="nav-link">
+                <Link href="/groups" className="nav-link">
                     Группы
                 </Link>
             </nav>
