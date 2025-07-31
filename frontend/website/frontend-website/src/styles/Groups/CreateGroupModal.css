@@ -1,6 +1,5 @@
-/* CreateGroupModal.css */
-
-.modalOverlay {
+/* Стили для основного модального окна создания группы */
+div.modalOverlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -14,15 +13,16 @@
     backdrop-filter: blur(4px);
 }
 
-.modalContent {
-    background: white;
-    border-radius: 20px;
+div.modalOverlay .modalContent {
+    background: white !important;
+    border-radius: 20px !important;
     width: 90%;
     max-width: 800px;
     max-height: 90vh;
     overflow-y: auto;
     position: relative;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+    border: none !important;
 }
 
 .modalHeader {
@@ -63,8 +63,17 @@
     color: #000;
 }
 
-.modalForm {
+.modalBody {
     padding: 30px;
+}
+
+.modalContent .createGroupForm {
+    margin: 0;
+    padding: 0;
+}
+
+.createGroupForm {
+    width: 100%;
 }
 
 .formRow {
@@ -93,11 +102,55 @@
     font-size: 16px;
 }
 
+/* Стили для названия (без рамки, только подчеркивание) */
+.nameInput {
+    width: 100%;
+    padding: 12px 0;
+    border: none;
+    border-bottom: 2px solid #316BC2;
+    font-size: 18px;
+    color: #000;
+    background: transparent;
+    transition: border-color 0.2s ease;
+}
+
+.nameInput:focus {
+    outline: none;
+    border-bottom-color: #37A2E6;
+}
+
+.nameInput::placeholder {
+    color: #999;
+    font-size: 18px;
+}
+
+/* Стили для города (аналогично названию) */
+.cityInput {
+    width: 100%;
+    padding: 12px 0;
+    border: none;
+    border-bottom: 2px solid #316BC2;
+    font-size: 16px;
+    color: #000;
+    background: transparent;
+    transition: border-color 0.2s ease;
+}
+
+.cityInput:focus {
+    outline: none;
+    border-bottom-color: #37A2E6;
+}
+
+.cityInput::placeholder {
+    color: #999;
+    font-size: 16px;
+}
+
 .formInput {
     width: 100%;
     padding: 12px 16px;
     border: 2px solid #316BC2;
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 16px;
     color: #000;
     transition: border-color 0.2s ease;
@@ -112,7 +165,7 @@
     width: 100%;
     padding: 12px 16px;
     border: 2px solid #316BC2;
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 16px;
     color: #000;
     resize: vertical;
@@ -126,64 +179,41 @@
     border-color: #37A2E6;
 }
 
-.socialInputs {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.socialInput {
+/* Стили для контактов */
+.socialIcons {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-wrap: wrap;
 }
 
-.socialIconInput {
+.socialIcon {
     width: 40px;
     height: 40px;
     background: white;
-    border: 2px solid #37A2E6;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.socialLinkInput {
-    flex: 1;
-    padding: 10px 14px;
-    border: 2px solid #316BC2;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-.socialLinkInput:focus {
-    outline: none;
-    border-color: #37A2E6;
-}
-
-.addSocialButton {
-    width: 40px;
-    height: 40px;
-    border: 2px dashed #ccc;
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    align-self: flex-start;
 }
 
-.addSocialButton:hover {
-    border-color: #37A2E6;
-    background: #f8f9fa;
+.socialIcon:hover {
+    transform: scale(1.1);
 }
 
-.addIcon {
-    font-size: 20px;
-    color: #666;
+.addSocialIcon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.addSocialIcon:hover {
+    transform: scale(1.1);
 }
 
 .groupImageSection {
@@ -201,6 +231,13 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.groupImagePreview:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .previewImage {
@@ -212,57 +249,66 @@
 .checkboxLabel {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     font-size: 16px;
     color: #000;
     cursor: pointer;
 }
 
-.checkbox {
-    width: 18px;
-    height: 18px;
-    accent-color: #37A2E6;
+/* Стили для приватного чекбокса */
+.privateCheckbox {
+    width: 20px;
+    height: 20px;
+    appearance: none;
+    background: white;
+    border: 2px solid #316BC2;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
 }
 
-.categoriesGrid {
+.privateCheckbox:checked {
+    background: #316BC2;
+    border-color: #316BC2;
+}
+
+.privateCheckbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* Стили для категорий */
+.categoriesRow {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
-.categoryLabel {
+.categoryItem {
     display: flex;
     align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    padding: 8px;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: #565555;
     border-radius: 8px;
-    transition: background-color 0.2s ease;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.categoryLabel:hover {
-    background: #f8f9fa;
-}
-
-.categoryCheckbox {
-    width: 18px;
-    height: 18px;
-    accent-color: #37A2E6;
-}
-
-.categoryContent {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.categoryText {
-    color: #000;
-    font-size: 16px;
+.categoryItem.selected {
+    background: #37A2E6;
 }
 
 .createButton {
-    width: 100%;
+    width: 50%;
     background: #37A2E6;
     color: white;
     border: none;
@@ -293,5 +339,15 @@
     
     .rightColumn {
         width: 100%;
+    }
+
+    .categoriesRow {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .categoryItem {
+        width: 100%;
+        justify-content: flex-start;
     }
 }

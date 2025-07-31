@@ -1,0 +1,173 @@
+/* Стили для модального окна контактов */
+.socialModalContent {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.socialModalHeader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.socialModalHeader h3 {
+    color: #000;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.closeButton {
+    position: absolute;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 32px;
+    color: #666;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+    background: #f0f0f0;
+    color: #000;
+}
+
+.socialModalBody {
+    padding: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #316BC2 transparent;
+}
+
+.socialContactRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 2px solid #316BC2;
+    border-radius: 16px;
+}
+
+.socialIconContainer {
+    flex-shrink: 0;
+    display: flex;
+    align-self: center;
+    justify-content: center;
+}
+
+.socialContactInputs {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.inputGroup {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.inputLabel {
+    color: #000;
+    font-weight: 500;
+    font-size: 14px;
+    min-width: 80px;
+    text-align: left;
+}
+
+.socialContactInput {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    border-bottom: 2px solid #37A2E6;
+    font-size: 14px;
+    color: #000;
+    background: transparent;
+    transition: border-color 0.2s ease;
+}
+
+.socialContactInput:focus {
+    outline: none;
+    border-bottom-color: #316BC2;
+}
+
+.socialContactInput::placeholder {
+    color: #999;
+}
+
+.addCustomSocialRow {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.addCustomSocialButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 50%;
+}
+
+.addCustomSocialButton:hover {
+    transform: scale(1.1);
+}
+
+.saveSocialButton {
+    width: calc(100% - 40px);
+    margin: 20px;
+    background: #37A2E6;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.saveSocialButton:hover {
+    background: #2d93d5;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .socialModalContent {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .inputGroup {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .inputLabel {
+        min-width: auto;
+    }
+}
