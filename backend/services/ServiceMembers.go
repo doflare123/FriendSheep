@@ -7,7 +7,6 @@ import (
 	"friendship/models/groups"
 )
 
-// Проверка роли пользователя в группе
 func getUserRole(userID, groupID uint) (string, error) {
 	var groupUser groups.GroupUsers
 	err := db.GetDB().Where("user_id = ? AND group_id = ?", userID, groupID).First(&groupUser).Error
@@ -26,11 +25,6 @@ func RemoveUserFromGroup(requesterEmail string, groupID, targetUserID uint) erro
 	var targetUser models.User
 	if err := db.GetDB().First(&targetUser, targetUserID).Error; err != nil {
 		return errors.New("удаляемый пользователь не найден")
-	}
-
-	role, err := getUserRole(requester.ID, groupID)
-	if err != nil || (role != "admin" && role != "operator") {
-		return errors.New("нет прав на удаление")
 	}
 
 	if requester.ID == targetUserID {

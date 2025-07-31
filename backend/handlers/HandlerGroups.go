@@ -32,22 +32,23 @@ type JoinGroupResponseDoc struct {
 
 // @Security BearerAuth
 // CreateGroup godoc
-// @Summary Создание группы
-// @Description Создает новую группу
-// @Tags groups_admin
-// @Accept multipart/form-data
-// @Produce json
-// @Param name formData string true "Название группы"
-// @Param description formData string true "Описание группы"
-// @Param smallDescription formData string true "Короткое описание"
-// @Param city formData string false "Город локации группы (опционально)"
-// @Param categories formData []int true "Категории группы (записываются в виде массива целых чисел)"
-// @Param isPrivate formData bool true "Приватная ли группа"
-// @Param image formData file true "Изображение"
-// @Success 200 {object} map[string]string "Группа успешно создана"
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Summary      Создание группы
+// @Description  Создает новую группу. Контакты передаются строкой в формате "название:ссылка, название:ссылка". Примеры: "vk:https://vk.com/mygroup, tg:https://t.me/mygroup, inst:https://instagram.com/mygroup"
+// @Tags         groups_admin
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        name formData string true "Название группы" example("Моя группа")
+// @Param        description formData string true "Полное описание группы" example("Подробное описание того, чем занимается группа")
+// @Param        smallDescription formData string true "Короткое описание" example("Краткое описание")
+// @Param        city formData string false "Город локации группы (опционально)" example("Москва")
+// @Param        categories formData []int true "Категории группы (массив ID категорий)" example("1,2,3")
+// @Param        isPrivate formData bool true "Приватная ли группа (true/false)" example("false")
+// @Param        image formData file true "Изображение группы (JPG, PNG, максимум 10MB)"
+// @Param        contacts formData string false "Контакты в формате 'название:ссылка, название:ссылка'. Поддерживаются любые названия соц. сетей" example("vk:https://vk.com/mygroup, tg:https://t.me/mygroup")
+// @Success 200 {object} groups.Group "Группа успешно создана"
+// @Failure 400 {object} map[string]interface{} "Некорректные данные или ошибка валидации"
+// @Failure 401 {object} map[string]string "Не авторизован"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Router /api/groups/createGroup [post]
 func CreateGroup(c *gin.Context) {
 	emailValue, exists := c.Get("email")
@@ -70,19 +71,16 @@ func CreateGroup(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Неподдерживаемый тип файла", "details": err.Error()})
 			return
 		}
-
 		if header.Size > 10*1024*1024 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Файл слишком большой, максимум 10MB"})
 			return
 		}
-
 		file, err := header.Open()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "не удалось открыть изображение"})
 			return
 		}
 		defer file.Close()
-
 		imageURL, err = middlewares.UploadImage(file, header.Filename, "groups")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки изображения: " + err.Error()})
@@ -91,11 +89,10 @@ func CreateGroup(c *gin.Context) {
 		input.Image = imageURL
 	}
 
-	group, err := services.CreateGroup(email, input)
+	group, err := services.CreateGroup(&email, input)
 	if err != nil {
 		// Удаляем загруженное изображение при ошибке создания группы
 		if imageURL != "" {
-			// Извлекаем имя файла из URL
 			parts := strings.Split(imageURL, "/")
 			if len(parts) > 0 {
 				filename := parts[len(parts)-1]
@@ -105,13 +102,44 @@ func CreateGroup(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	if group == nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Группа не создана"})
 		return
 	}
+	c.JSON(http.StatusOK, group)
+}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Группа успешно создана"})
+// GetGroupInf godoc
+// @Summary Получить информацию о группе
+// @Description Получает информацию о группе по ID, включая список участников, категории, контакты и сессии. Для приватных групп требуется членство.
+// @Tags groups
+// @Security BearerAuth
+// @Param groupId path int true "ID группы"
+// @Produce json
+// @Success 200 {object} services.GroupInf "Информация о группе"
+// @Failure 400 {object} map[string]string "Некорректный ID группы"
+// @Failure 401 {object} map[string]string "Пользователь не авторизован"
+// @Failure 403 {object} map[string]string "Доступ к приватной группе запрещен"
+// @Failure 404 {object} map[string]string "Группа не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router /api/groups/{groupId} [get]
+func GetGroupInf(c *gin.Context) {
+	emailValue, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не найден email в контексте"})
+		return
+	}
+	email := emailValue.(string)
+	groupIDStr := c.Param("groupId")
+	groupID, err := strconv.ParseUint(groupIDStr, 10, 64)
+
+	result, err := services.GetGroupInf(&groupID, &email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 // @Security BearerAuth
@@ -165,7 +193,6 @@ func JoinGroup(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Router /api/admin/groups/{groupId} [delete]
 func DeleteGroups(c *gin.Context) {
-	email := c.MustGet("email").(string)
 	groupIDParam := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDParam, 10, 64)
 	if err != nil {
@@ -173,7 +200,7 @@ func DeleteGroups(c *gin.Context) {
 		return
 	}
 
-	if err := services.DeleteGroup(email, uint(groupID)); err != nil {
+	if err := services.DeleteGroup(uint(groupID)); err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
@@ -183,13 +210,13 @@ func DeleteGroups(c *gin.Context) {
 
 // UpdateGroupHandler godoc
 // @Summary Обновить информацию о группе
-// @Description Позволяет администратору группы изменить её данные
+// @Description Позволяет администратору группы изменить её данные, включая контакты. Контакты передаются строкой в формате "название:ссылка, название:ссылка". Чтобы удалить все контакты, передайте пустую строку.
 // @Tags groups_admin
 // @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param groupId path int true "ID группы"
-// @Param input body services.GroupUpdateInput true "Новые данные группы"
+// @Param input body services.GroupUpdateInput true "Новые данные группы. Для контактов используйте формат: 'vk:https://vk.com/mygroup, tg:https://t.me/mygroup'"
 // @Success 200 {object} map[string]string "Группа успешно обновлена"
 // @Failure 400 {object} map[string]string "Ошибка валидации или некорректный ID"
 // @Failure 403 {object} map[string]string "Нет прав на редактирование"
@@ -197,8 +224,6 @@ func DeleteGroups(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Внутренняя ошибка"
 // @Router /api/admin/groups/{groupId} [patch]
 func UpdateGroupHandler(c *gin.Context) {
-	email := c.MustGet("email").(string)
-
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 64)
 	if err != nil {
@@ -212,7 +237,7 @@ func UpdateGroupHandler(c *gin.Context) {
 		return
 	}
 
-	if err := services.UpdateGroup(email, uint(groupID), input); err != nil {
+	if err := services.UpdateGroup(uint(groupID), input); err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}

@@ -30,7 +30,7 @@ func InitDatabase() error {
 	}
 	db.AutoMigrate(&sessions.Notification{})
 	db.AutoMigrate(&models.User{},
-		&groups.Group{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{},
+		&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{},
 		&sessions.Session{}, &sessions.SessionGroupType{}, &sessions.SessionMetadata{}, sessions.Status{})
 
 	return db.AutoMigrate(&sessions.SessionUser{})
