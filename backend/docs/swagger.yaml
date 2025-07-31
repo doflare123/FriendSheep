@@ -39,6 +39,24 @@ definitions:
       name:
         type: string
     type: object
+  groups.GroupJoinRequest:
+    properties:
+      createdAt:
+        type: string
+      group:
+        $ref: '#/definitions/groups.Group'
+      groupId:
+        type: integer
+      id:
+        type: integer
+      status:
+        description: '"pending", "approved", "rejected"'
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      userId:
+        type: integer
+    type: object
   handlers.CachedPopularSessionsDoc:
     properties:
       count:
@@ -235,6 +253,39 @@ definitions:
     - password
     - us
     type: object
+  services.AdminGroupInfResponse:
+    properties:
+      applications:
+        items:
+          $ref: '#/definitions/groups.GroupJoinRequest'
+        type: array
+      categories:
+        items:
+          type: string
+        type: array
+      city:
+        type: string
+      contacts:
+        items:
+          $ref: '#/definitions/services.Contacts'
+        type: array
+      description:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      private:
+        type: boolean
+      sessions:
+        items:
+          $ref: '#/definitions/services.SessionResponse'
+        type: array
+      small_description:
+        type: string
+    type: object
   services.AdminGroupResponse:
     properties:
       id:
@@ -337,7 +388,6 @@ definitions:
       city:
         type: string
       contacts:
-        description: 'Изменено: теперь строка вместо map'
         type: string
       description:
         type: string
@@ -600,6 +650,59 @@ paths:
       security:
       - BearerAuth: []
       summary: Обновить информацию о группе
+      tags:
+      - groups_admin
+  /api/admin/groups/{groupId}/infGroup:
+    get:
+      description: Возвращает детальную информацию о группе, созданной пользователем,
+        включая заявки на вступление и сессии в статусе 'Набор'. Доступно только создателю
+        группы.
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Детальная информация о группе
+          schema:
+            $ref: '#/definitions/services.AdminGroupInfResponse'
+        "400":
+          description: Некорректный ID группы
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Доступ запрещен (пользователь не является создателем)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Группа не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить детальную информацию о группе для администратора
       tags:
       - groups_admin
   /api/admin/groups/{groupId}/members/{userId}:

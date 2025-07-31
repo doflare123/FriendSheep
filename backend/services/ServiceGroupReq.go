@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"friendship/db"
 	"friendship/models"
 	"friendship/models/groups"
@@ -23,7 +24,7 @@ func checkAdminPermissions(db *gorm.DB, email string, groupID uint) (*models.Use
 	return &user, nil
 }
 
-func GetPendingJoinRequestsForAdmin(email string) ([]groups.GroupJoinRequest, error) {
+func GetPendingJoinRequestsForAdmin(email string) ([]GroupJoinRequestRes, error) {
 	var user models.User
 	if err := db.GetDB().Where("email = ?", email).First(&user).Error; err != nil {
 		return nil, errors.New("пользователь не найден")
@@ -39,7 +40,31 @@ func GetPendingJoinRequestsForAdmin(email string) ([]groups.GroupJoinRequest, er
 		Preload("Group").
 		Find(&requests).Error
 
-	return requests, err
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pending requests: %w", err)
+	}
+
+	var result []GroupJoinRequestRes
+	for _, request := range requests {
+		res := GroupJoinRequestRes{
+			ID:     request.ID,
+			UserID: request.UserID,
+		}
+
+		if request.User.Name != "" {
+			res.Name = request.User.Name
+		}
+		if request.User.Us != "" {
+			res.Us = request.User.Us
+		}
+		if request.User.Image != "" {
+			res.Image = request.User.Image
+		}
+
+		result = append(result, res)
+	}
+
+	return result, nil
 }
 
 func ApproveJoinRequestByID(email string, requestID string) error {

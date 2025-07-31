@@ -26,6 +26,7 @@ func RouterGroups(r *gin.Engine) {
 		moderatorRequired := GroupAdminGroups.Group("/:groupId", middlewares.JWTAuthMiddleware(), middlewares.GroupRoleMiddleware("admin", "operator"))
 		{
 			moderatorRequired.DELETE("/members/:userId", handlers.RemoveUserHandler)
+			moderatorRequired.GET("/infGroup", handlers.GetInfAdminGroup)
 		}
 
 		// Роуты, требующие прав только администратора

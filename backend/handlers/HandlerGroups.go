@@ -44,7 +44,7 @@ type JoinGroupResponseDoc struct {
 // @Param        categories formData []int true "Категории группы (массив ID категорий)" example("1,2,3")
 // @Param        isPrivate formData bool true "Приватная ли группа (true/false)" example("false")
 // @Param        image formData file true "Изображение группы (JPG, PNG, максимум 10MB)"
-// @Param        contacts formData string false "Контакты в формате 'название:ссылка, название:ссылка'. Поддерживаются любые названия соц. сетей." example("vk:https://vk.com/mygroup, tg:https://t.me/mygroup")
+// @Param        contacts formData string false "Контакты в формате 'название:ссылка, название:ссылка'. Поддерживаются любые названия соц. сетей" example("vk:https://vk.com/mygroup, tg:https://t.me/mygroup")
 // @Success 200 {object} groups.Group "Группа успешно создана"
 // @Failure 400 {object} map[string]interface{} "Некорректные данные или ошибка валидации"
 // @Failure 401 {object} map[string]string "Не авторизован"
