@@ -19,6 +19,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
   });
 
   const [selectedImage, setSelectedImage] = useState<string>('/default/group.jpg');
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,16 +54,20 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
     }));
   };
 
+  // Измените handleImageUpload:
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setSelectedImageFile(file); // Сохраняем File объект
+      
       const reader = new FileReader();
       reader.onload = (e) => {
-        setSelectedImage(e.target?.result as string);
+        setSelectedImage(e.target?.result as string); // Для превью
       };
       reader.readAsDataURL(file);
     }
   };
+
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -90,7 +95,8 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
     e.preventDefault();
     onSubmit({
       ...formData,
-      image: selectedImage
+      image: selectedImageFile, // Передаем File объект
+      imagePreview: selectedImage // Опционально для превью
     });
   };
 

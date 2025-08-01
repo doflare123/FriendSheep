@@ -3,14 +3,13 @@ import Image from 'next/image';
 import '../../styles/Groups/GroupCard.css';
 
 interface Group {
-  id: string;
+  id: number;
   name: string;
-  description: string;
-  memberCount: number;
-  image?: string;
-  categories: ('games' | 'movies' | 'board' | 'other')[];
-  isPrivate: boolean;
-  city: string;
+  small_description: string;
+  member_count: number;
+  image: string;
+  category: string[];
+  type: string;
 }
 
 interface GroupCardProps {
@@ -20,22 +19,35 @@ interface GroupCardProps {
 
 const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
   const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'games': return '/events/games.png';
-      case 'movies': return '/events/movies.png';
-      case 'board': return '/events/board.png';
+    switch (category.toLowerCase()) {
+      case 'игры': return '/events/games.png';
+      case 'фильмы': return '/events/movies.png';
+      case 'настольные игры': return '/events/board.png';
       default: return '/events/other.png';
     }
   };
 
-  const getCategoryName = (category: string) => {
-    switch (category) {
-      case 'games': return 'Игры';
-      case 'movies': return 'Фильмы';
-      case 'board': return 'Настольные игры';
-      default: return 'Другое';
+  const getMemberCountText = (count: number) => {
+    const lastDigit = count % 10;
+    const lastTwoDigits = count % 100;
+
+    if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+      return `${count} участников`;
+    }
+
+    switch (lastDigit) {
+      case 1:
+        return `${count} участник`;
+      case 2:
+      case 3:
+      case 4:
+        return `${count} участника`;
+      default:
+        return `${count} участников`;
     }
   };
+
+  const isPrivate = group.type === 'приватная группа';
 
   return (
     <div className='groupCard'>
@@ -58,15 +70,15 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
           
           {/* Категории */}
           <div className='categoryIcons'>
-            {group.categories.map((category, index) => (
+            {group.category.map((categoryName, index) => (
               <div 
                 key={index} 
                 className='categoryIcon'
-                title={getCategoryName(category)}
+                title={categoryName}
               >
                 <Image
-                  src={getCategoryIcon(category)}
-                  alt={category}
+                  src={getCategoryIcon(categoryName)}
+                  alt={categoryName}
                   width={16}
                   height={16}
                 />
@@ -74,17 +86,12 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
             ))}
           </div>
 
-          <p className='groupMemberCount'>{group.memberCount} участников</p>
+          <p className='groupMemberCount'>{getMemberCountText(group.member_count)}</p>
         </div>
 
         {/* Описание */}
         <div className='groupDescription'>
-          {group.description.split('\n').map((line, index) => (
-            <React.Fragment key={index}>
-              {line}
-              {index < group.description.split('\n').length - 1 && <br />}
-            </React.Fragment>
-          ))}
+          {group.small_description}
         </div>
 
         {/* Кнопка действия */}

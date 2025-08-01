@@ -26,35 +26,11 @@ interface Group {
   city: string;
 }
 
-interface ApiGroup {
-  category: number[];
-  count_members: number;
-  description: string;
-  id: number;
-  image: string;
-  name: string;
-}
-
 export default function GroupsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [managedGroups, setManagedGroups] = useState<Group[]>([]);
   const [subscriptions, setSubscriptions] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Функция для преобразования данных API в формат компонента
-  const transformApiGroupToGroup = (apiGroup: ApiGroup): Group => {
-    return {
-      id: apiGroup.id.toString(),
-      name: apiGroup.name,
-      description: apiGroup.description,
-      memberCount: apiGroup.count_members,
-      image: apiGroup.image,
-      categories: convertIdsToCategories(apiGroup.category),
-      socialLinks: {}, // API не возвращает социальные ссылки, оставляем пустым
-      isPrivate: false, // API не возвращает информацию о приватности
-      city: '' // API не возвращает информацию о городе
-    };
-  };
 
   // Загрузка групп пользователя
   const loadUserGroups = async () => {
@@ -69,15 +45,13 @@ export default function GroupsPage() {
 
       const response = await getGroups(accessToken);
       
-      const transformedGroups = response.map(transformApiGroupToGroup);
-      
-      setSubscriptions(transformedGroups);
+      console.log("transformedGroups", response);
+      setSubscriptions(response);
 
       const responseOwn = await getOwnGroups(accessToken);
       
-      const transformedGroupsOwn = responseOwn.map(transformApiGroupToGroup);
-      
-      setManagedGroups(transformedGroupsOwn);
+      console.log("transformedGroupsOwn", responseOwn);
+      setManagedGroups(responseOwn);
       
     } catch (error) {
       console.error('Ошибка при загрузке групп:', error);
@@ -104,6 +78,8 @@ export default function GroupsPage() {
       const categories = convertCategoriesToIds(groupData.categories);
       const socialContacts = convertSocialContactsToString(groupData.socialContacts);
 
+      console.log("groupData.image", groupData.image);
+
       await createGroup(
         groupData.name, 
         groupData.description, 
@@ -115,7 +91,7 @@ export default function GroupsPage() {
         socialContacts, 
         accessToken
       );
-      
+
       // Перезагружаем группы после создания новой
       await loadUserGroups();
     } catch (error) {

@@ -311,14 +311,15 @@ div.modalOverlay .modalContent {
     width: 50%;
     background: #37A2E6;
     color: white;
-    border: none;
-    padding: 16px;
+    border: 2px solid #316BC2;
     border-radius: 12px;
+    padding: 16px;
     font-size: 18px;
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s ease;
-    margin-top: 20px;
+    margin: 20px auto 0; /* auto для центрирования по горизонтали */
+    display: block; /* чтобы margin: auto работал */
 }
 
 .createButton:hover {
