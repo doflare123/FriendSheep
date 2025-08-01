@@ -685,7 +685,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "example": "\"vk:https://vk.com/mygroup, tg:https://t.me/mygroup\"",
-                        "description": "Контакты в формате 'название:ссылка, название:ссылка'. Поддерживаются любые названия соц. сетей.",
+                        "description": "Контакты в формате 'название:ссылка, название:ссылка'. Поддерживаются любые названия соц. сетей",
                         "name": "contacts",
                         "in": "formData"
                     }
@@ -2232,33 +2232,6 @@ const docTemplate = `{
                 }
             }
         },
-        "groups.GroupJoinRequest": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "group": {
-                    "$ref": "#/definitions/groups.Group"
-                },
-                "groupId": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "status": {
-                    "description": "\"pending\", \"approved\", \"rejected\"",
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/models.User"
-                },
-                "userId": {
-                    "type": "integer"
-                }
-            }
-        },
         "handlers.CachedPopularSessionsDoc": {
             "type": "object",
             "properties": {
@@ -2558,7 +2531,7 @@ const docTemplate = `{
                 "applications": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/groups.GroupJoinRequest"
+                        "$ref": "#/definitions/services.GroupJoinRequestRes"
                     }
                 },
                 "categories": {
@@ -2605,6 +2578,12 @@ const docTemplate = `{
         "services.AdminGroupResponse": {
             "type": "object",
             "properties": {
+                "category": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -2615,6 +2594,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "small_description": {
                     "type": "string"
                 },
                 "type": {
@@ -2720,6 +2702,26 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/services.UsersGroups"
                     }
+                }
+            }
+        },
+        "services.GroupJoinRequestRes": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "us": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "integer"
                 }
             }
         },

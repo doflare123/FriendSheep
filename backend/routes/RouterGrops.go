@@ -8,7 +8,7 @@ import (
 )
 
 func RouterGroups(r *gin.Engine) {
-	GroupGroup := r.Group("api/groups")
+	GroupGroup := r.Group("/api/groups")
 	{
 		GroupGroup.POST("/createGroup", middlewares.JWTAuthMiddleware(), handlers.CreateGroup)
 		GroupGroup.POST("/joinToGroup", middlewares.JWTAuthMiddleware(), handlers.JoinGroup)
@@ -16,9 +16,10 @@ func RouterGroups(r *gin.Engine) {
 		GroupGroup.DELETE("/:groupId/leave", middlewares.JWTAuthMiddleware(), handlers.LeaveGroupHandler)
 		GroupGroup.GET("/:groupId", middlewares.JWTAuthMiddleware(), handlers.GetGroupInf)
 	}
+
 	GroupAdminGroups := r.Group("api/admin/groups")
 	{
-		GroupAdminGroups.GET("/", middlewares.JWTAuthMiddleware(), handlers.GetAdminGroups)
+		GroupAdminGroups.GET("", middlewares.JWTAuthMiddleware(), handlers.GetAdminGroups)
 		GroupAdminGroups.POST("/requests/:requestId/approve", middlewares.JWTAuthMiddleware(), handlers.ApproveJoinRequest)
 		GroupAdminGroups.POST("/requests/:requestId/reject", middlewares.JWTAuthMiddleware(), handlers.RejectJoinRequest)
 

@@ -39,24 +39,6 @@ definitions:
       name:
         type: string
     type: object
-  groups.GroupJoinRequest:
-    properties:
-      createdAt:
-        type: string
-      group:
-        $ref: '#/definitions/groups.Group'
-      groupId:
-        type: integer
-      id:
-        type: integer
-      status:
-        description: '"pending", "approved", "rejected"'
-        type: string
-      user:
-        $ref: '#/definitions/models.User'
-      userId:
-        type: integer
-    type: object
   handlers.CachedPopularSessionsDoc:
     properties:
       count:
@@ -257,7 +239,7 @@ definitions:
     properties:
       applications:
         items:
-          $ref: '#/definitions/groups.GroupJoinRequest'
+          $ref: '#/definitions/services.GroupJoinRequestRes'
         type: array
       categories:
         items:
@@ -288,6 +270,10 @@ definitions:
     type: object
   services.AdminGroupResponse:
     properties:
+      category:
+        items:
+          type: string
+        type: array
       id:
         type: integer
       image:
@@ -295,6 +281,8 @@ definitions:
       member_count:
         type: integer
       name:
+        type: string
+      small_description:
         type: string
       type:
         type: string
@@ -365,6 +353,19 @@ definitions:
         items:
           $ref: '#/definitions/services.UsersGroups'
         type: array
+    type: object
+  services.GroupJoinRequestRes:
+    properties:
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      us:
+        type: string
+      userId:
+        type: integer
     type: object
   services.GroupResponse:
     properties:
@@ -1055,7 +1056,7 @@ paths:
         required: true
         type: file
       - description: Контакты в формате 'название:ссылка, название:ссылка'. Поддерживаются
-          любые названия соц. сетей.
+          любые названия соц. сетей
         example: '"vk:https://vk.com/mygroup, tg:https://t.me/mygroup"'
         in: formData
         name: contacts
