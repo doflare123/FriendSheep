@@ -18,7 +18,7 @@ func RouterGroups(r *gin.Engine) {
 	}
 	GroupAdminGroups := r.Group("api/admin/groups")
 	{
-		GroupAdminGroups.GET("/", middlewares.JWTAuthMiddleware(), handlers.GetAdminGroups)
+		GroupAdminGroups.POST("/", middlewares.JWTAuthMiddleware(), handlers.GetAdminGroups)
 		GroupAdminGroups.POST("/requests/:requestId/approve", middlewares.JWTAuthMiddleware(), handlers.ApproveJoinRequest)
 		GroupAdminGroups.POST("/requests/:requestId/reject", middlewares.JWTAuthMiddleware(), handlers.RejectJoinRequest)
 

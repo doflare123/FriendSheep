@@ -15,7 +15,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
     city: '',
     isPrivate: false,
     categories: [] as string[],
-    socialContacts: {}
+    socialContacts: [] as { name: string; link: string }[]
   });
 
   const [selectedImage, setSelectedImage] = useState<string>('/default/group.jpg');
@@ -29,12 +29,12 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
     { id: 'other', name: 'Другое', icon: '/events/other.png' }
   ];
 
-  const socialNetworks = [
-    { id: 'ds', name: 'Discord', icon: '/social/ds.png' },
-    { id: 'tg', name: 'Telegram', icon: '/social/tg.png' },
-    { id: 'vk', name: 'VKontakte', icon: '/social/vk.png' },
-    { id: 'wa', name: 'WhatsApp', icon: '/social/wa.png' },
-    { id: 'snap', name: 'Snapchat', icon: '/social/snap.png' }
+  const baseSocialNetworks = [
+    { name: 'Discord', icon: '/social/ds.png' },
+    { name: 'Telegram', icon: '/social/tg.png' },
+    { name: 'VKontakte', icon: '/social/vk.png' },
+    { name: 'WhatsApp', icon: '/social/wa.png' },
+    { name: 'Snapchat', icon: '/social/snap.png' }
   ];
 
   const handleInputChange = (field: string, value: any) => {
@@ -68,42 +68,22 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
     fileInputRef.current?.click();
   };
 
-  const handleSocialContactsSave = (contacts: any) => {
+  const handleSocialContactsSave = (contacts: { name: string; link: string }[]) => {
     setFormData(prev => ({
       ...prev,
       socialContacts: contacts
     }));
   };
 
-  const handleSocialIconClick = (socialId: string) => {
-    const contact = formData.socialContacts[socialId];
-    if (contact?.link) {
-      window.open(contact.link, '_blank');
+  const handleSocialIconClick = (link: string) => {
+    if (link) {
+      window.open(link, '_blank');
     }
   };
 
-  const getActiveSocialNetworks = () => {
-    const activeSocials = [];
-    
-    // Добавляем стандартные соц сети
-    for (const social of socialNetworks) {
-      if (formData.socialContacts[social.id]?.link) {
-        activeSocials.push(social);
-      }
-    }
-    
-    // Добавляем кастомные соц сети
-    for (const [key, contact] of Object.entries(formData.socialContacts)) {
-      if (key.startsWith('custom_') && (contact as any)?.link) {
-        activeSocials.push({
-          id: key,
-          name: 'Custom',
-          icon: '/default/soc_net.png'
-        });
-      }
-    }
-    
-    return activeSocials;
+  const getSocialIcon = (name: string) => {
+    const baseSocial = baseSocialNetworks.find(social => social.name === name);
+    return baseSocial ? baseSocial.icon : '/default/soc_net.png';
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -157,16 +137,16 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
             <div className="formGroup">
               <label className="formLabel">Контакты</label>
               <div className="socialIcons">
-                {getActiveSocialNetworks().map((social) => (
+                {formData.socialContacts.map((contact, index) => (
                   <div
-                    key={social.id}
+                    key={index}
                     className="socialIcon"
-                    title={formData.socialContacts[social.id]?.description || social.name}
-                    onClick={() => handleSocialIconClick(social.id)}
+                    title={`${contact.name}: ${contact.link}`}
+                    onClick={() => handleSocialIconClick(contact.link)}
                   >
                     <Image
-                      src={social.icon}
-                      alt={social.name}
+                      src={getSocialIcon(contact.name)}
+                      alt={contact.name}
                       width={50}
                       height={50}
                     />
