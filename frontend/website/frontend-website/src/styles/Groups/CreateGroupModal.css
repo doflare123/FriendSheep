@@ -225,7 +225,6 @@ div.modalOverlay .modalContent {
 .groupImagePreview {
     width: 180px;
     height: 180px;
-    background: #8B4513;
     border-radius: 12px;
     display: flex;
     align-items: center;
