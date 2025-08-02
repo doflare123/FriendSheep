@@ -1671,11 +1671,6 @@ const docTemplate = `{
         },
         "/api/users/sessions/category": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Возвращает список из 10 сессий по указанной категории из открытых групп. Вводить вам нужно будет иметь мапу с категориями, где ключ - название категории, а значение - id категории. Сейчас такие значнеия: 1 - Фильмы, 2 - Игры. 3 - Настолки, 4 - Другое",
                 "consumes": [
                     "application/json"
@@ -1815,11 +1810,6 @@ const docTemplate = `{
         },
         "/api/users/sessions/popular": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Возвращает 10 самых популярных сессий из кэша Redis (обновляется каждые 4 часа)",
                 "consumes": [
                     "application/json"
@@ -2734,19 +2724,22 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "count_members": {
-                    "type": "integer"
-                },
-                "description": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "integer"
                 },
                 "image": {
                     "type": "string"
                 },
+                "member_count": {
+                    "type": "integer"
+                },
                 "name": {
+                    "type": "string"
+                },
+                "small_description": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }

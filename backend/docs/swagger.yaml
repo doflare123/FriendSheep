@@ -373,15 +373,17 @@ definitions:
         items:
           type: string
         type: array
-      count_members:
-        type: integer
-      description:
-        type: string
       id:
         type: integer
       image:
         type: string
+      member_count:
+        type: integer
       name:
+        type: string
+      small_description:
+        type: string
+      type:
         type: string
     type: object
   services.GroupUpdateInput:
@@ -1720,8 +1722,6 @@ paths:
             additionalProperties:
               type: string
             type: object
-      security:
-      - BearerAuth: []
       summary: Получение сессий по категории
       tags:
       - Получение данных о сессиях
@@ -1791,8 +1791,6 @@ paths:
             additionalProperties:
               type: string
             type: object
-      security:
-      - BearerAuth: []
       summary: Получение популярных сессий
       tags:
       - Получение данных о сессиях
