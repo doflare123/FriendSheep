@@ -57,9 +57,13 @@ body {
 
 .bgPage {
     position: relative;
+    height: 100%;
     overflow: hidden;
     padding: 20px;
     font-family: 'Inter', sans-serif;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
     z-index: 0;
 }
 
@@ -67,7 +71,8 @@ body {
     content: "";
     position: absolute;
     inset: 0;
-    background: url('/bg_login.png') center/cover no-repeat;
+    background: url('/bg_login.png') center/cover no-repeat, 
+                linear-gradient(135deg, #4e79a7 0%, #37A2E6 100%);
     filter: blur(4px);
     z-index: -1;
     transform: scale(1.05); /* чтобы края не обрезались */
@@ -116,4 +121,15 @@ body {
 
 .social-icon {
   @apply rounded-full flex items-center justify-center hover:opacity-80 transition-opacity;
+}
+
+.error {
+  border-color: #ff4444 !important;
+}
+
+.errorMessage {
+  color: #ff4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
 }

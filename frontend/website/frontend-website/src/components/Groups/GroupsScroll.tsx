@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import GroupCard from './GroupCard';
-import '../../styles/Groups/GroupsScroll.css';
+import styles from '../../styles/Groups/GroupsScroll.module.css';
 
 interface Group {
   id: string;
@@ -66,24 +66,24 @@ const GroupsScroll: React.FC<GroupsScrollProps> = ({ groups, emptyMessage, actio
   // Проверяем и null, и пустой массив
   if (!groups || groups.length === 0) {
     return (
-      <div className='emptyGroupsMessage'>
+      <div className={styles.emptyGroupsMessage}>
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className='groupsContainer'>
+    <div className={styles.groupsContainer}>
       {canScrollLeft && (
         <button 
-          className='scrollButton scrollLeft'
+          className={`${styles.scrollButton} ${styles.scrollLeft}`}
           onClick={() => scroll('left')}
         >
           ←
         </button>
       )}
       
-      <div className='groupsScroll' ref={scrollRef}>
+      <div className={styles.groupsScroll} ref={scrollRef}>
         {groups.map((group) => (
           <GroupCard 
             key={group.id} 
@@ -95,7 +95,7 @@ const GroupsScroll: React.FC<GroupsScrollProps> = ({ groups, emptyMessage, actio
       
       {canScrollRight && (
         <button 
-          className='scrollButton scrollRight'
+          className={`${styles.scrollButton} ${styles.scrollRight}`}
           onClick={() => scroll('right')}
         >
           →

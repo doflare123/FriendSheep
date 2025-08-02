@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import GroupsScroll from '../../components/Groups/GroupsScroll';
 import CreateGroupModal from '../../components/Groups/CreateGroupModal';
-import '../../styles/Groups/GroupsPage.css';
+import styles from '../../styles/Groups/GroupsPage.module.css';
 import { createGroup } from '../../api/add_group';
 import { getGroups } from '../../api/get_groups';
 import { getOwnGroups } from '../../api/get_owngroups';
@@ -100,14 +100,14 @@ export default function GroupsPage() {
   };
 
   return (
-    <div className="bgPage h-full">
-      <div className="contentContainer">
+    <div className='bgPage' style={{ display: 'flex' }}>
+      <div className={styles.contentContainer}>
         {/* Группы под управлением */}
-        <div className="section">
-          <div className="sectionHeader">
-            <h2 className="sectionTitle">Группы под вашим управлением</h2>
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Группы под вашим управлением</h2>
             <button 
-              className="addButton"
+              className={styles.addButton}
               onClick={() => setIsCreateModalOpen(true)}
             >
               <Image
@@ -130,9 +130,9 @@ export default function GroupsPage() {
         </div>
 
         {/* Подписки */}
-        <div className="section">
-          <div className="sectionHeader">
-            <h2 className="sectionTitle">Подписки</h2>
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Подписки</h2>
           </div>
           {isLoading ? (
             <div>Загрузка...</div>

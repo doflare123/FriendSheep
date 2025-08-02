@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import '../../styles/Groups/SocialContactsModal.css';
+import styles from '../../styles/Groups/SocialContactsModal.module.css';
 
 interface SocialContactsModalProps {
   isOpen: boolean;
@@ -147,16 +147,16 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modalOverlay" onClick={handleClose}>
-      <div className="socialModalContent" onClick={(e) => e.stopPropagation()}>
-        <div className="socialModalHeader">
+    <div className={styles.modalOverlay} onClick={handleClose}>
+      <div className={styles.socialModalContent} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.socialModalHeader}>
           <h3>Выберите и заполните контакты</h3>
-          <button className="closeButton" onClick={handleClose}>×</button>
+          <button className={styles.closeButton} onClick={handleClose}>×</button>
         </div>
-        <div className="socialModalBody">
+        <div className={styles.socialModalBody}>
           {socialNetworks.map((social) => (
-            <div key={social.id} className="socialContactRow">
-              <div className="socialIconContainer">
+            <div key={social.id} className={styles.socialContactRow}>
+              <div className={styles.socialIconContainer}>
                 <Image
                   src={social.icon}
                   alt={social.name}
@@ -164,26 +164,26 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
                   height={80}
                 />
               </div>
-              <div className="socialContactInputs">
-                <div className="inputGroup">
-                  <span className="inputLabel">Имя:</span>
+              <div className={styles.socialContactInputs}>
+                <div className={styles.inputGroup}>
+                  <span className={styles.inputLabel}>Имя:</span>
                   {social.isCustom ? (
                     <input
                       type="text"
-                      className="socialContactInput"
+                      className={styles.socialContactInput}
                       value={contacts[social.id]?.name || ''}
                       onChange={(e) => handleContactChange(social.id, 'name', e.target.value)}
                       placeholder="Введите название"
                     />
                   ) : (
-                    <span className="fixedSocialName">{social.name}</span>
+                    <span className={styles.fixedSocialName}>{social.name}</span>
                   )}
                 </div>
-                <div className="inputGroup">
-                  <span className="inputLabel">Ссылка:</span>
+                <div className={styles.inputGroup}>
+                  <span className={styles.inputLabel}>Ссылка:</span>
                   <input
                     type="text"
-                    className="socialContactInput"
+                    className={styles.socialContactInput}
                     value={contacts[social.id]?.link || ''}
                     onChange={(e) => handleContactChange(social.id, 'link', e.target.value)}
                     placeholder="Введите ссылку"
@@ -193,9 +193,9 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
             </div>
           ))}
           
-          <div className="addCustomSocialRow">
+          <div className={styles.addCustomSocialRow}>
             <div
-              className="addCustomSocialButton"
+              className={styles.addCustomSocialButton}
               onClick={addCustomSocialNetwork}
             >
               <Image
@@ -207,7 +207,7 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
             </div>
           </div>
         </div>
-        <button className="saveSocialButton" onClick={handleSave}>
+        <button className={styles.saveSocialButton} onClick={handleSave}>
           Сохранить
         </button>
       </div>

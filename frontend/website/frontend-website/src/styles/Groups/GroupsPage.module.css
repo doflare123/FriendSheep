@@ -1,13 +1,5 @@
-/* GroupsPage.css */
-
-.bgPage {
-    height: 100%;
-    background: linear-gradient(135deg, #4e79a7 0%, #37A2E6 100%);
+.flexContainer {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    box-sizing: border-box;
 }
 
 .contentContainer {

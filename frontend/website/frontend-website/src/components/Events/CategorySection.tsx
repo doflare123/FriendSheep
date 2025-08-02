@@ -2,7 +2,7 @@
 
 import {SectionData} from "../../types/Events"
 import EventCard from "./EventCard"
-import '../../styles/MainPage.css';
+import styles from '../../styles/MainPage.module.css';
 import React, { useRef, useState, useEffect } from 'react';
 import CategoryLabel from "./CategoryLabel"; // добавим импорт
 
@@ -47,27 +47,27 @@ const CategorySection: React.FC<{ section: SectionData, title: string }> = ({ se
     };
 
     return (
-        <div className='categorySection'>
-            <div className='categoryHeader'>
+        <div className={styles.categorySection}>
+            <div className={styles.categoryHeader}>
                 <CategoryLabel title={title} patternUrl={section.pattern} />
             </div>
-            <div className='cardsContainer'>
+            <div className={styles.cardsContainer}>
                 {canScrollLeft && (
                     <button 
-                        className={`scrollButton scrollLeft`}
+                        className={`${styles.scrollButton} ${styles.scrollLeft}`}
                         onClick={() => scroll('left')}
                     >
                         ←
                     </button>
                 )}
-                <div className='cardsScroll' ref={scrollRef}>
+                <div className={styles.cardsScroll} ref={scrollRef}>
                     {section.categories.map((event) => (
                         <EventCard key={event.id} {...event} />
                     ))}
                 </div>
                 {canScrollRight && (
                     <button 
-                        className={`scrollButton scrollRight`}
+                        className={`${styles.scrollButton} ${styles.scrollRight}`}
                         onClick={() => scroll('right')}
                     >
                         →

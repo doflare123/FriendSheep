@@ -1,10 +1,9 @@
+// pages/index.tsx (или app/page.tsx для App Router)
 import Image from "next/image";
 import Footer from "../components/Footer";
-
-import '../styles/MainPage.css';
-import {SectionData} from "../types/Events"
+import styles from '../styles/MainPage.module.css';
+import { SectionData } from "../types/Events"
 import CategorySection from '../components/Events/CategorySection'
-
 
 export default function Home() {
   // Пример данных
@@ -209,24 +208,22 @@ export default function Home() {
       <div className='bgPage'>
         {/* Главные категории */}
         {mainSections.map((section, sectionIndex) => (
-          <div key={sectionIndex} className='section'>
+          <div key={sectionIndex} className={styles.section}>
             <CategorySection section={section} title={section.title} />
           </div>
         ))}
 
         {/* Заголовок "Категории" */}
-        <div className='categoriesHeader'>
+        <div className={styles.categoriesHeader}>
           <h2>Категории</h2>
         </div>
 
         {/* Дополнительные категории */}
         {additionalSections.map((section, sectionIndex) => (
-          <div key={sectionIndex} className='section'>
+          <div key={sectionIndex} className={styles.section}>
             <CategorySection section={section} title={section.title} />
           </div>
         ))}
-
-        
       </div>
       <Footer/>
     </div>

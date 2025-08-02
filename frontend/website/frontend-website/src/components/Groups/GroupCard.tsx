@@ -1,6 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
-import '../../styles/Groups/GroupCard.css';
+import styles from '../../styles/Groups/GroupCard.module.css';
 
 interface Group {
   id: number;
@@ -50,30 +50,30 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
   const isPrivate = group.type === 'приватная группа';
 
   return (
-    <div className='groupCard'>
+    <div className={styles.groupCard}>
       {/* Иконка группы в левом верхнем углу */}
-      <div className='groupImageContainer'>
+      <div className={styles.groupImageContainer}>
         <Image
           src={group.image || '/default/group.jpg'}
           alt={group.name}
           width={80}
           height={80}
-          className='groupAvatar'
+          className={styles.groupAvatar}
         />
       </div>
 
       {/* Основное содержимое справа от иконки */}
-      <div className='groupMainContent'>
+      <div className={styles.groupMainContent}>
         {/* Верхняя часть: название, категории, участники */}
-        <div className='groupTopSection'>
-          <h3 className='groupName' title={group.name}>{group.name}</h3>
+        <div className={styles.groupTopSection}>
+          <h3 className={styles.groupName} title={group.name}>{group.name}</h3>
           
           {/* Категории */}
-          <div className='categoryIcons'>
+          <div className={styles.categoryIcons}>
             {group.category.map((categoryName, index) => (
               <div 
                 key={index} 
-                className='categoryIcon'
+                className={styles.categoryIcon}
                 title={categoryName}
               >
                 <Image
@@ -86,16 +86,16 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
             ))}
           </div>
 
-          <p className='groupMemberCount'>{getMemberCountText(group.member_count)}</p>
+          <p className={styles.groupMemberCount}>{getMemberCountText(group.member_count)}</p>
         </div>
 
         {/* Описание */}
-        <div className='groupDescription'>
+        <div className={styles.groupDescription}>
           {group.small_description}
         </div>
 
         {/* Кнопка действия */}
-        <button className='actionButton'>
+        <button className={styles.actionButton}>
           {actionType === 'manage' ? 'Управлять' : 'Перейти'}
         </button>
       </div>

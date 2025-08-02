@@ -1,6 +1,6 @@
 import React from 'react';
 import CreateGroupForm from './CreateGroupForm';
-import '../../styles/Groups/CreateGroupModal.css';
+import styles from '../../styles/Groups/CreateGroupModal.module.css';
 
 interface CreateGroupModalProps {
   onClose: () => void;
@@ -9,9 +9,9 @@ interface CreateGroupModalProps {
 
 const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onSubmit }) => {
   return (
-    <div className="modalOverlay" onClick={onClose}>
+    <div className={styles.modalOverlay} onClick={onClose}>
       <div 
-        className="modalContent" 
+        className={styles.modalContent} 
         onClick={(e) => e.stopPropagation()}
         style={{
           background: 'white',
@@ -19,11 +19,11 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onSubmit }
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
         }}
       >
-        <div className="modalHeader">
+        <div className={styles.modalHeader}>
           <h2>Основная информация</h2>
-          <button className="closeButton" onClick={onClose}>×</button>
+          <button className={styles.closeButton} onClick={onClose}>×</button>
         </div>
-        <div className="modalBody">
+        <div className={styles.modalBody}>
           <CreateGroupForm onSubmit={onSubmit} />
         </div>
       </div>

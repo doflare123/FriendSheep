@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import SocialContactsModal from './SocialContactsModal';
-import '../../styles/Groups/CreateGroupModal.css';
+import styles from '../../styles/Groups/CreateGroupModal.module.css';
 
 interface CreateGroupFormProps {
   onSubmit: (groupData: any) => void;
@@ -21,6 +21,12 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
   const [selectedImage, setSelectedImage] = useState<string>('/default/group.jpg');
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
+  const [errors, setErrors] = useState({
+    name: '',
+    shortDescription: '',
+    description: '',
+    categories: ''
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const categories = [
@@ -38,11 +44,50 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
     { name: 'Snapchat', icon: '/social/snap.png' }
   ];
 
+  const validateForm = () => {
+    const newErrors = {
+      name: '',
+      shortDescription: '',
+      description: '',
+      categories: ''
+    };
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Название группы обязательно';
+    }
+
+    if (!formData.shortDescription.trim()) {
+      newErrors.shortDescription = 'Краткое описание обязательно';
+    }
+
+    if (!formData.description.trim()) {
+      newErrors.description = 'Описание группы обязательно';
+    }
+
+    if (formData.categories.length === 0) {
+      newErrors.categories = 'Выберите хотя бы одну категорию';
+    }
+
+    setErrors(newErrors);
+    return !newErrors.name && !newErrors.shortDescription && !newErrors.description && !newErrors.categories;
+  };
+
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+
+    // Очищаем ошибку для поля при вводе
+    if (field === 'name' && errors.name) {
+      setErrors(prev => ({ ...prev, name: '' }));
+    }
+    if (field === 'shortDescription' && errors.shortDescription) {
+      setErrors(prev => ({ ...prev, shortDescription: '' }));
+    }
+    if (field === 'description' && errors.description) {
+      setErrors(prev => ({ ...prev, description: '' }));
+    }
   };
 
   const toggleCategory = (categoryId: string) => {
@@ -52,22 +97,25 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
         ? prev.categories.filter(id => id !== categoryId)
         : [...prev.categories, categoryId]
     }));
+
+    // Очищаем ошибку категорий при выборе
+    if (errors.categories) {
+      setErrors(prev => ({ ...prev, categories: '' }));
+    }
   };
 
-  // Измените handleImageUpload:
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setSelectedImageFile(file); // Сохраняем File объект
+      setSelectedImageFile(file);
       
       const reader = new FileReader();
       reader.onload = (e) => {
-        setSelectedImage(e.target?.result as string); // Для превью
+        setSelectedImage(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
-
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -93,60 +141,67 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return; // Не отправляем форму, если есть ошибки валидации
+    }
+
     onSubmit({
       ...formData,
-      image: selectedImageFile, // Передаем File объект
-      imagePreview: selectedImage // Опционально для превью
+      image: selectedImageFile,
+      imagePreview: selectedImage
     });
   };
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="createGroupForm">
-        <div className="formRow">
-          <div className="leftColumn">
+      <form onSubmit={handleSubmit} className={styles.createGroupForm}>
+        <div className={styles.formRow}>
+          <div className={styles.leftColumn}>
             {/* Название */}
-            <div className="formGroup">
+            <div className={styles.formGroup}>
               <input
                 type="text"
-                className="nameInput"
-                placeholder="Название"
+                className={`${styles.nameInput} ${errors.name ? styles.error : ''}`}
+                placeholder="Название *"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                required
               />
+              {errors.name && <span className={styles.errorMessage}>{errors.name}</span>}
             </div>
 
             {/* Краткое описание */}
-            <div className="formGroup">
-              <label className="formLabel">Краткое описание (опционально)</label>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Краткое описание *</label>
               <input
                 type="text"
-                className="formInput"
+                className={`${styles.formInput} ${errors.shortDescription ? styles.error : ''}`}
                 value={formData.shortDescription}
                 onChange={(e) => handleInputChange('shortDescription', e.target.value)}
               />
+              {errors.shortDescription && <span className={styles.errorMessage}>{errors.shortDescription}</span>}
             </div>
 
             {/* Описание */}
-            <div className="formGroup">
-              <label className="formLabel">Описание</label>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Описание *</label>
               <textarea
-                className="formTextarea"
+                className={`${styles.formTextarea} ${errors.description ? styles.error : ''}`}
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={4}
               />
+              {errors.description && <span className={styles.errorMessage}>{errors.description}</span>}
             </div>
 
             {/* Контакты */}
-            <div className="formGroup">
-              <label className="formLabel">Контакты</label>
-              <div className="socialIcons">
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Контакты</label>
+              <div className={styles.socialIcons}>
                 {formData.socialContacts.map((contact, index) => (
                   <div
                     key={index}
-                    className="socialIcon"
+                    className={styles.socialIcon}
                     title={`${contact.name}: ${contact.link}`}
                     onClick={() => handleSocialIconClick(contact.link)}
                   >
@@ -159,7 +214,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
                   </div>
                 ))}
                 <div
-                  className="addSocialIcon"
+                  className={styles.addSocialIcon}
                   onClick={() => setIsSocialModalOpen(true)}
                 >
                   <Image
@@ -173,16 +228,16 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
             </div>
           </div>
 
-          <div className="rightColumn">
+          <div className={styles.rightColumn}>
             {/* Изображение группы */}
-            <div className="groupImageSection">
-              <div className="groupImagePreview" onClick={handleImageClick}>
+            <div className={styles.groupImageSection}>
+              <div className={styles.groupImagePreview} onClick={handleImageClick}>
                 <Image
                   src={selectedImage}
                   alt="Group preview"
                   width={180}
                   height={180}
-                  className="previewImage"
+                  className={styles.previewImage}
                 />
                 <input
                   type="file"
@@ -195,10 +250,10 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
             </div>
 
             {/* Город */}
-            <div className="formGroup">
+            <div className={styles.formGroup}>
               <input
                 type="text"
-                className="cityInput"
+                className={styles.cityInput}
                 placeholder="Город"
                 value={formData.city}
                 onChange={(e) => handleInputChange('city', e.target.value)}
@@ -206,11 +261,11 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
             </div>
 
             {/* Приватная группа */}
-            <div className="formGroup">
-              <label className="checkboxLabel">
+            <div className={styles.formGroup}>
+              <label className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
-                  className="privateCheckbox"
+                  className={styles.privateCheckbox}
                   checked={formData.isPrivate}
                   onChange={(e) => handleInputChange('isPrivate', e.target.checked)}
                 />
@@ -219,13 +274,13 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
             </div>
 
             {/* Категории */}
-            <div className="formGroup">
-              <label className="formLabel">Категории:</label>
-              <div className="categoriesRow">
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Категории: *</label>
+              <div className={`${styles.categoriesRow} ${errors.categories ? styles.error : ''}`}>
                 {categories.map((category) => (
                   <div
                     key={category.id}
-                    className={`categoryItem ${formData.categories.includes(category.id) ? 'selected' : ''}`}
+                    className={`${styles.categoryItem} ${formData.categories.includes(category.id) ? styles.selected : ''}`}
                     onClick={() => toggleCategory(category.id)}
                     title={category.name}
                   >
@@ -238,12 +293,13 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
                   </div>
                 ))}
               </div>
+              {errors.categories && <span className={styles.errorMessage}>{errors.categories}</span>}
             </div>
           </div>
         </div>
 
         {/* Кнопка создания */}
-        <button type="submit" className="createButton">
+        <button type="submit" className={styles.createButton}>
           Создать группу
         </button>
       </form>
