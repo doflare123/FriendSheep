@@ -685,7 +685,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "example": "\"vk:https://vk.com/mygroup, tg:https://t.me/mygroup\"",
-                        "description": "Контакты в формате 'название:ссылка, название:ссылка'. Поддерживаются любые названия соц. сетей.",
+                        "description": "Контакты в формате 'название:ссылка, название:ссылка'. Поддерживаются любые названия соц. сетей",
                         "name": "contacts",
                         "in": "formData"
                     }
@@ -1671,11 +1671,6 @@ const docTemplate = `{
         },
         "/api/users/sessions/category": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Возвращает список из 10 сессий по указанной категории из открытых групп. Вводить вам нужно будет иметь мапу с категориями, где ключ - название категории, а значение - id категории. Сейчас такие значнеия: 1 - Фильмы, 2 - Игры. 3 - Настолки, 4 - Другое",
                 "consumes": [
                     "application/json"
@@ -1815,11 +1810,6 @@ const docTemplate = `{
         },
         "/api/users/sessions/popular": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Возвращает 10 самых популярных сессий из кэша Redis (обновляется каждые 4 часа)",
                 "consumes": [
                     "application/json"
@@ -2232,33 +2222,6 @@ const docTemplate = `{
                 }
             }
         },
-        "groups.GroupJoinRequest": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "group": {
-                    "$ref": "#/definitions/groups.Group"
-                },
-                "groupId": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "status": {
-                    "description": "\"pending\", \"approved\", \"rejected\"",
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/models.User"
-                },
-                "userId": {
-                    "type": "integer"
-                }
-            }
-        },
         "handlers.CachedPopularSessionsDoc": {
             "type": "object",
             "properties": {
@@ -2558,7 +2521,7 @@ const docTemplate = `{
                 "applications": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/groups.GroupJoinRequest"
+                        "$ref": "#/definitions/services.GroupJoinRequestRes"
                     }
                 },
                 "categories": {
@@ -2605,6 +2568,12 @@ const docTemplate = `{
         "services.AdminGroupResponse": {
             "type": "object",
             "properties": {
+                "category": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -2615,6 +2584,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "small_description": {
                     "type": "string"
                 },
                 "type": {
@@ -2723,6 +2695,26 @@ const docTemplate = `{
                 }
             }
         },
+        "services.GroupJoinRequestRes": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "us": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
         "services.GroupResponse": {
             "type": "object",
             "properties": {
@@ -2732,19 +2724,22 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "count_members": {
-                    "type": "integer"
-                },
-                "description": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "integer"
                 },
                 "image": {
                     "type": "string"
                 },
+                "member_count": {
+                    "type": "integer"
+                },
                 "name": {
+                    "type": "string"
+                },
+                "small_description": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }

@@ -39,7 +39,7 @@ const GroupsScroll: React.FC<GroupsScrollProps> = ({ groups, emptyMessage, actio
 
   useEffect(() => {
     const scrollElement = scrollRef.current;
-    if (scrollElement && groups.length > 0) {
+    if (scrollElement && groups && groups.length > 0) {
       checkScrollButtons();
       scrollElement.addEventListener('scroll', checkScrollButtons);
       
@@ -63,7 +63,8 @@ const GroupsScroll: React.FC<GroupsScrollProps> = ({ groups, emptyMessage, actio
     }
   };
 
-  if (groups.length === 0) {
+  // Проверяем и null, и пустой массив
+  if (!groups || groups.length === 0) {
     return (
       <div className='emptyGroupsMessage'>
         {emptyMessage}

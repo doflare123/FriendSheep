@@ -27,7 +27,7 @@ func GetAdminGroups(c *gin.Context) {
 		return
 	}
 
-	groups, err := services.GetAdminGroups(email)
+	groups, err := services.GetAdminGroups(&email)
 	if err != nil {
 		if strings.Contains(err.Error(), "пользователь не найден") {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -36,6 +36,7 @@ func GetAdminGroups(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "не удалось получить группы"})
 		return
 	}
+
 	c.JSON(http.StatusOK, groups)
 }
 

@@ -10,18 +10,20 @@ import (
 )
 
 type GroupResponse struct {
-	ID               uint     `json:"id"`
-	Name             string   `json:"name"`
-	Category         []string `json:"category"`
-	SmallDescription string   `json:"description"`
-	Image            string   `json:"image"`
-	CountMembers     int64    `json:"count_members"`
+	ID               *uint     `json:"id"`
+	Name             *string   `json:"name"`
+	Image            *string   `json:"image"`
+	Type             *string   `json:"type"`
+	SmallDescription *string   `json:"small_description"`
+	Category         []*string `json:"category"`
+	MemberCount      *int64    `json:"member_count"`
 }
 
 func GetGroupsUserSub(email string) ([]GroupResponse, error) {
 	if email == "" {
 		return nil, fmt.Errorf("не передан jwt")
 	}
+
 	user, err := FindUserByEmail(email)
 	if err != nil {
 		return nil, fmt.Errorf("пользователь не найден: %v", err)
@@ -30,7 +32,7 @@ func GetGroupsUserSub(email string) ([]GroupResponse, error) {
 	var groupUsers []groups.GroupUsers
 	err = db.GetDB().Preload("Group").
 		Preload("Group.Categories").
-		Where("user_id = ? AND role_in_group != ?", user.ID, "creator").
+		Where("user_id = ? AND role_in_group = 'member'", &user.ID).
 		Find(&groupUsers).Error
 
 	if err != nil {
@@ -41,29 +43,32 @@ func GetGroupsUserSub(email string) ([]GroupResponse, error) {
 		return []GroupResponse{}, nil
 	}
 
-	// Получаем ID групп для подсчета участников
-	groupIDs := make([]uint, 0, len(groupUsers))
+	// Фильтруем группы, где пользователь НЕ является создателем
+	filteredGroups := make([]groups.GroupUsers, 0)
+	groupIDs := make([]uint, 0)
+
 	for _, gu := range groupUsers {
-		if gu.Group.ID != 0 {
+		if gu.Group.ID != 0 && gu.Group.CreaterID != 0 &&
+			user.ID != 0 && &gu.Group.CreaterID != &user.ID {
+			filteredGroups = append(filteredGroups, gu)
 			groupIDs = append(groupIDs, gu.Group.ID)
 		}
 	}
 
+	if len(filteredGroups) == 0 {
+		return []GroupResponse{}, nil
+	}
+
+	// Получаем количество участников для групп
 	memberCounts, err := getGroupMemberCounts(groupIDs)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при подсчете участников: %v", err)
 	}
 
-	// Преобразуем в GroupResponse с дополнительной фильтрацией
-	groupResponses := make([]GroupResponse, 0, len(groupUsers))
-	for _, groupUser := range groupUsers {
-		group := groupUser.Group
-
-		if group.CreaterID != 0 && user.ID != 0 && group.CreaterID == user.ID {
-			continue
-		}
-
-		groupResponse := createSafeGroupResponse(group, memberCounts)
+	// Преобразуем в GroupResponse
+	groupResponses := make([]GroupResponse, 0, len(filteredGroups))
+	for _, groupUser := range filteredGroups {
+		groupResponse := createSafeGroupResponse(groupUser.Group, memberCounts)
 		if groupResponse != nil {
 			groupResponses = append(groupResponses, *groupResponse)
 		}
@@ -77,41 +82,39 @@ func createSafeGroupResponse(group groups.Group, memberCounts map[uint]int64) *G
 		return nil
 	}
 
-	var response GroupResponse
-
-	groupID := &group.ID
-	response.ID = *groupID
+	response := GroupResponse{
+		ID: &group.ID,
+	}
 
 	if group.Name != "" {
-		groupName := &group.Name
-		response.Name = *groupName
+		response.Name = &group.Name
 	}
 
 	if group.SmallDescription != "" {
-		smallDesc := &group.SmallDescription
-		response.SmallDescription = *smallDesc
+		response.SmallDescription = &group.SmallDescription
 	}
 
 	if group.Image != "" {
-		groupImage := &group.Image
-		response.Image = *groupImage
+		response.Image = &group.Image
 	}
 
-	// Безопасно извлекаем категории
-	categories := make([]string, 0, len(group.Categories))
-	for _, category := range group.Categories {
-		if category.Name != "" {
-			categoryName := &category.Name
-			categories = append(categories, *categoryName)
+	// Обрабатываем категории
+	if len(group.Categories) > 0 {
+		categories := make([]*string, 0, len(group.Categories))
+		for _, category := range group.Categories {
+			if category.Name != "" {
+				categories = append(categories, &category.Name)
+			}
 		}
+		response.Category = categories
 	}
-	response.Category = categories
 
+	// Устанавливаем количество участников
 	if count, exists := memberCounts[group.ID]; exists {
-		response.CountMembers = count
+		response.MemberCount = &count
 	} else {
 		zero := int64(0)
-		response.CountMembers = zero
+		response.MemberCount = &zero
 	}
 
 	return &response

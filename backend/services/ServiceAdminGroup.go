@@ -12,30 +12,50 @@ import (
 )
 
 type AdminGroupResponse struct {
-	ID          uint   `json:"id"`
-	Name        string `json:"name"`
-	Image       string `json:"image"`
-	Type        string `json:"type"`
-	MemberCount int64  `json:"member_count"`
+	ID               *uint     `json:"id"`
+	Name             *string   `json:"name"`
+	Image            *string   `json:"image"`
+	Type             *string   `json:"type"`
+	SmallDescription *string   `json:"small_description"`
+	Category         []*string `json:"category"`
+	MemberCount      *int64    `json:"member_count"`
 }
 
-func GetAdminGroups(email string) ([]AdminGroupResponse, error) {
+func GetAdminGroups(email *string) ([]AdminGroupResponse, error) {
 	db := db.GetDB()
-
-	user, err := FindUserByEmail(email)
+	user, err := FindUserByEmail(*email)
 	if err != nil {
 		return nil, fmt.Errorf("пользователь не найден: %v", err)
 	}
 
 	var adminGroups []AdminGroupResponse
+
 	if err := db.Table("groups").
-		Select("groups.id, groups.name, groups.image, CASE WHEN groups.is_private THEN 'приватная группа' ELSE 'открытая группа' END as type, COUNT(group_users.user_id) as member_count").
+		Select("groups.id, groups.name, groups.image, groups.small_description, CASE WHEN groups.is_private THEN 'приватная группа' ELSE 'открытая группа' END as type, COUNT(group_users.user_id) as member_count").
 		Joins("LEFT JOIN group_users ON group_users.group_id = groups.id").
 		Where("groups.creater_id = ?", user.ID).
-		Group("groups.id, groups.is_private").
+		Group("groups.id, groups.name, groups.image, groups.small_description, groups.is_private").
 		Order("groups.id DESC").
 		Scan(&adminGroups).Error; err != nil {
 		return nil, fmt.Errorf("ошибка при получении групп: %v", err)
+	}
+
+	for i := range adminGroups {
+		if adminGroups[i].ID != nil {
+			var categories []string
+			if err := db.Table("categories").
+				Select("categories.name").
+				Joins("JOIN group_group_categories ON group_group_categories.group_category_id = categories.id").
+				Where("group_group_categories.group_id = ?", *adminGroups[i].ID).
+				Pluck("name", &categories).Error; err != nil {
+				return nil, fmt.Errorf("ошибка при получении категорий для группы %d: %v", *adminGroups[i].ID, err)
+			}
+
+			adminGroups[i].Category = make([]*string, len(categories))
+			for j, cat := range categories {
+				adminGroups[i].Category[j] = &cat
+			}
+		}
 	}
 
 	return adminGroups, nil
@@ -93,7 +113,6 @@ func GetAdminGroupInfo(email *string, groupID *uint) (*AdminGroupInfResponse, er
 		return nil, fmt.Errorf("access denied: user %d is not the group creator %d", &user.ID, &group.CreaterID)
 	}
 
-	// Канал для получения результата параллельной функции
 	type applicationResult struct {
 		applications []GroupJoinRequestRes
 		err          error

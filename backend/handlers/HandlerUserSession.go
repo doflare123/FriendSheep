@@ -81,7 +81,6 @@ func GetNewSessions(c *gin.Context) {
 // @Summary Получение популярных сессий
 // @Description Возвращает 10 самых популярных сессий из кэша Redis (обновляется каждые 4 часа)
 // @Tags Получение данных о сессиях
-// @Security BearerAuth
 // @Accept  json
 // @Produce  json
 // @Success 200 {object} CachedPopularSessionsDoc "Список популярных сессий из кэша"
@@ -89,12 +88,6 @@ func GetNewSessions(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Router /api/users/sessions/popular [get]
 func GetPopularSessions(c *gin.Context) {
-	email := c.MustGet("email").(string)
-	if email == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
-		return
-	}
-
 	cachedSessions, err := services.GetPopularSessionsFromCache()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -108,7 +101,6 @@ func GetPopularSessions(c *gin.Context) {
 // @Summary Получение сессий по категории
 // @Description Возвращает список из 10 сессий по указанной категории из открытых групп. Вводить вам нужно будет иметь мапу с категориями, где ключ - название категории, а значение - id категории. Сейчас такие значнеия: 1 - Фильмы, 2 - Игры. 3 - Настолки, 4 - Другое
 // @Tags Получение данных о сессиях
-// @Security BearerAuth
 // @Accept  json
 // @Produce  json
 // @Param category_id query int true "ID категории сессии"
@@ -120,11 +112,6 @@ func GetPopularSessions(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Router /api/users/sessions/category [get]
 func GetCategorySessions(c *gin.Context) {
-	email := c.MustGet("email").(string)
-	if email == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
-		return
-	}
 
 	var input services.CategorySessionsInput
 	if err := c.ShouldBindQuery(&input); err != nil {
@@ -141,7 +128,7 @@ func GetCategorySessions(c *gin.Context) {
 		input.Page = 1
 	}
 
-	response, err := services.GetCategorySessions(email, input)
+	response, err := services.GetCategorySessions(input)
 	if err != nil {
 		if strings.Contains(err.Error(), "категория не найдена") {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

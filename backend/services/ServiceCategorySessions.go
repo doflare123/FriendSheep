@@ -1,4 +1,3 @@
-// services/ServiceCategorySessions.go
 package services
 
 import (
@@ -22,13 +21,8 @@ type CategorySessionsResponse struct {
 	HasMore     bool              `json:"has_more"`
 }
 
-func GetCategorySessions(email string, input CategorySessionsInput) (*CategorySessionsResponse, error) {
+func GetCategorySessions(input CategorySessionsInput) (*CategorySessionsResponse, error) {
 	database := db.GetDB()
-
-	var user models.User
-	if err := database.Where("email = ?", email).First(&user).Error; err != nil {
-		return nil, fmt.Errorf("пользователь не найден: %v", err)
-	}
 
 	var category models.Category
 	if err := database.Where("id = ?", input.CategoryID).First(&category).Error; err != nil {
