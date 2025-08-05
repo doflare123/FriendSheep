@@ -2,9 +2,7 @@ package db
 
 import (
 	"fmt"
-	"friendship/models"
-	"friendship/models/groups"
-	"friendship/models/sessions"
+	"notify_service/models/sessions"
 	"os"
 
 	"gorm.io/driver/postgres"
@@ -28,11 +26,7 @@ func InitDatabase() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %v", err)
 	}
-	db.AutoMigrate(&models.User{},
-		&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{},
-		&sessions.Session{}, &sessions.SessionGroupType{}, &sessions.SessionMetadata{}, sessions.Status{})
-
-	return db.AutoMigrate(&sessions.SessionUser{})
+	return db.AutoMigrate(&sessions.Notification{})
 }
 
 func GetDB() *gorm.DB {

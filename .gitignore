@@ -9,3 +9,4 @@ backend/go.sum
 frontend/website/frontend-website/package-lock.json
 /frontend/app/FriendShip/.expo
 frontend/app/FriendShip/expo-env.d.ts
+notify_service/db/key.json
