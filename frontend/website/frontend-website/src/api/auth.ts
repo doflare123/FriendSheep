@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// Декодирование JWT токена
 export function decodeJWT(token: string) {
   try {
     const payload = token.split('.')[1];
@@ -14,7 +13,13 @@ export function decodeJWT(token: string) {
   }
 }
 
-// Обновление access токена через refresh токен
+export function isTokenValid(token: string): boolean {
+  const decoded = decodeJWT(token);
+  if (!decoded || !decoded.exp) return false;
+  return decoded.exp * 1000 > Date.now();
+}
+
+// Прямое обновление через ваш бэкенд
 export async function refreshAccessToken(refreshToken: string): Promise<{
   access_token: string;
   refresh_token: string;
@@ -31,7 +36,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
   }
 }
 
-// Получение cookie по имени
+// Функции для работы с cookies
 export function getCookie(name: string): string | undefined {
   if (typeof document === 'undefined') return undefined;
   
@@ -42,7 +47,6 @@ export function getCookie(name: string): string | undefined {
   }
 }
 
-// Установка cookie
 export function setCookie(name: string, value: string, days: number = 7) {
   if (typeof document === 'undefined') return;
   
@@ -52,24 +56,14 @@ export function setCookie(name: string, value: string, days: number = 7) {
   document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/; secure; samesite=strict`;
 }
 
-// Удаление cookie
 export function deleteCookie(name: string) {
   if (typeof document === 'undefined') return;
   
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/;`;
 }
 
-// Проверка валидности токена
-export function isTokenValid(token: string): boolean {
-  const decoded = decodeJWT(token);
-  if (!decoded || !decoded.exp) return false;
-  
-  return decoded.exp * 1000 > Date.now();
-}
-
-// Автоматическое обновление токена при запросах
+// Настройка axios interceptors
 export function setupAxiosInterceptors() {
-  // Interceptor для добавления токена к запросам
   axios.interceptors.request.use((config) => {
     const token = localStorage.getItem('access_token');
     if (token && isTokenValid(token)) {
@@ -78,7 +72,6 @@ export function setupAxiosInterceptors() {
     return config;
   });
 
-  // Interceptor для обработки ошибок авторизации
   axios.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -87,24 +80,18 @@ export function setupAxiosInterceptors() {
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
         
-        const refreshToken = localStorage.getItem('refresh_token');
-        // или const refreshToken = getCookie('refresh_token');
-        
-        if (refreshToken) {
-          try {
+        try {
+          const refreshToken = getCookie('refresh_token');
+          if (refreshToken) {
             const tokens = await refreshAccessToken(refreshToken);
             localStorage.setItem('access_token', tokens.access_token);
-            localStorage.setItem('refresh_token', tokens.refresh_token);
-            
+            setCookie('refresh_token', tokens.refresh_token, 7);
             originalRequest.headers.Authorization = `Bearer ${tokens.access_token}`;
             return axios(originalRequest);
-          } catch (refreshError) {
-            // Refresh токен тоже недействителен - разлогиниваем
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            // Перенаправление на страницу входа
-            window.location.href = '/login';
           }
+        } catch (refreshError) {
+          // Перенаправляем на страницу входа
+          window.location.href = '/login';
         }
       }
       

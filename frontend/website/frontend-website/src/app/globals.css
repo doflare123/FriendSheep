@@ -71,7 +71,7 @@ body {
     content: "";
     position: absolute;
     inset: 0;
-    background: url('/bg_login.png') center/cover no-repeat, 
+    background: url('/bg_login.webp') center/cover no-repeat, 
                 linear-gradient(135deg, #4e79a7 0%, #37A2E6 100%);
     filter: blur(4px);
     z-index: -1;
@@ -83,7 +83,7 @@ body {
 }
 
 .page-wrapper {
-  @apply h-full bg-[url('/bg_login.png')] bg-cover bg-center bg-no-repeat;
+  @apply h-full bg-[url('/bg_login.webp')] bg-cover bg-center bg-no-repeat;
 }
 
 .main-center {
