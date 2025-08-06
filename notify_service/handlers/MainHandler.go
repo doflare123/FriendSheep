@@ -13,7 +13,7 @@ func RegisterDevice(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
 		return
 	}
-	var input services.RegisterDeviceInput
+	var input services.DeviceRegistrationRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный json"})
 		return
@@ -24,3 +24,12 @@ func RegisterDevice(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "устройство успешно зарегистрировано"})
 }
+
+// func SendNotification(c *gin.Context) {
+// 	email := c.MustGet("email").(string)
+// 	if email == "" {
+// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
+// 		return
+// 	}
+
+// }

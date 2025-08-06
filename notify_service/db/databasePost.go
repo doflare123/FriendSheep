@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"notify_service/models"
 	"notify_service/models/sessions"
 	"os"
 
@@ -26,7 +27,7 @@ func InitDatabase() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %v", err)
 	}
-	return db.AutoMigrate(&sessions.Notification{})
+	return db.AutoMigrate(&sessions.Notification{}, &models.DeviceUser{})
 }
 
 func GetDB() *gorm.DB {
