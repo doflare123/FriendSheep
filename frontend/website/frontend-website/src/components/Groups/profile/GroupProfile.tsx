@@ -62,8 +62,8 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupId }) => {
             <Image
               src="/default/group.jpg"
               alt={groupData.name}
-              width={300}
-              height={300}
+              width={200}
+              height={200}
               className={styles.groupAvatarImage}
             />
           </div>
@@ -87,8 +87,8 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupId }) => {
                     <Image 
                       src={`/${contact.icon}`}
                       alt={contact.name}
-                      width={32}
-                      height={32}
+                      width={52}
+                      height={52}
                       className={styles.contactIcon}
                     />
                   </div>
@@ -113,8 +113,8 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupId }) => {
                       key={index}
                       src={`/${category}`}
                       alt="Category"
-                      width={24}
-                      height={24}
+                      width={32}
+                      height={32}
                       className={styles.categoryIcon}
                     />
                   ))}
@@ -141,8 +141,8 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupId }) => {
                       <Image
                         src="/default-avatar.png"
                         alt={subscriber.name}
-                        width={70}
-                        height={70}
+                        width={64}
+                        height={64}
                         className={styles.subscriberAvatarImage}
                       />
                     </div>

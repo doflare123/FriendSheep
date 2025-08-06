@@ -7,6 +7,7 @@ import CategorySection from '../components/Events/CategorySection'
 
 export default function Home() {
   // Пример данных
+
   const mainSections: SectionData[] = [
     {
       title: "Популярные события",
