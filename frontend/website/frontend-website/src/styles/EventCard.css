@@ -4,12 +4,13 @@
     height: 350px;
     background: white;
     border-radius: 16px;
-    border: 2px solid #316BC2;
+    border: 3px solid #316BC2;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     overflow: hidden;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
     position: relative;
+    margin-top: 5px;
 }
 
 .locationIcon {

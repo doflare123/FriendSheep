@@ -4,9 +4,19 @@ import {SectionData} from "../../types/Events"
 import EventCard from "./EventCard"
 import styles from '../../styles/MainPage.module.css';
 import React, { useRef, useState, useEffect } from 'react';
-import CategoryLabel from "./CategoryLabel"; // добавим импорт
+import CategoryLabel from "./CategoryLabel";
 
-const CategorySection: React.FC<{ section: SectionData, title: string }> = ({ section, title }) => {
+interface CategorySectionProps {
+    section: SectionData;
+    title: string;
+    showCategoryLabel?: boolean;
+}
+
+const CategorySection: React.FC<CategorySectionProps> = ({ 
+    section, 
+    title, 
+    showCategoryLabel = true 
+}) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(true);
@@ -48,9 +58,11 @@ const CategorySection: React.FC<{ section: SectionData, title: string }> = ({ se
 
     return (
         <div className={styles.categorySection}>
-            <div className={styles.categoryHeader}>
-                <CategoryLabel title={title} patternUrl={section.pattern} />
-            </div>
+            {showCategoryLabel && (
+                <div className={styles.categoryHeader}>
+                    <CategoryLabel title={title} patternUrl={section.pattern} />
+                </div>
+            )}
             <div className={styles.cardsContainer}>
                 {canScrollLeft && (
                     <button 
