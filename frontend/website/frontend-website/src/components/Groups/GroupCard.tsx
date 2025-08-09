@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import styles from '../../styles/Groups/GroupCard.module.css';
 
 interface Group {
@@ -18,12 +19,18 @@ interface GroupCardProps {
 }
 
 const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
+  const router = useRouter();
+
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
-      case 'игры': return '/events/games.png';
-      case 'фильмы': return '/events/movies.png';
-      case 'настольные игры': return '/events/board.png';
-      default: return '/events/other.png';
+      case 'игры':
+        return '/events/games.png';
+      case 'фильмы':
+        return '/events/movies.png';
+      case 'настольные игры':
+        return '/events/board.png';
+      default:
+        return '/events/other.png';
     }
   };
 
@@ -47,6 +54,15 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
     }
   };
 
+  const handleActionClick = () => {
+    if (actionType === 'subscribe') {
+      router.push(`/groups/profile/${group.id}`);
+    } else {
+      // Здесь можно добавить логику для управления группой
+      console.log('Управление группой:', group.id);
+    }
+  };
+
   const isPrivate = group.type === 'приватная группа';
 
   return (
@@ -66,16 +82,14 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
       <div className={styles.groupMainContent}>
         {/* Верхняя часть: название, категории, участники */}
         <div className={styles.groupTopSection}>
-          <h3 className={styles.groupName} title={group.name}>{group.name}</h3>
-          
+          <h3 className={styles.groupName} title={group.name}>
+            {group.name}
+          </h3>
+
           {/* Категории */}
           <div className={styles.categoryIcons}>
             {group.category.map((categoryName, index) => (
-              <div 
-                key={index} 
-                className={styles.categoryIcon}
-                title={categoryName}
-              >
+              <div key={index} className={styles.categoryIcon} title={categoryName}>
                 <Image
                   src={getCategoryIcon(categoryName)}
                   alt={categoryName}
@@ -86,7 +100,9 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
             ))}
           </div>
 
-          <p className={styles.groupMemberCount}>{getMemberCountText(group.member_count)}</p>
+          <p className={styles.groupMemberCount}>
+            {getMemberCountText(group.member_count)}
+          </p>
         </div>
 
         {/* Описание */}
@@ -95,7 +111,7 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
         </div>
 
         {/* Кнопка действия */}
-        <button className={styles.actionButton}>
+        <button className={styles.actionButton} onClick={handleActionClick}>
           {actionType === 'manage' ? 'Управлять' : 'Перейти'}
         </button>
       </div>

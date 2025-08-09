@@ -3,54 +3,117 @@
 import React from 'react';
 import Image from 'next/image';
 import styles from '../../../styles/Groups/profile/GroupProfile.module.css';
+import CategorySection from '../../Events/CategorySection';
+import { SectionData, EventCardProps } from '../../../types/Events';
+import { GroupProfileProps, GroupData, Contact, SessionWithMetadata } from '../../../types/Groups';
 
-interface GroupProfileProps {
-  groupId: string;
-}
+// Функция для преобразования sessions в формат для CategorySection
+const transformSessionsToEvents = (sessions: SessionWithMetadata[]): SectionData => {
+  return {
+    title: '',
+    pattern: '/patterns/games.png',
+    categories: sessions.map(sessionItem => ({
+      id: sessionItem.session.id,
+      type: getEventType(sessionItem.session.session_type),
+      image: sessionItem.session.image_url || '/event_card.jpg',
+      date: formatDate(sessionItem.session.start_time),
+      title: sessionItem.session.title,
+      genres: sessionItem.metadata.genres || [],
+      participants: sessionItem.session.current_users,
+      maxParticipants: sessionItem.session.count_users_max,
+      duration: formatDuration(sessionItem.session.duration),
+      location: sessionItem.session.session_place === 'online' ? 'online' : 'offline'
+    }))
+  };
+};
 
-// Тестовые данные (в реальном приложении будут получаться по API на основе groupId)
-const mockGroupData = {
-  1: {
-    id: 1,
-    name: 'Мега крутая группа',
-    location: 'Калининград, Россия',
-    description: 'МАКСИМАЛЬНО КРУТАЯ ГРУППА, ПРОСТО ЖЕСТЬ! Здесь вы сможете поболтать и посмотреть фильмы с интеллегентами!!! 😎😁',
-    avatar: '/group-avatar.jpg',
-    membersCount: 10000,
-    categories: ['events/board.png', 'events/games.png', 'events/movies.png'],
-    contacts: [
-      { name: 'Группка', link: 'https://discord.gg/example', icon: 'social/ds.png' },
-      { name: 'Канальчик', link: 'https://t.me/example', icon: 'social/tg.png' },
-      { name: 'Страница автора', link: 'https://vk.com/example', icon: 'social/vk.png' },
-      { name: 'WhatsApp группа', link: 'https://wa.me/example', icon: 'social/wa.png' },
-      { name: 'Snapchat', link: 'https://snapchat.com/example', icon: 'social/snap.png' },
-      { name: 'Custom Social', link: 'https://custom.com/example', icon: 'default/soc_net.png' },
-    ]
+// Функция для преобразования типа события
+const getEventType = (sessionType: string): EventCardProps['type'] => {
+  const lowerType = sessionType.toLowerCase();
+  
+  if (lowerType.includes('game') || lowerType.includes('игр')) {
+    return 'games';
+  } else if (lowerType.includes('movie') || lowerType.includes('film') || lowerType.includes('кино') || lowerType.includes('фильм')) {
+    return 'movies';
+  } else if (lowerType.includes('board') || lowerType.includes('настольн')) {
+    return 'board';
+  } else {
+    return 'other';
   }
 };
 
-const mockSubscribers = [
-  { id: 1, name: 'Чел', avatar: '/user1.jpg' },
-  { id: 2, name: 'Flex228666', avatar: '/user2.jpg' },
-  { id: 3, name: 'Крутой', avatar: '/user3.jpg' },
-  { id: 4, name: 'Чел', avatar: '/user4.jpg' },
-  { id: 5, name: 'Flex228666', avatar: '/user5.jpg' },
-  { id: 6, name: 'Тигр', avatar: '/user6.jpg' }
-];
+// Функция для форматирования даты
+const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', { 
+      day: 'numeric', 
+      month: 'short' 
+    });
+  } catch {
+    return dateString;
+  }
+};
 
-const GroupProfile: React.FC<GroupProfileProps> = ({ groupId }) => {
-  // В реальном приложении здесь будет запрос к API
-  const groupData = mockGroupData[groupId as keyof typeof mockGroupData] || mockGroupData[1];
+// Функция для форматирования длительности
+const formatDuration = (duration: number): string => {
+  if (duration < 60) {
+    return `${duration} мин`;
+  } else {
+    const hours = Math.floor(duration / 60);
+    const minutes = duration % 60;
+    return minutes > 0 ? `${hours}ч ${minutes}м` : `${hours} часа`;
+  }
+};
 
+// Функция для получения иконки социальной сети по ссылке
+const getSocialIcon = (link: string, name: string): string => {
+  const lowerLink = link.toLowerCase();
+  const lowerName = name.toLowerCase();
+  
+  if (lowerLink.includes('discord') || lowerName.includes('discord')) {
+    return 'social/ds.png';
+  } else if (lowerLink.includes('t.me') || lowerLink.includes('telegram') || lowerName.includes('telegram')) {
+    return 'social/tg.png';
+  } else if (lowerLink.includes('vk.com') || lowerName.includes('вконтакте') || lowerName.includes('vk')) {
+    return 'social/vk.png';
+  } else if (lowerLink.includes('wa.me') || lowerLink.includes('whatsapp') || lowerName.includes('whatsapp')) {
+    return 'social/wa.png';
+  } else if (lowerLink.includes('snapchat') || lowerName.includes('snapchat')) {
+    return 'social/snap.png';
+  } else {
+    return 'default/soc_net.png';
+  }
+};
+
+// Функция для получения иконки категории
+const getCategoryIcon = (category: string): string => {
+  const lowerCategory = category.toLowerCase();
+  
+  if (lowerCategory.includes('game') || lowerCategory.includes('игр')) {
+    return 'events/games.png';
+  } else if (lowerCategory.includes('movie') || lowerCategory.includes('film') || lowerCategory.includes('кино') || lowerCategory.includes('фильм')) {
+    return 'events/movies.png';
+  } else if (lowerCategory.includes('board') || lowerCategory.includes('настольн')) {
+    return 'events/board.png';
+  } else {
+    return 'events/games.png'; // default
+  }
+};
+
+const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
   const handleJoinGroup = () => {
-    console.log(`Присоединение к группе с ID: ${groupId}`);
+    console.log(`Присоединение к группе с ID: ${groupData.id}`);
     console.log('Данные группы:', groupData);
   };
 
-  const handleContactClick = (contact: { name: string; link: string }) => {
+  const handleContactClick = (contact: Contact) => {
     console.log(`Переход по ссылке: ${contact.link}`);
     window.open(contact.link, '_blank');
   };
+
+  // Преобразуем sessions в формат для CategorySection
+  const eventsData = transformSessionsToEvents(groupData.sessions);
 
   return (
     <div className='bgPage' style={{ display: 'flex' }}>
@@ -60,7 +123,7 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupId }) => {
           {/* Аватар */}
           <div className={styles.groupAvatar}>
             <Image
-              src="/default/group.jpg"
+              src={groupData.image || "/default/group.jpg"}
               alt={groupData.name}
               width={200}
               height={200}
@@ -77,24 +140,28 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupId }) => {
           <div className={styles.contactsSection}>
             <h3>Наши контакты:</h3>
             <div className={styles.contactsList}>
-              {groupData.contacts.map((contact, index) => (
-                <div 
-                  key={index} 
-                  className={styles.contactItem}
-                  onClick={() => handleContactClick(contact)}
-                >
-                  <div className={styles.contactIconWrapper}>
-                    <Image 
-                      src={`/${contact.icon}`}
-                      alt={contact.name}
-                      width={52}
-                      height={52}
-                      className={styles.contactIcon}
-                    />
+              {groupData.contacts && groupData.contacts.length > 0 ? (
+                groupData.contacts.map((contact, index) => (
+                  <div 
+                    key={index} 
+                    className={styles.contactItem}
+                    onClick={() => handleContactClick(contact)}
+                  >
+                    <div className={styles.contactIconWrapper}>
+                      <Image 
+                        src={`/${getSocialIcon(contact.link, contact.name)}`}
+                        alt={contact.name}
+                        width={52}
+                        height={52}
+                        className={styles.contactIcon}
+                      />
+                    </div>
+                    <span className={styles.contactName}>{contact.name}</span>
                   </div>
-                  <span className={styles.contactName}>{contact.name}</span>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className={styles.noContactsText}>Контакты не указаны</p>
+              )}
             </div>
           </div>
         </div>
@@ -107,59 +174,82 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupId }) => {
               {/* Название и категории */}
               <div className={styles.titleAndCategories}>
                 <h1 className={styles.groupName}>{groupData.name}</h1>
-                <div className={styles.categoryIcons}>
-                  {groupData.categories.map((category, index) => (
-                    <Image
-                      key={index}
-                      src={`/${category}`}
-                      alt="Category"
-                      width={32}
-                      height={32}
-                      className={styles.categoryIcon}
-                    />
-                  ))}
-                </div>
+                {groupData.categories && groupData.categories.length > 0 && (
+                  <div className={styles.categoryIcons}>
+                    {groupData.categories.map((category, index) => (
+                      <Image
+                        key={index}
+                        src={`/${getCategoryIcon(category)}`}
+                        alt={category}
+                        width={32}
+                        height={32}
+                        className={styles.categoryIcon}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
               
               {/* Город */}
-              <p className={styles.groupLocation}>{groupData.location}</p>
+              {groupData.city && (
+                <p className={styles.groupLocation}>{groupData.city}</p>
+              )}
               
               {/* Описание */}
-              <div className={styles.descriptionSection}>
-                <p className={styles.descriptionLabel}>Описание группы:</p>
-                <p className={styles.descriptionText}>{groupData.description}</p>
-              </div>
+              {groupData.description && (
+                <div className={styles.descriptionSection}>
+                  <p className={styles.descriptionLabel}>Описание группы:</p>
+                  <p className={styles.descriptionText}>{groupData.description}</p>
+                </div>
+              )}
             </div>
 
             {/* Подписчики */}
             <div className={styles.subscribersSection}>
-              <h3>Подписчики: {groupData.membersCount.toLocaleString()}</h3>
-              <div className={styles.subscribersList}>
-                {mockSubscribers.map(subscriber => (
-                  <div key={subscriber.id} className={styles.subscriberItem}>
-                    <div className={styles.subscriberAvatar}>
-                      <Image
-                        src="/default-avatar.png"
-                        alt={subscriber.name}
-                        width={64}
-                        height={64}
-                        className={styles.subscriberAvatarImage}
-                      />
+              <h3>Подписчики: {groupData.count_members.toLocaleString()}</h3>
+              {groupData.users && groupData.users.length > 0 && (
+                <div className={styles.subscribersList}>
+                  {groupData.users.slice(0, 6).map((user, index) => (
+                    <div key={index} className={styles.subscriberItem}>
+                      <div className={styles.subscriberAvatar}>
+                        <Image
+                          src={user.image || "/default-avatar.png"}
+                          alt={user.name}
+                          width={64}
+                          height={64}
+                          className={styles.subscriberAvatarImage}
+                        />
+                      </div>
+                      <span className={styles.subscriberName}>{user.name}</span>
                     </div>
-                    <span className={styles.subscriberName}>{subscriber.name}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Нижняя часть - события */}
-          <div className={styles.eventsSection}>
-            <h3>Запланированные мероприятия:</h3>
-            <div className={styles.eventsContent}>
-              <p className={styles.emptyMessage}>Здесь пока пусто</p>
+          {groupData.sessions && groupData.sessions.length > 0 && (
+            <div className={styles.eventsSection}>
+              <h3>Запланированные мероприятия:</h3>
+              <div className={styles.eventsContent}>
+                <CategorySection 
+                  section={eventsData} 
+                  title="" 
+                  showCategoryLabel={false} 
+                />
+              </div>
             </div>
-          </div>
+          )}
+          
+          {(!groupData.sessions || groupData.sessions.length === 0) && (
+            <div className={styles.eventsSection}>
+              <h3>Запланированные мероприятия:</h3>
+              <div className={styles.eventsContent}>
+                <p className={styles.noEventsText}>Пока нет запланированных мероприятий</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -276,8 +276,22 @@
 .eventsContent {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Масштабирование CategorySection внутри eventsContent */
+.eventsContent > div {
+  transform: scale(0.75);
+  margin-left: 3%;
+  margin-top: 5px;
+  transform-origin: top left;
+  width: 125%; /* Компенсируем уменьшение от scale(0.5) */
+  height: 175%; /* Компенсируем уменьшение от scale(0.5) */
 }
 
 .emptyMessage {
@@ -321,7 +335,14 @@
   }
   
   .eventsSection {
-    height: 150px;
+    height: 200px;
+  }
+  
+  /* Корректируем масштабирование для планшетов */
+  .eventsContent > div {
+    transform: scale(0.6);
+    width: 166.67%;
+    height: 166.67%;
   }
 }
 
@@ -355,6 +376,17 @@
     width: 40px;
     height: 40px;
   }
+  
+  .eventsSection {
+    height: 180px;
+  }
+  
+  /* Корректируем масштабирование для мобильных */
+  .eventsContent > div {
+    transform: scale(1);
+    width: 100%;
+    height: 100%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -373,5 +405,16 @@
   
   .categoryIcons {
     flex-wrap: wrap;
+  }
+  
+  .eventsSection {
+    height: 160px;
+  }
+  
+  /* Увеличиваем масштаб на очень маленьких экранах */
+  .eventsContent > div {
+    transform: scale(0.8);
+    width: 125%;
+    height: 125%;
   }
 }

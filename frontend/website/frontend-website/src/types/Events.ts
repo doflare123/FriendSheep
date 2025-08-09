@@ -1,5 +1,5 @@
 export interface EventCardProps {
-    id: string;
+    id: number;
     type: 'games' | 'movies' | 'board' | 'other';
     image: string;
     date: string;
@@ -9,6 +9,7 @@ export interface EventCardProps {
     maxParticipants: number;
     duration?: string;
     location: string;
+    scale?: number;
 }
 
 export interface SectionData {
