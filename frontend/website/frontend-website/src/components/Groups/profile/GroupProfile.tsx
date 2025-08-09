@@ -245,7 +245,7 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
           {(!groupData.sessions || groupData.sessions.length === 0) && (
             <div className={styles.eventsSection}>
               <h3>Запланированные мероприятия:</h3>
-              <div className={styles.eventsContent}>
+              <div className={styles.eventsContentEmpty}>
                 <p className={styles.noEventsText}>Пока нет запланированных мероприятий</p>
               </div>
             </div>

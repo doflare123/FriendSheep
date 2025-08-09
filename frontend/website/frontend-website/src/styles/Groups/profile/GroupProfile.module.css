@@ -294,10 +294,22 @@
   height: 175%; /* Компенсируем уменьшение от scale(0.5) */
 }
 
-.emptyMessage {
+.eventsContentEmpty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.noEventsText {
   color: #999999;
-  font-size: 14px;
+  font-size: 32px;
   margin: 0;
+  text-align: center;
 }
 
 /* Адаптивность */
