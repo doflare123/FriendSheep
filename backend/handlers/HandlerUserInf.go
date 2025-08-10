@@ -34,3 +34,28 @@ func GetGroupsUserSub(c *gin.Context) {
 
 	c.JSON(http.StatusOK, groups)
 }
+
+func SubscriptionsTelegramNotify(c *gin.Context) {
+	var input services.TelegramNotifyInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := input.SubscriptionsTelegramNotify()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "details": "Привязка телеграм аккаунта не удалась"})
+	}
+
+}
+
+func UnSubscriptionsTelegramNotify(c *gin.Context) {
+	var input services.TelegramNotifyInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := input.UnSubscriptionsTelegramNotify()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "details": "Отвязка телеграм аккаунта не удалась"})
+	}
+}

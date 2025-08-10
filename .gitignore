@@ -10,3 +10,7 @@ frontend/website/frontend-website/package-lock.json
 /frontend/app/FriendShip/.expo
 frontend/app/FriendShip/expo-env.d.ts
 notify_service/db/key.json
+bot/package-lock.json
+bot/.env
+notify_service/.env
+notify_service/.env

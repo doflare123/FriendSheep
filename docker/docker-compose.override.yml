@@ -15,3 +15,21 @@ services:
     volumes:
       - ../backend:/app  # Монтируем весь код
       - /app/tmp        # Исключаем tmp директорию из синхронизации
+  telegram-bot:
+    build:
+      context: ../bot
+      dockerfile: Dockerfile
+    environment:
+      - ../.env
+    ports:
+    - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - appnet
+
+
+networks:
+  appnet:
+    driver: bridge
