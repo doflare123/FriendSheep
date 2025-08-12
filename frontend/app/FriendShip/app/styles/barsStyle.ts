@@ -25,7 +25,6 @@ const barsStyle = StyleSheet.create({
     width: 30,
     height: 30,
     resizeMode: 'contain',
-    marginTop: 25,
     marginLeft: 10,
     alignSelf: 'center'
   },

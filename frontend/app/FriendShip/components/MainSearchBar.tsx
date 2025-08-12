@@ -1,29 +1,34 @@
 import barsStyle from '@/app/styles/barsStyle';
 import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const MainSearchBar = () => {
+  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
-  const [filterVisible, setFilterVisible] = useState(false);
-
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   const [activeSearchType, setActiveSearchType] = useState<'event' | 'profile' | 'group'>('event');
-  const [selectedCategory, setSelectedCategory] = useState<'Все' | 'Игры' | 'Фильмы' | 'Другое'>('Все');
+  const [checkedCategories, setCheckedCategories] = useState<string[]>(['Все']);
+  const [sortByDate, setSortByDate] = useState<'asc' | 'desc'>('asc');
+  const [sortByParticipants, setSortByParticipants] = useState<'asc' | 'desc'>('asc');
+  const [sortByRegistration, setSortByRegistration] = useState<'asc' | 'desc'>('asc');
+
+  const [categoryModalPos, setCategoryModalPos] = useState({ top: 0, left: 0 });
+  const [filterModalPos, setFilterModalPos] = useState({ top: 0, left: 0 });
+
+  const categoryIconRef = useRef<View>(null);
+  const filterIconRef = useRef<View>(null);
+
+  const [filterIconLayout, setFilterIconLayout] = useState({ width: 0, height: 0 });
+
   const handleSearchTypeChange = (type: 'event' | 'profile' | 'group') => {
     setActiveSearchType(type);
     setCategoryModalVisible(false);
   };
-
-  const [checkedCategories, setCheckedCategories] = useState<string[]>(['Все']);
-  const [sortByDate, setSortByDate] = useState<'asc' | 'desc'>('asc');
-  const [sortByParticipants, setSortByParticipants] = useState<'asc' | 'desc'>('asc');
-
-  const [sortByRegistration, setSortByRegistration] = useState<'asc' | 'desc'>('asc');
-
 
   const toggleCategoryCheckbox = (category: string) => {
     if (category === 'Все') {
@@ -54,8 +59,15 @@ const MainSearchBar = () => {
   return (
     <>
       <View style={styles.container}>
-
-        <TouchableOpacity onPress={() => setCategoryModalVisible(true)}>
+        <TouchableOpacity
+          ref={categoryIconRef}
+          onPress={() => {
+            categoryIconRef.current?.measureInWindow((x, y) => {
+              setCategoryModalPos({ top: y, left: x });
+              setCategoryModalVisible(true);
+            });
+          }}
+        >
           <Image
             style={barsStyle.switch}
             source={
@@ -76,10 +88,25 @@ const MainSearchBar = () => {
         />
 
         {activeSearchType !== 'profile' && (
-          <TouchableOpacity onPress={() => setFilterModalVisible(true)}>
-            <Image style={barsStyle.options} source={require("../assets/images/top_bar/search_bar/options.png")} />
+          <TouchableOpacity
+            ref={filterIconRef}
+            onLayout={(e) => {
+              const { width, height } = e.nativeEvent.layout;
+              setFilterIconLayout({ width, height });
+            }}
+            onPress={() => {
+              filterIconRef.current?.measureInWindow((x, y) => {
+                const modalWidth = 230;
+                const left = x - (modalWidth - filterIconLayout.width / 2);
+                const top = y + filterIconLayout.height / 2; 
+                setFilterModalPos({ top, left });
+                setFilterModalVisible(true);
+              });
+            }}
+          >
+            <Image style={barsStyle.options} source={require('../assets/images/top_bar/search_bar/options.png')} />
           </TouchableOpacity>
-        )}
+        )}  
 
       </View>
 
@@ -90,7 +117,12 @@ const MainSearchBar = () => {
         onRequestClose={() => setCategoryModalVisible(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setCategoryModalVisible(false)}>
-          <View style={styles.categoryModal}>
+          <View
+            style={[
+              styles.categoryModal,
+              { top: categoryModalPos.top, left: categoryModalPos.left }
+            ]}
+          >
             <View>
               <Image
                 source={
@@ -133,8 +165,17 @@ const MainSearchBar = () => {
         visible={filterModalVisible}
         onRequestClose={() => setFilterModalVisible(false)}
       >
-       <Pressable style={styles.modalOverlay} onPress={() => setFilterModalVisible(false)}>
-          <Pressable style={styles.dropdown} onPress={() => {}}>
+        <Pressable
+          style={[styles.modalOverlay, { paddingTop: insets.top }]}
+          onPress={() => setFilterModalVisible(false)}
+        >
+          <Pressable
+            style={[
+              styles.dropdown,
+              { position: 'absolute', top: filterModalPos.top, left: filterModalPos.left },
+            ]}
+            onPress={() => {}}
+          >
               {activeSearchType === 'event' && (
                 <>
                   <Text style={styles.dropdownTitle}>Сортировка по категориям</Text>
@@ -243,7 +284,6 @@ const styles = StyleSheet.create({
     margin: 4,
     borderWidth: 1.5,
     borderColor: Colors.blue,
-    marginTop: 30
   },
   input: {
     flex: 1,
@@ -256,10 +296,8 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 30,
+    alignItems: 'flex-start',
     paddingRight: 80,
-    fontFamily: inter.regular
   },
   dropdown: {
     width: 230,
