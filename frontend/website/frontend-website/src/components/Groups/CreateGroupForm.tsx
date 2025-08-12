@@ -1,24 +1,35 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import SocialContactsModal from './SocialContactsModal';
+import { GroupFormData } from '../../types/AdminTypes';
 import styles from '../../styles/Groups/CreateGroupModal.module.css';
 
 interface CreateGroupFormProps {
   onSubmit: (groupData: any) => void;
+  initialData?: Partial<GroupFormData>;
+  showTitle?: boolean;
+  isLoading?: boolean;
 }
 
-const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
+const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ 
+  onSubmit, 
+  initialData,
+  showTitle = true,
+  isLoading = false
+}) => {
   const [formData, setFormData] = useState({
-    name: '',
-    shortDescription: '',
-    description: '',
-    city: '',
-    isPrivate: false,
-    categories: [] as string[],
-    socialContacts: [] as { name: string; link: string }[]
+    name: initialData?.name || '',
+    shortDescription: initialData?.shortDescription || '',
+    description: initialData?.description || '',
+    city: initialData?.city || '',
+    isPrivate: initialData?.isPrivate || false,
+    categories: initialData?.categories || [] as string[],
+    socialContacts: initialData?.socialContacts || [] as { name: string; link: string }[]
   });
 
-  const [selectedImage, setSelectedImage] = useState<string>('/default/group.jpg');
+  const [selectedImage, setSelectedImage] = useState<string>(
+    initialData?.imagePreview || '/default/group.jpg'
+  );
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const [errors, setErrors] = useState({
@@ -43,6 +54,25 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
     { name: 'WhatsApp', icon: '/social/wa.png' },
     { name: 'Snapchat', icon: '/social/snap.png' }
   ];
+
+  // Обновляем форму при изменении initialData
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        shortDescription: initialData.shortDescription || '',
+        description: initialData.description || '',
+        city: initialData.city || '',
+        isPrivate: initialData.isPrivate || false,
+        categories: initialData.categories || [],
+        socialContacts: initialData.socialContacts || []
+      });
+      
+      if (initialData.imagePreview) {
+        setSelectedImage(initialData.imagePreview);
+      }
+    }
+  }, [initialData]);
 
   const validateForm = () => {
     const newErrors = {
@@ -155,6 +185,19 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
 
   return (
     <>
+      {showTitle && (
+        <div style={{ marginBottom: '30px' }}>
+          <h2 style={{ 
+            color: '#000', 
+            fontSize: '24px', 
+            fontWeight: '600', 
+            margin: 0 
+          }}>
+            Основная информация
+          </h2>
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className={styles.createGroupForm}>
         <div className={styles.formRow}>
           <div className={styles.leftColumn}>
@@ -299,8 +342,16 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
         </div>
 
         {/* Кнопка создания */}
-        <button type="submit" className={styles.createButton}>
-          Создать группу
+        <button 
+          type="submit" 
+          className={styles.createButton}
+          disabled={isLoading}
+          style={{
+            opacity: isLoading ? 0.7 : 1,
+            cursor: isLoading ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
         </button>
       </form>
 

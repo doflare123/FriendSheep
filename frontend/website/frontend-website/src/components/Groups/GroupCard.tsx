@@ -59,7 +59,7 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
       router.push(`/groups/profile/${group.id}`);
     } else {
       // Здесь можно добавить логику для управления группой
-      console.log('Управление группой:', group.id);
+      router.push(`/groups/admin/${group.id}`);
     }
   };
 
