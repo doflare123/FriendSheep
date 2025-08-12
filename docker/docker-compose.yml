@@ -4,6 +4,8 @@ services:
     ports:
       - "6666:6666"
     restart: unless-stopped
+    networks:
+      - appnet
 
   mongo:
     image: mongo
@@ -15,6 +17,8 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: password
     volumes:
       - mongo_data:/data/db
+    networks:
+      - appnet
 
   mongo-express:
     image: mongo-express
@@ -28,6 +32,8 @@ services:
       ME_CONFIG_BASICAUTH: false
     depends_on:
       - mongo
+    networks:
+      - appnet
 
   db:
     image: postgres
@@ -40,6 +46,8 @@ services:
       POSTGRES_DB: FriendSheep
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - appnet
 
   adminer:
     image: adminer
@@ -48,7 +56,13 @@ services:
       - "8082:8080"
     depends_on:
       - db
+    networks:
+      - appnet
 
 volumes:
   mongo_data:
   postgres_data:
+
+networks:
+  appnet:
+    driver: bridge

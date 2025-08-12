@@ -2,7 +2,7 @@ package db
 
 import (
 	"fmt"
-	"notify_service/models"
+	"log"
 	"notify_service/models/sessions"
 	"os"
 
@@ -27,9 +27,20 @@ func InitDatabase() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %v", err)
 	}
-	return db.AutoMigrate(&sessions.Notification{}, &models.DeviceUser{})
+	err = db.AutoMigrate(&sessions.Notification{}, &sessions.NotificationType{})
+	if err != nil {
+		return fmt.Errorf("failed to migrate database: %v", err)
+	}
+	if err := SeedNotificationTypes(db); err != nil {
+		return fmt.Errorf("failed to seed notification types: %v", err)
+	}
+	log.Println("Database initialized successfully")
+	return nil
 }
 
 func GetDB() *gorm.DB {
+	if db == nil {
+		log.Fatal("Database not initialized")
+	}
 	return db
 }

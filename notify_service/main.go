@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"notify_service/db"
+	worker "notify_service/schedulers"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -11,18 +13,31 @@ import (
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Warning: .env file not found, using environment variables from container")
+		log.Fatal("Ошибка загрузки .env файла")
 	}
 }
 
 func main() {
-	if err := db.InitDatabase(); err != nil {
-		log.Fatal(err)
-	}
-	if err := db.InitFCM(); err != nil {
-		log.Fatal(err)
-	}
 	r := gin.Default()
 
-	r.Run(":8083")
+	db.InitDatabase()
+	db.SeedNotificationTypes(db.GetDB())
+	worker.StartNotificationWorker(db.GetDB())
+
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
+
+	// Запуск сервера
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("Server starting on port %s", port)
+	if err := r.Run(":" + port); err != nil {
+		log.Fatal("Failed to start server:", err)
+	}
 }

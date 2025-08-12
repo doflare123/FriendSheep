@@ -15,6 +15,8 @@ services:
     volumes:
       - ../backend:/app  # Монтируем весь код
       - /app/tmp        # Исключаем tmp директорию из синхронизации
+    networks:
+      - appnet
   telegram-bot:
     build:
       context: ../bot
@@ -26,6 +28,22 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    networks:
+      - appnet
+  notify_service:
+    build:
+      context: ../notify_service
+      dockerfile: Dockerfile
+    volumes:
+      - ../notify_service/.env:/app/.env  # монтируем файл внутрь контейнера
+    env_file:
+      - ../notify_service/.env
+    ports:
+    - "8083:8080"
+    depends_on:
+      - db
+      - telegram-bot
+    restart: unless-stopped
     networks:
       - appnet
 
