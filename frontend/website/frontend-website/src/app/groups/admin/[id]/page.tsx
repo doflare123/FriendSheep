@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import GroupAdminComponent from '../../../../components/Groups/GroupAdminComponent';
 import { GroupData } from '../../../../types/Groups';
-import { getGroupInfo } from '../../../../api/get_group_info';
+import { getGroupInfoAdmin } from '../../../../api/get_group_info_admin';
 
 const GroupAdminPage: React.FC = () => {
     const params = useParams();
@@ -32,7 +32,7 @@ const GroupAdminPage: React.FC = () => {
             return;
             }
 
-            const data = await getGroupInfo(accessToken, parseInt(groupId));
+            const data = await getGroupInfoAdmin(accessToken, parseInt(groupId));
             
             if (!data) {
             // Если данных нет, показываем 404

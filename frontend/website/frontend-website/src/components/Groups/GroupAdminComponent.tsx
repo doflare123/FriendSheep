@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import AdminSidebar from './AdminSidebar';
 import CreateGroupForm from './CreateGroupForm';
+import RequestsManagementComponent from './RequestsManagementComponent';
 import { AdminMenuSection } from '../../types/AdminTypes';
 import { convertCategoriesToIds, convertSocialContactsToString } from '../../Constants';
 import { GroupData } from '../../types/Groups';
@@ -76,10 +77,10 @@ const GroupInfoSection: React.FC<{ groupData?: GroupData; groupId?: string }> = 
     city: groupData.city,
     isPrivate: false, // У GroupData нет этого поля, можно добавить или задать по умолчанию
     categories: groupData.categories,
-    socialContacts: groupData.contacts.map(contact => ({
+    socialContacts: groupData.contacts?.map(contact => ({
       name: contact.name,
       link: contact.link
-    })),
+    })) || [],
     imagePreview: groupData.image
   } : undefined;
 
@@ -125,6 +126,7 @@ const GroupAdminComponent: React.FC<GroupAdminComponentProps> = ({ groupId, grou
     {
       id: 'requests',
       title: 'Управление заявками',
+      component: RequestsManagementComponent
     },
     {
       id: 'events',

@@ -3,8 +3,12 @@
 .requestsContainer {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100vh; /* Полная высота viewport */
+  max-height: 100vh; /* Ограничиваем максимальную высоту */
   gap: 20px;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden; /* Убираем скролл у контейнера */
 }
 
 /* Верхняя секция с счетчиком и кнопками */
@@ -16,6 +20,7 @@
   border: 2px solid #316BC2;
   border-radius: 12px;
   background: white;
+  flex-shrink: 0; /* Не сжимается */
 }
 
 .requestsCount {
@@ -76,20 +81,19 @@
 
 /* Секция поиска */
 .searchSection {
-  padding: 16px 20px;
-  border: 2px solid #316BC2;
-  border-radius: 12px;
-  background: white;
+  padding: 0;
+  flex-shrink: 0; /* Не сжимается */
 }
 
 .searchInput {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e1e5e9;
+  border: 2px solid #316BC2;
   border-radius: 12px;
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
 .searchInput:focus {
@@ -103,11 +107,14 @@
 /* Контейнер списка заявок */
 .requestsList {
   position: relative;
-  flex: 1;
-  height: 400px; /* Фиксированная высота для принудительного скролла */
+  flex: 1; /* Занимает оставшееся место */
+  min-height: 0; /* Важно для flex элементов со скроллом */
   border: 2px solid #316BC2;
   border-radius: 12px;
   background: white;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Скрываем переполнение у контейнера */
 }
 
 /* Кнопки скролла */
@@ -143,16 +150,17 @@
   bottom: 10px;
 }
 
-/* Контейнер со скроллом */
+/* Контейнер со скроллом - ОСНОВНЫЕ ИЗМЕНЕНИЯ ЗДЕСЬ */
 .scrollContainer {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow-y: auto;
+  overflow-y: auto; /* Скролл только по вертикали */
   overflow-x: hidden;
   scroll-behavior: smooth;
   padding: 50px 20px;
-  height: 100%;
+  flex: 1; /* Занимает все доступное место в requestsList */
+  max-height: 100%; /* Ограничиваем максимальную высоту */
   scrollbar-width: none;
   -ms-overflow-style: none;
   position: relative;
@@ -189,6 +197,7 @@
   border-radius: 12px;
   transition: all 0.2s;
   min-height: 72px;
+  flex-shrink: 0; /* Элементы не сжимаются */
 }
 
 .requestItem:hover {
@@ -208,29 +217,38 @@
 .userAvatar {
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0; /* Аватар не сжимается */
 }
 
 .userDetails {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0; /* Позволяет тексту сжиматься */
 }
 
 .userName {
   font-size: 18px;
   font-weight: 600;
   color: #000000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .userEmail {
   font-size: 14px;
   color: #000000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Действия с заявкой */
 .requestActions {
   display: flex;
   gap: 8px;
+  flex-shrink: 0; /* Кнопки не сжимаются */
 }
 
 .acceptBtn,
@@ -288,6 +306,11 @@
 
 /* Адаптивность */
 @media (max-width: 768px) {
+  .requestsContainer {
+    padding: 10px;
+    gap: 15px;
+  }
+
   .headerSection {
     flex-direction: column;
     gap: 12px;
@@ -310,5 +333,9 @@
   
   .requestActions {
     justify-content: center;
+  }
+
+  .scrollContainer {
+    padding: 40px 15px;
   }
 }
