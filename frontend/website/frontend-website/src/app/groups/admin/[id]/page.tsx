@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import GroupAdminComponent from '../../../../components/Groups/GroupAdminComponent';
 import { GroupData } from '../../../../types/Groups';
 import { getGroupInfoAdmin } from '../../../../api/get_group_info_admin';
+import {getAccesToken} from '../../../../Constants'
 
 const GroupAdminPage: React.FC = () => {
     const params = useParams();
@@ -18,7 +19,7 @@ const GroupAdminPage: React.FC = () => {
     useEffect(() => {
         const fetchGroupData = async () => {
         try {
-            const accessToken = localStorage.getItem('access_token');
+            const accessToken = getAccesToken();
             
             if (!accessToken) {
             setError('Токен доступа не найден');

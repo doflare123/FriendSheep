@@ -1,5 +1,3 @@
-// src/components/Groups/GroupAdminComponent.tsx
-
 'use client';
 
 import React, { useState } from 'react';
@@ -72,10 +70,10 @@ const GroupInfoSection: React.FC<{ groupData?: GroupData; groupId?: string }> = 
   // Преобразуем данные группы в формат для формы
   const initialFormData = groupData ? {
     name: groupData.name,
-    shortDescription: '', // У GroupData нет этого поля, можно добавить или оставить пустым
+    shortDescription: groupData.small_description || '',
     description: groupData.description,
     city: groupData.city,
-    isPrivate: false, // У GroupData нет этого поля, можно добавить или задать по умолчанию
+    isPrivate: groupData.private || false,
     categories: groupData.categories,
     socialContacts: groupData.contacts?.map(contact => ({
       name: contact.name,

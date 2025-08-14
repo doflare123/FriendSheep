@@ -5,211 +5,51 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import styles from '../../styles/Groups/admin/RequestsManagement.module.css';
-
-// Тип для данных заявки от сервера
-interface RequestData {
-  id: number;
-  userId: number;
-  groupId: number;
-  status: 'pending' | 'accepted' | 'rejected';
-  user: {
-    id: number;
-    name: string;
-    email: string;
-    image: string;
-  };
-  group: {
-    id: number;
-    name: string;
-    image: string;
-  };
-}
-
-// Тестовые данные
-const mockRequests: RequestData[] = [
-  {
-    id: 1,
-    userId: 42,
-    groupId: 5,
-    status: 'pending',
-    user: {
-      id: 42,
-      name: 'Ассемблер',
-      email: 'assembler@example.com',
-      image: '/default-avatar.png'
-    },
-    group: {
-      id: 5,
-      name: 'Закрытая группа',
-      image: 'https://img.com/group.png'
-    }
-  },
-  {
-    id: 2,
-    userId: 43,
-    groupId: 5,
-    status: 'pending',
-    user: {
-      id: 43,
-      name: 'Дмитрий Кодов',
-      email: 'dmitry.kodov@example.com',
-      image: '/default-avatar.png'
-    },
-    group: {
-      id: 5,
-      name: 'Закрытая группа',
-      image: 'https://img.com/group.png'
-    }
-  },
-  {
-    id: 3,
-    userId: 44,
-    groupId: 5,
-    status: 'pending',
-    user: {
-      id: 44,
-      name: 'Алексей Программист',
-      email: 'alex.programmer@example.com',
-      image: '/default-avatar.png'
-    },
-    group: {
-      id: 5,
-      name: 'Закрытая группа',
-      image: 'https://img.com/group.png'
-    }
-  },
-  {
-    id: 4,
-    userId: 45,
-    groupId: 5,
-    status: 'pending',
-    user: {
-      id: 45,
-      name: 'Мария Дизайнер',
-      email: 'maria.designer@example.com',
-      image: '/default-avatar.png'
-    },
-    group: {
-      id: 5,
-      name: 'Закрытая группа',
-      image: 'https://img.com/group.png'
-    }
-  },
-  {
-    id: 5,
-    userId: 46,
-    groupId: 5,
-    status: 'pending',
-    user: {
-      id: 46,
-      name: 'Иван Тестировщик',
-      email: 'ivan.tester@example.com',
-      image: '/default-avatar.png'
-    },
-    group: {
-      id: 5,
-      name: 'Закрытая группа',
-      image: 'https://img.com/group.png'
-    }
-  },
-  {
-    id: 6,
-    userId: 47,
-    groupId: 5,
-    status: 'pending',
-    user: {
-      id: 47,
-      name: 'Елена Менеджер',
-      email: 'elena.manager@example.com',
-      image: '/default-avatar.png'
-    },
-    group: {
-      id: 5,
-      name: 'Закрытая группа',
-      image: 'https://img.com/group.png'
-    }
-  },
-  {
-    id: 7,
-    userId: 48,
-    groupId: 5,
-    status: 'pending',
-    user: {
-      id: 48,
-      name: 'Павел Архитектор',
-      email: 'pavel.architect@example.com',
-      image: '/default-avatar.png'
-    },
-    group: {
-      id: 5,
-      name: 'Закрытая группа',
-      image: 'https://img.com/group.png'
-    }
-  },
-  {
-    id: 8,
-    userId: 49,
-    groupId: 5,
-    status: 'pending',
-    user: {
-      id: 49,
-      name: 'Анна Аналитик',
-      email: 'anna.analyst@example.com',
-      image: '/default-avatar.png'
-    },
-    group: {
-      id: 5,
-      name: 'Закрытая группа',
-      image: 'https://img.com/group.png'
-    }
-  },
-  {
-    id: 9,
-    userId: 50,
-    groupId: 5,
-    status: 'pending',
-    user: {
-      id: 50,
-      name: 'Сергей Фронтенд',
-      email: 'sergey.frontend@example.com',
-      image: '/default-avatar.png'
-    },
-    group: {
-      id: 5,
-      name: 'Закрытая группа',
-      image: 'https://img.com/group.png'
-    }
-  },
-  {
-    id: 10,
-    userId: 51,
-    groupId: 5,
-    status: 'pending',
-    user: {
-      id: 51,
-      name: 'Ольга Бэкенд',
-      email: 'olga.backend@example.com',
-      image: '/default-avatar.png'
-    },
-    group: {
-      id: 5,
-      name: 'Закрытая группа',
-      image: 'https://img.com/group.png'
-    }
-  }
-];
+import { RequestData } from '../../types/RequestData';
+import { getAccesToken } from '../../Constants';
+import { getGroupApplication, approveApplication, rejectApplication } from '../../api/group_requests';
 
 interface RequestsManagementComponentProps {
   groupId?: string;
-  // requests?: RequestData[]; // Будет использоваться когда подключим API
 }
 
 const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = ({ groupId }) => {
-  const [requests, setRequests] = useState<RequestData[]>(mockRequests);
+  const [requests, setRequests] = useState<RequestData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Загрузка заявок при монтировании компонента
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
+  const loadRequests = async () => {
+    setIsLoading(true);
+    try {
+      const accessToken = getAccesToken();
+      if (!accessToken) {
+        console.error('Токен доступа не найден');
+        return;
+      }
+
+      const allRequestsData = await getGroupApplication(accessToken);
+      
+      // Фильтруем заявки только для текущей группы
+      const filteredByGroup = groupId 
+        ? allRequestsData.filter(request => request.groupId === parseInt(groupId))
+        : allRequestsData;
+      
+      setRequests(filteredByGroup);
+    } catch (error) {
+      console.error('Ошибка при загрузке заявок:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Фильтрация заявок по поиску
   const filteredRequests = requests.filter(request =>
@@ -274,32 +114,118 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
   };
 
   // Принять заявку
-  const acceptRequest = (requestId: number) => {
-    setRequests(prev => prev.filter(req => req.id !== requestId));
-    // Здесь будет API вызов для принятия заявки
-    console.log('Принята заявка:', requestId);
+  const acceptRequest = async (requestId: number) => {
+    setIsProcessing(true);
+    try {
+      const accessToken = getAccesToken();
+      if (!accessToken) {
+        console.error('Токен доступа не найден');
+        return;
+      }
+
+      await approveApplication(accessToken, requestId);
+      setRequests(prev => prev.filter(req => req.id !== requestId));
+      console.log('Принята заявка:', requestId);
+    } catch (error) {
+      console.error('Ошибка при принятии заявки:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Отклонить заявку
-  const rejectRequest = (requestId: number) => {
-    setRequests(prev => prev.filter(req => req.id !== requestId));
-    // Здесь будет API вызов для отклонения заявки
-    console.log('Отклонена заявка:', requestId);
+  const rejectRequest = async (requestId: number) => {
+    setIsProcessing(true);
+    try {
+      const accessToken = getAccesToken();
+      if (!accessToken) {
+        console.error('Токен доступа не найден');
+        return;
+      }
+
+      await rejectApplication(accessToken, requestId);
+      setRequests(prev => prev.filter(req => req.id !== requestId));
+      console.log('Отклонена заявка:', requestId);
+    } catch (error) {
+      console.error('Ошибка при отклонении заявки:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Принять все заявки
-  const acceptAllRequests = () => {
-    setRequests([]);
-    // Здесь будет API вызов для принятия всех заявок
-    console.log('Приняты все заявки');
+  const acceptAllRequests = async () => {
+    if (filteredRequests.length === 0) return;
+    
+    setIsProcessing(true);
+    try {
+      const accessToken = getAccesToken();
+      if (!accessToken) {
+        console.error('Токен доступа не найден');
+        return;
+      }
+
+      // Принимаем все заявки параллельно
+      const promises = filteredRequests.map(request => 
+        approveApplication(accessToken, request.id)
+      );
+      
+      await Promise.all(promises);
+      
+      // Удаляем все принятые заявки из состояния
+      const acceptedIds = filteredRequests.map(req => req.id);
+      setRequests(prev => prev.filter(req => !acceptedIds.includes(req.id)));
+      
+      console.log('Приняты все заявки');
+    } catch (error) {
+      console.error('Ошибка при принятии всех заявок:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Отклонить все заявки
-  const rejectAllRequests = () => {
-    setRequests([]);
-    // Здесь будет API вызов для отклонения всех заявок
-    console.log('Отклонены все заявки');
+  const rejectAllRequests = async () => {
+    if (filteredRequests.length === 0) return;
+    
+    setIsProcessing(true);
+    try {
+      const accessToken = getAccesToken();
+      if (!accessToken) {
+        console.error('Токен доступа не найден');
+        return;
+      }
+
+      // Отклоняем все заявки параллельно
+      const promises = filteredRequests.map(request => 
+        rejectApplication(accessToken, request.id)
+      );
+      
+      await Promise.all(promises);
+      
+      // Удаляем все отклоненные заявки из состояния
+      const rejectedIds = filteredRequests.map(req => req.id);
+      setRequests(prev => prev.filter(req => !rejectedIds.includes(req.id)));
+      
+      console.log('Отклонены все заявки');
+    } catch (error) {
+      console.error('Ошибка при отклонении всех заявок:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
+  // Показываем индикатор загрузки
+  if (isLoading) {
+    return (
+      <div className={styles.requestsContainer} style={{ height: 'auto', maxHeight: 'none' }}>
+        <div className={styles.loadingState}>
+          <div className={styles.loadingSpinner}>⏳</div>
+          <div className={styles.loadingText}>Загружаем заявки...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.requestsContainer} style={{ height: 'auto', maxHeight: 'none' }}>
@@ -314,16 +240,16 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
           <button 
             className={styles.acceptAllBtn}
             onClick={acceptAllRequests}
-            disabled={filteredRequests.length === 0}
+            disabled={filteredRequests.length === 0 || isProcessing}
           >
-            Принять все
+            {isProcessing ? 'Обрабатываем...' : 'Принять все'}
           </button>
           <button 
             className={styles.rejectAllBtn}
             onClick={rejectAllRequests}
-            disabled={filteredRequests.length === 0}
+            disabled={filteredRequests.length === 0 || isProcessing}
           >
-            Отклонить все
+            {isProcessing ? 'Обрабатываем...' : 'Отклонить все'}
           </button>
         </div>
       </div>
@@ -336,6 +262,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className={styles.searchInput}
+          disabled={isProcessing}
         />
       </div>
 
@@ -382,14 +309,16 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
                   <button 
                     className={styles.acceptBtn}
                     onClick={() => acceptRequest(request.id)}
+                    disabled={isProcessing}
                   >
-                    Принять
+                    {isProcessing ? '...' : 'Принять'}
                   </button>
                   <button 
                     className={styles.rejectBtn}
                     onClick={() => rejectRequest(request.id)}
+                    disabled={isProcessing}
                   >
-                    Отклонить
+                    {isProcessing ? '...' : 'Отклонить'}
                   </button>
                 </div>
               </div>

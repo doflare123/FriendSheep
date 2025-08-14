@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import SocialContactsModal from './SocialContactsModal';
-import { GroupFormData } from '../../types/AdminTypes';
+import { GroupData } from '../../types/Groups';
 import styles from '../../styles/Groups/CreateGroupModal.module.css';
 
 interface CreateGroupFormProps {
   onSubmit: (groupData: any) => void;
-  initialData?: Partial<GroupFormData>;
+  initialData?: Partial<GroupData & { shortDescription?: string; isPrivate?: boolean; imagePreview?: string; socialContacts?: { name: string; link: string }[] }>;
   showTitle?: boolean;
   isLoading?: boolean;
 }
@@ -60,10 +60,10 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     if (initialData) {
       setFormData({
         name: initialData.name || '',
-        shortDescription: initialData.shortDescription || '',
+        shortDescription: initialData.shortDescription || initialData.small_description || '',
         description: initialData.description || '',
         city: initialData.city || '',
-        isPrivate: initialData.isPrivate || false,
+        isPrivate: initialData.isPrivate || initialData.private || false,
         categories: initialData.categories || [],
         socialContacts: initialData.socialContacts || []
       });
