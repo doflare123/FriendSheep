@@ -355,6 +355,7 @@ type GroupUpdateInput struct {
 	Image            *string `json:"image"`
 	IsPrivate        *bool   `json:"is_private"`
 	City             *string `json:"city"`
+	Categories       []*uint `json:"categories"`
 	Contacts         *string `json:"contacts"`
 }
 
@@ -401,6 +402,24 @@ func UpdateGroup(groupID uint, input GroupUpdateInput) (err error) {
 	if len(updates) > 0 {
 		if err = tx.Model(&group).Updates(updates).Error; err != nil {
 			return fmt.Errorf("не удалось сохранить изменения группы: %v", err)
+		}
+	}
+
+	if input.Categories != nil {
+		// удаляем все имеющиеся связи
+		if err = tx.Model(&group).Association("Categories").Clear(); err != nil {
+			return fmt.Errorf("не удалось очистить старые категории: %v", err)
+		}
+
+		// добавляем новые (если передан пустой [] — просто останутся пустые категории)
+		if len(input.Categories) > 0 {
+			var newCategories []models.Category
+			if err = tx.Where("id IN ?", input.Categories).Find(&newCategories).Error; err != nil {
+				return fmt.Errorf("не удалось найти переданные категории: %v", err)
+			}
+			if err = tx.Model(&group).Association("Categories").Replace(&newCategories); err != nil {
+				return fmt.Errorf("не удалось назначить новые категории: %v", err)
+			}
 		}
 	}
 

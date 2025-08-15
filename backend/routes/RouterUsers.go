@@ -3,6 +3,7 @@ package routes
 import (
 	"friendship/handlers"
 	"friendship/middlewares"
+	"friendship/transport"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,5 +25,10 @@ func RouterUsersInfo(r *gin.Engine) {
 	{
 		BotGroup.POST("/subscriptions", handlers.SubscriptionsTelegramNotify)
 		BotGroup.POST("/unsubscriptions", handlers.UnSubscriptionsTelegramNotify)
+	}
+	InternalStatsGroup := r.Group("/internal")
+	InternalStatsGroup.Use()
+	{
+		InternalStatsGroup.POST("/update-statistics", transport.UpdateStatisticsHandler)
 	}
 }

@@ -22,6 +22,7 @@ func RouterGroups(r *gin.Engine) {
 		GroupAdminGroups.GET("", middlewares.JWTAuthMiddleware(), handlers.GetAdminGroups)
 		GroupAdminGroups.POST("/requests/:requestId/approve", middlewares.JWTAuthMiddleware(), handlers.ApproveJoinRequest)
 		GroupAdminGroups.POST("/requests/:requestId/reject", middlewares.JWTAuthMiddleware(), handlers.RejectJoinRequest)
+		GroupAdminGroups.POST("/UploadPhoto", middlewares.JWTAuthMiddleware(), handlers.ChangePhoto)
 
 		// Роуты, требующие прав администратора или оператора
 		moderatorRequired := GroupAdminGroups.Group("/:groupId", middlewares.JWTAuthMiddleware(), middlewares.GroupRoleMiddleware("admin", "operator"))

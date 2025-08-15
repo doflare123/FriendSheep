@@ -102,7 +102,17 @@ func processSessions(db *gorm.DB) {
 		Where("status_id = ?", statusIDs["В процессе"]).
 		Where("end_time <= ?", now).
 		Update("status_id", statusIDs["Завершена"]).Error; err != nil {
-		log.Println("Error updating sessions to 'Завершена':", err)
+		log.Println("Error updating sessions to 'В процессе':", err)
+	}
+
+	var completedSessions []sessions.Session
+	if err := db.Where("status_id = ?", statusIDs["Завершена"]).
+		Where("end_time <= ?", now).
+		Find(&completedSessions).Error; err == nil {
+
+		for _, cs := range completedSessions {
+			notifyStatisticsUpdate(cs.ID)
+		}
 	}
 }
 
@@ -196,4 +206,32 @@ func sendToTelegramBot(msg TelegramMessage) {
 
 func parseTelegramID(idStr string) (int64, error) {
 	return strconv.ParseInt(idStr, 10, 64)
+}
+
+func notifyStatisticsUpdate(sessionID uint) {
+	url := os.Getenv("FRIENDSHIP_URL") + "/internal/update-statistics"
+	token := os.Getenv("NOTIFY_SERVICE_TOKEN")
+
+	payload := map[string]uint{"session_id": sessionID}
+	data, _ := json.Marshal(payload)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+	if err != nil {
+		log.Println("Error creating request to friendship service:", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Internal-Token", token)
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("Error sending statistics update:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Statistics update returned status %d\n", resp.StatusCode)
+	}
 }
