@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 140px); /* учитываем высоту хедера */
+  height: calc(100vh - 140px); /* учитываем высоту хедера */
   padding: 20px;
 }
 
@@ -15,7 +15,8 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   width: 90%;
   max-width: 1200px;
-  max-height: 90vh;
+  height: 60%; /* Возвращаем 60% */
+  min-height: 500px; /* Минимальная высота для корректной работы */
   overflow: hidden;
 }
 
@@ -28,6 +29,7 @@
   flex-direction: column;
   border-top-left-radius: 20px;
   border-bottom-left-radius: 20px;
+  flex-shrink: 0; /* Не позволяем сжиматься */
 }
 
 .sidebarItem {
@@ -54,7 +56,9 @@
   background: white;
   border-top-right-radius: 20px;
   border-bottom-right-radius: 20px;
-  overflow-y: auto;
+  overflow: hidden; /* Убираем скролл отсюда */
+  display: flex;
+  flex-direction: column;
 }
 
 .contentHeader {
@@ -65,6 +69,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0; /* Не позволяем сжиматься */
 }
 
 .contentHeader h2 {
@@ -75,8 +80,12 @@
 }
 
 .contentBody {
-  padding: 30px;
+  flex: 1; /* Занимает оставшееся место */
   background: white;
+  overflow: hidden; /* Убираем скролл отсюда тоже */
+  display: flex;
+  flex-direction: column;
+  padding: 30px; /* Добавляем отступ для всех компонентов */
 }
 
 .emptyState {
@@ -97,19 +106,27 @@
 
 /* Адаптация для мобильных устройств */
 @media (max-width: 768px) {
+  .adminPageWrapper {
+    height: calc(100vh - 140px);
+    padding: 10px;
+  }
+  
   .adminPage {
     width: 95%;
+    height: 70%; /* Немного больше на мобильных */
+    min-height: 400px;
     flex-direction: column;
-    max-height: none;
   }
   
   .sidebar {
     width: 100%;
+    height: auto;
     min-width: unset;
     border-radius: 20px 20px 0 0;
     flex-direction: row;
     overflow-x: auto;
     padding: 10px 0;
+    flex-shrink: 0;
   }
   
   .sidebarItem {
@@ -125,6 +142,7 @@
   
   .mainContent {
     border-radius: 0 0 20px 20px;
+    flex: 1;
   }
   
   .contentHeader {

@@ -12,7 +12,9 @@ const EventCard: React.FC<EventCardProps> = ({
     participants,
     maxParticipants,
     duration,
-    location
+    location,
+    isEditMode = false,
+    onEdit
 }) => {
     const getTypeIcon = () => {
         switch (type) {
@@ -20,6 +22,15 @@ const EventCard: React.FC<EventCardProps> = ({
         case 'movies': return '/events/movies.png';
         case 'board': return '/events/board.png';
         default: return '/events/other.png';
+        }
+    };
+
+    const handleButtonClick = () => {
+        if (isEditMode && onEdit) {
+            onEdit(id);
+        } else {
+            // Обычная логика для "Узнать подробнее"
+            console.log('Подробности события:', id);
         }
     };
 
@@ -55,8 +66,8 @@ const EventCard: React.FC<EventCardProps> = ({
                         </span>
                     )}
                 </div>
-                <button className='detailsButton'>
-                    Узнать подробнее
+                <button className='detailsButton' onClick={handleButtonClick}>
+                    {isEditMode ? 'Редактировать' : 'Узнать подробнее'}
                 </button>
             </div>
         </div>

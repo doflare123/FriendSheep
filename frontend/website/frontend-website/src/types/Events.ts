@@ -10,6 +10,8 @@ export interface EventCardProps {
     duration?: string;
     location: string;
     scale?: number;
+    isEditMode?: boolean;
+    onEdit?: (id: number) => void;
 }
 
 export interface SectionData {

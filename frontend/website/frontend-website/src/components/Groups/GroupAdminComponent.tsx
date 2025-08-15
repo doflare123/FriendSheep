@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import AdminSidebar from './AdminSidebar';
 import CreateGroupForm from './CreateGroupForm';
 import RequestsManagementComponent from './RequestsManagementComponent';
+import EventsManagementComponent from './EventsManagementComponent';
 import { AdminMenuSection } from '../../types/AdminTypes';
 import { convertCategoriesToIds, convertSocialContactsToString } from '../../Constants';
 import { GroupData } from '../../types/Groups';
@@ -129,6 +130,7 @@ const GroupAdminComponent: React.FC<GroupAdminComponentProps> = ({ groupId, grou
     {
       id: 'events',
       title: 'Управление событиями',
+      component: EventsManagementComponent
     }
   ];
 
