@@ -13,8 +13,9 @@ const TopBar = () => {
   const openNotifications = () => {
     notifIconRef.current?.measureInWindow((x, y, width, height) => {
       const modalWidth = 320;
-      const left = x + width / 2 - modalWidth; 
-      const top = y + height;
+      const centerX = x + width / 2;
+      const left = centerX - modalWidth + 5;
+      const top = y + (height * 0.5);
 
       setNotifModalPos({ top, left });
       setNotificationsVisible(true);

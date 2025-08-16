@@ -63,7 +63,7 @@ const MainSearchBar = () => {
           ref={categoryIconRef}
           onPress={() => {
             categoryIconRef.current?.measureInWindow((x, y) => {
-              setCategoryModalPos({ top: y, left: x });
+              setCategoryModalPos({ top: y - 15, left: x - 10});
               setCategoryModalVisible(true);
             });
           }}

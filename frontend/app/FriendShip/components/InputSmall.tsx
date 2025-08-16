@@ -1,6 +1,6 @@
 import { inter } from '@/constants/Inter';
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../constants/Colors';
 
 interface InputSmallProps {
@@ -21,62 +21,59 @@ const InputSmall: React.FC<InputSmallProps> = ({ length = 6, onChange }) => {
   const handleChangeText = (text: string) => {
     const filtered = text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, length);
     const newValues = Array(length).fill('');
-    for (let i = 0; i < filtered.length; i++) {
-      newValues[i] = filtered[i];
-    }
+    for (let i = 0; i < filtered.length; i++) newValues[i] = filtered[i];
     updateValues(newValues);
-
-    if (filtered.length < length) {
-      setActiveIndex(filtered.length);
-    } else {
-      setActiveIndex(length - 1);
-    }
+    setActiveIndex(Math.min(filtered.length, length - 1));
   };
 
-  const focusHiddenInput = (index: number) => {
+  const ensureFocus = (index: number) => {
     setActiveIndex(index);
-    hiddenInputRef.current?.focus();
+    const input = hiddenInputRef.current;
+    if (!input) return;
+
+    if (Platform.OS === 'android') {
+      if (input.isFocused && input.isFocused()) {
+        input.blur();
+        setTimeout(() => input.focus(), 0);
+      } else {
+        input.focus();
+      }
+    } else {
+      input.focus();
+    }
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      hiddenInputRef.current?.focus();
-    }, Platform.OS === 'android' ? 300 : 100);
-    return () => clearTimeout(timer);
+    const id = setTimeout(() => hiddenInputRef.current?.focus(), Platform.OS === 'android' ? 300 : 100);
+    return () => clearTimeout(id);
   }, []);
+
+  const joined = values.join('');
+  const caretPos = joined.length;
 
   return (
     <View style={styles.container}>
       <TextInput
         ref={hiddenInputRef}
         style={styles.hiddenInput}
-        value={values.join('')}
+        value={joined}
         onChangeText={handleChangeText}
         keyboardType="default"
         autoCapitalize="characters"
         autoCorrect={false}
         maxLength={length}
-        editable
-        showSoftInputOnFocus
-        blurOnSubmit={false}
+        selection={{ start: caretPos, end: caretPos }}
+        caretHidden
       />
 
       {values.map((char, index) => (
         <TouchableOpacity
           key={index}
-          style={[
-            styles.input,
-            activeIndex === index && styles.inputActive
-          ]}
-          onPress={() => focusHiddenInput(index)}
+          style={[styles.input, activeIndex === index && styles.inputActive]}
           activeOpacity={0.8}
+          onPressIn={() => ensureFocus(index)}
         >
-          <TextInput
-            style={styles.fakeInputText}
-            value={char}
-            editable={false}
-            pointerEvents="none"
-          />
+          <Text style={styles.fakeInputText}>{char}</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -94,9 +91,14 @@ const styles = StyleSheet.create({
   },
   hiddenInput: {
     position: 'absolute',
-    height: 1,
-    width: 1,
-    opacity: 0.02,
+    top: -1000,
+    left: 0,
+    width: 200,
+    height: 50,
+    color: 'transparent',
+    backgroundColor: 'transparent',
+    includeFontPadding: false,
+    padding: 0,
   },
   input: {
     fontFamily: inter.regular,

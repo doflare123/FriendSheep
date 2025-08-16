@@ -16,7 +16,13 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Register" screenOptions={{ headerShown: false }}>
+        <Stack.Navigator
+          screenOptions={{
+            gestureEnabled: false,
+            headerShown: false,
+            animation: 'scale_from_center'
+          }}
+        > 
           <Stack.Screen name="Register" component={Register} />
           <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="Confirm" component={Confirm} />
