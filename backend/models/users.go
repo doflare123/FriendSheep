@@ -19,7 +19,7 @@ type User struct {
 	VerifiedUser bool      `json:"-" gorm:"default:false"`
 	Role         string    `json:"-" gorm:"default:user"`
 	Status       string    `json:"-"`
-	TelegramID   *string   `gorm:"default:null"`
+	TelegramID   *string   `json:"-" gorm:"default:null"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

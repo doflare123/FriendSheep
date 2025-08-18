@@ -31,4 +31,9 @@ func RouterUsersInfo(r *gin.Engine) {
 	{
 		InternalStatsGroup.POST("/update-statistics", transport.UpdateStatisticsHandler)
 	}
+	UserInfGroup := r.Group("api/users")
+	UserInfGroup.Use(middlewares.JWTAuthMiddleware())
+	{
+		UserInfGroup.GET("/inf", handlers.GetInfAboutUser)
+	}
 }

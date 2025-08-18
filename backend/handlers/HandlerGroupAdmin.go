@@ -64,7 +64,7 @@ func GetInfAdminGroup(c *gin.Context) {
 		return
 	}
 	groupID := uint(groupID64)
-	group, err := services.GetAdminGroupInfo(&email, &groupID)
+	group, err := services.GetAdminGroupInfo(email, &groupID)
 	if err != nil {
 		errStr := err.Error()
 		if strings.Contains(errStr, "invalid group ID") {

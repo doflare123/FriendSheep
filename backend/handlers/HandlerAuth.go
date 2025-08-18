@@ -17,6 +17,12 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
+type AuthResponse struct {
+	AccessToken  string                        `json:"access_token"`
+	RefreshToken string                        `json:"refresh_token"`
+	AdminGroups  []services.AdminGroupResponse `json:"admin_groups"`
+}
+
 // AuthUser godoc
 // @Summary      Аутентификация пользователя
 // @Description  Проверяет email и пароль, возвращает access и refresh токены
@@ -24,7 +30,7 @@ type RefreshRequest struct {
 // @Accept       json
 // @Produce      json
 // @Param        user  body      UserRequest  true  "Данные пользователя"
-// @Success      200   {object}  map[string]string  "Токены успешно созданы"
+// @Success      200   {object}  AuthResponse  "Токены успешно созданы"
 // @Failure      400   {object}  map[string]string  "Некорректный JSON или параметры"
 // @Failure      401   {object}  map[string]string  "Неверный пароль"
 // @Failure      404   {object}  map[string]string  "Пользователь не найден"
@@ -32,7 +38,6 @@ type RefreshRequest struct {
 // @Router       /api/users/login [post]
 func AuthUser(c *gin.Context) {
 	var input UserRequest
-
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный JSON"})
 		return
@@ -55,9 +60,15 @@ func AuthUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  token.AccessToken,
-		"refresh_token": token.RefreshToken,
+	adminGroups, err := services.GetAdminGroups(&user.Email)
+	if err != nil {
+		adminGroups = []services.AdminGroupResponse{}
+	}
+
+	c.JSON(http.StatusOK, AuthResponse{
+		AccessToken:  token.AccessToken,
+		RefreshToken: token.RefreshToken,
+		AdminGroups:  adminGroups,
 	})
 }
 

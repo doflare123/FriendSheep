@@ -32,7 +32,7 @@ func InitDatabase() error {
 	db.AutoMigrate(&statsusers.SideStats_users{}, &statsusers.SessionStats_users{}, &statsusers.SessionsStatsGenres_users{},
 		&statsusers.Genre{}, statsusers.PopSessionType{})
 	db.AutoMigrate(&models.User{}, models.StatsProcessedEvent{},
-		&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{},
+		&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{}, &groups.GroupJoinInvite{},
 		&sessions.Session{}, &sessions.SessionGroupType{}, &sessions.SessionMetadata{}, sessions.Status{},
 	)
 

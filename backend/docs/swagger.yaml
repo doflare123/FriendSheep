@@ -39,6 +39,17 @@ definitions:
       name:
         type: string
     type: object
+  handlers.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      admin_groups:
+        items:
+          $ref: '#/definitions/services.AdminGroupResponse'
+        type: array
+      refresh_token:
+        type: string
+    type: object
   handlers.CachedPopularSessionsDoc:
     properties:
       count:
@@ -225,8 +236,6 @@ definitions:
         type: string
       password:
         type: string
-      telegramID:
-        type: string
       updatedAt:
         type: string
       us:
@@ -325,6 +334,13 @@ definitions:
     - password
     - session_id
     type: object
+  services.GenreStats:
+    properties:
+      count:
+        type: integer
+      name:
+        type: string
+    type: object
   services.GroupInf:
     properties:
       categories:
@@ -339,6 +355,8 @@ definitions:
         type: array
       count_members:
         type: integer
+      creater:
+        type: string
       description:
         type: string
       id:
@@ -351,6 +369,8 @@ definitions:
         items:
           $ref: '#/definitions/services.SessionDetailResponse'
         type: array
+      subscription:
+        type: boolean
       users:
         items:
           $ref: '#/definitions/services.UsersGroups'
@@ -409,12 +429,71 @@ definitions:
       small_description:
         type: string
     type: object
+  services.InformationAboutUser:
+    properties:
+      data_register:
+        type: string
+      enterprise:
+        type: boolean
+      image:
+        type: string
+      name:
+        type: string
+      popular_genres:
+        items:
+          $ref: '#/definitions/services.GenreStats'
+        type: array
+      recent_sessions:
+        items:
+          $ref: '#/definitions/services.SessionInfo'
+        type: array
+      telegram_link:
+        type: boolean
+      upcoming_sessions:
+        items:
+          $ref: '#/definitions/services.SessionInfo'
+        type: array
+      user_stats:
+        $ref: '#/definitions/services.UserStatsInfo'
+    type: object
+  services.JoinGroupResult:
+    properties:
+      joined:
+        type: boolean
+      message:
+        type: string
+    type: object
   services.SessionDetailResponse:
     properties:
       metadata:
         $ref: '#/definitions/sessions.SessionMetadata'
       session:
         $ref: '#/definitions/services.SubSessionDetail'
+    type: object
+  services.SessionInfo:
+    properties:
+      current_users:
+        type: integer
+      end_time:
+        type: string
+      genres:
+        items:
+          type: string
+        type: array
+      id:
+        type: integer
+      image_url:
+        type: string
+      location:
+        type: string
+      max_users:
+        type: integer
+      start_time:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
     type: object
   services.SessionResponse:
     properties:
@@ -480,6 +559,25 @@ definitions:
         type: string
       title:
         type: string
+    type: object
+  services.UserStatsInfo:
+    properties:
+      count_all:
+        type: integer
+      count_another:
+        type: integer
+      count_create_session:
+        type: integer
+      count_films:
+        type: integer
+      count_games:
+        type: integer
+      count_table_games:
+        type: integer
+      most_big_session:
+        type: integer
+      series_session_count:
+        type: integer
     type: object
   services.UsersGroups:
     properties:
@@ -908,6 +1006,65 @@ paths:
       summary: Отклонить заявку
       tags:
       - groups_admin
+  /api/admin/groups/requestsForUser:
+    post:
+      description: Администратор группы отправляет приглашение (заявку) указанному
+        пользователю на вступление в группу.
+      parameters:
+      - description: ID группы, в которую отправляется приглашение
+        example: 1
+        in: query
+        name: group_id
+        required: true
+        type: integer
+      - description: ID пользователя, которому отправляется приглашение
+        example: 2
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Заявка на вступление отправлена
+          schema:
+            $ref: '#/definitions/services.JoinGroupResult'
+        "400":
+          description: Некорректные параметры запроса
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет прав администратора
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь или группа не найдены
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отправить приглашение пользователю в группу
+      tags:
+      - groups_admin
   /api/admin/sessions/{sessionId}:
     patch:
       consumes:
@@ -1184,10 +1341,18 @@ paths:
       summary: Присоединение к группе
       tags:
       - groups
-  /api/groups/requests:
+  /api/groups/requests/{groupId}:
     get:
+      consumes:
+      - application/json
       description: Получение всех заявок на вступление в закрытые группы, где текущий
         пользователь является администратором
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -1585,6 +1750,40 @@ paths:
       summary: Создать пользователя
       tags:
       - users
+  /api/users/inf:
+    get:
+      description: Возвращает полную информацию о текущем авторизованном пользователе,
+        включая его сессии и статистику.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Полная информация о пользователе
+          schema:
+            $ref: '#/definitions/services.InformationAboutUser'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить информацию о текущем пользователе
+      tags:
+      - Users inf
   /api/users/login:
     post:
       consumes:
@@ -1603,9 +1802,7 @@ paths:
         "200":
           description: Токены успешно созданы
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.AuthResponse'
         "400":
           description: Некорректный JSON или параметры
           schema:

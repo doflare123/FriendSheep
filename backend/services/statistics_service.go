@@ -406,9 +406,28 @@ func attachGenresFromMongo(ctx context.Context, tx *gorm.DB, sessionID uint, use
 		for _, uid := range userIDs {
 			genreID := g.ID
 			userIDPtr := uid
-			link := statsusers.SessionsStatsGenres_users{UserID: userIDPtr, GenreID: genreID}
-			if err := tx.Where("user_id = ? AND genre_id = ?", uid, genreID).FirstOrCreate(&link).Error; err != nil {
-				return err
+
+			var existingLink statsusers.SessionsStatsGenres_users
+			err := tx.Where("user_id = ? AND genre_id = ?", uid, genreID).First(&existingLink).Error
+
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					count := uint16(1)
+					link := statsusers.SessionsStatsGenres_users{
+						UserID:  &userIDPtr,
+						GenreID: &genreID,
+						Count:   &count,
+					}
+					if err := tx.Create(&link).Error; err != nil {
+						return fmt.Errorf("failed to create genre link for user %d and genre %d: %w", uid, genreID, err)
+					}
+				} else {
+					return fmt.Errorf("failed to check existing genre link: %w", err)
+				}
+			} else {
+				if err := tx.Model(&existingLink).UpdateColumn("count", gorm.Expr("count + 1")).Error; err != nil {
+					return fmt.Errorf("failed to increment genre count for user %d and genre %d: %w", uid, genreID, err)
+				}
 			}
 		}
 	}
