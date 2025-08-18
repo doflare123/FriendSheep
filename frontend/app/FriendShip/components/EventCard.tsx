@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   genreText: { fontFamily: inter.regular, color: Colors.black, fontSize: 10 },
   metaContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginRight: 6 },
-  metaIcon: { resizeMode: 'contain', width: 16, height: 16, marginLeft: 6 },
+  metaIcon: { resizeMode: 'contain', width: 20, height: 20, marginLeft: 2 },
   metaText: { fontFamily: inter.regular, fontSize: 12, color: Colors.black },
   button: { marginTop: 4, backgroundColor: Colors.lightBlue, borderRadius: 20, paddingVertical: 4, alignItems: 'center' },
   buttonText: { fontFamily: inter.regular, color: Colors.white, fontSize: 16 },
