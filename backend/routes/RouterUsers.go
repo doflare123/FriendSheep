@@ -35,5 +35,11 @@ func RouterUsersInfo(r *gin.Engine) {
 	UserInfGroup.Use(middlewares.JWTAuthMiddleware())
 	{
 		UserInfGroup.GET("/inf", handlers.GetInfAboutUser)
+		UserInfGroup.GET("/notify", handlers.GetNotify)
+		UserInfGroup.POST("/notifications/viewed", handlers.MarkNotificationViewed)
+		UserInfGroup.PUT("/invites/:id/approve", handlers.ApproveInvite)
+		UserInfGroup.PUT("/invites/:id/reject", handlers.RejectInvite)
+		UserInfGroup.PATCH("/user/profile", handlers.UpdateUserProfile)
+		UserInfGroup.PATCH("/password", handlers.ChangePassword)
 	}
 }

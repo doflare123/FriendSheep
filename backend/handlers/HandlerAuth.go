@@ -50,7 +50,7 @@ func AuthUser(c *gin.Context) {
 	}
 
 	if !utils.ComparePasswords(input.Password, user.Password, user.Salt) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный пароль"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный логин или пароль"})
 		return
 	}
 
@@ -101,4 +101,55 @@ func RefreshTokenHandler(c *gin.Context) {
 		"access_token":  newTokens.AccessToken,
 		"refresh_token": newTokens.RefreshToken,
 	})
+}
+
+// RequestPasswordReset godoc
+// @Summary      Запрос на сброс пароля
+// @Description  Пользователь указывает email, на него отправляется код подтверждения для смены пароля.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body  services.ResetPasswordRequest  true  "Email пользователя"
+// @Success      200    {object} models.SessionRegResponse
+// @Failure      400    {object} map[string]string
+// @Router       /api/users/request-reset [post]
+func RequestPasswordReset(c *gin.Context) {
+	var input services.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp, err := services.CreateSessionReset(input.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+// ConfirmPasswordReset godoc
+// @Summary      Подтверждение сброса пароля
+// @Description  Пользователь вводит session_id, код из email и новый пароль. При успешной верификации пароль меняется.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body  services.ConfirmResetPasswordInput  true  "Данные для подтверждения и новый пароль"
+// @Success      200    {object} map[string]string
+// @Failure      400    {object} map[string]string
+// @Router       /api/users/confirm-reset [post]
+func ConfirmPasswordReset(c *gin.Context) {
+	var input services.ConfirmResetPasswordInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := services.ResetPassword(input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Пароль успешно изменён"})
 }

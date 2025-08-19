@@ -10,5 +10,6 @@ type Notification struct {
 	NotificationType   NotificationType `gorm:"foreignKey:NotificationTypeID;references:ID"`
 	SendAt             time.Time        `gorm:"not null;index"`
 	Sent               bool             `gorm:"default:false"`
+	Viewed             bool             `gorm:"default:false"`
 	CreatedAt          time.Time
 }

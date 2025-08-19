@@ -52,6 +52,12 @@ type UserStatsInfo struct {
 	CountAll           uint16 `json:"count_all"`
 }
 
+type UpdateUserRequest struct {
+	Name  *string `json:"name,omitempty"`
+	Us    *string `json:"us,omitempty"`
+	Image *string `json:"image,omitempty"`
+}
+
 func GetInfAboutUser(email string) (*InformationAboutUser, error) {
 	database := db.GetDB()
 	if database == nil {
@@ -123,7 +129,6 @@ func getUpcomingSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 
 	metadata, err := db.GetSessionsMetadata(sessionIDs)
 	if err != nil {
-		// Логируем ошибку, но продолжаем без метаданных
 		metadata = make(map[uint]*sessions.SessionMetadata)
 	}
 
@@ -276,4 +281,39 @@ func safeStringSlice(slice []string) []string {
 		return []string{}
 	}
 	return slice
+}
+
+func UpdateUserProfile(email string, req UpdateUserRequest) (*models.User, error) {
+	database := db.GetDB()
+
+	var user models.User
+	if err := database.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, errors.New("пользователь не найден")
+	}
+
+	updates := make(map[string]interface{})
+
+	if req.Name != nil && *req.Name != "" {
+		updates["name"] = *req.Name
+	}
+	if req.Us != nil && *req.Us != "" {
+		var existing models.User
+		if err := database.Where("us = ? AND email <> ?", *req.Us, email).First(&existing).Error; err == nil {
+			return nil, errors.New("US уже используется")
+		}
+		updates["us"] = *req.Us
+	}
+	if req.Image != nil && *req.Image != "" {
+		updates["image"] = *req.Image
+	}
+
+	if len(updates) == 0 {
+		return &user, nil
+	}
+
+	if err := database.Model(&user).Updates(updates).Error; err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }

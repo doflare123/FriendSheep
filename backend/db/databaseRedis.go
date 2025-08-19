@@ -41,15 +41,22 @@ func InitRedis() error {
 	return nil
 }
 
-func (s *SessionStore) CreateSession(sessionID, code string, sessionType models.SessionTypeReg, expiration time.Duration) error {
+func (s *SessionStore) CreateSession(sessionID, code string, sessionType models.SessionTypeReg, expiration time.Duration, extra ...map[string]string) error {
 	fields := map[string]interface{}{
 		"code":        code,
 		"is_verified": "0",
 		"type":        string(sessionType),
 		"attempts":    "0",
 	}
-	err := s.redisClient.HSet(ctx, sessionID, fields).Err()
-	if err != nil {
+
+	// сохраняем дополнительные поля (например email)
+	if len(extra) > 0 {
+		for k, v := range extra[0] {
+			fields[k] = v
+		}
+	}
+
+	if err := s.redisClient.HSet(ctx, sessionID, fields).Err(); err != nil {
 		return err
 	}
 

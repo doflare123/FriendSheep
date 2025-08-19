@@ -61,6 +61,13 @@ definitions:
       updated_at:
         type: string
     type: object
+  handlers.ChangePasswordInput:
+    properties:
+      new_password:
+        type: string
+    required:
+    - new_password
+    type: object
   handlers.GetJoinRequestsResponseDoc:
     properties:
       requests:
@@ -311,6 +318,19 @@ definitions:
       total_count:
         type: integer
     type: object
+  services.ConfirmResetPasswordInput:
+    properties:
+      code:
+        type: string
+      password:
+        type: string
+      session_id:
+        type: string
+    required:
+    - code
+    - password
+    - session_id
+    type: object
   services.Contacts:
     properties:
       link:
@@ -340,6 +360,17 @@ definitions:
         type: integer
       name:
         type: string
+    type: object
+  services.GetNotifyResponse:
+    properties:
+      invites:
+        items:
+          $ref: '#/definitions/services.InviteDTO'
+        type: array
+      notifications:
+        items:
+          $ref: '#/definitions/services.NotificationDTO'
+        type: array
     type: object
   services.GroupInf:
     properties:
@@ -456,12 +487,45 @@ definitions:
       user_stats:
         $ref: '#/definitions/services.UserStatsInfo'
     type: object
+  services.InviteDTO:
+    properties:
+      createdAt:
+        type: string
+      groupId:
+        type: integer
+      groupName:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+    type: object
   services.JoinGroupResult:
     properties:
       joined:
         type: boolean
       message:
         type: string
+    type: object
+  services.NotificationDTO:
+    properties:
+      id:
+        type: integer
+      sendAt:
+        type: string
+      sent:
+        type: boolean
+      type:
+        type: string
+      viewed:
+        type: boolean
+    type: object
+  services.ResetPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
     type: object
   services.SessionDetailResponse:
     properties:
@@ -558,6 +622,15 @@ definitions:
       start_time:
         type: string
       title:
+        type: string
+    type: object
+  services.UpdateUserRequest:
+    properties:
+      image:
+        type: string
+      name:
+        type: string
+      us:
         type: string
     type: object
   services.UserStatsInfo:
@@ -1535,6 +1608,29 @@ paths:
       summary: Создание новой сессии
       tags:
       - Сессии
+  /api/sessions/genres:
+    get:
+      description: Возвращает список всех доступных жанров для сессий.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список жанров
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение списка жанров
+      tags:
+      - Сессии
   /api/sessions/join:
     post:
       consumes:
@@ -1750,6 +1846,37 @@ paths:
       summary: Создать пользователя
       tags:
       - users
+  /api/users/confirm-reset:
+    post:
+      consumes:
+      - application/json
+      description: Пользователь вводит session_id, код из email и новый пароль. При
+        успешной верификации пароль меняется.
+      parameters:
+      - description: Данные для подтверждения и новый пароль
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/services.ConfirmResetPasswordInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Подтверждение сброса пароля
+      tags:
+      - auth
   /api/users/inf:
     get:
       description: Возвращает полную информацию о текущем авторизованном пользователе,
@@ -1782,6 +1909,79 @@ paths:
       security:
       - BearerAuth: []
       summary: Получить информацию о текущем пользователе
+      tags:
+      - Users inf
+  /api/users/invites/{id}/approve:
+    put:
+      description: Принимает приглашение в группу по его ID. Пользователь добавляется
+        в участники группы.
+      parameters:
+      - description: ID приглашения
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Приглашение успешно принято
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный ID или ошибка обработки приглашения (например,
+            уже обработано или нет доступа)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Принять приглашение в группу
+      tags:
+      - Users inf
+  /api/users/invites/{id}/reject:
+    put:
+      description: Отклоняет приглашение в группу по его ID.
+      parameters:
+      - description: ID приглашения
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Приглашение успешно отклонено
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный ID или ошибка обработки приглашения (например,
+            уже обработано или нет доступа)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отклонить приглашение в группу
       tags:
       - Users inf
   /api/users/login:
@@ -1830,6 +2030,113 @@ paths:
       summary: Аутентификация пользователя
       tags:
       - auth
+  /api/users/notifications/viewed:
+    post:
+      consumes:
+      - application/json
+      description: Помечает указанное уведомление как просмотренное для текущего пользователя.
+      parameters:
+      - description: ID уведомления для отметки
+        in: body
+        name: notification
+        required: true
+        schema:
+          properties:
+            id:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Уведомление успешно отмечено как просмотренное
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный запрос или уведомление не найдено
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отметить уведомление как просмотренное
+      tags:
+      - Users inf
+  /api/users/notify:
+    get:
+      description: Возвращает список непросмотренных уведомлений и ожидающих приглашений
+        в группы для текущего пользователя.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список уведомлений и приглашений
+          schema:
+            $ref: '#/definitions/services.GetNotifyResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить уведомления пользователя
+      tags:
+      - Users inf
+  /api/users/password:
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет пароль для текущего авторизованного пользователя.
+      parameters:
+      - description: Новый пароль
+        in: body
+        name: password
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ChangePasswordInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пароль успешно изменен
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Смена пароля пользователя
+      tags:
+      - Users inf
   /api/users/refresh:
     post:
       consumes:
@@ -1864,6 +2171,35 @@ paths:
               type: string
             type: object
       summary: Обновление токенов
+      tags:
+      - auth
+  /api/users/request-reset:
+    post:
+      consumes:
+      - application/json
+      description: Пользователь указывает email, на него отправляется код подтверждения
+        для смены пароля.
+      parameters:
+      - description: Email пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/services.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SessionRegResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Запрос на сброс пароля
       tags:
       - auth
   /api/users/sessions/{sessionId}:
@@ -2188,6 +2524,57 @@ paths:
       security:
       - BearerAuth: []
       summary: Получить подписки пользователя на группы
+      tags:
+      - Users inf
+  /api/users/user/profile:
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет имя, us (юзернейм) или изображение текущего пользователя.
+        Поля в теле запроса опциональны.
+      parameters:
+      - description: Данные для обновления профиля
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/services.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Профиль успешно обновлен
+          schema:
+            properties:
+              ' user':
+                properties:
+                  email:
+                    type: string
+                  image:
+                    type: string
+                  name:
+                    type: string
+                  us:
+                    type: string
+                type: object
+              message:
+                type: string
+            type: object
+        "400":
+          description: Некорректные данные или ошибка (например, us уже занят)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить профиль пользователя
       tags:
       - Users inf
 securityDefinitions:

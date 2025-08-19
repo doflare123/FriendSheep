@@ -99,9 +99,72 @@ func CreateSessionRegister(email string) (*models.SessionRegResponse, error) {
 
 	go func(email, code string) {
 		subject := "Код подтверждения"
-		body := fmt.Sprintf("Ваш код подтверждения: %s\nОн действителен 10 минут.", code)
-		err := utils.SendEmail(email, subject, body)
-		if err != nil {
+
+		body := fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html lang="ru">
+	<head>
+		<meta charset="UTF-8">
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				background-color: #f4f6f9;
+				margin: 0;
+				padding: 0;
+			}
+			.container {
+				max-width: 480px;
+				margin: 30px auto;
+				background: #fff;
+				border-radius: 12px;
+				padding: 24px;
+				box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+			}
+			h2 {
+				color: #333;
+				text-align: center;
+			}
+			p {
+				font-size: 15px;
+				color: #555;
+				line-height: 1.6;
+			}
+			.code {
+				display: block;
+				text-align: center;
+				font-size: 24px;
+				font-weight: bold;
+				margin: 20px 0;
+				padding: 12px;
+				background: #f0f4ff;
+				border: 1px dashed #4a6cf7;
+				border-radius: 8px;
+				color: #4a6cf7;
+				cursor: pointer;
+				user-select: all;
+			}
+			.footer {
+				font-size: 12px;
+				text-align: center;
+				color: #aaa;
+				margin-top: 16px;
+			}
+		</style>
+		</head>
+		<body>
+			<div class="container">
+				<h2>Подтверждение регистрации</h2>
+				<p>Здравствуйте! 👋</p>
+				<p>Чтобы завершить регистрацию, введите следующий код подтверждения:</p>
+				<div class="code">%s</div>
+				<p>Код действителен <b>10 минут</b>. Если вы не запрашивали регистрацию, просто игнорируйте это письмо.</p>
+				<div class="footer">© %d Ваш сервис</div>
+			</div>
+		</body>
+		</html>
+		`, code, time.Now().Year())
+
+		if err := utils.SendEmail(email, subject, body); err != nil {
 			log.Printf("Ошибка отправки email: %v", err)
 		}
 	}(email, codeSession)
@@ -156,4 +219,22 @@ func VerifySession(input VerifySessionInput) (bool, error) {
 	_ = store.UpdateSessionField(input.SessionID, "attempts", 0)
 
 	return true, nil
+}
+
+func ChangePassword(email, newPassword string) error {
+	var user models.User
+	if err := db.GetDB().Where("email = ?", email).First(&user).Error; err != nil {
+		return errors.New("пользователь не найден")
+	}
+
+	hashPass, salt := utils.HashPassword(newPassword)
+
+	user.Password = hashPass
+	user.Salt = salt
+
+	if err := db.GetDB().Save(&user).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
