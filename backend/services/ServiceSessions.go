@@ -7,6 +7,7 @@ import (
 	"friendship/models"
 	"friendship/models/groups"
 	"friendship/models/sessions"
+	statsusers "friendship/models/stats_users"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -922,4 +923,19 @@ func GetSessionsUserGroups(email *string, page int) (*GetNewSessionsResponse, er
 		Page:     page,
 		Total:    int64(totalCount),
 	}, nil
+}
+
+func GetGenres() ([]string, error) {
+	var genres []statsusers.Genre
+	result := db.GetDB().Find(&genres)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	names := make([]string, len(genres))
+	for i, g := range genres {
+		names[i] = g.Name
+	}
+
+	return names, nil
 }

@@ -24,22 +24,31 @@ func checkAdminPermissions(db *gorm.DB, email string, groupID uint) (*models.Use
 	return &user, nil
 }
 
-func GetPendingJoinRequestsForAdmin(email string) ([]GroupJoinRequestRes, error) {
+func GetPendingJoinRequestsForAdmin(email string, groupID uint) ([]GroupJoinRequestRes, error) {
 	var user models.User
 	if err := db.GetDB().Where("email = ?", email).First(&user).Error; err != nil {
 		return nil, errors.New("пользователь не найден")
 	}
 
-	var requests []groups.GroupJoinRequest
+	// Проверяем, является ли пользователь администратором данной группы
+	var groupUser struct {
+		ID   uint
+		Role string
+	}
 	err := db.GetDB().
-		Table("group_join_requests").
-		Joins("JOIN groups ON group_join_requests.group_id = groups.id").
-		Joins("JOIN group_users ON group_users.group_id = groups.id").
-		Where("group_users.user_id = ? AND group_users.role_in_group = ? AND group_join_requests.status = ?", user.ID, "admin", "pending").
+		Table("group_users").
+		Where("user_id = ? AND group_id = ? AND role_in_group = ?", user.ID, groupID, "admin").
+		First(&groupUser).Error
+	if err != nil {
+		return nil, errors.New("пользователь не является администратором данной группы")
+	}
+
+	var requests []groups.GroupJoinRequest
+	err = db.GetDB().
+		Where("group_id = ? AND status = ?", groupID, "pending").
 		Preload("User").
 		Preload("Group").
 		Find(&requests).Error
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pending requests: %w", err)
 	}
@@ -50,7 +59,6 @@ func GetPendingJoinRequestsForAdmin(email string) ([]GroupJoinRequestRes, error)
 			ID:     request.ID,
 			UserID: request.UserID,
 		}
-
 		if request.User.Name != "" {
 			res.Name = request.User.Name
 		}
@@ -60,10 +68,8 @@ func GetPendingJoinRequestsForAdmin(email string) ([]GroupJoinRequestRes, error)
 		if request.User.Image != "" {
 			res.Image = request.User.Image
 		}
-
 		result = append(result, res)
 	}
-
 	return result, nil
 }
 
@@ -202,4 +208,69 @@ func RejectAllJoinRequests(email string, groupID uint) error {
 	}
 
 	return nil
+}
+
+type SentJoinRequestsReq struct {
+	GroupID uint `form:"group_id" binding:"required"`
+	UserID  uint `form:"user_id" binding:"required"`
+}
+
+func SentJoinRequests(email string, input SentJoinRequestsReq) (*JoinGroupResult, error) {
+	if email == "" {
+		return nil, errors.New("email не может быть пустым")
+	}
+	if input.GroupID == 0 {
+		return nil, errors.New("groupID не может быть пустым")
+	}
+	if input.UserID == 0 {
+		return nil, errors.New("userID не может быть пустым")
+	}
+
+	tx := db.GetDB().Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	if _, err := checkAdminPermissions(tx, email, input.GroupID); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	var user models.User
+	if err := tx.Where("email = ?", email).First(&user).Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("пользователь не найден")
+	}
+
+	var group groups.Group
+	if err := tx.Where("id = ? AND creater_id = ?", input.GroupID, user.ID).First(&group).Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("группа не найдена")
+	}
+
+	var userIngroup groups.GroupUsers
+	if err := tx.Where("user_id = ? AND group_id = ?", input.UserID, input.GroupID).First(&userIngroup).Error; err == nil {
+		tx.Rollback()
+		return nil, errors.New("пользователь уже в группе")
+	}
+
+	invite := groups.GroupJoinInvite{
+		UserID:  input.UserID,
+		GroupID: group.ID,
+		Status:  "pending",
+	}
+
+	if err := tx.Create(&invite).Error; err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("ошибка создания приглашения: %v", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("ошибка сохранения транзакции: %v", err)
+	}
+
+	return &JoinGroupResult{
+		Message: "Приглашение на вступление отправлено",
+		Joined:  false,
+	}, nil
 }

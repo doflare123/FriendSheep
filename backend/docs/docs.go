@@ -70,6 +70,73 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/groups/UploadPhoto": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Загружает фотографию в хранилище и возвращает URL. Этот URL затем можно использовать для создания или обновления данных сущности (например, группы).",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups_admin"
+                ],
+                "summary": "Загрузка фотографии",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Изображение для загрузки (JPG, PNG, максимум 10MB)",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "URL загруженного изображения",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Файл не предоставлен, имеет неверный тип или размер",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/groups/requests/{requestId}/approve": {
             "post": {
                 "security": [
@@ -206,6 +273,94 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/groups/requestsForUser": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Администратор группы отправляет приглашение (заявку) указанному пользователю на вступление в группу.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups_admin"
+                ],
+                "summary": "Отправить приглашение пользователю в группу",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "ID группы, в которую отправляется приглашение",
+                        "name": "group_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "example": 2,
+                        "description": "ID пользователя, которому отправляется приглашение",
+                        "name": "user_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Заявка на вступление отправлена",
+                        "schema": {
+                            "$ref": "#/definitions/services.JoinGroupResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные параметры запроса",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Нет прав администратора",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь или группа не найдены",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -789,7 +944,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/groups/requests": {
+        "/api/groups/requests/{groupId}": {
             "get": {
                 "security": [
                     {
@@ -797,6 +952,9 @@ const docTemplate = `{
                     }
                 ],
                 "description": "Получение всех заявок на вступление в закрытые группы, где текущий пользователь является администратором",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -804,6 +962,15 @@ const docTemplate = `{
                     "groups"
                 ],
                 "summary": "Получить заявки на вступление",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "groupId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Список заявок",
@@ -1130,6 +1297,43 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Ошибка сервера или валидации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sessions/genres": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список всех доступных жанров для сессий.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Сессии"
+                ],
+                "summary": "Получение списка жанров",
+                "responses": {
+                    "200": {
+                        "description": "Список жанров",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1541,6 +1745,214 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/users/confirm-reset": {
+            "post": {
+                "description": "Пользователь вводит session_id, код из email и новый пароль. При успешной верификации пароль меняется.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Подтверждение сброса пароля",
+                "parameters": [
+                    {
+                        "description": "Данные для подтверждения и новый пароль",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.ConfirmResetPasswordInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/inf": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает полную информацию о текущем авторизованном пользователе, включая его сессии и статистику.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Получить информацию о текущем пользователе",
+                "responses": {
+                    "200": {
+                        "description": "Полная информация о пользователе",
+                        "schema": {
+                            "$ref": "#/definitions/services.InformationAboutUser"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/invites/{id}/approve": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Принимает приглашение в группу по его ID. Пользователь добавляется в участники группы.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Принять приглашение в группу",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID приглашения",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Приглашение успешно принято",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID или ошибка обработки приглашения (например, уже обработано или нет доступа)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/invites/{id}/reject": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Отклоняет приглашение в группу по его ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Отклонить приглашение в группу",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID приглашения",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Приглашение успешно отклонено",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID или ошибка обработки приглашения (например, уже обработано или нет доступа)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users/login": {
             "post": {
                 "description": "Проверяет email и пароль, возвращает access и refresh токены",
@@ -1569,10 +1981,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Токены успешно созданы",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.AuthResponse"
                         }
                     },
                     "400": {
@@ -1604,6 +2013,174 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/notifications/viewed": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Помечает указанное уведомление как просмотренное для текущего пользователя.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Отметить уведомление как просмотренное",
+                "parameters": [
+                    {
+                        "description": "ID уведомления для отметки",
+                        "name": "notification",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Уведомление успешно отмечено как просмотренное",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос или уведомление не найдено",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/notify": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список непросмотренных уведомлений и ожидающих приглашений в группы для текущего пользователя.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Получить уведомления пользователя",
+                "responses": {
+                    "200": {
+                        "description": "Список уведомлений и приглашений",
+                        "schema": {
+                            "$ref": "#/definitions/services.GetNotifyResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/password": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обновляет пароль для текущего авторизованного пользователя.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Смена пароля пользователя",
+                "parameters": [
+                    {
+                        "description": "Новый пароль",
+                        "name": "password",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ChangePasswordInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пароль успешно изменен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1659,6 +2236,49 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Невалидный или просроченный refresh token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/request-reset": {
+            "post": {
+                "description": "Пользователь указывает email, на него отправляется код подтверждения для смены пароля.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Запрос на сброс пароля",
+                "parameters": [
+                    {
+                        "description": "Email пользователя",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SessionRegResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2158,6 +2778,85 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/users/user/profile": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обновляет имя, us (юзернейм) или изображение текущего пользователя. Поля в теле запроса опциональны.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Обновить профиль пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные для обновления профиля",
+                        "name": "profile",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.UpdateUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Профиль успешно обновлен",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " user": {
+                                    "type": "object",
+                                    "properties": {
+                                        "email": {
+                                            "type": "string"
+                                        },
+                                        "image": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "us": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные или ошибка (например, us уже занят)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2222,6 +2921,23 @@ const docTemplate = `{
                 }
             }
         },
+        "handlers.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "admin_groups": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.AdminGroupResponse"
+                    }
+                },
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
         "handlers.CachedPopularSessionsDoc": {
             "type": "object",
             "properties": {
@@ -2235,6 +2951,17 @@ const docTemplate = `{
                     }
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.ChangePasswordInput": {
+            "type": "object",
+            "required": [
+                "new_password"
+            ],
+            "properties": {
+                "new_password": {
                     "type": "string"
                 }
             }
@@ -2614,6 +3341,25 @@ const docTemplate = `{
                 }
             }
         },
+        "services.ConfirmResetPasswordInput": {
+            "type": "object",
+            "required": [
+                "code",
+                "password",
+                "session_id"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
         "services.Contacts": {
             "type": "object",
             "properties": {
@@ -2648,6 +3394,34 @@ const docTemplate = `{
                 }
             }
         },
+        "services.GenreStats": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.GetNotifyResponse": {
+            "type": "object",
+            "properties": {
+                "invites": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.InviteDTO"
+                    }
+                },
+                "notifications": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.NotificationDTO"
+                    }
+                }
+            }
+        },
         "services.GroupInf": {
             "type": "object",
             "properties": {
@@ -2669,6 +3443,9 @@ const docTemplate = `{
                 "count_members": {
                     "type": "integer"
                 },
+                "creater": {
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -2686,6 +3463,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/services.SessionDetailResponse"
                     }
+                },
+                "subscription": {
+                    "type": "boolean"
                 },
                 "users": {
                     "type": "array",
@@ -2747,6 +3527,12 @@ const docTemplate = `{
         "services.GroupUpdateInput": {
             "type": "object",
             "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "city": {
                     "type": "string"
                 },
@@ -2770,6 +3556,109 @@ const docTemplate = `{
                 }
             }
         },
+        "services.InformationAboutUser": {
+            "type": "object",
+            "properties": {
+                "data_register": {
+                    "type": "string"
+                },
+                "enterprise": {
+                    "type": "boolean"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "popular_genres": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.GenreStats"
+                    }
+                },
+                "recent_sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.SessionInfo"
+                    }
+                },
+                "telegram_link": {
+                    "type": "boolean"
+                },
+                "upcoming_sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.SessionInfo"
+                    }
+                },
+                "user_stats": {
+                    "$ref": "#/definitions/services.UserStatsInfo"
+                }
+            }
+        },
+        "services.InviteDTO": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "groupId": {
+                    "type": "integer"
+                },
+                "groupName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.JoinGroupResult": {
+            "type": "object",
+            "properties": {
+                "joined": {
+                    "type": "boolean"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.NotificationDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "sendAt": {
+                    "type": "string"
+                },
+                "sent": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "viewed": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "services.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
         "services.SessionDetailResponse": {
             "type": "object",
             "properties": {
@@ -2778,6 +3667,44 @@ const docTemplate = `{
                 },
                 "session": {
                     "$ref": "#/definitions/services.SubSessionDetail"
+                }
+            }
+        },
+        "services.SessionInfo": {
+            "type": "object",
+            "properties": {
+                "current_users": {
+                    "type": "integer"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "max_users": {
+                    "type": "integer"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },
@@ -2877,6 +3804,49 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                }
+            }
+        },
+        "services.UpdateUserRequest": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "us": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.UserStatsInfo": {
+            "type": "object",
+            "properties": {
+                "count_all": {
+                    "type": "integer"
+                },
+                "count_another": {
+                    "type": "integer"
+                },
+                "count_create_session": {
+                    "type": "integer"
+                },
+                "count_films": {
+                    "type": "integer"
+                },
+                "count_games": {
+                    "type": "integer"
+                },
+                "count_table_games": {
+                    "type": "integer"
+                },
+                "most_big_session": {
+                    "type": "integer"
+                },
+                "series_session_count": {
+                    "type": "integer"
                 }
             }
         },

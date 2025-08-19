@@ -19,7 +19,8 @@ func SendEmail(to, subject, body string) error {
 		"Subject: %s\r\n"+
 			"From: %s\r\n"+
 			"To: %s\r\n"+
-			"Content-Type: text/plain; charset=\"utf-8\"\r\n\r\n"+
+			"MIME-Version: 1.0\r\n"+
+			"Content-Type: text/html; charset=\"UTF-8\"\r\n\r\n"+
 			"%s", subject, from, to, body,
 	))
 

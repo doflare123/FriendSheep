@@ -39,6 +39,17 @@ definitions:
       name:
         type: string
     type: object
+  handlers.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      admin_groups:
+        items:
+          $ref: '#/definitions/services.AdminGroupResponse'
+        type: array
+      refresh_token:
+        type: string
+    type: object
   handlers.CachedPopularSessionsDoc:
     properties:
       count:
@@ -49,6 +60,13 @@ definitions:
         type: array
       updated_at:
         type: string
+    type: object
+  handlers.ChangePasswordInput:
+    properties:
+      new_password:
+        type: string
+    required:
+    - new_password
     type: object
   handlers.GetJoinRequestsResponseDoc:
     properties:
@@ -300,6 +318,19 @@ definitions:
       total_count:
         type: integer
     type: object
+  services.ConfirmResetPasswordInput:
+    properties:
+      code:
+        type: string
+      password:
+        type: string
+      session_id:
+        type: string
+    required:
+    - code
+    - password
+    - session_id
+    type: object
   services.Contacts:
     properties:
       link:
@@ -323,6 +354,24 @@ definitions:
     - password
     - session_id
     type: object
+  services.GenreStats:
+    properties:
+      count:
+        type: integer
+      name:
+        type: string
+    type: object
+  services.GetNotifyResponse:
+    properties:
+      invites:
+        items:
+          $ref: '#/definitions/services.InviteDTO'
+        type: array
+      notifications:
+        items:
+          $ref: '#/definitions/services.NotificationDTO'
+        type: array
+    type: object
   services.GroupInf:
     properties:
       categories:
@@ -337,6 +386,8 @@ definitions:
         type: array
       count_members:
         type: integer
+      creater:
+        type: string
       description:
         type: string
       id:
@@ -349,6 +400,8 @@ definitions:
         items:
           $ref: '#/definitions/services.SessionDetailResponse'
         type: array
+      subscription:
+        type: boolean
       users:
         items:
           $ref: '#/definitions/services.UsersGroups'
@@ -388,6 +441,10 @@ definitions:
     type: object
   services.GroupUpdateInput:
     properties:
+      categories:
+        items:
+          type: integer
+        type: array
       city:
         type: string
       contacts:
@@ -403,12 +460,104 @@ definitions:
       small_description:
         type: string
     type: object
+  services.InformationAboutUser:
+    properties:
+      data_register:
+        type: string
+      enterprise:
+        type: boolean
+      image:
+        type: string
+      name:
+        type: string
+      popular_genres:
+        items:
+          $ref: '#/definitions/services.GenreStats'
+        type: array
+      recent_sessions:
+        items:
+          $ref: '#/definitions/services.SessionInfo'
+        type: array
+      telegram_link:
+        type: boolean
+      upcoming_sessions:
+        items:
+          $ref: '#/definitions/services.SessionInfo'
+        type: array
+      user_stats:
+        $ref: '#/definitions/services.UserStatsInfo'
+    type: object
+  services.InviteDTO:
+    properties:
+      createdAt:
+        type: string
+      groupId:
+        type: integer
+      groupName:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+    type: object
+  services.JoinGroupResult:
+    properties:
+      joined:
+        type: boolean
+      message:
+        type: string
+    type: object
+  services.NotificationDTO:
+    properties:
+      id:
+        type: integer
+      sendAt:
+        type: string
+      sent:
+        type: boolean
+      type:
+        type: string
+      viewed:
+        type: boolean
+    type: object
+  services.ResetPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   services.SessionDetailResponse:
     properties:
       metadata:
         $ref: '#/definitions/sessions.SessionMetadata'
       session:
         $ref: '#/definitions/services.SubSessionDetail'
+    type: object
+  services.SessionInfo:
+    properties:
+      current_users:
+        type: integer
+      end_time:
+        type: string
+      genres:
+        items:
+          type: string
+        type: array
+      id:
+        type: integer
+      image_url:
+        type: string
+      location:
+        type: string
+      max_users:
+        type: integer
+      start_time:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
     type: object
   services.SessionResponse:
     properties:
@@ -474,6 +623,34 @@ definitions:
         type: string
       title:
         type: string
+    type: object
+  services.UpdateUserRequest:
+    properties:
+      image:
+        type: string
+      name:
+        type: string
+      us:
+        type: string
+    type: object
+  services.UserStatsInfo:
+    properties:
+      count_all:
+        type: integer
+      count_another:
+        type: integer
+      count_create_session:
+        type: integer
+      count_films:
+        type: integer
+      count_games:
+        type: integer
+      count_table_games:
+        type: integer
+      most_big_session:
+        type: integer
+      series_session_count:
+        type: integer
     type: object
   services.UsersGroups:
     properties:
@@ -761,6 +938,51 @@ paths:
       summary: Удалить участника из группы
       tags:
       - groups_admin
+  /api/admin/groups/UploadPhoto:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загружает фотографию в хранилище и возвращает URL. Этот URL затем
+        можно использовать для создания или обновления данных сущности (например,
+        группы).
+      parameters:
+      - description: Изображение для загрузки (JPG, PNG, максимум 10MB)
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: URL загруженного изображения
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Файл не предоставлен, имеет неверный тип или размер
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Загрузка фотографии
+      tags:
+      - groups_admin
   /api/admin/groups/requests/{requestId}/approve:
     post:
       description: Одобрение заявки на вступление в закрытую группу. Только админ
@@ -855,6 +1077,65 @@ paths:
       security:
       - BearerAuth: []
       summary: Отклонить заявку
+      tags:
+      - groups_admin
+  /api/admin/groups/requestsForUser:
+    post:
+      description: Администратор группы отправляет приглашение (заявку) указанному
+        пользователю на вступление в группу.
+      parameters:
+      - description: ID группы, в которую отправляется приглашение
+        example: 1
+        in: query
+        name: group_id
+        required: true
+        type: integer
+      - description: ID пользователя, которому отправляется приглашение
+        example: 2
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Заявка на вступление отправлена
+          schema:
+            $ref: '#/definitions/services.JoinGroupResult'
+        "400":
+          description: Некорректные параметры запроса
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет прав администратора
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь или группа не найдены
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отправить приглашение пользователю в группу
       tags:
       - groups_admin
   /api/admin/sessions/{sessionId}:
@@ -1133,10 +1414,18 @@ paths:
       summary: Присоединение к группе
       tags:
       - groups
-  /api/groups/requests:
+  /api/groups/requests/{groupId}:
     get:
+      consumes:
+      - application/json
       description: Получение всех заявок на вступление в закрытые группы, где текущий
         пользователь является администратором
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -1317,6 +1606,29 @@ paths:
       security:
       - BearerAuth: []
       summary: Создание новой сессии
+      tags:
+      - Сессии
+  /api/sessions/genres:
+    get:
+      description: Возвращает список всех доступных жанров для сессий.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список жанров
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение списка жанров
       tags:
       - Сессии
   /api/sessions/join:
@@ -1534,6 +1846,144 @@ paths:
       summary: Создать пользователя
       tags:
       - users
+  /api/users/confirm-reset:
+    post:
+      consumes:
+      - application/json
+      description: Пользователь вводит session_id, код из email и новый пароль. При
+        успешной верификации пароль меняется.
+      parameters:
+      - description: Данные для подтверждения и новый пароль
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/services.ConfirmResetPasswordInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Подтверждение сброса пароля
+      tags:
+      - auth
+  /api/users/inf:
+    get:
+      description: Возвращает полную информацию о текущем авторизованном пользователе,
+        включая его сессии и статистику.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Полная информация о пользователе
+          schema:
+            $ref: '#/definitions/services.InformationAboutUser'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить информацию о текущем пользователе
+      tags:
+      - Users inf
+  /api/users/invites/{id}/approve:
+    put:
+      description: Принимает приглашение в группу по его ID. Пользователь добавляется
+        в участники группы.
+      parameters:
+      - description: ID приглашения
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Приглашение успешно принято
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный ID или ошибка обработки приглашения (например,
+            уже обработано или нет доступа)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Принять приглашение в группу
+      tags:
+      - Users inf
+  /api/users/invites/{id}/reject:
+    put:
+      description: Отклоняет приглашение в группу по его ID.
+      parameters:
+      - description: ID приглашения
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Приглашение успешно отклонено
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный ID или ошибка обработки приглашения (например,
+            уже обработано или нет доступа)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отклонить приглашение в группу
+      tags:
+      - Users inf
   /api/users/login:
     post:
       consumes:
@@ -1552,9 +2002,7 @@ paths:
         "200":
           description: Токены успешно созданы
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.AuthResponse'
         "400":
           description: Некорректный JSON или параметры
           schema:
@@ -1582,6 +2030,113 @@ paths:
       summary: Аутентификация пользователя
       tags:
       - auth
+  /api/users/notifications/viewed:
+    post:
+      consumes:
+      - application/json
+      description: Помечает указанное уведомление как просмотренное для текущего пользователя.
+      parameters:
+      - description: ID уведомления для отметки
+        in: body
+        name: notification
+        required: true
+        schema:
+          properties:
+            id:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Уведомление успешно отмечено как просмотренное
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный запрос или уведомление не найдено
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отметить уведомление как просмотренное
+      tags:
+      - Users inf
+  /api/users/notify:
+    get:
+      description: Возвращает список непросмотренных уведомлений и ожидающих приглашений
+        в группы для текущего пользователя.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список уведомлений и приглашений
+          schema:
+            $ref: '#/definitions/services.GetNotifyResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить уведомления пользователя
+      tags:
+      - Users inf
+  /api/users/password:
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет пароль для текущего авторизованного пользователя.
+      parameters:
+      - description: Новый пароль
+        in: body
+        name: password
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ChangePasswordInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пароль успешно изменен
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Смена пароля пользователя
+      tags:
+      - Users inf
   /api/users/refresh:
     post:
       consumes:
@@ -1616,6 +2171,35 @@ paths:
               type: string
             type: object
       summary: Обновление токенов
+      tags:
+      - auth
+  /api/users/request-reset:
+    post:
+      consumes:
+      - application/json
+      description: Пользователь указывает email, на него отправляется код подтверждения
+        для смены пароля.
+      parameters:
+      - description: Email пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/services.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SessionRegResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Запрос на сброс пароля
       tags:
       - auth
   /api/users/sessions/{sessionId}:
@@ -1940,6 +2524,57 @@ paths:
       security:
       - BearerAuth: []
       summary: Получить подписки пользователя на группы
+      tags:
+      - Users inf
+  /api/users/user/profile:
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет имя, us (юзернейм) или изображение текущего пользователя.
+        Поля в теле запроса опциональны.
+      parameters:
+      - description: Данные для обновления профиля
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/services.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Профиль успешно обновлен
+          schema:
+            properties:
+              ' user':
+                properties:
+                  email:
+                    type: string
+                  image:
+                    type: string
+                  name:
+                    type: string
+                  us:
+                    type: string
+                type: object
+              message:
+                type: string
+            type: object
+        "400":
+          description: Некорректные данные или ошибка (например, us уже занят)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить профиль пользователя
       tags:
       - Users inf
 securityDefinitions:

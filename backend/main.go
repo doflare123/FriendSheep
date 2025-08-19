@@ -72,6 +72,8 @@ func main() {
 	db.SeedCategories()
 	db.SeedCategoriesSessionsVisibility()
 	db.SeedStatusSessions()
+	db.SeedGenres()
+	db.SeedDays()
 	db.InitMongoDB()
 	if err := db.InitRedis(); err != nil {
 		log.Fatal("Ошибка инициализации Redis:", err)

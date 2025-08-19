@@ -11,5 +11,7 @@ func RoutesAuth(r *gin.Engine) {
 	{
 		AuthGroup.POST("/login", handlers.AuthUser)
 		AuthGroup.POST("/refresh", handlers.RefreshTokenHandler)
+		AuthGroup.POST("/request-reset", handlers.RequestPasswordReset)
+		AuthGroup.POST("/confirm-reset", handlers.ConfirmPasswordReset)
 	}
 }

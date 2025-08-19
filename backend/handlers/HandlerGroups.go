@@ -244,3 +244,45 @@ func UpdateGroupHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Группа успешно обновлена"})
 }
+
+// SentJoinRequests godoc
+// @Summary      Отправить приглашение пользователю в группу
+// @Description  Администратор группы отправляет приглашение (заявку) указанному пользователю на вступление в группу.
+// @Tags         groups_admin
+// @Security     BearerAuth
+// @Produce      json
+// @Param        group_id query int true "ID группы, в которую отправляется приглашение" example(1)
+// @Param        user_id query int true "ID пользователя, которому отправляется приглашение" example(2)
+// @Success      200  {object}  services.JoinGroupResult "Заявка на вступление отправлена"
+// @Failure      400  {object}  map[string]string "Некорректные параметры запроса"
+// @Failure      401  {object}  map[string]string "Пользователь не авторизован"
+// @Failure      403  {object}  map[string]string "Нет прав администратора"
+// @Failure      404  {object}  map[string]string "Пользователь или группа не найдены"
+// @Failure      500  {object}  map[string]string "Внутренняя ошибка сервера"
+// @Router       /api/admin/groups/requestsForUser [post]
+func SentJoinRequests(c *gin.Context) {
+	emailValue, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не найден email в контексте"})
+		return
+	}
+	email := emailValue.(string)
+	var input services.SentJoinRequestsReq
+	if err := c.ShouldBindQuery(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректные параметры запроса: " + err.Error()})
+		return
+	}
+	res, err := services.SentJoinRequests(email, input)
+	if err != nil {
+		errStr := err.Error()
+		if strings.Contains(errStr, "не администратор") {
+			c.JSON(http.StatusForbidden, gin.H{"error": errStr})
+		} else if strings.Contains(errStr, "не найден") {
+			c.JSON(http.StatusNotFound, gin.H{"error": errStr})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errStr})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, res)
+}

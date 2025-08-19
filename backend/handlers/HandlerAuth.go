@@ -17,6 +17,12 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
+type AuthResponse struct {
+	AccessToken  string                        `json:"access_token"`
+	RefreshToken string                        `json:"refresh_token"`
+	AdminGroups  []services.AdminGroupResponse `json:"admin_groups"`
+}
+
 // AuthUser godoc
 // @Summary      Аутентификация пользователя
 // @Description  Проверяет email и пароль, возвращает access и refresh токены
@@ -24,7 +30,7 @@ type RefreshRequest struct {
 // @Accept       json
 // @Produce      json
 // @Param        user  body      UserRequest  true  "Данные пользователя"
-// @Success      200   {object}  map[string]string  "Токены успешно созданы"
+// @Success      200   {object}  AuthResponse  "Токены успешно созданы"
 // @Failure      400   {object}  map[string]string  "Некорректный JSON или параметры"
 // @Failure      401   {object}  map[string]string  "Неверный пароль"
 // @Failure      404   {object}  map[string]string  "Пользователь не найден"
@@ -32,7 +38,6 @@ type RefreshRequest struct {
 // @Router       /api/users/login [post]
 func AuthUser(c *gin.Context) {
 	var input UserRequest
-
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный JSON"})
 		return
@@ -45,7 +50,7 @@ func AuthUser(c *gin.Context) {
 	}
 
 	if !utils.ComparePasswords(input.Password, user.Password, user.Salt) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный пароль"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный логин или пароль"})
 		return
 	}
 
@@ -55,9 +60,15 @@ func AuthUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  token.AccessToken,
-		"refresh_token": token.RefreshToken,
+	adminGroups, err := services.GetAdminGroups(&user.Email)
+	if err != nil {
+		adminGroups = []services.AdminGroupResponse{}
+	}
+
+	c.JSON(http.StatusOK, AuthResponse{
+		AccessToken:  token.AccessToken,
+		RefreshToken: token.RefreshToken,
+		AdminGroups:  adminGroups,
 	})
 }
 
@@ -90,4 +101,55 @@ func RefreshTokenHandler(c *gin.Context) {
 		"access_token":  newTokens.AccessToken,
 		"refresh_token": newTokens.RefreshToken,
 	})
+}
+
+// RequestPasswordReset godoc
+// @Summary      Запрос на сброс пароля
+// @Description  Пользователь указывает email, на него отправляется код подтверждения для смены пароля.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body  services.ResetPasswordRequest  true  "Email пользователя"
+// @Success      200    {object} models.SessionRegResponse
+// @Failure      400    {object} map[string]string
+// @Router       /api/users/request-reset [post]
+func RequestPasswordReset(c *gin.Context) {
+	var input services.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp, err := services.CreateSessionReset(input.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+// ConfirmPasswordReset godoc
+// @Summary      Подтверждение сброса пароля
+// @Description  Пользователь вводит session_id, код из email и новый пароль. При успешной верификации пароль меняется.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body  services.ConfirmResetPasswordInput  true  "Данные для подтверждения и новый пароль"
+// @Success      200    {object} map[string]string
+// @Failure      400    {object} map[string]string
+// @Router       /api/users/confirm-reset [post]
+func ConfirmPasswordReset(c *gin.Context) {
+	var input services.ConfirmResetPasswordInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := services.ResetPassword(input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Пароль успешно изменён"})
 }

@@ -25,8 +25,8 @@ type CreateGroupInput struct {
 }
 
 type JoinGroupResult struct {
-	Message string
-	Joined  bool
+	Message string `json:"message"`
+	Joined  bool   `json:"joined"`
 }
 
 // func (input *CreateGroupInput) IsPrivateBool() (bool, error) {
@@ -242,7 +242,9 @@ type GroupInf struct {
 	Description  string                  `json:"description"`
 	Image        string                  `json:"image"`
 	City         string                  `json:"city"`
+	Creater      string                  `json:"creater"`
 	CountMembers int64                   `json:"count_members"`
+	Subscription bool                    `json:"subscription"`
 	Users        []UsersGroups           `json:"users"`
 	Categories   []*string               `json:"categories"`
 	Contacts     []*Contacts             `json:"contacts"`
@@ -298,12 +300,22 @@ func GetGroupInf(groupID *uint64, email *string) (*GroupInf, error) {
 	information.Description = group.Description
 	information.Image = group.Image
 	information.City = group.City
+	information.Creater = group.Creater.Name
 
 	users, err := getGroupUsers(*groupID)
 	if err != nil {
 		return nil, err
 	}
 	information.Users = users
+
+	var subscriptionCount int64
+	err = db.GetDB().Model(&groups.GroupUsers{}).
+		Where("group_id = ? AND user_id = ?", groupID, user.ID).
+		Count(&subscriptionCount).Error
+	if err != nil {
+		return nil, err
+	}
+	information.Subscription = subscriptionCount > 0
 
 	var totalMembers int64
 	err = db.GetDB().Model(&groups.GroupUsers{}).
@@ -355,6 +367,7 @@ type GroupUpdateInput struct {
 	Image            *string `json:"image"`
 	IsPrivate        *bool   `json:"is_private"`
 	City             *string `json:"city"`
+	Categories       []*uint `json:"categories"`
 	Contacts         *string `json:"contacts"`
 }
 
@@ -401,6 +414,24 @@ func UpdateGroup(groupID uint, input GroupUpdateInput) (err error) {
 	if len(updates) > 0 {
 		if err = tx.Model(&group).Updates(updates).Error; err != nil {
 			return fmt.Errorf("не удалось сохранить изменения группы: %v", err)
+		}
+	}
+
+	if input.Categories != nil {
+		// удаляем все имеющиеся связи
+		if err = tx.Model(&group).Association("Categories").Clear(); err != nil {
+			return fmt.Errorf("не удалось очистить старые категории: %v", err)
+		}
+
+		// добавляем новые (если передан пустой [] — просто останутся пустые категории)
+		if len(input.Categories) > 0 {
+			var newCategories []models.Category
+			if err = tx.Where("id IN ?", input.Categories).Find(&newCategories).Error; err != nil {
+				return fmt.Errorf("не удалось найти переданные категории: %v", err)
+			}
+			if err = tx.Model(&group).Association("Categories").Replace(&newCategories); err != nil {
+				return fmt.Errorf("не удалось назначить новые категории: %v", err)
+			}
 		}
 	}
 

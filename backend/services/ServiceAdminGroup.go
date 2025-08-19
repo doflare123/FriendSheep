@@ -83,7 +83,7 @@ type GroupJoinRequestRes struct {
 	Image  string `json:"image"`
 }
 
-func GetAdminGroupInfo(email *string, groupID *uint) (*AdminGroupInfResponse, error) {
+func GetAdminGroupInfo(email string, groupID *uint) (*AdminGroupInfResponse, error) {
 	if groupID == nil {
 		return nil, errors.New("invalid group ID")
 	}
@@ -120,7 +120,7 @@ func GetAdminGroupInfo(email *string, groupID *uint) (*AdminGroupInfResponse, er
 	appChan := make(chan applicationResult, 1)
 
 	go func() {
-		applications, err := GetPendingJoinRequestsForAdmin(*email)
+		applications, err := GetPendingJoinRequestsForAdmin(email, *groupID)
 		appChan <- applicationResult{applications: applications, err: err}
 	}()
 

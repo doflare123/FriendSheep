@@ -3,6 +3,7 @@ package handlers
 import (
 	"friendship/services"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,19 +39,30 @@ type GroupPreviewDoc struct {
 // @Description Получение всех заявок на вступление в закрытые группы, где текущий пользователь является администратором
 // @Tags groups
 // @Security BearerAuth
+// @Param groupId path int true "ID группы"
+// @Accept       json
 // @Produce json
 // @Success 200 {object} GetJoinRequestsResponseDoc "Список заявок"
 // @Failure 401 {object} map[string]string "Ошибка авторизации"
 // @Failure 403 {object} map[string]string "Нет доступа или пользователь не найден"
 // @Failure 500 {object} map[string]string "Внутренняя ошибка"
-// @Router /api/groups/requests [get]
+// @Router /api/groups/requests/{groupId} [get]
 func GetJoinRequests(c *gin.Context) {
-	email, _ := c.Get("email")
-	requests, err := services.GetPendingJoinRequestsForAdmin(email.(string))
+	email := c.MustGet("email").(string)
+
+	groupIDParam := c.Param("groupId")
+	groupID, err := strconv.ParseUint(groupIDParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный ID группы"})
+		return
+	}
+
+	requests, err := services.GetPendingJoinRequestsForAdmin(email, uint(groupID))
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"requests": requests})
 }
 

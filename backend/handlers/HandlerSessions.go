@@ -223,3 +223,21 @@ func UpdateSessionHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Сессия успешно обновлена"})
 }
+
+// GetGenres godoc
+// @Summary      Получение списка жанров
+// @Description  Возвращает список всех доступных жанров для сессий.
+// @Tags         Сессии
+// @Produce      json
+// @Success      200  {array}   string "Список жанров"
+// @Failure      500  {object}  map[string]string "Внутренняя ошибка сервера"
+// @Security     BearerAuth
+// @Router       /api/sessions/genres [get]
+func GetGenres(c *gin.Context) {
+	genres, err := services.GetGenres()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, genres)
+}
