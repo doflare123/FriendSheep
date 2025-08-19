@@ -1151,6 +1151,278 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/news": {
+            "get": {
+                "description": "Возвращает постраничный список новостей, отсортированных по дате создания.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Получить список новостей",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Номер страницы",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Постраничный список новостей",
+                        "schema": {
+                            "$ref": "#/definitions/services.NewsPage"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создает новую новость вместе с текстом. Доступно только администраторам.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Создание новости",
+                "parameters": [
+                    {
+                        "description": "Данные для создания новости",
+                        "name": "news",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.CreateNewsInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Новость успешно создана",
+                        "schema": {
+                            "$ref": "#/definitions/news.News"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные или ошибка валидации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован или не является администратором",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/news/{id}": {
+            "get": {
+                "description": "Возвращает новость по ID с текстом и комментариями (с ником и картинкой юзера)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Получение новости",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID новости",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Новость с текстом и комментариями",
+                        "schema": {
+                            "$ref": "#/definitions/services.NewsDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "Новость не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/news/{id}/comments": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создаёт комментарий для новости (только авторизованные пользователи)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Добавить комментарий",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID новости",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Комментарий",
+                        "name": "comment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.CreateCommentInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/news.Comments"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/news/{newsId}/comments/{commentId}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет комментарий (только для администраторов)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Comments"
+                ],
+                "summary": "Удалить комментарий",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID новости",
+                        "name": "newsId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID комментария",
+                        "name": "commentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/sessions/createSession": {
             "post": {
                 "security": [
@@ -1791,6 +2063,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/users/delete": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Позволяет текущему авторизованному пользователю удалить свой аккаунт. Это действие необратимо.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Удаление аккаунта пользователя",
+                "responses": {
+                    "200": {
+                        "description": "Аккаунт успешно удалён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка (например, пользователь не найден)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users/inf": {
             "get": {
                 "security": [
@@ -1806,6 +2124,67 @@ const docTemplate = `{
                     "Users inf"
                 ],
                 "summary": "Получить информацию о текущем пользователе",
+                "responses": {
+                    "200": {
+                        "description": "Полная информация о пользователе",
+                        "schema": {
+                            "$ref": "#/definitions/services.InformationAboutUser"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/inf/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает полную информацию о текущем авторизованном пользователе, включая его сессии и статистику.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Получить информацию о другом пользователе",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID пользователя",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Полная информация о пользователе",
@@ -2779,6 +3158,75 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/users/tiles": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Позволяет пользователю настроить, какие плитки статистики будут отображаться в его профиле.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Изменить порядок отображения плиток статистики",
+                "parameters": [
+                    {
+                        "description": "Новые настройки для плиток статистики",
+                        "name": "settings",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.ChangeTilesPatternInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Порядок плиток изменен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users/user/profile": {
             "patch": {
                 "security": [
@@ -3242,6 +3690,86 @@ const docTemplate = `{
                 }
             }
         },
+        "news.Comments": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "news_id": {
+                    "type": "integer"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "news.ContentNews": {
+            "type": "object",
+            "required": [
+                "text"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "news_id": {
+                    "type": "integer"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "news.News": {
+            "type": "object",
+            "required": [
+                "description",
+                "image",
+                "title"
+            ],
+            "properties": {
+                "comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/news.Comments"
+                    }
+                },
+                "content": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/news.ContentNews"
+                    }
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "created_time": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
         "services.AdminGroupInfResponse": {
             "type": "object",
             "properties": {
@@ -3341,15 +3869,62 @@ const docTemplate = `{
                 }
             }
         },
+        "services.ChangeTilesPatternInput": {
+            "type": "object",
+            "properties": {
+                "count_all": {
+                    "type": "boolean"
+                },
+                "count_films": {
+                    "type": "boolean"
+                },
+                "count_games": {
+                    "type": "boolean"
+                },
+                "count_other": {
+                    "type": "boolean"
+                },
+                "count_table": {
+                    "type": "boolean"
+                },
+                "spent_time": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "services.CommentDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "services.ConfirmResetPasswordInput": {
             "type": "object",
             "required": [
                 "code",
+                "email",
                 "password",
                 "session_id"
             ],
             "properties": {
                 "code": {
+                    "type": "string"
+                },
+                "email": {
                     "type": "string"
                 },
                 "password": {
@@ -3367,6 +3942,40 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.CreateCommentInput": {
+            "type": "object",
+            "required": [
+                "text"
+            ],
+            "properties": {
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.CreateNewsInput": {
+            "type": "object",
+            "required": [
+                "description",
+                "image",
+                "text",
+                "title"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "title": {
                     "type": "string"
                 }
             }
@@ -3586,6 +4195,12 @@ const docTemplate = `{
                 "telegram_link": {
                     "type": "boolean"
                 },
+                "tiles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "upcoming_sessions": {
                     "type": "array",
                     "items": {
@@ -3625,6 +4240,55 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "services.NewsDTO": {
+            "type": "object",
+            "properties": {
+                "comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.CommentDTO"
+                    }
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_time": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.NewsPage": {
+            "type": "object",
+            "properties": {
+                "hasMore": {
+                    "type": "boolean"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/news.News"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -3846,6 +4510,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "series_session_count": {
+                    "type": "integer"
+                },
+                "spent_time": {
                     "type": "integer"
                 }
             }

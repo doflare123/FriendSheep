@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"friendship/models"
 	"friendship/models/groups"
+	"friendship/models/news"
 	"friendship/models/sessions"
 	statsusers "friendship/models/stats_users"
 	"os"
@@ -29,8 +30,9 @@ func InitDatabase() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %v", err)
 	}
+	db.AutoMigrate(&news.News{}, &news.ContentNews{}, &news.Comments{})
 	db.AutoMigrate(&statsusers.SideStats_users{}, &statsusers.SessionStats_users{}, &statsusers.SessionsStatsGenres_users{},
-		&statsusers.Genre{}, statsusers.PopSessionType{})
+		&statsusers.Genre{}, statsusers.PopSessionType{}, statsusers.SettingTile{})
 	db.AutoMigrate(&models.User{}, models.StatsProcessedEvent{},
 		&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{}, &groups.GroupJoinInvite{},
 		&sessions.Session{}, &sessions.SessionGroupType{}, &sessions.SessionMetadata{}, sessions.Status{},

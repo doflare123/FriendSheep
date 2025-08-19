@@ -12,15 +12,17 @@ import (
 )
 
 type InformationAboutUser struct {
-	Name             string        `json:"name"`
-	Image            string        `json:"image"`
-	DataRegister     time.Time     `json:"data_register"`
-	Enterprise       bool          `json:"enterprise"`
-	TelegramLink     bool          `json:"telegram_link"`
+	Name         string    `json:"name"`
+	Image        string    `json:"image"`
+	DataRegister time.Time `json:"data_register"`
+	Enterprise   bool      `json:"enterprise"`
+	TelegramLink bool      `json:"telegram_link"`
+
 	UpcomingSessions []SessionInfo `json:"upcoming_sessions"`
 	RecentSessions   []SessionInfo `json:"recent_sessions"`
 	PopularGenres    []GenreStats  `json:"popular_genres"`
 	UserStats        UserStatsInfo `json:"user_stats"`
+	Tiles            []string      `json:"tiles"`
 }
 
 type SessionInfo struct {
@@ -50,6 +52,7 @@ type UserStatsInfo struct {
 	CountTableGames    uint16 `json:"count_table_games"`
 	CountAnother       uint16 `json:"count_another"`
 	CountAll           uint16 `json:"count_all"`
+	SpentTime          uint64 `json:"spent_time,omitempty"`
 }
 
 type UpdateUserRequest struct {
@@ -70,6 +73,31 @@ func GetInfAboutUser(email string) (*InformationAboutUser, error) {
 			return nil, nil
 		}
 		return nil, err
+	}
+
+	var tiles statsusers.SettingTile
+	if err := database.Where("user_id = ?", user.ID).First(&tiles).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	var enabledTiles []string
+	if tiles.Count_films {
+		enabledTiles = append(enabledTiles, "count_films")
+	}
+	if tiles.Count_games {
+		enabledTiles = append(enabledTiles, "count_games")
+	}
+	if tiles.Count_table {
+		enabledTiles = append(enabledTiles, "count_table")
+	}
+	if tiles.Count_other {
+		enabledTiles = append(enabledTiles, "count_other")
+	}
+	if tiles.Count_all {
+		enabledTiles = append(enabledTiles, "count_all")
+	}
+	if tiles.Spent_time {
+		enabledTiles = append(enabledTiles, "spent_time")
 	}
 
 	upcomingSessions, err := getUpcomingSessions(database, user.ID)
@@ -102,6 +130,82 @@ func GetInfAboutUser(email string) (*InformationAboutUser, error) {
 		RecentSessions:   recentSessions,
 		PopularGenres:    popularGenres,
 		UserStats:        userStats,
+		Tiles:            enabledTiles,
+	}
+
+	return result, nil
+}
+
+func GetInfAboutAnotherUser(email string) (*InformationAboutUser, error) {
+	database := db.GetDB()
+	if database == nil {
+		return nil, errors.New("база данных недоступна")
+	}
+
+	var user models.User
+	if err := database.Where("email = ?", email).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	var tiles statsusers.SettingTile
+	if err := database.Where("user_id = ?", user.ID).First(&tiles).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	var enabledTiles []string
+	if tiles.Count_films {
+		enabledTiles = append(enabledTiles, "count_films")
+	}
+	if tiles.Count_games {
+		enabledTiles = append(enabledTiles, "count_games")
+	}
+	if tiles.Count_table {
+		enabledTiles = append(enabledTiles, "count_table")
+	}
+	if tiles.Count_other {
+		enabledTiles = append(enabledTiles, "count_other")
+	}
+	if tiles.Count_all {
+		enabledTiles = append(enabledTiles, "count_all")
+	}
+	if tiles.Spent_time {
+		enabledTiles = append(enabledTiles, "spent_time")
+	}
+
+	upcomingSessions, err := getUpcomingSessions(database, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// recentSessions, err := getRecentSessions(database, user.ID)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	popularGenres, err := getPopularGenres(database, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	userStats, err := getUserStats(database, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &InformationAboutUser{
+		Name:         user.Name,
+		Image:        user.Image,
+		DataRegister: user.DataRegister,
+		Enterprise:   user.Enterprise,
+		// TelegramLink:     user.TelegramID != nil,
+		UpcomingSessions: upcomingSessions,
+		// RecentSessions:   recentSessions,
+		PopularGenres: popularGenres,
+		UserStats:     userStats,
+		Tiles:         enabledTiles,
 	}
 
 	return result, nil
@@ -259,6 +363,7 @@ func getUserStats(db *gorm.DB, userID uint) (UserStatsInfo, error) {
 		CountTableGames:    safeUint16Value(&sessionStats.CountTableGames),
 		CountAnother:       safeUint16Value(&sessionStats.CountAnother),
 		CountAll:           safeUint16Value(&sessionStats.CountAll),
+		SpentTime:          sessionStats.SpentTime,
 	}, nil
 }
 

@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"fmt"
 	"friendship/services"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -104,6 +106,64 @@ func GetInfAboutUser(c *gin.Context) {
 	c.JSON(http.StatusOK, userInf)
 }
 
+// GetInfAboutUser godoc
+// @Summary      Получить информацию о другом пользователе
+// @Description  Возвращает полную информацию о текущем авторизованном пользователе, включая его сессии и статистику.
+// @Tags         Users inf
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id path string true "ID пользователя"
+// @Success      200  {object}  services.InformationAboutUser "Полная информация о пользователе"
+// @Failure      401  {object}  map[string]string "Пользователь не авторизован"
+// @Failure      404  {object}  map[string]string "Пользователь не найден"
+// @Failure      500  {object}  map[string]string "Внутренняя ошибка сервера"
+// @Router       /api/users/inf/{id} [get]
+func GetInfAboutUserByID(c *gin.Context) {
+	emailValue, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не найден email в контексте"})
+		return
+	}
+
+	email, ok := emailValue.(string)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат email в контексте"})
+		return
+	}
+
+	if email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email не может быть пустым"})
+		return
+	}
+
+	var id = c.Param("id")
+	fmt.Println("id", id)
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id не может быть пустым"})
+		return
+	}
+	idMain, _ := strconv.ParseUint(id, 10, 32)
+	fmt.Println("idMain", idMain)
+	fmt.Println("idMain", uint(idMain))
+	user, err := services.FindUserByID(uint(idMain))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	userInf, err := services.GetInfAboutAnotherUser(user.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "внутренняя ошибка сервера"})
+		return
+	}
+
+	if userInf == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "пользователь не найден"})
+		return
+	}
+
+	c.JSON(http.StatusOK, userInf)
+}
+
 // UpdateUserProfile godoc
 // @Summary      Обновить профиль пользователя
 // @Description  Обновляет имя, us (юзернейм) или изображение текущего пользователя. Поля в теле запроса опциональны.
@@ -191,4 +251,44 @@ func ChangePassword(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Пароль успешно изменён"})
+}
+
+// ChangeTilesPattern godoc
+// @Summary      Изменить порядок отображения плиток статистики
+// @Description  Позволяет пользователю настроить, какие плитки статистики будут отображаться в его профиле.
+// @Tags         Users inf
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        settings body services.ChangeTilesPatternInput true "Новые настройки для плиток статистики"
+// @Success      200  {object}  map[string]string "Порядок плиток изменен"
+// @Failure      400  {object}  map[string]string "Некорректные данные"
+// @Failure      401  {object}  map[string]string "Пользователь не авторизован"
+// @Failure      500  {object}  map[string]string "Внутренняя ошибка сервера"
+// @Router       /api/users/tiles [patch]
+func ChangeTilesPattern(c *gin.Context) {
+	emailValue, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не найден email в контексте"})
+		return
+	}
+
+	email, ok := emailValue.(string)
+	if !ok || email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат email"})
+		return
+	}
+
+	var input services.ChangeTilesPatternInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не удалось распарсить json", "details": err.Error()})
+		return
+	}
+
+	if err := services.ChangePattern(email, input); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "Порядок плиток изменен"})
 }

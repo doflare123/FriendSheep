@@ -113,6 +113,13 @@ func UpdateStatisticsForFinishedSession(ctx context.Context, sessionID uint) err
 	userIDs[s.UserID] = struct{}{}
 
 	// 7) Инкременты по участию для всех: count_all и по типам
+	sessionDuration := uint64(0)
+	if s.Duration > 0 {
+		sessionDuration = uint64(s.Duration)
+	} else {
+		sessionDuration = uint64(s.EndTime.Sub(s.StartTime).Seconds())
+	}
+
 	for uid := range userIDs {
 		if err := ensureUserStatsRows(tx, uid); err != nil {
 			tx.Rollback()
@@ -120,7 +127,10 @@ func UpdateStatisticsForFinishedSession(ctx context.Context, sessionID uint) err
 		}
 		if err := tx.Model(&statsusers.SessionStats_users{}).
 			Where("user_id = ?", uid).
-			UpdateColumn("count_all", gorm.Expr("count_all + 1")).Error; err != nil {
+			Updates(map[string]any{
+				"count_all":  gorm.Expr("count_all + 1"),
+				"spent_time": gorm.Expr("spent_time + ?", sessionDuration),
+			}).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -230,6 +240,7 @@ func ensureUserStatsRows(tx *gorm.DB, userID uint) error {
 				CountGames:      0,
 				CountTableGames: 0,
 				CountAnother:    0,
+				SpentTime:       0,
 			}
 			if err := tx.Create(&newSessionStats).Error; err != nil {
 				return fmt.Errorf("failed to create SessionStats_users: %w", err)
