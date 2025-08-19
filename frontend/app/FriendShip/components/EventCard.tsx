@@ -9,20 +9,45 @@ export interface Event {
   title: string;
   date: string;
   genres: string[];
-  participants: string;
+  currentParticipants: number;
+  maxParticipants: number;
   duration: string;
   imageUri: string;
   description: string;
   typeEvent: string;
-  typePlace: string;
+  typePlace: 'online' | 'offline';
   eventPlace: string;
   publisher: string;
   publicationDate: number;
   ageRating: string;
+  category: 'movie' | 'game' | 'table_game' | 'other';
   onPress?: () => void;
 }
 
-const EventCard: React.FC<Event> = ({ title, date, genres, participants, duration, imageUri, onPress }) => {
+const categoryIcons: Record<Event["category"], any> = {
+  movie: require("../assets/images/event_card/movie.png"),
+  game: require("../assets/images/event_card/game.png"),
+  table_game: require("../assets/images/event_card/table_game.png"),
+  other: require("../assets/images/event_card/other.png"),
+};
+
+const placeIcons: Record<Event["typePlace"], any> = {
+  online: require("../assets/images/event_card/online.png"),
+  offline: require("../assets/images/event_card/offline.png"),
+};
+
+const EventCard: React.FC<Event> = ({
+  title,
+  date,
+  genres,
+  currentParticipants,
+  maxParticipants,
+  duration,
+  imageUri,
+  onPress,
+  category,
+  typePlace,
+}) => {
   return (
     <View style={styles.card}>
       <View style={styles.imageWrapper}>
@@ -31,7 +56,10 @@ const EventCard: React.FC<Event> = ({ title, date, genres, participants, duratio
           <Text style={styles.dateText}>{date}</Text>
         </View>
         <View style={styles.iconOverlay}>
-          <Image source={require("../assets/images/event_card/movie.png")} style={{ resizeMode: 'contain', width: 25, height: 25 }} />
+          <Image
+            source={categoryIcons[category]}
+            style={{ resizeMode: 'contain', width: 25, height: 25 }}
+          />
         </View>
       </View>
 
@@ -48,18 +76,29 @@ const EventCard: React.FC<Event> = ({ title, date, genres, participants, duratio
 
         <View style={styles.metaContainer}>
           <View style={styles.metaRow}>
-            <Text style={styles.metaText}>Участников: {participants}</Text>
-            <Image source={require("../assets/images/event_card/person.png")} style={styles.metaIcon} />
+            <Text style={styles.metaText}>
+              Участников: {currentParticipants}/{maxParticipants}
+            </Text>
+            <Image
+              source={require("../assets/images/event_card/person.png")}
+              style={styles.metaIcon}
+            />
           </View>
 
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>{duration}</Text>
-            <Image source={require("../assets/images/event_card/duration.png")} style={styles.metaIcon} />
+            <Image
+              source={require("../assets/images/event_card/duration.png")}
+              style={styles.metaIcon}
+            />
           </View>
         </View>
 
         <View style={styles.iconOverlay}>
-          <Image source={require("../assets/images/event_card/online.png")} style={{ resizeMode: 'contain', width: 20, height: 20 }} />
+          <Image
+            source={placeIcons[typePlace]}
+            style={{ resizeMode: 'contain', width: 20, height: 20 }}
+          />
         </View>
 
         <TouchableOpacity onPress={onPress}>
@@ -113,7 +152,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.lightBlue,
   },
-  dateText: { fontFamily: inter.regular, fontSize: 12, margin: -4, color: Colors.black },
+  dateText: {
+    fontFamily: inter.regular,
+    fontSize: 12,
+    margin: -4,
+    color: Colors.black,
+  },
   iconOverlay: {
     position: 'absolute',
     top: 10,
@@ -124,16 +168,46 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.lightBlue,
   },
-  title: { fontFamily: inter.black, fontSize: 17, marginTop: -4, marginBottom: 8 },
+  title: {
+    fontFamily: inter.black,
+    fontSize: 17,
+    marginTop: -4,
+    marginBottom: 8,
+  },
   genres: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
-  genreBadge: { marginRight: 6, backgroundColor: Colors.lightBlue, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2 },
+  genreBadge: {
+    marginRight: 6,
+    backgroundColor: Colors.lightBlue,
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
   genreText: { fontFamily: inter.regular, color: Colors.black, fontSize: 10 },
-  metaContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  metaContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginRight: 6 },
-  metaIcon: { resizeMode: 'contain', width: 20, height: 20, marginLeft: 2 },
+  metaIcon: {
+    resizeMode: 'contain',
+    width: 20,
+    height: 20,
+    marginLeft: 2,
+  },
   metaText: { fontFamily: inter.regular, fontSize: 12, color: Colors.black },
-  button: { marginTop: 4, backgroundColor: Colors.lightBlue, borderRadius: 20, paddingVertical: 4, alignItems: 'center' },
-  buttonText: { fontFamily: inter.regular, color: Colors.white, fontSize: 16 },
+  button: {
+    marginTop: 4,
+    backgroundColor: Colors.lightBlue,
+    borderRadius: 20,
+    paddingVertical: 4,
+    alignItems: 'center',
+  },
+  buttonText: {
+    fontFamily: inter.regular,
+    color: Colors.white,
+    fontSize: 16,
+  },
 });
 
 export default EventCard;

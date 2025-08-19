@@ -1,17 +1,9 @@
 import React from 'react';
 import { Dimensions, FlatList, StyleSheet, View } from 'react-native';
-import EventCard from './EventCard';
+import EventCard, { Event } from './EventCard';
 
 interface EventCarouselProps {
-  events: {
-    id: string;
-    title: string;
-    date: string;
-    genres: string[];
-    participants: string;
-    duration: string;
-    imageUri: string;
-  }[];
+  events: Event[];
 }
 
 const { width } = Dimensions.get('window');

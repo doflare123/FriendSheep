@@ -3,9 +3,15 @@ import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import React, { useRef, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SortingActions, SortingState } from '../app/(tabs)/MainPage';
 import MainSearchBar from './MainSearchBar';
 
-const TopBar = () => {
+interface TopBarProps {
+  sortingState: SortingState;
+  sortingActions: SortingActions;
+}
+
+const TopBar : React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [notifModalPos, setNotifModalPos] = useState({ top: 0, left: 0 });
   const notifIconRef = useRef<View>(null);
@@ -24,7 +30,10 @@ const TopBar = () => {
 
   return (
     <View style={styles.container}>
-      <MainSearchBar />
+      <MainSearchBar 
+        sortingState={sortingState} 
+        sortingActions={sortingActions} 
+      />
       <TouchableOpacity
         ref={notifIconRef}
         onPress={openNotifications}

@@ -14,6 +14,18 @@ import {
 import { Event } from './EventCard';
 import Toast from './Toast';
 
+const categoryIcons: Record<Event["category"], any> = {
+  movie: require("../assets/images/event_card/movie.png"),
+  game: require("../assets/images/event_card/game.png"),
+  table_game: require("../assets/images/event_card/table_game.png"),
+  other: require("../assets/images/event_card/other.png"),
+};
+
+const placeIcons: Record<Event["typePlace"], any> = {
+  online: require("../assets/images/event_card/online.png"),
+  offline: require("../assets/images/event_card/offline.png"),
+};
+
 interface EventModalProps {
   visible: boolean;
   onClose: () => void;
@@ -22,7 +34,6 @@ interface EventModalProps {
 }
 
 const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
-
   const [toastVisible, setToastVisible] = React.useState(false);
 
   return (
@@ -31,110 +42,144 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
         <View style={styles.overlay}>
           <TouchableWithoutFeedback onPress={() => {}}>
             <View style={styles.modal}>
-                <View style={styles.header}>
-                  <Image source={{ uri: event.imageUri }} style={styles.image} />
-                  <Image
-                    source={require('../assets/images/event_card/rectangle.png')}
-                    style={styles.rectangle}
-                  />
-                  <Text style={styles.title}>{event.title}</Text>
-                  <View style={styles.iconsRow}>
-                      <View style={styles.iconOverlay}>
-                        <Image
-                          source={require("../assets/images/event_card/movie.png")}
-                          style={{ resizeMode: 'contain', width: 20, height: 20 }}
-                        />
-                      </View>
-                      <View style={styles.iconOverlay}>
-                        <Image
-                          source={require("../assets/images/event_card/online.png")}
-                          style={{ resizeMode: 'contain', width: 20, height: 20 }}
-                        />
-                      </View>
-                    </View>
-                </View>
-
-                <View style={styles.content}>
-                  <Text style={styles.description}>
-                    {event.description ||
-                      'Описание отсутствует'}
-                  </Text>
-
-                  <View style={[styles.row, { marginBottom: 8}]}>
-                    <View style={{flexDirection: 'row'}}>
-                      <Text style={styles.label}>Дата:</Text>
-                      <Text style={styles.value}>{event.date}</Text>
-                    </View>
-                    <View style={{flexDirection: 'row'}}>
-                      <Text style={styles.value}>{event.duration}</Text>
-                      <Image source={require('../assets/images/event_card/duration.png')} style={{width: 20, height: 20, resizeMode: 'contain', marginStart: 2, marginTop: 6}}/>
-                    </View>
-                  </View>
-
-                  <Text style={styles.label}>Жанры:</Text>
-                  <View style={styles.genres}>
-                    {event.genres.map((g) => (
-                      <View key={g} style={styles.genreBadge}>
-                        <Text style={styles.genreText}>{g}</Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  <Text style={styles.label}>Место проведения:</Text>
-                  <Text
-                    style={[styles.value, { color: Colors.lightBlue, marginTop: 0 }]}
-                    onPress={() => Linking.openURL(event.eventPlace)}
-                  >
-                    {event.eventPlace}
-                  </Text>
-
-                  <View style={[styles.row, {marginBottom: 150}]}>
-                    <View style={{flexDirection: 'row'}}>
-                      <Text style={styles.label}>Участников:</Text>
-                      <Text style={styles.value}>{event.participants}</Text>
-                      <Image source={require('../assets/images/event_card/person.png')} style={{width: 20, height: 20, resizeMode: 'contain', marginStart: 2, marginTop: 6}}/>
-                    </View>
-                  </View> 
-                </View>
-
+              <View style={styles.header}>
+                <Image source={{ uri: event.imageUri }} style={styles.image} />
                 <Image
-                  source={require('../assets/images/event_card/bottom_rectangle.png')}
-                  style={styles.bottomWave}
+                  source={require('../assets/images/event_card/rectangle.png')}
+                  style={styles.rectangle}
                 />
+                <Text style={styles.title}>{event.title}</Text>
 
-                <View style={styles.bottomContent}>
-                  <View style={styles.rowBetween}>
-                    <Text style={styles.label}>
-                      Издатель: <Text style={styles.value}>{event.publisher}</Text>
-                    </Text>
+                <View style={styles.iconsRow}>
+                  <View style={styles.iconOverlay}>
+                    <Image
+                      source={categoryIcons[event.category]}
+                      style={{ resizeMode: 'contain', width: 20, height: 20 }}
+                    />
                   </View>
-
-                  <Text style={styles.label}>
-                      Год издания: <Text style={styles.value}>{event.publicationDate}</Text>
-                  </Text>
-
-                  <Text style={styles.label}>
-                    Возрастное ограничение:{' '}
-                    <Text style={styles.value}>{event.ageRating}</Text>
-                  </Text>
-
-                  <TouchableOpacity style={styles.joinButton} onPress={() => setToastVisible(true)}>
-                    <Text style={styles.joinButtonText}>Присоединиться</Text>
-                  </TouchableOpacity>
+                  <View style={styles.iconOverlay}>
+                    <Image
+                      source={placeIcons[event.typePlace]}
+                      style={{ resizeMode: 'contain', width: 20, height: 20 }}
+                    />
+                  </View>
                 </View>
+              </View>
+
+              <View style={styles.content}>
+                <Text style={styles.description}>
+                  {event.description || 'Описание отсутствует'}
+                </Text>
+
+                <View style={[styles.row, { marginBottom: 8 }]}>
+                  <View style={{ flexDirection: 'row' }}>
+                    <Text style={styles.label}>Дата:</Text>
+                    <Text style={styles.value}>{event.date}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row' }}>
+                    <Text style={styles.value}>{event.duration}</Text>
+                    <Image
+                      source={require('../assets/images/event_card/duration.png')}
+                      style={{
+                        width: 20,
+                        height: 20,
+                        resizeMode: 'contain',
+                        marginStart: 2,
+                        marginTop: 6,
+                      }}
+                    />
+                  </View>
+                </View>
+
+                <Text style={styles.label}>Жанры:</Text>
+                <View style={styles.genres}>
+                  {event.genres.map((g) => (
+                    <View key={g} style={styles.genreBadge}>
+                      <Text style={styles.genreText}>{g}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <Text style={styles.label}>Место проведения:</Text>
+                <Text
+                  style={[
+                    styles.value,
+                    { color: Colors.lightBlue, marginTop: 0 },
+                  ]}
+                  onPress={() => Linking.openURL(event.eventPlace)}
+                >
+                  {event.eventPlace}
+                </Text>
+
+                <View style={[styles.row, { marginBottom: 150 }]}>
+                  <View style={{ flexDirection: 'row' }}>
+                    <Text style={styles.label}>Участников:</Text>
+                    <Text style={styles.value}>
+                      {event.currentParticipants}/{event.maxParticipants}
+                    </Text>
+                    <Image
+                      source={require('../assets/images/event_card/person.png')}
+                      style={{
+                        width: 20,
+                        height: 20,
+                        resizeMode: 'contain',
+                        marginStart: 2,
+                        marginTop: 6,
+                      }}
+                    />
+                  </View>
+                </View>
+              </View>
+
+              <Image
+                source={require('../assets/images/event_card/bottom_rectangle.png')}
+                style={styles.bottomWave}
+              />
+
+              <View style={styles.bottomContent}>
+                <View style={styles.rowBetween}>
+                  <Text style={styles.label}>
+                    Издатель:{' '}
+                    <Text style={styles.value}>{event.publisher}</Text>
+                  </Text>
+                </View>
+
+                <Text style={styles.label}>
+                  Год издания:{' '}
+                  <Text style={styles.value}>{event.publicationDate}</Text>
+                </Text>
+
+                <Text style={styles.label}>
+                  Возрастное ограничение:{' '}
+                  <Text style={styles.value}>{event.ageRating}</Text>
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.joinButton}
+                  onPress={() => setToastVisible(true)}
+                >
+                  <Text style={styles.joinButtonText}>Присоединиться</Text>
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <Image tintColor={Colors.black} style={{width: 35, height: 35, resizeMode: 'cover'}} source={require('../assets/images/event_card/back.png')}/>
+                <Image
+                  tintColor={Colors.black}
+                  style={{ width: 35, height: 35, resizeMode: 'cover' }}
+                  source={require('../assets/images/event_card/back.png')}
+                />
               </TouchableOpacity>
-              
-              {toastVisible && <Toast
-                    visible={toastVisible}
-                    type="success"
-                    title="Успешно!"
-                    message={`Вы зарегистрированы на событие "${event.title}" ${event.date}`}
-                    onHide={() => setToastVisible(false)}
-              />}
-              
-            </View>              
+
+              {toastVisible && (
+                <Toast
+                  visible={toastVisible}
+                  type="success"
+                  title="Успешно!"
+                  message={`Вы зарегистрированы на событие "${event.title}" ${event.date}`}
+                  onHide={() => setToastVisible(false)}
+                />
+              )}
+            </View>
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
@@ -169,7 +214,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: 300,
     height: 65,
-    resizeMode: 'stretch'
+    resizeMode: 'stretch',
   },
   title: {
     position: 'absolute',
@@ -207,15 +252,26 @@ const styles = StyleSheet.create({
     fontFamily: inter.bold,
     fontSize: 14,
     marginEnd: 6,
-    marginTop: 6
+    marginTop: 6,
   },
-  value: { fontFamily: inter.regular, fontSize: 14, color: Colors.black, marginTop: 6 },
+  value: {
+    fontFamily: inter.regular,
+    fontSize: 14,
+    color: Colors.black,
+    marginTop: 6,
+  },
   genres: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginVertical: 6,
   },
-  genreBadge: { marginRight: 6, backgroundColor: Colors.lightBlue, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2 },
+  genreBadge: {
+    marginRight: 6,
+    backgroundColor: Colors.lightBlue,
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
   genreText: { fontFamily: inter.regular, color: Colors.black, fontSize: 12 },
   row: {
     flexDirection: 'row',
