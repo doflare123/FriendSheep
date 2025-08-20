@@ -24,12 +24,13 @@ export class KinopoiskAPI {
 
   async searchMovies(query: string): Promise<KinopoiskMovie[]> {
     try {
+      console.log("API KEY 1", this.apiKey);
       const response = await fetch(
         `${this.baseUrl}/v2.1/films/search-by-keyword?keyword=${encodeURIComponent(query)}`,
         {
           headers: {
             'X-API-KEY': this.apiKey,
-            'Content-Type': 'application/json',
+            'accept': 'application/json',
           },
         }
       );
@@ -48,10 +49,11 @@ export class KinopoiskAPI {
 
   async getMovieDetails(id: number): Promise<KinopoiskMovie | null> {
     try {
+      console.log("API KEY 2", this.apiKey);
       const response = await fetch(`${this.baseUrl}/v2.2/films/${id}`, {
         headers: {
           'X-API-KEY': this.apiKey,
-          'Content-Type': 'application/json',
+          'accept': 'application/json',
         },
       });
 
