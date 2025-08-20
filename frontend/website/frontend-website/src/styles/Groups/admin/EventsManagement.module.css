@@ -254,14 +254,10 @@
   height: 100%; /* Занимает всю высоту доступной области */
 }
 
-.emptyIcon {
-  font-size: 48px;
-  opacity: 0.6;
-}
-
 .emptyText {
   font-size: 16px;
   font-weight: 500;
+  color: #666;
 }
 
 /* Адаптивность */

@@ -53,7 +53,38 @@
   flex: 1;
   overflow-y: auto;
   margin-bottom: 10px;
-  padding-top: 20px;
+  /* Исправление для скролла */
+  padding-right: 12px;
+  margin-right: -12px;
+  /* Отступ сверху чтобы не задевать кнопку закрытия */
+  margin-top: 20px;
+}
+
+/* Кастомный стиль для скроллбара */
+.modalContent::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modalContent::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+  /* Отступ сверху для трека скроллбара */
+  margin-top: 8px;
+}
+
+.modalContent::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.modalContent::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Для Firefox */
+.modalContent {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
 }
 
 .leftColumn,
@@ -229,6 +260,25 @@
   z-index: 1002;
   padding: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Кастомный скроллбар для селектора жанров */
+.genreSelector::-webkit-scrollbar {
+  width: 6px;
+}
+
+.genreSelector::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.genreSelector::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.genreSelector::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .genreOption {
@@ -452,4 +502,59 @@
   font-size: 12px;
   color: #666;
   text-align: center;
+}
+
+/* Новые стили для работы с API групп */
+.errorMessage {
+  color: #E6374B;
+  font-size: 12px;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.retryButton {
+  background: #37A2E6;
+  color: white;
+  border: none;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.retryButton:hover {
+  background: #2e8cc7;
+}
+
+.retryButton:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+/* Состояние загрузки для селекта групп */
+.select:disabled {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.loadingSpinner {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #37A2E6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: translateY(-50%) rotate(0deg); }
+  100% { transform: translateY(-50%) rotate(360deg); }
 }

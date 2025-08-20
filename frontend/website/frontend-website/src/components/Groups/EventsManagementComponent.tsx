@@ -517,7 +517,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
         >
           {filteredAndSortedEvents.length === 0 ? (
             <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>📅</div>
               <div className={styles.emptyText}>
                 {searchTerm ? 'События не найдены' : 'Нет событий'}
               </div>

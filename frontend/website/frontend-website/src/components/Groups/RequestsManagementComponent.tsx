@@ -283,7 +283,6 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
         >
           {filteredRequests.length === 0 ? (
             <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>📝</div>
               <div className={styles.emptyText}>
                 {searchTerm ? 'Пользователи не найдены' : 'Нет новых заявок'}
               </div>

@@ -49,7 +49,7 @@ export const getAccesToken = (): string | null => {
 export const getCategoryIcon = (category: string): string => {
   const lowerCategory = category.toLowerCase();
   
-  if (lowerCategory.includes('games') || lowerCategory.includes('игры')) {
+  if (lowerCategory.includes('games') || lowerCategory =='игры') {
     return '/events/games.png';
   } else if (lowerCategory.includes('movies') || lowerCategory.includes('фильмы')) {
     return '/events/movies.png';

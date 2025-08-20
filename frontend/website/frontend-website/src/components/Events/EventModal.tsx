@@ -41,6 +41,16 @@ interface ApiGroup {
   type: string;
 }
 
+// Интерфейс для ошибок валидации
+interface ValidationErrors {
+  title?: string;
+  genres?: string;
+  maxParticipants?: string;
+  selectedGroup?: string;
+  image?: string;
+  date?: string;
+}
+
 export default function EventModal({ 
   isOpen, 
   onClose, 
@@ -76,6 +86,9 @@ export default function EventModal({
   const [groups, setGroups] = useState<ApiGroup[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupsError, setGroupsError] = useState<string | null>(null);
+
+  // Состояние для ошибок валидации
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
   // Загрузка групп при открытии модала
   useEffect(() => {
@@ -146,9 +159,48 @@ export default function EventModal({
       setSelectedGroup(null);
     }
     setShowGenreSelector(false);
+    setValidationErrors({}); // Сбрасываем ошибки валидации
   }, [eventData, isOpen]);
 
   if (!isOpen) return null;
+
+  // Функция валидации обязательных полей
+  const validateForm = (): boolean => {
+    const errors: ValidationErrors = {};
+
+    // Проверка названия
+    if (!formData.title || formData.title.trim() === '') {
+      errors.title = 'Название обязательно для заполнения';
+    }
+
+    // Проверка жанров
+    if (!formData.genres || formData.genres.length === 0) {
+      errors.genres = 'Необходимо выбрать хотя бы один жанр';
+    }
+
+    // Проверка количества участников
+    if (!formData.maxParticipants || formData.maxParticipants <= 0) {
+      errors.maxParticipants = 'Укажите количество участников (больше 0)';
+    }
+
+    // Проверка группы
+    if (!selectedGroup) {
+      errors.selectedGroup = 'Необходимо выбрать группу';
+    }
+
+    // Проверка картинки
+    if (!formData.image || formData.image === '') {
+      errors.image = 'Необходимо загрузить изображение';
+    }
+
+    // Проверка даты и времени
+    if (!formData.date || formData.date === '') {
+      errors.date = 'Необходимо указать дату и время события';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleCategorySelect = (categoryId: string) => {
     setFormData(prev => ({ ...prev, type: categoryId as EventCardProps['type'] }));
@@ -161,9 +213,19 @@ export default function EventModal({
         ? prev.genres.filter(g => g !== genre)
         : [...(prev.genres || []), genre]
     }));
+    
+    // Очищаем ошибку жанров при выборе
+    if (validationErrors.genres) {
+      setValidationErrors(prev => ({ ...prev, genres: undefined }));
+    }
   };
 
   const handleSave = () => {
+    // Проверяем валидность формы
+    if (!validateForm()) {
+      return;
+    }
+
     const eventToSave = {
       ...formData,
       description,
@@ -208,6 +270,13 @@ export default function EventModal({
             genres: movieGenres,
             image: movie.posterUrl || movie.posterUrlPreview || prev.image
           }));
+          
+          // Очищаем ошибки жанров и изображения если данные загрузились
+          setValidationErrors(prev => ({ 
+            ...prev, 
+            genres: undefined,
+            image: movie.posterUrl || movie.posterUrlPreview ? undefined : prev.image
+          }));
         }
         
         alert(`Данные фильма "${movie.nameRu || movie.nameEn || movie.nameOriginal}" загружены!`);
@@ -240,6 +309,10 @@ export default function EventModal({
       const reader = new FileReader();
       reader.onload = (e) => {
         setFormData(prev => ({ ...prev, image: e.target?.result as string }));
+        // Очищаем ошибку изображения
+        if (validationErrors.image) {
+          setValidationErrors(prev => ({ ...prev, image: undefined }));
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -258,6 +331,40 @@ export default function EventModal({
 
   const handleAdressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, adress: e.target.value }));
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, title: e.target.value }));
+    // Очищаем ошибку названия при вводе
+    if (validationErrors.title) {
+      setValidationErrors(prev => ({ ...prev, title: undefined }));
+    }
+  };
+
+  const handleMaxParticipantsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value) || 0;
+    setFormData(prev => ({ ...prev, maxParticipants: value }));
+    // Очищаем ошибку количества участников при вводе
+    if (validationErrors.maxParticipants && value > 0) {
+      setValidationErrors(prev => ({ ...prev, maxParticipants: undefined }));
+    }
+  };
+
+  const handleGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(e.target.value) || null;
+    setSelectedGroup(value);
+    // Очищаем ошибку группы при выборе
+    if (validationErrors.selectedGroup && value) {
+      setValidationErrors(prev => ({ ...prev, selectedGroup: undefined }));
+    }
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, date: e.target.value }));
+    // Очищаем ошибку даты при вводе
+    if (validationErrors.date) {
+      setValidationErrors(prev => ({ ...prev, date: undefined }));
+    }
   };
 
   // Закрытие селектора жанров при клике вне его
@@ -280,10 +387,10 @@ export default function EventModal({
                 <div className={styles.titleRow}>
                   <input
                     type="text"
-                    className={styles.input}
+                    className={`${styles.input} ${validationErrors.title ? 'error' : ''}`}
                     value={formData.title || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Название"
+                    onChange={handleTitleChange}
+                    placeholder="Название *"
                   />
                   <button 
                     className={styles.kinopoiskButton} 
@@ -298,6 +405,9 @@ export default function EventModal({
                     )}
                   </button>
                 </div>
+                {validationErrors.title && (
+                  <span className="errorMessage">{validationErrors.title}</span>
+                )}
               </div>
 
               <div className={styles.fieldGroup}>
@@ -331,14 +441,17 @@ export default function EventModal({
               <div className={styles.fieldGroup}>
                 <button
                   type="button"
-                  className={styles.genreButton}
+                  className={`${styles.genreButton} ${validationErrors.genres ? 'error' : ''}`}
                   onClick={() => setShowGenreSelector(!showGenreSelector)}
                 >
                   {formData.genres && formData.genres.length > 0 
                     ? `Выбрано жанров: ${formData.genres.length}` 
-                    : 'Выберите жанры...'
+                    : 'Выберите жанры... *'
                   }
                 </button>
+                {validationErrors.genres && (
+                  <span className="errorMessage">{validationErrors.genres}</span>
+                )}
                 {showGenreSelector && (
                   <div className={styles.genreSelector}>
                     {GENRES.map((genre) => (
@@ -410,13 +523,13 @@ export default function EventModal({
             <div className={styles.rightColumn}>
               <div className={styles.fieldGroup}>
                 <select
-                  className={styles.select}
+                  className={`${styles.select} ${validationErrors.selectedGroup ? 'error' : ''}`}
                   value={selectedGroup || ''}
-                  onChange={(e) => setSelectedGroup(Number(e.target.value) || null)}
+                  onChange={handleGroupChange}
                   disabled={groupsLoading}
                 >
                   <option value="">
-                    {groupsLoading ? 'Загрузка групп...' : 'Выберите группу...'}
+                    {groupsLoading ? 'Загрузка групп...' : 'Выберите группу... *'}
                   </option>
                   {groups.map((group) => (
                     <option key={group.id} value={group.id}>
@@ -424,6 +537,9 @@ export default function EventModal({
                     </option>
                   ))}
                 </select>
+                {validationErrors.selectedGroup && (
+                  <span className="errorMessage">{validationErrors.selectedGroup}</span>
+                )}
                 {groupsError && (
                   <div className={styles.errorMessage}>
                     {groupsError}
@@ -441,10 +557,14 @@ export default function EventModal({
                 <div className={styles.fieldGroup}>
                   <input
                     type="datetime-local"
-                    className={styles.input}
+                    className={`${styles.input} ${validationErrors.date ? 'error' : ''}`}
                     value={formData.date || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                    onChange={handleDateChange}
+                    placeholder="Дата и время *"
                   />
+                  {validationErrors.date && (
+                    <span className="errorMessage">{validationErrors.date}</span>
+                  )}
                 </div>
                 <div className={styles.fieldGroup}>
                   <input
@@ -482,15 +602,15 @@ export default function EventModal({
               <div className={styles.fieldGroup}>
                 <input
                   type="number"
-                  className={styles.input}
+                  className={`${styles.input} ${validationErrors.maxParticipants ? 'error' : ''}`}
                   value={formData.maxParticipants || ''}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    maxParticipants: parseInt(e.target.value) || 0 
-                  }))}
-                  placeholder="Кол-во участников"
+                  onChange={handleMaxParticipantsChange}
+                  placeholder="Кол-во участников *"
                   min="1"
                 />
+                {validationErrors.maxParticipants && (
+                  <span className="errorMessage">{validationErrors.maxParticipants}</span>
+                )}
               </div>
 
               <div className={styles.imageUpload}>
@@ -501,7 +621,10 @@ export default function EventModal({
                   onChange={handleImageUpload}
                   style={{ display: 'none' }}
                 />
-                <label htmlFor="imageUpload" className={styles.uploadLabel}>
+                <label 
+                  htmlFor="imageUpload" 
+                  className={`${styles.uploadLabel} ${validationErrors.image ? 'error' : ''}`}
+                >
                   {formData.image ? (
                     <div className={styles.imagePreview}>
                       <Image 
@@ -515,10 +638,13 @@ export default function EventModal({
                   ) : (
                     <>
                       <Image src="/default/load_img.png" alt="Загрузить" width={120} height={120} />
-                      <span>Загрузить...</span>
+                      <span>Загрузить... *</span>
                     </>
                   )}
                 </label>
+                {validationErrors.image && (
+                  <span className="errorMessage">{validationErrors.image}</span>
+                )}
               </div>
             </div>
           </div>
