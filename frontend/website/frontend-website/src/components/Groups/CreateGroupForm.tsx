@@ -3,6 +3,7 @@ import Image from 'next/image';
 import SocialContactsModal from './SocialContactsModal';
 import { GroupData } from '../../types/Groups';
 import styles from '../../styles/Groups/CreateGroupModal.module.css';
+import {getCategoryIcon, getSocialIcon} from '../../Constants'
 
 interface CreateGroupFormProps {
   onSubmit: (groupData: any) => void;
@@ -41,18 +42,18 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const categories = [
-    { id: 'movies', name: 'Фильмы', icon: '/events/movies.png' },
-    { id: 'games', name: 'Игры', icon: '/events/games.png' },
-    { id: 'board', name: 'Настолки', icon: '/events/board.png' },
-    { id: 'other', name: 'Другое', icon: '/events/other.png' }
+    { id: 'movies', name: 'Фильмы', icon: getCategoryIcon("movies") },
+    { id: 'games', name: 'Игры', icon: getCategoryIcon("games") },
+    { id: 'board', name: 'Настолки', icon: getCategoryIcon("boards") },
+    { id: 'other', name: 'Другое', icon: getCategoryIcon("other") }
   ];
 
   const baseSocialNetworks = [
-    { name: 'Discord', icon: '/social/ds.png' },
-    { name: 'Telegram', icon: '/social/tg.png' },
-    { name: 'VKontakte', icon: '/social/vk.png' },
-    { name: 'WhatsApp', icon: '/social/wa.png' },
-    { name: 'Snapchat', icon: '/social/snap.png' }
+    { name: 'Discord', icon: getSocialIcon("ds") },
+    { name: 'Telegram', icon: getSocialIcon("tg") },
+    { name: 'VKontakte', icon: getSocialIcon("vk") },
+    { name: 'WhatsApp', icon: getSocialIcon("wa") },
+    { name: 'Snapchat', icon: getSocialIcon("snap") }
   ];
 
   // Обновляем форму при изменении initialData
@@ -164,7 +165,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     }
   };
 
-  const getSocialIcon = (name: string) => {
+  const getBaseSocialIcon = (name: string) => {
     const baseSocial = baseSocialNetworks.find(social => social.name === name);
     return baseSocial ? baseSocial.icon : '/default/soc_net.png';
   };
@@ -249,7 +250,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                     onClick={() => handleSocialIconClick(contact.link)}
                   >
                     <Image
-                      src={getSocialIcon(contact.name)}
+                      src={getBaseSocialIcon(contact.name)}
                       alt={contact.name}
                       width={50}
                       height={50}

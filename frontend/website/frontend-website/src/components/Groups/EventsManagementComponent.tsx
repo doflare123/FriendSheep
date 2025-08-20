@@ -5,9 +5,23 @@ import Image from 'next/image';
 import EventCard from '../Events/EventCard';
 import styles from '../../styles/Groups/admin/EventsManagement.module.css';
 import { EventCardProps } from '../../types/Events';
+import EventModal from '../Events/EventModal';
+import {getOwnGroups} from '../../api/get_owngroups'
+import {getAccesToken} from '../../Constants'
 
 interface EventsManagementComponentProps {
   groupId?: string;
+}
+
+// Интерфейс для групп из API
+interface ApiGroup {
+  category: string[];
+  id: number;
+  image: string;
+  member_count: number;
+  name: string;
+  small_description: string;
+  type: string;
 }
 
 // Тестовые данные событий
@@ -22,7 +36,9 @@ const mockEvents: EventCardProps[] = [
     participants: 666,
     maxParticipants: 666,
     duration: '101 минуты',
-    location: 'offline'
+    location: 'offline',
+    adress: 'Кинотеатр "Родина"',
+    groupId: 10
   },
   {
     id: 2,
@@ -34,7 +50,9 @@ const mockEvents: EventCardProps[] = [
     participants: 32,
     maxParticipants: 64,
     duration: '4 часа',
-    location: 'online'
+    location: 'online',
+    adress: 'https://discord.gg/tournament',
+    groupId: 2
   },
   {
     id: 3,
@@ -46,7 +64,9 @@ const mockEvents: EventCardProps[] = [
     participants: 8,
     maxParticipants: 12,
     duration: '3 часа',
-    location: 'offline'
+    location: 'offline',
+    adress: 'Антикафе "Место"',
+    groupId: 3
   },
   {
     id: 4,
@@ -58,7 +78,9 @@ const mockEvents: EventCardProps[] = [
     participants: 25,
     maxParticipants: 50,
     duration: '2 часа',
-    location: 'online'
+    location: 'online',
+    adress: 'https://meet.google.com/abc-def-ghi',
+    groupId: 4
   }
 ];
 
@@ -86,8 +108,44 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Состояния для модального окна
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<EventCardProps | undefined>(undefined);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  
+  // Состояния для групп пользователя
+  const [userGroups, setUserGroups] = useState<ApiGroup[]>([]);
+  const [userGroupIds, setUserGroupIds] = useState<Set<number>>(new Set());
+  
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
+
+  // Загрузка групп пользователя при монтировании компонента
+  useEffect(() => {
+    loadUserGroups();
+  }, []);
+
+  const loadUserGroups = async () => {
+    try {
+      const accessToken = getAccesToken() || ''; // Временное решение
+      const groups = await getOwnGroups(accessToken);
+      setUserGroups(groups);
+      
+      // Создаем Set с ID групп пользователя для быстрой проверки
+      const groupIds = new Set(groups.map((group: ApiGroup) => group.id));
+      setUserGroupIds(groupIds);
+      
+      // Фильтруем события, оставляя только те, что принадлежат группам пользователя
+      setEvents(prevEvents => 
+        prevEvents.filter(event => 
+          !event.groupId || groupIds.has(event.groupId)
+        )
+      );
+    } catch (error) {
+      console.error('Ошибка загрузки групп пользователя:', error);
+    }
+  };
 
   // Закрытие меню сортировки при клике вне его
   useEffect(() => {
@@ -108,9 +166,18 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
 
   // Фильтрация и сортировка событий
   const filteredAndSortedEvents = React.useMemo(() => {
-    let filtered = events.filter(event =>
-      event.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let filtered = events.filter(event => {
+      // Фильтр по названию
+      const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Фильтр по конкретной группе (если groupId указан)
+      const matchesGroup = !groupId || event.groupId?.toString() === groupId;
+      
+      // Фильтр по принадлежности к группам пользователя
+      const belongsToUserGroup = !event.groupId || userGroupIds.has(event.groupId);
+      
+      return matchesSearch && matchesGroup && belongsToUserGroup;
+    });
 
     // Применяем фильтрацию по категориям
     if (sortOptions.category !== 'all') {
@@ -146,7 +213,7 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     });
 
     return filtered;
-  }, [events, searchTerm, sortOptions]);
+  }, [events, searchTerm, sortOptions, groupId, userGroupIds]);
 
   // Проверка возможности скролла
   const checkScrollability = useCallback(() => {
@@ -205,30 +272,114 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
 
   // Обработчик редактирования события
   const handleEditEvent = (eventId: number) => {
-    console.log('Редактирование события:', eventId);
-    // Здесь будет логика перехода на страницу редактирования
+    const eventToEdit = events.find(event => event.id === eventId);
+    if (eventToEdit) {
+      setEditingEvent(eventToEdit);
+      setModalMode('edit');
+      setIsModalOpen(true);
+    }
   };
 
   // Обработчик создания нового события
   const handleCreateEvent = () => {
-    console.log('Создание нового события');
-    // Здесь будет логика перехода на страницу создания события
+    setEditingEvent(undefined);
+    setModalMode('create');
+    setIsModalOpen(true);
+  };
+
+  // Обработчик закрытия модального окна
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingEvent(undefined);
+  };
+
+  // Проверка принадлежности группы пользователю
+  const isValidGroupForUser = (groupId?: number): boolean => {
+    if (!groupId) return true; // События без группы разрешены
+    return userGroupIds.has(groupId);
+  };
+
+  // Обработчик сохранения события
+  const handleEventSave = (eventData: Partial<EventCardProps>) => {
+    // Проверяем, принадлежит ли выбранная группа пользователю
+    if (eventData.groupId && !isValidGroupForUser(eventData.groupId)) {
+      alert('Выбранная группа не принадлежит вам. Выберите другую группу или оставьте поле пустым.');
+      return;
+    }
+
+    if (modalMode === 'create') {
+      // Создание нового события
+      const newEvent: EventCardProps = {
+        id: Math.max(...events.map(e => e.id)) + 1,
+        type: eventData.type || 'other',
+        image: eventData.image || '/default/load_img.png',
+        date: eventData.date || '',
+        title: eventData.title || '',
+        genres: eventData.genres || [],
+        participants: eventData.participants || 0,
+        maxParticipants: eventData.maxParticipants || 0,
+        duration: eventData.duration || '',
+        location: eventData.location || 'offline',
+        adress: eventData.adress || '',
+        description: eventData.description,
+        publisher: eventData.publisher,
+        year: eventData.year,
+        ageLimit: eventData.ageLimit,
+        groupId: eventData.groupId
+      };
+      
+      setEvents(prevEvents => [...prevEvents, newEvent]);
+      console.log('Создано новое событие:', newEvent);
+    } else if (modalMode === 'edit' && editingEvent) {
+      // Редактирование существующего события
+      const updatedEvent = { ...editingEvent, ...eventData };
+      
+      // Если группа изменилась и новая группа не принадлежит пользователю, удаляем событие
+      if (updatedEvent.groupId && !isValidGroupForUser(updatedEvent.groupId)) {
+        setEvents(prevEvents => 
+          prevEvents.filter(event => event.id !== editingEvent.id)
+        );
+        console.log('Событие удалено из-за смены группы:', editingEvent.id);
+        alert('Событие было удалено, так как выбранная группа вам не принадлежит.');
+      } else {
+        // Обновляем событие
+        setEvents(prevEvents => 
+          prevEvents.map(event => 
+            event.id === editingEvent.id ? updatedEvent : event
+          )
+        );
+        console.log('Обновлено событие:', updatedEvent);
+      }
+    }
+    
+    handleModalClose();
+  };
+
+  // Обработчик удаления события
+  const handleEventDelete = () => {
+    if (editingEvent) {
+      setEvents(prevEvents => 
+        prevEvents.filter(event => event.id !== editingEvent.id)
+      );
+      console.log('Удалено событие:', editingEvent.id);
+      handleModalClose();
+    }
   };
 
   // Обработчики для сортировки
   const handleCategoryChange = (category: 'all' | 'games' | 'movies' | 'other') => {
     setSortOptions(prev => ({ ...prev, category }));
-    setShowSortMenu(false); // Закрываем меню после выбора
+    setShowSortMenu(false);
   };
 
   const handleDateChange = (date: 'age_asc' | 'age_desc') => {
     setSortOptions(prev => ({ ...prev, date }));
-    setShowSortMenu(false); // Закрываем меню после выбора
+    setShowSortMenu(false);
   };
 
   const handleParticipantsChange = (participants: 'participants_asc' | 'participants_desc') => {
     setSortOptions(prev => ({ ...prev, participants }));
-    setShowSortMenu(false); // Закрываем меню после выбора
+    setShowSortMenu(false);
   };
 
   return (
@@ -395,6 +546,16 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
           </button>
         )}
       </div>
+
+      {/* Модальное окно для создания/редактирования событий */}
+      <EventModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSave={handleEventSave}
+        onDelete={modalMode === 'edit' ? handleEventDelete : undefined}
+        eventData={editingEvent}
+        mode={modalMode}
+      />
     </div>
   );
 };

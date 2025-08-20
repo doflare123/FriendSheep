@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import styles from '../../styles/Groups/SocialContactsModal.module.css';
+import {getSocialIcon} from '../../Constants'
 
 interface SocialContactsModalProps {
   isOpen: boolean;
@@ -23,11 +24,11 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
   initialContacts 
 }) => {
   const baseSocialNetworks: SocialNetwork[] = [
-    { id: 'discord', name: 'Discord', icon: '/social/ds.png' },
-    { id: 'telegram', name: 'Telegram', icon: '/social/tg.png' },
-    { id: 'vkontakte', name: 'VKontakte', icon: '/social/vk.png' },
-    { id: 'whatsapp', name: 'WhatsApp', icon: '/social/wa.png' },
-    { id: 'snapchat', name: 'Snapchat', icon: '/social/snap.png' }
+    { id: 'discord', name: 'Discord', icon: getSocialIcon("ds") },
+    { id: 'telegram', name: 'Telegram', icon: getSocialIcon("tg")  },
+    { id: 'vkontakte', name: 'VKontakte', icon: getSocialIcon("vk")  },
+    { id: 'whatsapp', name: 'WhatsApp', icon: getSocialIcon("wa")  },
+    { id: 'snapchat', name: 'Snapchat', icon: getSocialIcon("snap")  }
   ];
 
   const [socialNetworks, setSocialNetworks] = useState<SocialNetwork[]>(baseSocialNetworks);

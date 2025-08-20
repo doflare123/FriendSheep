@@ -45,3 +45,36 @@ export const convertSocialContactsToString = (socialContacts: { name: string; li
 export const getAccesToken = (): string | null => {
   return localStorage.getItem('access_token');
 }
+
+export const getCategoryIcon = (category: string): string => {
+  const lowerCategory = category.toLowerCase();
+  
+  if (lowerCategory.includes('games') || lowerCategory.includes('игры')) {
+    return '/events/games.png';
+  } else if (lowerCategory.includes('movies') || lowerCategory.includes('фильмы')) {
+    return '/events/movies.png';
+  } else if (lowerCategory.includes('boards') || lowerCategory.includes('настолки') || lowerCategory.includes('настольные игры')) {
+    return '/events/board.png';
+  } else {
+    return '/events/other.png'; // default
+  }
+};
+
+export const getSocialIcon = (name: string, link?: string, ): string => {
+  const lowerLink = (link|| " ").toLowerCase();
+  const lowerName = name.toLowerCase();
+  
+  if (lowerLink.includes('discord') || lowerName.includes('discord') || lowerName.includes('ds')) {
+    return '/social/ds.png';
+  } else if (lowerLink.includes('t.me') || lowerLink.includes('telegram') || lowerName.includes('telegram') || lowerName.includes('tg')) {
+    return '/social/tg.png';
+  } else if (lowerLink.includes('vk.com') || lowerName.includes('вконтакте') || lowerName.includes('vk')) {
+    return '/social/vk.png';
+  } else if (lowerLink.includes('wa.me') || lowerLink.includes('whatsapp') || lowerName.includes('whatsapp') || lowerName.includes('wa')) {
+    return '/social/wa.png';
+  } else if (lowerLink.includes('snapchat') || lowerName.includes('snapchat') || lowerName.includes('snap')) {
+    return '/social/snap.png';
+  } else {
+    return '/default/soc_net.png';
+  }
+};

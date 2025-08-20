@@ -2,6 +2,7 @@ import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import styles from '../../styles/Groups/GroupCard.module.css';
+import {getCategoryIcon} from '../../Constants'
 
 interface Group {
   id: number;
@@ -20,19 +21,6 @@ interface GroupCardProps {
 
 const GroupCard: React.FC<GroupCardProps> = ({ group, actionType }) => {
   const router = useRouter();
-
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'игры':
-        return '/events/games.png';
-      case 'фильмы':
-        return '/events/movies.png';
-      case 'настольные игры':
-        return '/events/board.png';
-      default:
-        return '/events/other.png';
-    }
-  };
 
   const getMemberCountText = (count: number) => {
     const lastDigit = count % 10;
