@@ -253,6 +253,59 @@ definitions:
     - password
     - us
     type: object
+  news.Comments:
+    properties:
+      id:
+        type: integer
+      news_id:
+        type: integer
+      text:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        type: integer
+    type: object
+  news.ContentNews:
+    properties:
+      id:
+        type: integer
+      news_id:
+        type: integer
+      text:
+        type: string
+    required:
+    - text
+    type: object
+  news.News:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/news.Comments'
+        type: array
+      content:
+        items:
+          $ref: '#/definitions/news.ContentNews'
+        type: array
+      created_time:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      title:
+        type: string
+      updatedAt:
+        type: string
+    required:
+    - description
+    - image
+    - title
+    type: object
   services.AdminGroupInfResponse:
     properties:
       applications:
@@ -318,9 +371,39 @@ definitions:
       total_count:
         type: integer
     type: object
+  services.ChangeTilesPatternInput:
+    properties:
+      count_all:
+        type: boolean
+      count_films:
+        type: boolean
+      count_games:
+        type: boolean
+      count_other:
+        type: boolean
+      count_table:
+        type: boolean
+      spent_time:
+        type: boolean
+    type: object
+  services.CommentDTO:
+    properties:
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      text:
+        type: string
+      user_id:
+        type: integer
+    type: object
   services.ConfirmResetPasswordInput:
     properties:
       code:
+        type: string
+      email:
         type: string
       password:
         type: string
@@ -328,6 +411,7 @@ definitions:
         type: string
     required:
     - code
+    - email
     - password
     - session_id
     type: object
@@ -337,6 +421,29 @@ definitions:
         type: string
       name:
         type: string
+    type: object
+  services.CreateCommentInput:
+    properties:
+      text:
+        type: string
+    required:
+    - text
+    type: object
+  services.CreateNewsInput:
+    properties:
+      description:
+        type: string
+      image:
+        type: string
+      text:
+        type: string
+      title:
+        type: string
+    required:
+    - description
+    - image
+    - text
+    - title
     type: object
   services.CreateUserInput:
     properties:
@@ -480,6 +587,10 @@ definitions:
         type: array
       telegram_link:
         type: boolean
+      tiles:
+        items:
+          type: string
+        type: array
       upcoming_sessions:
         items:
           $ref: '#/definitions/services.SessionInfo'
@@ -506,6 +617,38 @@ definitions:
         type: boolean
       message:
         type: string
+    type: object
+  services.NewsDTO:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/services.CommentDTO'
+        type: array
+      content:
+        type: string
+      created_time:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      title:
+        type: string
+    type: object
+  services.NewsPage:
+    properties:
+      hasMore:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/news.News'
+        type: array
+      page:
+        type: integer
+      total:
+        type: integer
     type: object
   services.NotificationDTO:
     properties:
@@ -650,6 +793,8 @@ definitions:
       most_big_session:
         type: integer
       series_session_count:
+        type: integer
+      spent_time:
         type: integer
     type: object
   services.UsersGroups:
@@ -1456,6 +1601,184 @@ paths:
       summary: Получить заявки на вступление
       tags:
       - groups
+  /api/news:
+    get:
+      description: Возвращает постраничный список новостей, отсортированных по дате
+        создания.
+      parameters:
+      - default: 1
+        description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Постраничный список новостей
+          schema:
+            $ref: '#/definitions/services.NewsPage'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить список новостей
+      tags:
+      - News
+    post:
+      consumes:
+      - application/json
+      description: Создает новую новость вместе с текстом. Доступно только администраторам.
+      parameters:
+      - description: Данные для создания новости
+        in: body
+        name: news
+        required: true
+        schema:
+          $ref: '#/definitions/services.CreateNewsInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Новость успешно создана
+          schema:
+            $ref: '#/definitions/news.News'
+        "400":
+          description: Некорректные данные или ошибка валидации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован или не является администратором
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создание новости
+      tags:
+      - News
+  /api/news/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает новость по ID с текстом и комментариями (с ником и картинкой
+        юзера)
+      parameters:
+      - description: ID новости
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Новость с текстом и комментариями
+          schema:
+            $ref: '#/definitions/services.NewsDTO'
+        "404":
+          description: Новость не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получение новости
+      tags:
+      - News
+  /api/news/{id}/comments:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт комментарий для новости (только авторизованные пользователи)
+      parameters:
+      - description: ID новости
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Комментарий
+        in: body
+        name: comment
+        required: true
+        schema:
+          $ref: '#/definitions/services.CreateCommentInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/news.Comments'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Добавить комментарий
+      tags:
+      - News
+  /api/news/{newsId}/comments/{commentId}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет комментарий (только для администраторов)
+      parameters:
+      - description: ID новости
+        in: path
+        name: newsId
+        required: true
+        type: integer
+      - description: ID комментария
+        in: path
+        name: commentId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить комментарий
+      tags:
+      - Comments
   /api/sessions/{sessionId}/leave:
     delete:
       description: Позволяет пользователю покинуть сессию, в которой он участвует
@@ -1877,6 +2200,36 @@ paths:
       summary: Подтверждение сброса пароля
       tags:
       - auth
+  /api/users/delete:
+    delete:
+      description: Позволяет текущему авторизованному пользователю удалить свой аккаунт.
+        Это действие необратимо.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Аккаунт успешно удалён
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка (например, пользователь не найден)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удаление аккаунта пользователя
+      tags:
+      - Users inf
   /api/users/inf:
     get:
       description: Возвращает полную информацию о текущем авторизованном пользователе,
@@ -1909,6 +2262,46 @@ paths:
       security:
       - BearerAuth: []
       summary: Получить информацию о текущем пользователе
+      tags:
+      - Users inf
+  /api/users/inf/{id}:
+    get:
+      description: Возвращает полную информацию о текущем авторизованном пользователе,
+        включая его сессии и статистику.
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Полная информация о пользователе
+          schema:
+            $ref: '#/definitions/services.InformationAboutUser'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить информацию о другом пользователе
       tags:
       - Users inf
   /api/users/invites/{id}/approve:
@@ -2524,6 +2917,51 @@ paths:
       security:
       - BearerAuth: []
       summary: Получить подписки пользователя на группы
+      tags:
+      - Users inf
+  /api/users/tiles:
+    patch:
+      consumes:
+      - application/json
+      description: Позволяет пользователю настроить, какие плитки статистики будут
+        отображаться в его профиле.
+      parameters:
+      - description: Новые настройки для плиток статистики
+        in: body
+        name: settings
+        required: true
+        schema:
+          $ref: '#/definitions/services.ChangeTilesPatternInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Порядок плиток изменен
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Изменить порядок отображения плиток статистики
       tags:
       - Users inf
   /api/users/user/profile:

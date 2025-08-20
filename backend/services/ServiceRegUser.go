@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"friendship/db"
 	"friendship/models"
+	statsusers "friendship/models/stats_users"
 	"friendship/utils"
 	"log"
 	"math/rand"
@@ -77,6 +78,20 @@ func CreateUser(input CreateUserInput) (*models.User, error) {
 			return nil, fmt.Errorf("пользователь с таким email уже существует")
 		}
 		return nil, err
+	}
+
+	defaultTiles := statsusers.SettingTile{
+		UserID:      user.ID,
+		Count_films: true,
+		Count_games: true,
+		Count_table: true,
+		Count_other: false,
+		Count_all:   true,
+		Spent_time:  false,
+	}
+
+	if err := db.GetDB().Create(&defaultTiles).Error; err != nil {
+		return nil, fmt.Errorf("не удалось создать настройки тайлов: %v", err)
 	}
 
 	if err := store.DeleteSession(input.SessionID); err != nil {
