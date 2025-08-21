@@ -17,6 +17,7 @@ type InformationAboutUser struct {
 	DataRegister time.Time `json:"data_register"`
 	Enterprise   bool      `json:"enterprise"`
 	TelegramLink bool      `json:"telegram_link"`
+	Status       string    `json:"status"`
 
 	UpcomingSessions []SessionInfo `json:"upcoming_sessions"`
 	RecentSessions   []SessionInfo `json:"recent_sessions"`
@@ -56,9 +57,10 @@ type UserStatsInfo struct {
 }
 
 type UpdateUserRequest struct {
-	Name  *string `json:"name,omitempty"`
-	Us    *string `json:"us,omitempty"`
-	Image *string `json:"image,omitempty"`
+	Name   *string `json:"name,omitempty"`
+	Us     *string `json:"us,omitempty"`
+	Image  *string `json:"image,omitempty"`
+	Status *string `json:"status,omitempty"`
 }
 
 func GetInfAboutUser(email string) (*InformationAboutUser, error) {
@@ -126,6 +128,7 @@ func GetInfAboutUser(email string) (*InformationAboutUser, error) {
 		DataRegister:     user.DataRegister,
 		Enterprise:       user.Enterprise,
 		TelegramLink:     user.TelegramID != nil,
+		Status:           user.Status,
 		UpcomingSessions: upcomingSessions,
 		RecentSessions:   recentSessions,
 		PopularGenres:    popularGenres,
@@ -201,6 +204,7 @@ func GetInfAboutAnotherUser(email string) (*InformationAboutUser, error) {
 		DataRegister: user.DataRegister,
 		Enterprise:   user.Enterprise,
 		// TelegramLink:     user.TelegramID != nil,
+		Status:           user.Status,
 		UpcomingSessions: upcomingSessions,
 		// RecentSessions:   recentSessions,
 		PopularGenres: popularGenres,
@@ -410,6 +414,9 @@ func UpdateUserProfile(email string, req UpdateUserRequest) (*models.User, error
 	}
 	if req.Image != nil && *req.Image != "" {
 		updates["image"] = *req.Image
+	}
+	if req.Status != nil && *req.Status != "" {
+		updates["status"] = *req.Status
 	}
 
 	if len(updates) == 0 {

@@ -468,6 +468,36 @@ definitions:
       name:
         type: string
     type: object
+  services.GetGroups:
+    properties:
+      category:
+        items:
+          type: string
+        type: array
+      count:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+    type: object
+  services.GetGroupsResponse:
+    properties:
+      groups:
+        items:
+          $ref: '#/definitions/services.GetGroups'
+        type: array
+      has_more:
+        type: boolean
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
   services.GetNotifyResponse:
     properties:
       invites:
@@ -477,6 +507,32 @@ definitions:
       notifications:
         items:
           $ref: '#/definitions/services.NotificationDTO'
+        type: array
+    type: object
+  services.GetUsers:
+    properties:
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      us:
+        type: string
+    type: object
+  services.GetUsersResponse:
+    properties:
+      has_more:
+        type: boolean
+      page:
+        type: integer
+      total:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/services.GetUsers'
         type: array
     type: object
   services.GroupInf:
@@ -772,6 +828,8 @@ definitions:
       image:
         type: string
       name:
+        type: string
+      status:
         type: string
       us:
         type: string
@@ -1601,6 +1659,51 @@ paths:
       summary: Получить заявки на вступление
       tags:
       - groups
+  /api/groups/search:
+    get:
+      consumes:
+      - application/json
+      description: Поиск групп по названию с пагинацией.
+      parameters:
+      - description: Название для поиска
+        in: query
+        name: name
+        type: string
+      - default: 1
+        description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный поиск
+          schema:
+            $ref: '#/definitions/services.GetGroupsResponse'
+        "400":
+          description: Некорректный номер страницы
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Поиск групп
+      tags:
+      - search
   /api/news:
     get:
       description: Возвращает постраничный список новостей, отсортированных по дате
@@ -2595,6 +2698,51 @@ paths:
       summary: Запрос на сброс пароля
       tags:
       - auth
+  /api/users/search:
+    get:
+      consumes:
+      - application/json
+      description: Поиск пользователей по имени с пагинацией.
+      parameters:
+      - description: Имя для поиска
+        in: query
+        name: name
+        type: string
+      - default: 1
+        description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный поиск
+          schema:
+            $ref: '#/definitions/services.GetUsersResponse'
+        "400":
+          description: Некорректный номер страницы
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Поиск пользователей
+      tags:
+      - search
   /api/users/sessions/{sessionId}:
     get:
       consumes:
