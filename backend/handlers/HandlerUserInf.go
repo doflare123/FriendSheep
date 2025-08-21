@@ -150,6 +150,10 @@ func GetInfAboutUserByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if user.Email == email {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Нононо мистер фиш, ты не будешь здесь получать информацию о себе"})
+		return
+	}
 	userInf, err := services.GetInfAboutAnotherUser(user.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "внутренняя ошибка сервера"})
@@ -207,6 +211,7 @@ func UpdateUserProfile(c *gin.Context) {
 			"name":  updatedUser.Name,
 			"us":    updatedUser.Us,
 			"image": updatedUser.Image,
+			"staus": updatedUser.Status,
 		},
 	})
 }

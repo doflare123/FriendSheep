@@ -1008,6 +1008,76 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/groups/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Поиск групп по названию с пагинацией.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "search"
+                ],
+                "summary": "Поиск групп",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Название для поиска",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Номер страницы",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный поиск",
+                        "schema": {
+                            "$ref": "#/definitions/services.GetGroupsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный номер страницы",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/groups/{groupId}": {
             "get": {
                 "security": [
@@ -2668,6 +2738,76 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/users/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Поиск пользователей по имени с пагинацией.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "search"
+                ],
+                "summary": "Поиск пользователей",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Имя для поиска",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Номер страницы",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный поиск",
+                        "schema": {
+                            "$ref": "#/definitions/services.GetUsersResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный номер страницы",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users/sessions/category": {
             "get": {
                 "description": "Возвращает список из 10 сессий по указанной категории из открытых групп. Вводить вам нужно будет иметь мапу с категориями, где ключ - название категории, а значение - id категории. Сейчас такие значнеия: 1 - Фильмы, 2 - Игры. 3 - Настолки, 4 - Другое",
@@ -4014,6 +4154,52 @@ const docTemplate = `{
                 }
             }
         },
+        "services.GetGroups": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "count": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.GetGroupsResponse": {
+            "type": "object",
+            "properties": {
+                "groups": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.GetGroups"
+                    }
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "services.GetNotifyResponse": {
             "type": "object",
             "properties": {
@@ -4027,6 +4213,46 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/services.NotificationDTO"
+                    }
+                }
+            }
+        },
+        "services.GetUsers": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "us": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.GetUsersResponse": {
+            "type": "object",
+            "properties": {
+                "has_more": {
+                    "type": "boolean"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.GetUsers"
                     }
                 }
             }
@@ -4478,6 +4704,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 },
                 "us": {
