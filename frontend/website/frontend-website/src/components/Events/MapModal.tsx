@@ -13,6 +13,7 @@ export default function MapModal({ isOpen, onClose, onPlaceSelected }: MapModalP
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<PlaceInfo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceInfo | null>(null);
   
   useEffect(() => {
     if (!isOpen) return;
@@ -24,7 +25,10 @@ export default function MapModal({ isOpen, onClose, onPlaceSelected }: MapModalP
         
         // Небольшая задержка для корректного рендера DOM
         setTimeout(() => {
-          yandexMapsAPI.openPlacePicker('yandex-map', onPlaceSelected);
+          yandexMapsAPI.openPlacePicker('yandex-map', (place) => {
+            // Сохраняем выбранное место, но не закрываем модал сразу
+            setSelectedPlace(place);
+          });
         }, 100);
       } catch (error) {
         console.error('Ошибка загрузки карты:', error);
@@ -33,7 +37,16 @@ export default function MapModal({ isOpen, onClose, onPlaceSelected }: MapModalP
     };
     
     initMap();
-  }, [isOpen, onPlaceSelected]);
+
+    // Очищаем состояние при закрытии модала
+    return () => {
+      if (!isOpen) {
+        setSelectedPlace(null);
+        setSearchResults([]);
+        setSearchQuery('');
+      }
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -52,8 +65,19 @@ export default function MapModal({ isOpen, onClose, onPlaceSelected }: MapModalP
     }
   };
 
-  const handlePlaceClick = (place: PlaceInfo) => {
-    onPlaceSelected(place);
+  const handlePlaceClick = async (place: PlaceInfo) => {
+    // Переходим к месту на карте и сохраняем его как выбранное
+    await yandexMapsAPI.goToPlace(place);
+    setSelectedPlace(place);
+    // Очищаем результаты поиска для лучшего UX
+    setSearchResults([]);
+    setSearchQuery('');
+  };
+
+  const handleConfirmSelection = () => {
+    if (selectedPlace) {
+      onPlaceSelected(selectedPlace);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -71,24 +95,6 @@ export default function MapModal({ isOpen, onClose, onPlaceSelected }: MapModalP
             <Image src="/icons/close.png" alt="Закрыть" width={24} height={24} />
           </button>
         </div>
-        
-        <div className={styles.mapSearch}>
-          <input
-            type="text"
-            placeholder="Поиск места..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={styles.searchInput}
-            onKeyPress={handleKeyPress}
-          />
-          <button 
-            onClick={handleSearch} 
-            disabled={isSearching}
-            className={styles.searchButton}
-          >
-            {isSearching ? '...' : 'Найти'}
-          </button>
-        </div>
 
         {searchResults.length > 0 && (
           <div className={styles.searchResults}>
@@ -104,11 +110,27 @@ export default function MapModal({ isOpen, onClose, onPlaceSelected }: MapModalP
             ))}
           </div>
         )}
+
+        {selectedPlace && (
+          <div className={styles.selectedPlaceInfo}>
+            <div className={styles.selectedPlaceContent}>
+              <strong>Выбранное место:</strong>
+              <div>{selectedPlace.name || 'Выбранное место'}</div>
+              <div className={styles.selectedAddress}>{selectedPlace.address}</div>
+            </div>
+            <button 
+              className={styles.confirmButton}
+              onClick={handleConfirmSelection}
+            >
+              Выбрать это место
+            </button>
+          </div>
+        )}
         
         <div id="yandex-map" className={styles.mapContainer}></div>
         
         <div className={styles.mapModalFooter}>
-          <p>Нажмите на карту или перетащите маркер для выбора места</p>
+          <p>Нажмите на карту или перетащите маркер для выбора места, затем подтвердите выбор</p>
         </div>
       </div>
     </div>
