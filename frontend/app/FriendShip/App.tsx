@@ -3,6 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import CategoryPage from './app/(tabs)/CategoryPage';
 import Confirm from './app/(tabs)/ConfirmPage';
 import Done from './app/(tabs)/DonePage';
 import Login from './app/(tabs)/LoginPage';
@@ -28,6 +29,11 @@ export default function App() {
           <Stack.Screen name="Confirm" component={Confirm} />
           <Stack.Screen name="Done" component={Done} />
           <Stack.Screen name="MainPage" component={MainPage} />
+          <Stack.Screen 
+            name="CategoryPage" 
+            component={CategoryPage}
+            options={{ headerShown: false }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

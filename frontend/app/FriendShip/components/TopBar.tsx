@@ -3,7 +3,7 @@ import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import React, { useRef, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SortingActions, SortingState } from '../app/(tabs)/MainPage';
+import { SortingActions, SortingState } from '../hooks/useSearchState';
 import MainSearchBar from './MainSearchBar';
 
 interface TopBarProps {

@@ -22,6 +22,11 @@ export interface Event {
   ageRating: string;
   category: 'movie' | 'game' | 'table_game' | 'other';
   onPress?: () => void;
+  highlightedTitle?: {
+    before: string;
+    match: string;
+    after: string;
+  };
 }
 
 const categoryIcons: Record<Event["category"], any> = {
@@ -47,7 +52,24 @@ const EventCard: React.FC<Event> = ({
   onPress,
   category,
   typePlace,
+  highlightedTitle,
 }) => {
+  const renderTitle = () => {
+    if (highlightedTitle) {
+      return (
+        <Text style={styles.title}>
+          {highlightedTitle.before}
+          <Text style={styles.highlightedText}>
+            {highlightedTitle.match}
+          </Text>
+          {highlightedTitle.after}
+        </Text>
+      );
+    } else {
+      return <Text style={styles.title}>{title}</Text>;
+    }
+  };
+
   return (
     <View style={styles.card}>
       <View style={styles.imageWrapper}>
@@ -64,7 +86,7 @@ const EventCard: React.FC<Event> = ({
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
+        {renderTitle()}
         <View style={styles.genres}>
           <Text style={[styles.metaText, { marginRight: 6 }]}>Жанры:</Text>
           {genres.map((genre) => (
@@ -173,8 +195,18 @@ const styles = StyleSheet.create({
     fontSize: 17,
     marginTop: -4,
     marginBottom: 8,
+    color: Colors.black,
   },
-  genres: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
+  highlightedText: {
+    backgroundColor: Colors.lightBlue,
+    color: Colors.blue,
+    fontFamily: inter.black,
+  },
+  genres: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    marginBottom: 8 
+  },
   genreBadge: {
     marginRight: 6,
     backgroundColor: Colors.lightBlue,
@@ -182,20 +214,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  genreText: { fontFamily: inter.regular, color: Colors.black, fontSize: 10 },
+  genreText: { 
+    fontFamily: inter.regular, 
+    color: Colors.black, 
+    fontSize: 10 
+  },
   metaContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginRight: 6 },
+  metaRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginRight: 6 
+  },
   metaIcon: {
     resizeMode: 'contain',
     width: 20,
     height: 20,
     marginLeft: 2,
   },
-  metaText: { fontFamily: inter.regular, fontSize: 12, color: Colors.black },
+  metaText: { 
+    fontFamily: inter.regular, 
+    fontSize: 12, 
+    color: Colors.black 
+  },
   button: {
     marginTop: 4,
     backgroundColor: Colors.lightBlue,
