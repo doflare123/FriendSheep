@@ -7,20 +7,31 @@ export const categoryMapping: Record<string, Event['category']> = {
   'Другое': 'other'
 };
 
-export const sortEventsByDate = (events: Event[], order: 'asc' | 'desc'): Event[] => {
-  return [...events].sort((a, b) => {
-    const dateA = new Date(a.date.split(' ')[0].split('.').reverse().join('-'));
-    const dateB = new Date(b.date.split(' ')[0].split('.').reverse().join('-'));
-    
-    if (order === 'asc') {
-      return dateA.getTime() - dateB.getTime();
-    } else {
-      return dateB.getTime() - dateA.getTime();
-    }
-  });
+export const getEventsByCategory = (events: any[], category: string) => {
+  return events.filter(event => event.category === category);
 };
 
-export const sortEventsByParticipants = (events: Event[], order: 'asc' | 'desc'): Event[] => {
+export const filterEventsBySearch = (events: any[], searchQuery: string) => {
+  return events.filter(event =>
+    event.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+};
+
+export const filterEventsByCategories = (events: any[], categories: string[]) => {
+  if (categories.includes('Все')) {
+    return events;
+  }
+  
+  const mappedCategories = categories
+    .map(category => categoryMapping[category])
+    .filter(Boolean);
+  
+  return events.filter(event => mappedCategories.includes(event.category));
+};
+
+export const sortEventsByParticipants = (events: any[], order: 'asc' | 'desc' | 'none') => {
+  if (order === 'none') return events;
+  
   return [...events].sort((a, b) => {
     if (order === 'asc') {
       return a.currentParticipants - b.currentParticipants;
@@ -52,28 +63,4 @@ export const createEventWithHighlightedTitle = (event: Event, query: string): Ev
       after: afterMatch
     }
   };
-};
-
-export const getEventsByCategory = (events: Event[], category: Event['category']): Event[] => {
-  return events.filter(event => event.category === category);
-};
-
-export const filterEventsBySearch = (events: Event[], query: string): Event[] => {
-  if (!query.trim()) return events;
-  return events.filter(event => 
-    event.title.toLowerCase().includes(query.toLowerCase())
-  );
-};
-
-export const filterEventsByCategories = (
-  events: Event[], 
-  checkedCategories: string[]
-): Event[] => {
-  if (checkedCategories.includes('Все')) return events;
-  
-  const mappedCategories = checkedCategories
-    .map(cat => categoryMapping[cat])
-    .filter(Boolean);
-  
-  return events.filter(event => mappedCategories.includes(event.category));
 };

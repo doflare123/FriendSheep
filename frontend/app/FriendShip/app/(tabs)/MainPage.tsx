@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 type RootStackParamList = {
   MainPage: undefined;
   CategoryPage: {
-    category: 'movie' | 'game' | 'table_game' | 'other';
+    category: 'movie' | 'game' | 'table_game' | 'other' | 'popular' | 'new';
     title: string;
     imageSource: any;
   };
@@ -29,7 +29,6 @@ const MainPage = () => {
   const navigation = useNavigation<MainPageNavigationProp>();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-
   const { sortingState, sortingActions } = useSearchState();
   const { 
     movieEvents, 
@@ -52,7 +51,7 @@ const MainPage = () => {
   };
 
 const navigateToCategory = (
-  category: 'movie' | 'game' | 'table_game' | 'other',
+  category: 'movie' | 'game' | 'table_game' | 'other' | 'popular' | 'new',
   title: string,
   imageSource: any
 ) => {
@@ -101,14 +100,22 @@ return (
               <CategoryButton
                 title="Популярные события"
                 imageSource={require('../../assets/images/category/popular-pattern.png')}
-                onPress={() => {}}
+                onPress={() => navigateToCategory(
+                  'popular',
+                  'Популярные события',
+                  require('../../assets/images/category/popular-pattern.png')
+                )}
               />
               <EventCarousel events={addOnPressToEvents(popularEvents)} />
 
               <CategoryButton
                 title="Новые события"
                 imageSource={require('../../assets/images/category/new-pattern.png')}
-                onPress={() => {}}
+                onPress={() => navigateToCategory(
+                  'new',
+                  'Новые события',
+                  require('../../assets/images/category/new-pattern.png')
+                )}
               />
               <EventCarousel events={addOnPressToEvents(newEvents)} />
 

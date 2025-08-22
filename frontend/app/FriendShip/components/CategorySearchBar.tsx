@@ -9,9 +9,14 @@ import { SortingActions, SortingState } from '../hooks/useSearchState';
 interface CategorySearchBarProps {
   sortingState: SortingState;
   sortingActions: SortingActions;
+  showCategoryFilter?: boolean;
 }
 
-const CategorySearchBar: React.FC<CategorySearchBarProps> = ({ sortingState, sortingActions }) => {
+const CategorySearchBar: React.FC<CategorySearchBarProps> = ({ 
+  sortingState, 
+  sortingActions,
+  showCategoryFilter = false 
+}) => {
   const insets = useSafeAreaInsets();
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [inputText, setInputText] = useState('');
@@ -24,8 +29,8 @@ const CategorySearchBar: React.FC<CategorySearchBarProps> = ({ sortingState, sor
   const { 
     setSortByDate, 
     setSortByParticipants, 
-    toggleCategoryCheckbox,
-    setSearchQuery
+    setSearchQuery,
+    toggleCategoryCheckbox
   } = sortingActions;
 
   const handleSearchInputChange = (text: string) => {
@@ -37,6 +42,19 @@ const CategorySearchBar: React.FC<CategorySearchBarProps> = ({ sortingState, sor
 
   const handleSearchSubmit = () => {
     setSearchQuery(inputText);
+  };
+
+  const getSortLabel = (order: string) => {
+    switch (order) {
+      case 'asc':
+        return 'По возрастанию';
+      case 'desc':
+        return 'По убыванию';
+      case 'none':
+        return 'Отсутствует';
+      default:
+        return '';
+    }
   };
 
   return (
@@ -88,52 +106,54 @@ const CategorySearchBar: React.FC<CategorySearchBarProps> = ({ sortingState, sor
             ]}
             onPress={() => {}}
           >
-            <Text style={[styles.dropdownTitle, { textAlign: 'center', color: Colors.blue, marginBottom: 16 }]}>
-              Фильтры для поиска событий
-            </Text>
-            
-            <Text style={styles.dropdownTitle}>Фильтрация по категориям</Text>
-            {['Все', 'Игры', 'Фильмы', 'Настолки', 'Другое'].map((cat) => (
-              <TouchableOpacity
-                key={cat}
-                style={styles.radioItem}
-                onPress={() => toggleCategoryCheckbox(cat)}
-              >
-                <View style={styles.radioCircleEmpty}>
-                  {checkedCategories.includes(cat) && <View style={styles.radioInnerCircle} />}
-                </View>
-                <Text style={styles.radioLabel}>{cat}</Text>
-              </TouchableOpacity>
-            ))}
+            {showCategoryFilter && (
+              <>
+                <Text style={styles.dropdownTitle}>Фильтрация по категориям</Text>
+                {['Все', 'Игры', 'Фильмы', 'Настолки', 'Другое'].map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={styles.radioItem}
+                    onPress={() => toggleCategoryCheckbox(cat)}
+                  >
+                    <View style={styles.radioCircleEmpty}>
+                      {checkedCategories.includes(cat) && <View style={styles.radioInnerCircle} />}
+                    </View>
+                    <Text style={styles.radioLabel}>{cat}</Text>
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
 
-            <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>Сортировка по дате</Text>
-            {['asc', 'desc'].map((order) => (
+            <Text style={[styles.dropdownTitle, { marginTop: showCategoryFilter ? 12 : 0 }]}>
+              Сортировка по дате
+            </Text>
+            {['none', 'asc', 'desc'].map((order) => (
               <TouchableOpacity
                 key={order}
                 style={styles.radioItem}
-                onPress={() => setSortByDate(order as 'asc' | 'desc')}
+                onPress={() => setSortByDate(order as 'asc' | 'desc' | 'none')}
               >
                 <View style={styles.radioCircleEmpty}>
                   {sortByDate === order && <View style={styles.radioInnerCircle} />}
                 </View>
                 <Text style={styles.radioLabel}>
-                  {order === 'asc' ? 'По возрастанию' : 'По убыванию'}
+                  {getSortLabel(order)}
                 </Text>
               </TouchableOpacity>
             ))}
 
             <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>Сортировка по участникам</Text>
-            {['asc', 'desc'].map((order) => (
+            {['none', 'asc', 'desc'].map((order) => (
               <TouchableOpacity
                 key={order}
                 style={styles.radioItem}
-                onPress={() => setSortByParticipants(order as 'asc' | 'desc')}
+                onPress={() => setSortByParticipants(order as 'asc' | 'desc' | 'none')}
               >
                 <View style={styles.radioCircleEmpty}>
                   {sortByParticipants === order && <View style={styles.radioInnerCircle} />}
                 </View>
                 <Text style={styles.radioLabel}>
-                  {order === 'asc' ? 'По возрастанию' : 'По убыванию'}
+                  {getSortLabel(order)}
                 </Text>
               </TouchableOpacity>
             ))}

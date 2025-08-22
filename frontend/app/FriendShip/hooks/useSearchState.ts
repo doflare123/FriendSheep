@@ -2,23 +2,23 @@ import { useState } from 'react';
 
 export interface SortingState {
   checkedCategories: string[];
-  sortByDate: 'asc' | 'desc';
-  sortByParticipants: 'asc' | 'desc';
+  sortByDate: 'asc' | 'desc' | 'none';
+  sortByParticipants: 'asc' | 'desc' | 'none';
   searchQuery: string;
 }
 
 export interface SortingActions {
   setCheckedCategories: (categories: string[]) => void;
-  setSortByDate: (order: 'asc' | 'desc') => void;
-  setSortByParticipants: (order: 'asc' | 'desc') => void;
+  setSortByDate: (order: 'asc' | 'desc' | 'none') => void;
+  setSortByParticipants: (order: 'asc' | 'desc' | 'none') => void;
   toggleCategoryCheckbox: (category: string) => void;
   setSearchQuery: (query: string) => void;
 }
 
 export const useSearchState = () => {
   const [checkedCategories, setCheckedCategories] = useState<string[]>(['Все']);
-  const [sortByDate, setSortByDate] = useState<'asc' | 'desc'>('asc');
-  const [sortByParticipants, setSortByParticipants] = useState<'asc' | 'desc'>('asc');
+  const [sortByDate, setSortByDate] = useState<'asc' | 'desc' | 'none'>('none');
+  const [sortByParticipants, setSortByParticipants] = useState<'asc' | 'desc' | 'none'>('none');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const toggleCategoryCheckbox = (category: string) => {
