@@ -12,10 +12,10 @@ import FormButton from '../../../components/FormButton';
 import VerifiContainer from '../../../components/VerifiContainer';
 
 export default function ConfirmCode() {
-    usePageProtection({ 
-        pageKey: PAGE_KEYS.CODE_VERIFY,
-        redirectTo: '/register'
-    });
+    // usePageProtection({ 
+    //     pageKey: PAGE_KEYS.CODE_VERIFY,
+    //     redirectTo: '/register'
+    // });
 
     const [values, setValues] = useState(['', '', '', '', '', '']);
     const inputsRef = useRef<(HTMLInputElement | null)[]>([]);

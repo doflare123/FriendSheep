@@ -120,7 +120,7 @@ div.modalOverlay .modalContent {
 }
 
 .nameInput::placeholder {
-    color: #999;
+    color: #000;
     font-size: 18px;
 }
 
@@ -168,8 +168,8 @@ div.modalOverlay .modalContent {
     border-radius: 12px;
     font-size: 16px;
     color: #000;
-    resize: vertical;
-    min-height: 100px;
+    resize: none; /* Отключаем возможность изменения размера */
+    height: 120px; /* Увеличили высоту с 100px до 120px */
     font-family: 'Inter', sans-serif;
     transition: border-color 0.2s ease;
 }
@@ -323,6 +323,18 @@ div.modalOverlay .modalContent {
 
 .createButton:hover {
     background: #2d93d5;
+}
+
+/* Стили для ошибок */
+.error {
+    border-color: #ff4444 !important;
+}
+
+.errorMessage {
+    color: #ff4444;
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
 }
 
 /* Адаптивность для мобильных устройств */

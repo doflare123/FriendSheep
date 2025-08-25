@@ -1,3 +1,5 @@
+// src/types/Groups.ts
+
 // Интерфейсы для групп
 export interface Contact {
   link: string;
@@ -50,6 +52,8 @@ export interface GroupData {
   name: string;
   sessions: SessionWithMetadata[];
   users: User[];
+  small_description?: string;
+  private?: boolean;
 }
 
 export interface GroupProfileProps {

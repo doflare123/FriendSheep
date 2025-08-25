@@ -1,6 +1,7 @@
 import {EventCardProps} from "../../types/Events"
 import '../../styles/EventCard.css';
 import Image from "next/image";
+import {getCategoryIcon} from '../../Constants'
 
 const EventCard: React.FC<EventCardProps> = ({
     id,
@@ -12,14 +13,17 @@ const EventCard: React.FC<EventCardProps> = ({
     participants,
     maxParticipants,
     duration,
-    location
+    location,
+    isEditMode = false,
+    onEdit
 }) => {
-    const getTypeIcon = () => {
-        switch (type) {
-        case 'games': return '/events/games.png';
-        case 'movies': return '/events/movies.png';
-        case 'board': return '/events/board.png';
-        default: return '/events/other.png';
+
+    const handleButtonClick = () => {
+        if (isEditMode && onEdit) {
+            onEdit(id);
+        } else {
+            // Обычная логика для "Узнать подробнее"
+            console.log('Подробности события:', id);
         }
     };
 
@@ -28,7 +32,7 @@ const EventCard: React.FC<EventCardProps> = ({
             <div className='cardImage'>
                 <img src={image} alt={title} />
                 <div className='typeIcon'>
-                    <Image src={getTypeIcon()} alt={type} width={20} height={20} />
+                    <Image src={getCategoryIcon(type)} alt={type} width={20} height={20} />
                 </div>
                 <div className='cardDate'>{date}</div>
             </div>
@@ -55,8 +59,8 @@ const EventCard: React.FC<EventCardProps> = ({
                         </span>
                     )}
                 </div>
-                <button className='detailsButton'>
-                    Узнать подробнее
+                <button className='detailsButton' onClick={handleButtonClick}>
+                    {isEditMode ? 'Редактировать' : 'Узнать подробнее'}
                 </button>
             </div>
         </div>

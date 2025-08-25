@@ -6,6 +6,7 @@ import styles from '../../../styles/Groups/profile/GroupProfile.module.css';
 import CategorySection from '../../Events/CategorySection';
 import { SectionData, EventCardProps } from '../../../types/Events';
 import { GroupProfileProps, GroupData, Contact, SessionWithMetadata } from '../../../types/Groups';
+import {getCategoryIcon, getSocialIcon} from '../../../Constants'
 
 // Функция для преобразования sessions в формат для CategorySection
 const transformSessionsToEvents = (sessions: SessionWithMetadata[]): SectionData => {
@@ -63,41 +64,6 @@ const formatDuration = (duration: number): string => {
     const hours = Math.floor(duration / 60);
     const minutes = duration % 60;
     return minutes > 0 ? `${hours}ч ${minutes}м` : `${hours} часа`;
-  }
-};
-
-// Функция для получения иконки социальной сети по ссылке
-const getSocialIcon = (link: string, name: string): string => {
-  const lowerLink = link.toLowerCase();
-  const lowerName = name.toLowerCase();
-  
-  if (lowerLink.includes('discord') || lowerName.includes('discord')) {
-    return 'social/ds.png';
-  } else if (lowerLink.includes('t.me') || lowerLink.includes('telegram') || lowerName.includes('telegram')) {
-    return 'social/tg.png';
-  } else if (lowerLink.includes('vk.com') || lowerName.includes('вконтакте') || lowerName.includes('vk')) {
-    return 'social/vk.png';
-  } else if (lowerLink.includes('wa.me') || lowerLink.includes('whatsapp') || lowerName.includes('whatsapp')) {
-    return 'social/wa.png';
-  } else if (lowerLink.includes('snapchat') || lowerName.includes('snapchat')) {
-    return 'social/snap.png';
-  } else {
-    return 'default/soc_net.png';
-  }
-};
-
-// Функция для получения иконки категории
-const getCategoryIcon = (category: string): string => {
-  const lowerCategory = category.toLowerCase();
-  
-  if (lowerCategory.includes('game') || lowerCategory.includes('игр')) {
-    return 'events/games.png';
-  } else if (lowerCategory.includes('movie') || lowerCategory.includes('film') || lowerCategory.includes('кино') || lowerCategory.includes('фильм')) {
-    return 'events/movies.png';
-  } else if (lowerCategory.includes('board') || lowerCategory.includes('настольн')) {
-    return 'events/board.png';
-  } else {
-    return 'events/games.png'; // default
   }
 };
 

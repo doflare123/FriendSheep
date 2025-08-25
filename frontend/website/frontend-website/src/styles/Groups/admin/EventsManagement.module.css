@@ -1,0 +1,303 @@
+.eventsContainer {
+  height: 100%; /* Занимаем всю доступную высоту родителя */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 30px; /* Используем padding от contentBody */
+  box-sizing: border-box;
+  overflow: hidden; /* Убираем общий скролл */
+}
+
+/* Секция поиска и фильтров */
+.controlsSection {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-shrink: 0; /* Не позволяем сжиматься */
+  min-height: 48px; /* Фиксированная минимальная высота */
+}
+
+.searchWrapper {
+  position: relative;
+  flex: 0 0 50%; /* Ширина 50% вместо flex: 1 */
+  min-width: 0;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 50px 12px 16px;
+  border: 2px solid #316BC2;
+  border-radius: 20px;
+  font-size: 14px;
+  background: white;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #316BC2;
+  box-shadow: 0 0 0 3px rgba(49, 107, 194, 0.1);
+}
+
+.searchInput::placeholder {
+  color: #8899a6;
+}
+
+.sortButton {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sortButton:hover {
+  background-color: rgba(49, 107, 194, 0.1);
+}
+
+/* Кнопка создания */
+.createButton {
+  background-color: #37A2E6;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.createButton:hover {
+  background-color: #2B8BC9;
+  transform: translateY(-1px);
+}
+
+.createButton:active {
+  transform: translateY(0);
+}
+
+/* Выпадающее меню сортировки */
+.sortMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 2px solid #37A2E6;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 250px;
+  margin-top: 4px;
+}
+
+.sortGroup {
+  margin-bottom: 16px;
+}
+
+.sortGroup:last-child {
+  margin-bottom: 0;
+}
+
+.sortGroupTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #333;
+  text-align: left;
+}
+
+.sortOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  text-align: left;
+}
+
+.sortOption input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #37A2E6;
+}
+
+.sortOption span {
+  flex: 1;
+  text-align: left;
+}
+
+/* Список событий - контейнер с ограниченной высотой */
+.eventsList {
+  position: relative;
+  flex: 1; /* Занимает оставшееся место */
+  min-height: 0; /* Важно для flexbox */
+  overflow: hidden; /* Убираем скролл с контейнера списка */
+}
+
+/* Контейнер с внутренним скроллом только для карточек */
+.scrollContainer {
+  height: 100%; /* Занимает всю доступную высоту родителя */
+  overflow-y: auto; /* Скролл только по вертикали */
+  overflow-x: hidden; /* Убираем горизонтальный скролл */
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #ccd6dd #f7f9fa;
+}
+
+.scrollContainer::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollContainer::-webkit-scrollbar-track {
+  background: #f7f9fa;
+  border-radius: 3px;
+}
+
+.scrollContainer::-webkit-scrollbar-thumb {
+  background: #ccd6dd;
+  border-radius: 3px;
+}
+
+.scrollContainer::-webkit-scrollbar-thumb:hover {
+  background: #aab8c2;
+}
+
+/* Сетка событий в 2 столбца с минимальным отступом */
+.eventsGrid {
+  display: grid;
+  grid-template-columns: 50% 50%;
+  gap: 0; /* Убираем gap полностью */
+  align-items: start;
+  padding-bottom: 20px; /* Добавляем отступ снизу для лучшего скролла */
+}
+
+.eventCardWrapper {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  /* Добавляем небольшой отступ только справа для левого столбца */
+}
+
+.eventCardWrapper:nth-child(odd) {
+  padding-right: 2px; /* Минимальный отступ для левого столбца */
+}
+
+.eventCardWrapper:nth-child(even) {
+  padding-left: 2px; /* Минимальный отступ для правого столбца */
+}
+
+.eventCardScaler {
+  transform: scale(0.75);
+  transform-origin: top left;
+  width: 100%;
+}
+
+/* Кнопки скролла */
+.scrollButton {
+  position: absolute;
+  right: 10px;
+  background: white;
+  color: #316BC2;
+  border: 2px solid #316BC2;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.scrollButton:hover {
+  background: #316BC2;
+  color: white;
+  transform: scale(1.05);
+}
+
+.scrollUp {
+  top: 10px;
+}
+
+.scrollDown {
+  bottom: 10px;
+}
+
+/* Пустое состояние */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #8899a6;
+  gap: 2px;
+  height: 100%; /* Занимает всю высоту доступной области */
+}
+
+.emptyText {
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .eventsContainer {
+    height: 100%; /* Сохраняем относительную высоту */
+    padding: 20px;
+  }
+  
+  .controlsSection {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    min-height: auto;
+  }
+  
+  .searchWrapper {
+    flex: 1; /* На мобильных возвращаем полную ширину */
+  }
+  
+  .sortMenu {
+    right: 0;
+    left: 0;
+    min-width: auto;
+  }
+  
+  /* На мобильных - один столбец */
+  .eventsGrid {
+    grid-template-columns: 1fr;
+    gap: 0px;
+    padding: 3px;
+    padding-bottom: 20px;
+  }
+  
+  .eventCardWrapper {
+    max-width: 100%;
+  }
+  
+  .eventCardWrapper:nth-child(odd),
+  .eventCardWrapper:nth-child(even) {
+    padding: 0;
+  }
+}

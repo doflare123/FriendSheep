@@ -1,0 +1,336 @@
+/* src/styles/Groups/admin/RequestsManagement.module.css */
+
+.requestsContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Полная высота viewport */
+  max-height: 100vh; /* Ограничиваем максимальную высоту */
+  gap: 20px;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden; /* Убираем скролл у контейнера */
+}
+
+/* Верхняя секция с счетчиком и кнопками */
+.headerSection {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border: 2px solid #316BC2;
+  border-radius: 12px;
+  background: white;
+  flex-shrink: 0; /* Не сжимается */
+}
+
+.requestsCount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.countNumber {
+  font-size: 18px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.countText {
+  font-size: 16px;
+  color: #000000;
+}
+
+.massActions {
+  display: flex;
+  gap: 12px;
+}
+
+.acceptAllBtn,
+.rejectAllBtn {
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #FFFFFF;
+}
+
+.acceptAllBtn {
+  background-color: #37A2E6;
+}
+
+.acceptAllBtn:hover:not(:disabled) {
+  background-color: #2691d9;
+}
+
+.rejectAllBtn {
+  background-color: #E6374B;
+}
+
+.rejectAllBtn:hover:not(:disabled) {
+  background-color: #d32636;
+}
+
+.acceptAllBtn:disabled,
+.rejectAllBtn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Секция поиска */
+.searchSection {
+  padding: 0;
+  flex-shrink: 0; /* Не сжимается */
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #316BC2;
+  border-radius: 12px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  border-color: #37A2E6;
+}
+
+.searchInput::placeholder {
+  color: #999;
+}
+
+/* Контейнер списка заявок */
+.requestsList {
+  position: relative;
+  flex: 1; /* Занимает оставшееся место */
+  min-height: 0; /* Важно для flex элементов со скроллом */
+  border: 2px solid #316BC2;
+  border-radius: 12px;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Скрываем переполнение у контейнера */
+}
+
+/* Кнопки скролла */
+.scrollButton {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #316BC2;
+  color: #316BC2;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.scrollButton:hover {
+  transform: translateX(-50%) scale(1.1);
+}
+
+.scrollUp {
+  top: 10px;
+}
+
+.scrollDown {
+  bottom: 10px;
+}
+
+/* Контейнер со скроллом - ОСНОВНЫЕ ИЗМЕНЕНИЯ ЗДЕСЬ */
+.scrollContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto; /* Скролл только по вертикали */
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  padding: 50px 20px;
+  flex: 1; /* Занимает все доступное место в requestsList */
+  max-height: 100%; /* Ограничиваем максимальную высоту */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  position: relative;
+  
+  /* Градиентная маска для плавного исчезновения */
+  mask: linear-gradient(
+    to bottom,
+    transparent 0px,
+    black 40px,
+    black calc(100% - 40px),
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(
+    to bottom,
+    transparent 0px,
+    black 40px,
+    black calc(100% - 40px),
+    transparent 100%
+  );
+}
+
+.scrollContainer::-webkit-scrollbar {
+  display: none;
+}
+
+/* Элемент заявки */
+.requestItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border: 1px solid #37A2E6;
+  border-radius: 12px;
+  transition: all 0.2s;
+  min-height: 72px;
+  flex-shrink: 0; /* Элементы не сжимаются */
+}
+
+.requestItem:hover {
+  background: #f1f3f4;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Информация о пользователе */
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.userAvatar {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0; /* Аватар не сжимается */
+}
+
+.userDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0; /* Позволяет тексту сжиматься */
+}
+
+.userName {
+  font-size: 18px;
+  font-weight: 600;
+  color: #000000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userEmail {
+  font-size: 14px;
+  color: #000000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Действия с заявкой */
+.requestActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0; /* Кнопки не сжимаются */
+}
+
+.acceptBtn,
+.rejectBtn {
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 80px;
+  color: #FFFFFF;
+}
+
+.acceptBtn {
+  background-color: #37A2E6;
+}
+
+.acceptBtn:hover {
+  background-color: #2691d9;
+  transform: translateY(-1px);
+}
+
+.rejectBtn {
+  background-color: #E6374B;
+}
+
+.rejectBtn:hover {
+  background-color: #d32636;
+  transform: translateY(-1px);
+}
+
+/* Пустое состояние */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: #000000;
+}
+
+.emptyText {
+  font-size: 16px;
+  text-align: center;
+  color: #666;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .requestsContainer {
+    padding: 10px;
+    gap: 15px;
+  }
+
+  .headerSection {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .massActions {
+    justify-content: center;
+  }
+  
+  .requestItem {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .userInfo {
+    justify-content: center;
+  }
+  
+  .requestActions {
+    justify-content: center;
+  }
+
+  .scrollContainer {
+    padding: 40px 15px;
+  }
+}

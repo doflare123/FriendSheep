@@ -1,24 +1,36 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import SocialContactsModal from './SocialContactsModal';
+import { GroupData } from '../../types/Groups';
 import styles from '../../styles/Groups/CreateGroupModal.module.css';
+import {getCategoryIcon, getSocialIcon} from '../../Constants'
 
 interface CreateGroupFormProps {
   onSubmit: (groupData: any) => void;
+  initialData?: Partial<GroupData & { shortDescription?: string; isPrivate?: boolean; imagePreview?: string; socialContacts?: { name: string; link: string }[] }>;
+  showTitle?: boolean;
+  isLoading?: boolean;
 }
 
-const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
+const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ 
+  onSubmit, 
+  initialData,
+  showTitle = true,
+  isLoading = false
+}) => {
   const [formData, setFormData] = useState({
-    name: '',
-    shortDescription: '',
-    description: '',
-    city: '',
-    isPrivate: false,
-    categories: [] as string[],
-    socialContacts: [] as { name: string; link: string }[]
+    name: initialData?.name || '',
+    shortDescription: initialData?.shortDescription || '',
+    description: initialData?.description || '',
+    city: initialData?.city || '',
+    isPrivate: initialData?.isPrivate || false,
+    categories: initialData?.categories || [] as string[],
+    socialContacts: initialData?.socialContacts || [] as { name: string; link: string }[]
   });
 
-  const [selectedImage, setSelectedImage] = useState<string>('/default/group.jpg');
+  const [selectedImage, setSelectedImage] = useState<string>(
+    initialData?.imagePreview || '/default/group.jpg'
+  );
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const [errors, setErrors] = useState({
@@ -30,19 +42,38 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const categories = [
-    { id: 'movies', name: 'Фильмы', icon: '/events/movies.png' },
-    { id: 'games', name: 'Игры', icon: '/events/games.png' },
-    { id: 'board', name: 'Настолки', icon: '/events/board.png' },
-    { id: 'other', name: 'Другое', icon: '/events/other.png' }
+    { id: 'movies', name: 'Фильмы', icon: getCategoryIcon("movies") },
+    { id: 'games', name: 'Игры', icon: getCategoryIcon("games") },
+    { id: 'board', name: 'Настолки', icon: getCategoryIcon("boards") },
+    { id: 'other', name: 'Другое', icon: getCategoryIcon("other") }
   ];
 
   const baseSocialNetworks = [
-    { name: 'Discord', icon: '/social/ds.png' },
-    { name: 'Telegram', icon: '/social/tg.png' },
-    { name: 'VKontakte', icon: '/social/vk.png' },
-    { name: 'WhatsApp', icon: '/social/wa.png' },
-    { name: 'Snapchat', icon: '/social/snap.png' }
+    { name: 'Discord', icon: getSocialIcon("ds") },
+    { name: 'Telegram', icon: getSocialIcon("tg") },
+    { name: 'VKontakte', icon: getSocialIcon("vk") },
+    { name: 'WhatsApp', icon: getSocialIcon("wa") },
+    { name: 'Snapchat', icon: getSocialIcon("snap") }
   ];
+
+  // Обновляем форму при изменении initialData
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        shortDescription: initialData.shortDescription || initialData.small_description || '',
+        description: initialData.description || '',
+        city: initialData.city || '',
+        isPrivate: initialData.isPrivate || initialData.private || false,
+        categories: initialData.categories || [],
+        socialContacts: initialData.socialContacts || []
+      });
+      
+      if (initialData.imagePreview) {
+        setSelectedImage(initialData.imagePreview);
+      }
+    }
+  }, [initialData]);
 
   const validateForm = () => {
     const newErrors = {
@@ -134,7 +165,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
     }
   };
 
-  const getSocialIcon = (name: string) => {
+  const getBaseSocialIcon = (name: string) => {
     const baseSocial = baseSocialNetworks.find(social => social.name === name);
     return baseSocial ? baseSocial.icon : '/default/soc_net.png';
   };
@@ -155,6 +186,19 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
 
   return (
     <>
+      {showTitle && (
+        <div style={{ marginBottom: '30px' }}>
+          <h2 style={{ 
+            color: '#000', 
+            fontSize: '24px', 
+            fontWeight: '600', 
+            margin: 0 
+          }}>
+            Основная информация
+          </h2>
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className={styles.createGroupForm}>
         <div className={styles.formRow}>
           <div className={styles.leftColumn}>
@@ -206,7 +250,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
                     onClick={() => handleSocialIconClick(contact.link)}
                   >
                     <Image
-                      src={getSocialIcon(contact.name)}
+                      src={getBaseSocialIcon(contact.name)}
                       alt={contact.name}
                       width={50}
                       height={50}
@@ -299,8 +343,16 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onSubmit }) => {
         </div>
 
         {/* Кнопка создания */}
-        <button type="submit" className={styles.createButton}>
-          Создать группу
+        <button 
+          type="submit" 
+          className={styles.createButton}
+          disabled={isLoading}
+          style={{
+            opacity: isLoading ? 0.7 : 1,
+            cursor: isLoading ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
         </button>
       </form>
 

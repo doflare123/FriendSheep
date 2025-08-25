@@ -1,0 +1,219 @@
+/* Стили для модального окна карты */
+.mapModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1003;
+}
+
+.mapModal {
+  background: white;
+  border-radius: 16px;
+  width: 90vw;
+  height: 80vh;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.mapModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.mapModalHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  background: #f0f0f0;
+}
+
+.searchResults {
+  max-height: 150px;
+  overflow-y: auto;
+  border-bottom: 1px solid #e0e0e0;
+  background: #fafafa;
+}
+
+.searchResultItem {
+  padding: 12px 20px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease;
+}
+
+.searchResultItem:hover {
+  background: #f5f5f5;
+}
+
+.searchResultItem:last-child {
+  border-bottom: none;
+}
+
+.searchResultItem strong {
+  display: block;
+  font-size: 14px;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.searchResultItem span {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.selectedPlaceInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #e8f4f8;
+  border-bottom: 1px solid #37A2E6;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.selectedPlaceContent {
+  flex: 1;
+}
+
+.selectedPlaceContent strong {
+  display: block;
+  font-size: 12px;
+  color: #37A2E6;
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.selectedPlaceContent div:nth-child(2) {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.selectedAddress {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.confirmButton {
+  padding: 8px 16px;
+  background: #37A2E6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+  margin-left: 12px;
+}
+
+.confirmButton:hover {
+  background: #2e8cc7;
+}
+
+.mapContainer {
+  flex: 1;
+  width: 100%;
+  min-height: 400px;
+  background: #f0f0f0;
+  position: relative;
+}
+
+.mapModalFooter {
+  padding: 16px 20px;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
+}
+
+.mapModalFooter p {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .mapModal {
+    width: 95vw;
+    height: 85vh;
+    margin: 0 10px;
+  }
+  
+  .mapModalHeader {
+    padding: 16px;
+  }
+  
+  .mapModalFooter {
+    padding: 12px 16px;
+  }
+  
+  .selectedPlaceInfo {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 16px;
+  }
+  
+  .confirmButton {
+    margin-left: 0;
+    margin-top: 8px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .mapModal {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+}
