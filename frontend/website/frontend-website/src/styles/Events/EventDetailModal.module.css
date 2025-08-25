@@ -1,0 +1,610 @@
+/* src/styles/Events/EventDetailModal.module.css */
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-out;
+  font-family: 'Inter', sans-serif;
+  padding: 20px;
+}
+
+.modalContainer {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 900px;
+  height: auto;
+  max-height: 90vh;
+  overflow: hidden;
+  position: relative;
+  animation: slideUp 0.3s ease-out;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 2px solid #316BC2;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: #000;
+  text-align: center;
+  flex: 1;
+}
+
+.closeButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.closeButton:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.eventImageContainer {
+  position: relative;
+  margin: 0 24px 12px 24px;
+  border-radius: 16px;
+  overflow: hidden;
+  height: 150px;
+  background: linear-gradient(135deg, #ffa8d4, #ffb3e6);
+  flex-shrink: 0;
+}
+
+.eventImage {
+  object-fit: cover;
+}
+
+.participantsBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: white;
+  border: 2px solid #37A2E6;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eventInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.dateInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dateValue {
+  background: #37A2E6;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.durationInfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #000;
+}
+
+.eventDescription {
+  padding: 0 24px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.eventDescription p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #333;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.genresSection {
+  padding: 0 24px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.genresLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #000;
+  white-space: nowrap;
+  margin-top: 6px;
+}
+
+.genresContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+
+.genreTag {
+  background: #37A2E6;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.publisherInfo {
+  margin: 0 24px 12px 24px;
+  padding: 16px;
+  border: 2px solid #316BC2;
+  border-radius: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.publisherRow {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.publisherRow:nth-child(1) {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.publisherRow:nth-child(2) {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.publisherRow:nth-child(3) {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.publisherRow:nth-child(4) {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+}
+
+.publisherLabel {
+  color: #000;
+  font-weight: 500;
+}
+
+.publisherValue {
+  color: #000;
+  font-weight: 400;
+}
+
+.publisherValue.underlined {
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.publisherValue.underlined:hover {
+  color: #316BC2;
+}
+
+.joinButton {
+  width: 50%;
+  margin: 16px auto;
+  padding: 12px;
+  background: #37A2E6;
+  color: white;
+  border: 2px solid #316BC2;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  display: block;
+  flex-shrink: 0;
+}
+
+.joinButton:hover {
+  background: #3A8EEF;
+  transform: translateY(-1px);
+}
+
+.joinButton:active {
+  transform: translateY(0);
+}
+
+/* Стили скроллбара для модального окна */
+.modalContainer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modalContainer::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.modalContainer::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.modalContainer::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ========== ДЕСКТОПНЫЕ АДАПТАЦИИ ========== */
+
+/* Большие десктопы (1440px+) */
+@media (min-width: 1440px) {
+  .modalContainer {
+    max-width: 1100px;
+  }
+
+  .modalTitle {
+    font-size: 26px;
+  }
+
+  .eventImageContainer {
+    height: 220px;
+    margin: 0 32px 16px 32px;
+  }
+
+  .modalHeader {
+    padding: 20px 32px;
+  }
+
+  .eventInfo,
+  .eventDescription,
+  .genresSection {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  .publisherInfo {
+    margin: 0 32px 16px 32px;
+    padding: 20px;
+    gap: 12px;
+  }
+
+  .publisherRow {
+    font-size: 14px;
+  }
+
+  .eventDescription p {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .genreTag {
+    font-size: 12px;
+    padding: 8px 16px;
+  }
+
+  .genresLabel {
+    font-size: 14px;
+  }
+
+  .dateValue {
+    font-size: 14px;
+    padding: 6px 12px;
+  }
+
+  .durationInfo {
+    font-size: 14px;
+  }
+
+  .joinButton {
+    font-size: 16px;
+    padding: 16px;
+    margin: 20px auto;
+    max-width: 400px;
+  }
+
+  .participantsBadge {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+/* Средние десктопы (1200px - 1439px) */
+@media (min-width: 1200px) and (max-width: 1439px) {
+  .modalContainer {
+    max-width: 1000px;
+  }
+
+  .modalTitle {
+    font-size: 24px;
+  }
+
+  .eventImageContainer {
+    height: 200px;
+    margin: 0 28px 14px 28px;
+  }
+
+  .modalHeader {
+    padding: 18px 28px;
+  }
+
+  .eventInfo,
+  .eventDescription,
+  .genresSection {
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+
+  .publisherInfo {
+    margin: 0 28px 14px 28px;
+    padding: 18px;
+    gap: 10px;
+  }
+
+  .publisherRow {
+    font-size: 13px;
+  }
+
+  .eventDescription p {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .genreTag {
+    font-size: 11px;
+    padding: 7px 14px;
+  }
+
+  .genresLabel {
+    font-size: 13px;
+  }
+
+  .dateValue {
+    font-size: 13px;
+    padding: 5px 11px;
+  }
+
+  .durationInfo {
+    font-size: 13px;
+  }
+
+  .joinButton {
+    font-size: 15px;
+    padding: 14px;
+    margin: 18px auto;
+    max-width: 380px;
+  }
+
+  .participantsBadge {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+/* Стандартные десктопы (1024px - 1199px) */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .modalContainer {
+    max-width: 950px;
+  }
+
+  .modalTitle {
+    font-size: 22px;
+  }
+
+  .eventImageContainer {
+    height: 180px;
+    margin: 0 26px 12px 26px;
+  }
+
+  .modalHeader {
+    padding: 16px 26px;
+  }
+
+  .eventInfo,
+  .eventDescription,
+  .genresSection {
+    padding-left: 26px;
+    padding-right: 26px;
+  }
+
+  .publisherInfo {
+    margin: 0 26px 12px 26px;
+    padding: 18px;
+  }
+
+  .joinButton {
+    margin: 16px auto;
+    max-width: 360px;
+  }
+}
+
+/* Планшеты и малые десктопы (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .modalContainer {
+    max-width: 700px;
+  }
+
+  .modalTitle {
+    font-size: 20px;
+  }
+
+  .eventImageContainer {
+    height: 160px;
+  }
+
+  .joinButton {
+    width: 60%;
+    max-width: 300px;
+  }
+
+  .publisherInfo {
+    gap: 8px;
+  }
+}
+
+/* Мобильные устройства (до 767px) */
+@media (max-width: 767px) {
+  .modalOverlay {
+    padding: 10px;
+  }
+
+  .modalContainer {
+    width: 100%;
+    max-width: none;
+    max-height: 95vh;
+    border-radius: 16px;
+  }
+
+  .modalHeader {
+    padding: 12px 16px;
+  }
+
+  .modalTitle {
+    font-size: 18px;
+  }
+
+  .eventImageContainer {
+    height: 120px;
+    margin: 0 16px 10px 16px;
+  }
+
+  .eventInfo,
+  .eventDescription,
+  .genresSection {
+    padding: 0 16px;
+    margin-bottom: 10px;
+  }
+
+  .publisherInfo {
+    margin: 0 16px 10px 16px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .publisherRow {
+    justify-self: unset;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 11px;
+  }
+
+  .publisherRow:nth-child(1),
+  .publisherRow:nth-child(2),
+  .publisherRow:nth-child(3),
+  .publisherRow:nth-child(4) {
+    grid-column: unset;
+    grid-row: unset;
+    justify-self: unset;
+  }
+
+  .joinButton {
+    width: 80%;
+    margin: 12px auto;
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  .genresSection {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .genresLabel {
+    margin-top: 0;
+    font-size: 11px;
+  }
+
+  .participantsBadge {
+    width: 30px;
+    height: 30px;
+  }
+
+  .dateValue {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .durationInfo {
+    font-size: 11px;
+  }
+
+  .genreTag {
+    font-size: 9px;
+    padding: 4px 8px;
+  }
+
+  .eventDescription p {
+    font-size: 11px;
+    -webkit-line-clamp: 2;
+  }
+}
