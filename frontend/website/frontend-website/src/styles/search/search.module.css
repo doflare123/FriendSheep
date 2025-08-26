@@ -1,0 +1,380 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.contentWrapper {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.searchHeader {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.searchInputWrapper {
+  flex: 1;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #316BC2;
+  border-radius: 20px;
+  background: white;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.searchInput:focus {
+  border-color: #37A2E6;
+}
+
+.searchInput::placeholder {
+  color: #666;
+}
+
+.toggleButton {
+  width: 44px;
+  height: 44px;
+  border: 2px solid #316BC2;
+  border-radius: 8px;
+  background: #37A2E6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggleButton:hover {
+  background: #2a8bc7;
+}
+
+.resultsContainer {
+  margin-bottom: 30px;
+}
+
+/* Группы */
+.groupsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.groupItem {
+  background: white;
+  border: 2px solid #37A2E6;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+
+.groupItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(55, 162, 230, 0.2);
+}
+
+.groupContent {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.groupImageWrapper {
+  flex-shrink: 0;
+}
+
+.groupImage {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.groupInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.groupTitleLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.groupName {
+  font-size: 18px;
+  font-weight: 400;
+  color: #333;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.groupIcons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.categoryIcon {
+  flex-shrink: 0;
+}
+
+.groupDescription {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.groupActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.joinButton {
+  padding: 8px 16px;
+  background: #37A2E6;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.joinButton:hover {
+  background: #2a8bc7;
+  transform: translateY(-1px);
+}
+
+.joinButton:disabled {
+  cursor: not-allowed;
+  transform: none;
+}
+
+.joinedButton {
+  background: #4CAF50 !important;
+}
+
+.joinedButton:hover {
+  background: #45a049 !important;
+}
+
+.requestedButton {
+  background: #FF9800 !important;
+}
+
+.requestedButton:hover {
+  background: #e68900 !important;
+}
+
+.memberCount {
+  font-size: 14px;
+  color: #666;
+  white-space: nowrap;
+}
+
+/* Пользователи */
+.usersList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.userItem {
+  background: white;
+  border: 2px solid #37A2E6;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+
+.userItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(55, 162, 230, 0.2);
+}
+
+.userContent {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.userImageWrapper {
+  flex-shrink: 0;
+}
+
+.userImage {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.userInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.userName {
+  font-size: 18px;
+  font-weight: 400;
+  color: #333;
+  margin: 0 0 4px 0;
+}
+
+.userStatus {
+  font-size: 14px;
+  color: #37A2E6;
+  margin: 0 0 4px 0;
+  font-weight: 500;
+}
+
+.userDescription {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+.addButton {
+  padding: 8px 16px;
+  background: #37A2E6;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.addButton:hover {
+  background: #2a8bc7;
+  transform: translateY(-1px);
+}
+
+/* Пагинация */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.arrowButton {
+  background: none;
+  border: none;
+  color: #37A2E6;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.3s ease;
+}
+
+.arrowButton:hover:not(:disabled) {
+  color: #2a8bc7;
+}
+
+.arrowButton:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.pageNumber {
+  background: none;
+  border: none;
+  color: #37A2E6;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  min-width: 32px;
+  transition: color 0.3s ease;
+}
+
+.pageNumber:hover {
+  color: #2a8bc7;
+}
+
+.activePage {
+  color: #2a8bc7 !important;
+  font-weight: 600;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .container {
+    padding: 15px;
+  }
+  
+  .contentWrapper {
+    padding: 20px;
+  }
+  
+  .searchHeader {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .toggleButton {
+    align-self: flex-end;
+  }
+  
+  .groupItem,
+  .userItem {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .groupContent,
+  .userContent {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .groupActions {
+    align-items: center;
+  }
+  
+  .groupHeader {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .pagination {
+    gap: 8px;
+  }
+  
+  .pageNumber {
+    font-size: 14px;
+    min-width: 28px;
+  }
+  
+  .arrowButton {
+    font-size: 16px;
+  }
+}
