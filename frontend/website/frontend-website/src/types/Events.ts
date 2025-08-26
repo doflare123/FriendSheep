@@ -1,3 +1,5 @@
+// src/types/Events.ts
+
 export interface EventCardProps {
     id: number;
     type: 'games' | 'movies' | 'board' | 'other';
