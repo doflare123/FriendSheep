@@ -53,29 +53,29 @@ type CachedPopularSessionsDoc struct {
 // @Failure 401 {object} map[string]string "Пользователь не авторизован"
 // @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Router /api/users/sessions/new [get]
-func GetNewSessions(c *gin.Context) {
-	email := c.MustGet("email").(string)
-	if email == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
-		return
-	}
+// func GetNewSessions(c *gin.Context) {
+// 	email := c.MustGet("email").(string)
+// 	if email == "" {
+// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
+// 		return
+// 	}
 
-	// Получение и валидация параметра page
-	pageStr := c.DefaultQuery("page", "1")
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный номер страницы"})
-		return
-	}
+// 	// Получение и валидация параметра page
+// 	pageStr := c.DefaultQuery("page", "1")
+// 	page, err := strconv.Atoi(pageStr)
+// 	if err != nil || page < 1 {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный номер страницы"})
+// 		return
+// 	}
 
-	response, err := services.GetNewSessions(email, page)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+// 	response, err := services.GetNewSessions(email, page)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-	c.JSON(http.StatusOK, response)
-}
+// 	c.JSON(http.StatusOK, response)
+// }
 
 // GetPopularSessions godoc
 // @Summary Получение популярных сессий
@@ -111,53 +111,56 @@ func GetPopularSessions(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Категория не найдена"
 // @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Router /api/users/sessions/category [get]
-func GetCategorySessions(c *gin.Context) {
+// func GetCategorySessions(c *gin.Context) {
 
-	var input services.CategorySessionsInput
-	if err := c.ShouldBindQuery(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректные параметры запроса: " + err.Error()})
-		return
-	}
+// 	var input services.CategorySessionsInput
+// 	if err := c.ShouldBindQuery(&input); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректные параметры запроса: " + err.Error()})
+// 		return
+// 	}
 
-	if input.CategoryID <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID категории"})
-		return
-	}
+// 	if input.CategoryID <= 0 {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID категории"})
+// 		return
+// 	}
 
-	if input.Page <= 0 {
-		input.Page = 1
-	}
+// 	if input.Page <= 0 {
+// 		input.Page = 1
+// 	}
 
-	response, err := services.GetCategorySessions(input)
-	if err != nil {
-		if strings.Contains(err.Error(), "категория не найдена") {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		}
-		if strings.Contains(err.Error(), "пользователь не найден") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+// 	response, err := services.GetCategorySessions(input)
+// 	if err != nil {
+// 		if strings.Contains(err.Error(), "категория не найдена") {
+// 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+// 			return
+// 		}
+// 		if strings.Contains(err.Error(), "пользователь не найден") {
+// 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+// 			return
+// 		}
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-	c.JSON(http.StatusOK, response)
+// 	c.JSON(http.StatusOK, response)
 
-}
+// }
 
 // SearchSessions godoc
 // @Summary Поиск сессий
-// @Description Поиск сессий по заданным критериям с учетом приватности групп
+// @Description Поиск сессий по заданным критериям
 // @Tags Получение данных о сессиях
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param query query string true "Поисковый запрос для поиска по названию сессии"
-// @Param categoryID query uint true "ID категории сессии (session_type_id)"
-// @Param sessionType query string false "Тип места проведения сессии (опционально)"
-// @Param Page query string true "Страница, так как отдает от 9 штук"
-// @Success 200 {array} services.SessionResponse "Список найденных сессий"
+// @Param query query string false "Поисковый запрос для поиска по названию сессии"
+// @Param categoryID query uint false "ID категории сессии (session_type_id)"
+// @Param sessionType query string false "Тип места проведения сессии"
+// @Param page query int true "Номер страницы (начиная с 1)"
+// @Param sort_by query string false "Критерий сортировки: date или users"
+// @Param order query string false "Порядок сортировки: asc или desc"
+// @Param new_only query bool false "Если true — возвращаются только новые сессии (созданные сегодня)"
+// @Success 200 {object} services.PaginatedSearchResponse "Список найденных сессий"
 // @Failure 400 {object} map[string]string "Некорректные параметры запроса"
 // @Failure 401 {object} map[string]string "Не передан JWT токен"
 // @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
@@ -168,12 +171,34 @@ func SearchSessions(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
 		return
 	}
-	var input services.SearchSessionsRequest
+
+	var input services.GetSessionsInput
 	if err := c.ShouldBindQuery(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректные параметры запроса: " + err.Error()})
 		return
 	}
-	result, err := services.SearchSessions(&email, &input.Query, &input.CategoryID, input.SessionType, input.Page)
+
+	if input.CategoryID == nil {
+		if v := c.Query("categoryID"); v != "" {
+			if parsed, err := strconv.ParseUint(v, 10, 64); err == nil {
+				u := uint(parsed)
+				input.CategoryID = &u
+			}
+		}
+	}
+
+	if input.SessionType == nil {
+		if v := c.Query("sessionType"); v != "" {
+			trimmed := strings.TrimSpace(v)
+			input.SessionType = &trimmed
+		}
+	}
+
+	if input.Page < 1 {
+		input.Page = 1
+	}
+
+	result, err := services.GetSessions(email, input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -1015,7 +1015,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Поиск групп по названию с пагинацией.",
+                "description": "Поиск групп по названию, категориям и с сортировкой (с пагинацией).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1029,14 +1029,33 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Название для поиска",
+                        "description": "Название группы для поиска",
                         "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Фильтр по категории",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Поле сортировки: members (по числу участников), date (по дате регистрации), category (по имени категории)",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Порядок сортировки: asc или desc",
+                        "name": "order",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "default": 1,
-                        "description": "Номер страницы",
+                        "description": "Номер страницы (\u003e=1)",
                         "name": "page",
                         "in": "query"
                     }
@@ -2808,145 +2827,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/sessions/category": {
-            "get": {
-                "description": "Возвращает список из 10 сессий по указанной категории из открытых групп. Вводить вам нужно будет иметь мапу с категориями, где ключ - название категории, а значение - id категории. Сейчас такие значнеия: 1 - Фильмы, 2 - Игры. 3 - Настолки, 4 - Другое",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Получение данных о сессиях"
-                ],
-                "summary": "Получение сессий по категории",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID категории сессии",
-                        "name": "category_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Номер страницы (по умолчанию 1)",
-                        "name": "page",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Список сессий",
-                        "schema": {
-                            "$ref": "#/definitions/services.CategorySessionsResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректные параметры запроса",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Категория не найдена",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users/sessions/new": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получает новые сессии, созданные сегодня, с пагинацией по 6 штук",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Получение данных о сессиях"
-                ],
-                "summary": "Получение новых сессий",
-                "parameters": [
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Номер страницы (по умолчанию 1)",
-                        "name": "page",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Список новых сессий",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.GetNewSessionsResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Неверные параметры запроса",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/users/sessions/popular": {
             "get": {
                 "description": "Возвращает 10 самых популярных сессий из кэша Redis (обновляется каждые 4 часа)",
@@ -2995,7 +2875,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Поиск сессий по заданным критериям с учетом приватности групп",
+                "description": "Поиск сессий по заданным критериям",
                 "consumes": [
                     "application/json"
                 ],
@@ -3011,38 +2891,51 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Поисковый запрос для поиска по названию сессии",
                         "name": "query",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "type": "integer",
                         "description": "ID категории сессии (session_type_id)",
                         "name": "categoryID",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Тип места проведения сессии (опционально)",
-                        "name": "sessionType",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Страница, так как отдает от 9 штук",
-                        "name": "Page",
+                        "description": "Тип места проведения сессии",
+                        "name": "sessionType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Номер страницы (начиная с 1)",
+                        "name": "page",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Критерий сортировки: date или users",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Порядок сортировки: asc или desc",
+                        "name": "order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Если true — возвращаются только новые сессии (созданные сегодня)",
+                        "name": "new_only",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "Список найденных сессий",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/services.SessionResponse"
-                            }
+                            "$ref": "#/definitions/services.PaginatedSearchResponse"
                         }
                     },
                     "400": {
@@ -3565,26 +3458,6 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.GetNewSessionsResponse": {
-            "type": "object",
-            "properties": {
-                "has_more": {
-                    "type": "boolean"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "sessions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/services.SessionResponse"
-                    }
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
         "handlers.GroupJoinRequestDoc": {
             "type": "object",
             "properties": {
@@ -3989,26 +3862,6 @@ const docTemplate = `{
                 }
             }
         },
-        "services.CategorySessionsResponse": {
-            "type": "object",
-            "properties": {
-                "current_page": {
-                    "type": "integer"
-                },
-                "has_more": {
-                    "type": "boolean"
-                },
-                "sessions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/services.SessionResponse"
-                    }
-                },
-                "total_count": {
-                    "type": "integer"
-                }
-            }
-        },
         "services.ChangeTilesPatternInput": {
             "type": "object",
             "properties": {
@@ -4174,6 +4027,9 @@ const docTemplate = `{
                 },
                 "image": {
                     "type": "string"
+                },
+                "isPrivate": {
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
@@ -4418,6 +4274,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/services.SessionInfo"
                     }
                 },
+                "status": {
+                    "type": "string"
+                },
                 "telegram_link": {
                     "type": "boolean"
                 },
@@ -4535,6 +4394,35 @@ const docTemplate = `{
                 },
                 "viewed": {
                     "type": "boolean"
+                }
+            }
+        },
+        "services.PaginatedSearchResponse": {
+            "type": "object",
+            "properties": {
+                "has_next": {
+                    "type": "boolean"
+                },
+                "has_previous": {
+                    "type": "boolean"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.SessionResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
                 }
             }
         },

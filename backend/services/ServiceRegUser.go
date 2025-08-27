@@ -11,7 +11,6 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin/binding"
@@ -34,11 +33,11 @@ type VerifySessionInput struct {
 
 var validate = binding.Validator.Engine().(*validator.Validate)
 
-func generateUsername(name string) string {
-	username := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(name), " ", "_"))
+func generateUsername() string {
+	username := "user"
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return fmt.Sprintf("%s%d", username, r.Intn(100000)+1)
+	return fmt.Sprintf("%s%d", username, r.Intn(1000000)+1)
 }
 
 func CreateUser(input CreateUserInput) (*models.User, error) {
@@ -59,7 +58,7 @@ func CreateUser(input CreateUserInput) (*models.User, error) {
 		return nil, errors.New("сессия не подтверждена")
 	}
 
-	us := generateUsername(input.Name)
+	us := generateUsername()
 
 	hashPass, salt := utils.HashPassword(input.Password)
 
