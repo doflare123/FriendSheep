@@ -23,7 +23,7 @@ interface AddUserModalProps {
 const mockUserGroups: Group[] = Array.from({ length: 15 }, (_, i) => ({
   id: i + 1,
   name: `Группа крутых пацанят ${i + 1}`,
-  image: '/default/group.png',
+  image: '/default/group.jpg',
   category: ['games', 'movies', 'board', 'other'][i % 4] ? [['games', 'movies', 'board', 'other'][i % 4]] : ['games'],
   count: Math.floor(Math.random() * 100) + 10
 }));
@@ -117,21 +117,7 @@ export default function AddUserModal({ isOpen, onClose, userId }: AddUserModalPr
                 </div>
                 
                 <div className={styles.groupInfo}>
-                  <div className={styles.groupHeader}>
-                    <span className={styles.groupName}>{group.name}</span>
-                    <div className={styles.groupIcons}>
-                      {group.category.map((cat, catIndex) => (
-                        <Image
-                          key={catIndex}
-                          src={getCategoryIcon(cat)}
-                          alt={cat}
-                          width={16}
-                          height={16}
-                          className={styles.categoryIcon}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                  <span className={styles.groupName}>{group.name}</span>
                   <span className={styles.memberCount}>{group.count} участников</span>
                 </div>
               </div>

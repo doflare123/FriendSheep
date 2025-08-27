@@ -1,40 +1,4 @@
-.groupsList {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 24px;
-  min-height: 200px;
-  max-height: 400px;
-  position: relative;
-  mask: linear-gradient(to bottom, 
-    transparent 0%, 
-    black 20px, 
-    black calc(100% - 20px), 
-    transparent 100%);
-  -webkit-mask: linear-gradient(to bottom, 
-    transparent 0%, 
-    black 20px, 
-    black calc(100% - 20px), 
-    transparent 100%);
-  scrollbar-width: thin;
-  scrollbar-color: #37A2E6 transparent;
-}
-
-.groupsList::-webkit-scrollbar {
-  width: 4px;
-}
-
-.groupsList::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.groupsList::-webkit-scrollbar-thumb {
-  background: #37A2E6;
-  border-radius: 2px;
-}
-
-.groupsList::-webkit-scrollbar-thumb:hover {
-  background: #2a8bc7;
-}.overlay {
+.overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -104,20 +68,21 @@
     black 20px, 
     black calc(100% - 20px), 
     transparent 100%);
+  scrollbar-width: thin;
+  scrollbar-color: #37A2E6 transparent;
 }
 
 .groupsList::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .groupsList::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
+  background: transparent;
 }
 
 .groupsList::-webkit-scrollbar-thumb {
   background: #37A2E6;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 .groupsList::-webkit-scrollbar-thumb:hover {
@@ -127,9 +92,8 @@
 .groupItem {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 12px;
-  border: 2px solid #37A2E6;
+  border: 2px solid #ccc; /* Серая обводка по умолчанию */
   border-radius: 12px;
   margin-bottom: 8px;
   cursor: pointer;
@@ -142,20 +106,20 @@
 }
 
 .groupItem:hover {
-  border-color: #2a8bc7;
-  background: rgba(55, 162, 230, 0.05);
+  border-color: #999; /* Более темная серая при наведении */
+  background: rgba(0, 0, 0, 0.02);
   transform: translateY(-1px);
 }
 
 .selectedGroup {
-  border-color: #2a8bc7 !important;
+  border-color: #37A2E6 !important; /* Голубая обводка только при выборе */
   background: rgba(55, 162, 230, 0.1) !important;
 }
 
 .groupContent {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: center; /* Выравнивание по центру по вертикали */
+  gap: 16px;
   flex: 1;
   min-width: 0;
 }
@@ -170,43 +134,29 @@
 }
 
 .groupInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   flex: 1;
   min-width: 0;
-}
-
-.groupHeader {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
 }
 
 .groupName {
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 500;
   color: #333;
   margin: 0;
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.groupIcons {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.categoryIcon {
-  flex-shrink: 0;
+  text-align: center;
+  word-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.3;
 }
 
 .memberCount {
   font-size: 14px;
-  color: #666;
+  color: black;
+  text-align: center;
 }
 
 .footer {
@@ -220,7 +170,7 @@
   flex: 1;
   padding: 12px 16px;
   background: transparent;
-  color: #666;
+  color: black;
   border: 2px solid #ddd;
   border-radius: 8px;
   font-size: 16px;

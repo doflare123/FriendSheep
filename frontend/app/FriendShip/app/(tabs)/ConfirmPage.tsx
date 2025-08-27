@@ -27,8 +27,6 @@ const Confirm = () => {
     endTimeRef.current = newEndTime;
     setRemainingSeconds(RESEND_TIMEOUT_MINUTES * 60);
     setResendAvailable(false);
-
-    console.log('Код повторно отправлен');
   };
 
   useEffect(() => {

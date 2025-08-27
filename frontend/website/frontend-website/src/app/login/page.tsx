@@ -86,8 +86,6 @@ export default function LoginPage() {
         // Используем функцию login из контекста вместо ручного сохранения
         login(response.access_token, response.refresh_token);
         
-        console.log('Успешная авторизация');
-        
         // Перенаправляем на главную страницу
         router.push('/');
       } else {
