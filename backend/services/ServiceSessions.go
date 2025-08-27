@@ -19,7 +19,7 @@ import (
 )
 
 type SessionInput struct {
-	Title        string    `form:"title" binding:"required"`
+	Title        string    `form:"title" binding:"required,min=5,max=40"`
 	SessionType  string    `form:"session_type" binding:"required"`
 	SessionPlace uint      `form:"session_place" binding:"required"`
 	GroupID      uint      `form:"group_id" binding:"required"`
@@ -34,7 +34,7 @@ type SessionInput struct {
 	Year      *int   `form:"year"`
 	Country   string `form:"country"`
 	AgeLimit  string `form:"age_limit"`
-	Notes     string `form:"notes"`
+	Notes     string `form:"notes" binding:"min=5,max=300"`
 }
 
 type SearchSessionsRequest struct {

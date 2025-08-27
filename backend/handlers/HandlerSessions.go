@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"friendship/middlewares"
 	"friendship/services"
+	"friendship/utils"
 	"net/http"
 	"strconv"
 
@@ -51,7 +52,7 @@ func CreateSession(c *gin.Context) {
 
 	var input services.SessionInput
 	if err := c.ShouldBind(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "не удалось разобрать форму: " + err.Error()})
+		utils.ValidationError(c, err)
 		return
 	}
 

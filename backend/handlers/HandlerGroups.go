@@ -3,6 +3,7 @@ package handlers
 import (
 	"friendship/middlewares"
 	"friendship/services"
+	"friendship/utils"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -60,7 +61,7 @@ func CreateGroup(c *gin.Context) {
 
 	var input services.CreateGroupInput
 	if err := c.ShouldBind(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректные данные формы", "details": err.Error()})
+		utils.ValidationError(c, err)
 		return
 	}
 

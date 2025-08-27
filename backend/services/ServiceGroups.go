@@ -14,9 +14,9 @@ import (
 )
 
 type CreateGroupInput struct {
-	Name             string  `form:"name" binding:"required" example:"Моя группа"`
-	Description      string  `form:"description" binding:"required" example:"Полное описание группы"`
-	SmallDescription string  `form:"smallDescription" binding:"required" example:"Короткое описание"`
+	Name             string  `form:"name" binding:"required,min=5,max=40" example:"Моя группа"`
+	Description      string  `form:"description" binding:"required,min=5,max=300" example:"Полное описание группы"`
+	SmallDescription string  `form:"smallDescription" binding:"required,min=5,max=50" example:"Короткое описание"`
 	Image            string  `form:"-"`
 	IsPrivate        *bool   `form:"isPrivate" binding:"required" example:"true/1/0/false"`
 	City             string  `form:"city,omitempty" example:"Москва"`

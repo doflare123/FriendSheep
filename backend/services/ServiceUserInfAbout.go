@@ -57,10 +57,10 @@ type UserStatsInfo struct {
 }
 
 type UpdateUserRequest struct {
-	Name   *string `json:"name,omitempty"`
-	Us     *string `json:"us,omitempty"`
+	Name   *string `json:"name,omitempty" binding:"min=5,max=40"`
+	Us     *string `json:"us,omitempty" binding:"min=5,max=40"`
 	Image  *string `json:"image,omitempty"`
-	Status *string `json:"status,omitempty"`
+	Status *string `json:"status,omitempty" binding:"min=1,max=50"`
 }
 
 func GetInfAboutUser(email string) (*InformationAboutUser, error) {

@@ -19,7 +19,7 @@ import (
 )
 
 type CreateUserInput struct {
-	Name      string `json:"name"     binding:"required,username"`
+	Name      string `json:"name"     binding:"required,username,min=5,max=40"`
 	Password  string `json:"password" binding:"required,password"`
 	Email     string `json:"email"    binding:"required,email"`
 	SessionID string `json:"session_id" binding:"required"`

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"friendship/services"
+	"friendship/utils"
 	"log"
 	"net/http"
 
@@ -25,8 +26,8 @@ type SessionEmailInput struct {
 // @Router /api/sessions/register [post]
 func CreateSessionRegisterHandler(c *gin.Context) {
 	var input SessionEmailInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неправильный формат почты"})
+	if err := c.ShouldBind(&input); err != nil {
+		utils.ValidationError(c, err)
 		return
 	}
 
