@@ -66,12 +66,15 @@ func SearchUsers(c *gin.Context) {
 
 // SearchGroups godoc
 // @Summary Поиск групп
-// @Description Поиск групп по названию с пагинацией.
+// @Description Поиск групп по названию, категориям и с сортировкой (с пагинацией).
 // @Tags search
 // @Accept  json
 // @Produce  json
-// @Param name query string false "Название для поиска"
-// @Param page query int false "Номер страницы" default(1)
+// @Param name query string false "Название группы для поиска"
+// @Param category query string false "Фильтр по категории"
+// @Param sort_by query string false "Поле сортировки: members (по числу участников), date (по дате регистрации), category (по имени категории)"
+// @Param order query string false "Порядок сортировки: asc или desc" default(desc)
+// @Param page query int false "Номер страницы (>=1)" default(1)
 // @Success 200 {object} services.GetGroupsResponse "Успешный поиск"
 // @Failure 400 {object} map[string]string "Некорректный номер страницы"
 // @Failure 401 {object} map[string]string "Пользователь не авторизован"
@@ -87,6 +90,9 @@ func SearchGroups(c *gin.Context) {
 
 	name := c.Query("name")
 	pageStr := c.DefaultQuery("page", "1")
+	sortBy := c.DefaultQuery("sort_by", "")
+	order := c.DefaultQuery("order", "desc")
+	category := c.DefaultQuery("category", "")
 
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page < 1 {
@@ -94,7 +100,7 @@ func SearchGroups(c *gin.Context) {
 		return
 	}
 
-	groups, err := services.SearchGroups(name, page)
+	groups, err := services.SearchGroups(name, page, sortBy, order, category)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка поиска групп"})
 		return

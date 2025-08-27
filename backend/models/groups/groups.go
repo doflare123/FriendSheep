@@ -1,6 +1,9 @@
 package groups
 
-import "friendship/models"
+import (
+	"friendship/models"
+	"time"
+)
 
 type Group struct {
 	ID               uint   `json:"id" gorm:"primaryKey;autoIncrement"`
@@ -16,4 +19,6 @@ type Group struct {
 	City       string            `json:"city"`
 	Categories []models.Category `gorm:"many2many:group_group_categories;joinForeignKey:GroupID;JoinReferences:GroupCategoryID"`
 	Contacts   []GroupContact    `json:"contacts" gorm:"foreignKey:GroupID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	CreatedAt  time.Time         `json:"createdAt"`
+	UpdatedAt  time.Time         `json:"updatedAt"`
 }
