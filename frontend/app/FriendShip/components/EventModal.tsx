@@ -2,9 +2,11 @@ import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import React from 'react';
 import {
+  Dimensions,
   Image,
   Linking,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,6 +15,8 @@ import {
 } from 'react-native';
 import { Event } from './EventCard';
 import Toast from './Toast';
+
+const screenHeight = Dimensions.get("window").height;
 
 const categoryIcons: Record<Event["category"], any> = {
   movie: require("../assets/images/event_card/movie.png"),
@@ -33,23 +37,109 @@ interface EventModalProps {
   onJoin?: () => void;
 }
 
+const formatTitle = (title: string) => {
+  const maxLength = 40;
+  const firstLineLimit = 20;
+  const secondLineLimit = 30;
+
+  if (!title || title.trim().length < 5) {
+    return "Без названия";
+  }
+
+  let trimmed = title.slice(0, maxLength);
+
+  let firstLine = trimmed.slice(0, firstLineLimit);
+  let secondLine = trimmed.slice(firstLineLimit, firstLineLimit + secondLineLimit);
+
+  return firstLine + (secondLine ? "\n" + secondLine : "");
+};
+
+const getFontSize = (title: string) => {
+  const formatted = formatTitle(title);
+  const isTwoLines = formatted.includes("\n");
+
+  const letters = title.replace(/[^a-zA-ZА-Яа-яЁё]/g, "");
+  const upperLetters = letters.replace(/[^A-ZА-ЯЁ]/g, "");
+
+  const upperRatio = letters.length > 0 ? upperLetters.length / letters.length : 0;
+  const wideLetters = title.match(/[ЖШЩМW]/g) || [];
+
+  if (wideLetters.length > title.length * 0.3) return 8.5;
+
+  if (upperRatio >= 0.4) {
+    return 11;
+  }
+
+  if (title === title.toUpperCase()) {
+    return 13;
+  }
+
+  if (title.length > 35) return 16;
+  if (title.length > 25) return 17;
+  return 20;
+};
+
+const formatDescription = (description?: string) => {
+  if (!description || description.trim().length < 5) {
+    return "Описание отсутствует";
+  }
+
+  if (description.length > 300) {
+    return description.slice(0, 300) + "...";
+  }
+
+  return description;
+};
+
+const formatGenres = (genres: string[]) => {
+  if (!genres || genres.length < 1) return ["Жанр отсутствует"];
+  return genres.slice(0, 9);
+};
+
+const formatEventPlace = (place?: string) => {
+  if (!place || place.trim().length < 5) return "Место не указано";
+  if (place.length > 200) return place.slice(0, 200) + "...";
+  return place;
+};
+
+const formatPublisher = (publisher?: string) => {
+  if (!publisher || publisher.trim().length < 5) return null;
+  if (publisher.length > 40) return publisher.slice(0, 40) + "...";
+  return publisher;
+};
+
 const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
   const [toastVisible, setToastVisible] = React.useState(false);
 
+  const isTwoLines = formatTitle(event.title).includes("\n");
+  const rectangleHeight = isTwoLines ? 75 : 60;
+
   return (
     <Modal visible={visible} animationType="fade" transparent>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback onPress={() => {}}>
-            <View style={styles.modal}>
+      <View style={styles.overlay}>
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={StyleSheet.absoluteFill} />
+        </TouchableWithoutFeedback>
+
+        <View style={styles.modal}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+          >
               <View style={styles.header}>
                 <Image source={{ uri: event.imageUri }} style={styles.image} />
                 <Image
                   source={require('../assets/images/event_card/rectangle.png')}
-                  style={styles.rectangle}
+                  style={[styles.rectangle, { height: rectangleHeight }]}
                 />
-                <Text style={styles.title}>{event.title}</Text>
-
+                <Text
+                  style={[styles.title, { fontSize: getFontSize(event.title) }]}
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                >
+                  {formatTitle(event.title)}
+                </Text>
                 <View style={styles.iconsRow}>
                   <View style={styles.iconOverlay}>
                     <Image
@@ -67,9 +157,9 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
               </View>
 
               <View style={styles.content}>
-                <Text style={styles.description}>
-                  {event.description || 'Описание отсутствует'}
-                </Text>
+              <Text style={styles.description}>
+                {formatDescription(event.description)}
+              </Text>
 
                 <View style={[styles.row, { marginBottom: 8 }]}>
                   <View style={{ flexDirection: 'row' }}>
@@ -93,22 +183,19 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
 
                 <Text style={styles.label}>Жанры:</Text>
                 <View style={styles.genres}>
-                  {event.genres.map((g) => (
+                  {formatGenres(event.genres).map((g) => (
                     <View key={g} style={styles.genreBadge}>
                       <Text style={styles.genreText}>{g}</Text>
                     </View>
                   ))}
                 </View>
 
-                <Text style={styles.label}>Место проведения:</Text>
+                <Text style={[styles.label, {marginTop: 2}]}>Место проведения:</Text>
                 <Text
-                  style={[
-                    styles.value,
-                    { color: Colors.lightBlue, marginTop: 0 },
-                  ]}
+                  style={[styles.value, { color: Colors.lightBlue, marginTop: 0 }]}
                   onPress={() => Linking.openURL(event.eventPlace)}
                 >
-                  {event.eventPlace}
+                  {formatEventPlace(event.eventPlace)}
                 </Text>
 
                 <View style={[styles.row, { marginBottom: 150 }]}>
@@ -138,21 +225,24 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
 
               <View style={styles.bottomContent}>
                 <View style={styles.rowBetween}>
-                  <Text style={styles.label}>
-                    Издатель:{' '}
-                    <Text style={styles.value}>{event.publisher}</Text>
-                  </Text>
+                  {formatPublisher(event.publisher) && (
+                    <Text style={styles.label}>
+                      Издатель: <Text style={styles.value}>{formatPublisher(event.publisher)}</Text>
+                    </Text>
+                  )}
                 </View>
 
-                <Text style={styles.label}>
-                  Год издания:{' '}
-                  <Text style={styles.value}>{event.publicationDate}</Text>
-                </Text>
+                {event.publicationDate && (
+                  <Text style={styles.label}>
+                    Год издания: <Text style={styles.value}>{event.publicationDate}</Text>
+                  </Text>
+                )}
 
-                <Text style={styles.label}>
-                  Возрастное ограничение:{' '}
-                  <Text style={styles.value}>{event.ageRating}</Text>
-                </Text>
+                {event.ageRating && (
+                  <Text style={styles.label}>
+                    Возрастное ограничение: <Text style={styles.value}>{event.ageRating}</Text>
+                  </Text>
+                )}
 
                 <TouchableOpacity
                   style={styles.joinButton}
@@ -179,10 +269,9 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
                   onHide={() => setToastVisible(false)}
                 />
               )}
-            </View>
-          </TouchableWithoutFeedback>
+          </ScrollView>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 };
@@ -196,8 +285,9 @@ const styles = StyleSheet.create({
   modal: {
     marginHorizontal: 12,
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: "hidden",
     backgroundColor: Colors.white,
+    maxHeight: screenHeight * 0.85,
   },
   header: {
     alignItems: 'center',
@@ -210,19 +300,24 @@ const styles = StyleSheet.create({
   },
   rectangle: {
     position: 'absolute',
-    bottom: -25,
     left: 0,
+    bottom: -20,
     width: 300,
-    height: 65,
+    height: 75,
     resizeMode: 'stretch',
   },
   title: {
     position: 'absolute',
-    bottom: 0,
+    maxWidth: 240,
+    overflow: "hidden",
     left: 16,
+    right: 16,
+    bottom: 0,
     fontFamily: inter.black,
-    fontSize: 20,
     color: Colors.black,
+    textAlign: 'left',
+    width: 240,
+    lineHeight: 22,
   },
   iconsRow: {
     position: 'absolute',
@@ -271,6 +366,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 8,
     paddingVertical: 2,
+    marginBottom: 8,
   },
   genreText: { fontFamily: inter.regular, color: Colors.black, fontSize: 12 },
   row: {
@@ -284,10 +380,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 8,
-  },
-  inline: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   bottomWave: {
     position: 'absolute',

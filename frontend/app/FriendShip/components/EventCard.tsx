@@ -3,6 +3,7 @@ import { inter } from '@/constants/Inter';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { formatTitle } from "../utils/formatTitle";
 
 export interface Event {
   id: string;
@@ -59,14 +60,12 @@ const EventCard: React.FC<Event> = ({
       return (
         <Text style={styles.title}>
           {highlightedTitle.before}
-          <Text style={styles.highlightedText}>
-            {highlightedTitle.match}
-          </Text>
+          <Text style={styles.highlightedText}>{highlightedTitle.match}</Text>
           {highlightedTitle.after}
         </Text>
       );
     } else {
-      return <Text style={styles.title}>{title}</Text>;
+      return <Text style={styles.title}>{formatTitle(title)}</Text>;
     }
   };
 
@@ -193,6 +192,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: inter.black,
     fontSize: 17,
+    maxWidth: '85%',
     marginTop: -4,
     marginBottom: 8,
     color: Colors.black,
