@@ -273,8 +273,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     paddingHorizontal: 10,
     margin: 4,
-    borderWidth: 1.5,
-    borderColor: Colors.blue,
+    backgroundColor: Colors.veryLightGrey
   },
   input: {
     flex: 1,

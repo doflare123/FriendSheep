@@ -168,12 +168,10 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
     borderRadius: 28,
     paddingHorizontal: 10,
     margin: 4,
-    borderWidth: 1.5,
-    borderColor: Colors.blue,
+    backgroundColor: Colors.white
   },
   input: {
     flex: 1,

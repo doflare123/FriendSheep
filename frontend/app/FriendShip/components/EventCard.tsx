@@ -19,7 +19,7 @@ export interface Event {
   typePlace: 'online' | 'offline';
   eventPlace: string;
   publisher: string;
-  publicationDate: number;
+  publicationDate: string;
   ageRating: string;
   category: 'movie' | 'game' | 'table_game' | 'other';
   onPress?: () => void;

@@ -4,6 +4,7 @@ import React from 'react';
 import {
   Dimensions,
   Image,
+  ImageBackground,
   Linking,
   Modal,
   ScrollView,
@@ -39,8 +40,8 @@ interface EventModalProps {
 
 const formatTitle = (title: string) => {
   const maxLength = 40;
-  const firstLineLimit = 20;
-  const secondLineLimit = 30;
+  const firstLineLimit = 19;
+  const secondLineLimit = 21;
 
   if (!title || title.trim().length < 5) {
     return "Без названия";
@@ -76,7 +77,7 @@ const getFontSize = (title: string) => {
 
   if (title.length > 35) return 16;
   if (title.length > 25) return 17;
-  return 20;
+  return 19;
 };
 
 const formatDescription = (description?: string) => {
@@ -112,7 +113,7 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
   const [toastVisible, setToastVisible] = React.useState(false);
 
   const isTwoLines = formatTitle(event.title).includes("\n");
-  const rectangleHeight = isTwoLines ? 75 : 60;
+  const rectangleHeight = isTwoLines ? 75 : 55;
 
   return (
     <Modal visible={visible} animationType="fade" transparent>
@@ -198,7 +199,7 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
                   {formatEventPlace(event.eventPlace)}
                 </Text>
 
-                <View style={[styles.row, { marginBottom: 150 }]}>
+                <View style={styles.row}>
                   <View style={{ flexDirection: 'row' }}>
                     <Text style={styles.label}>Участников:</Text>
                     <Text style={styles.value}>
@@ -218,40 +219,6 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
                 </View>
               </View>
 
-              <Image
-                source={require('../assets/images/event_card/bottom_rectangle.png')}
-                style={styles.bottomWave}
-              />
-
-              <View style={styles.bottomContent}>
-                <View style={styles.rowBetween}>
-                  {formatPublisher(event.publisher) && (
-                    <Text style={styles.label}>
-                      Издатель: <Text style={styles.value}>{formatPublisher(event.publisher)}</Text>
-                    </Text>
-                  )}
-                </View>
-
-                {event.publicationDate && (
-                  <Text style={styles.label}>
-                    Год издания: <Text style={styles.value}>{event.publicationDate}</Text>
-                  </Text>
-                )}
-
-                {event.ageRating && (
-                  <Text style={styles.label}>
-                    Возрастное ограничение: <Text style={styles.value}>{event.ageRating}</Text>
-                  </Text>
-                )}
-
-                <TouchableOpacity
-                  style={styles.joinButton}
-                  onPress={() => setToastVisible(true)}
-                >
-                  <Text style={styles.joinButtonText}>Присоединиться</Text>
-                </TouchableOpacity>
-              </View>
-
               <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                 <Image
                   tintColor={Colors.black}
@@ -259,6 +226,39 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
                   source={require('../assets/images/event_card/back.png')}
                 />
               </TouchableOpacity>
+
+              <ImageBackground
+                source={require('../assets/images/event_card/bottom_rectangle.png')}
+                style={styles.bottomBackground}
+                resizeMode="stretch"
+              >
+                <View style={styles.bottomContent}>
+                  {formatPublisher(event.publisher) && (
+                    <Text style={styles.label}>
+                      Издатель: <Text style={styles.value}>{formatPublisher(event.publisher)}</Text>
+                    </Text>
+                  )}
+
+                  {event.publicationDate && (
+                    <Text style={styles.label}>
+                      Год издания: <Text style={styles.value}>{event.publicationDate}</Text>
+                    </Text>
+                  )}
+
+                  {event.ageRating && (
+                    <Text style={styles.label}>
+                      Возрастное ограничение: <Text style={styles.value}>{event.ageRating}</Text>
+                    </Text>
+                  )}
+
+                  <TouchableOpacity
+                    style={styles.joinButton}
+                    onPress={() => setToastVisible(true)}
+                  >
+                    <Text style={styles.joinButtonText}>Присоединиться</Text>
+                  </TouchableOpacity>
+                </View>
+              </ImageBackground>
 
               {toastVisible && (
                 <Toast
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   },
   modal: {
     marginHorizontal: 12,
-    borderRadius: 20,
+    borderRadius: 25,
     overflow: "hidden",
     backgroundColor: Colors.white,
     maxHeight: screenHeight * 0.85,
@@ -383,17 +383,17 @@ const styles = StyleSheet.create({
   },
   bottomWave: {
     position: 'absolute',
-    bottom: -3,
+    bottom: 0,
     left: 0,
     width: '100%',
     height: 160,
     resizeMode: 'stretch',
   },
+  bottomBackground: {
+    width: "100%",
+  },
   bottomContent: {
-    position: 'absolute',
-    bottom: 14,
-    left: 16,
-    right: 16,
+    padding: 16,
   },
   joinButton: {
     marginTop: 16,
