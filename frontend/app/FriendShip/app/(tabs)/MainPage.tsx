@@ -8,27 +8,23 @@ import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import { useEvents } from '@/hooks/useEvents';
 import { useSearchState } from '@/hooks/useSearchState';
-import { useNavigation } from '@react-navigation/native';
+import { RootStackParamList } from '@/navigation/types';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-type RootStackParamList = {
-  MainPage: undefined;
-  CategoryPage: {
-    category: 'movie' | 'game' | 'table_game' | 'other' | 'popular' | 'new';
-    title: string;
-    imageSource: any;
-  };
-};
-
+type MainPageRouteProp = RouteProp<RootStackParamList, 'MainPage'>;
 type MainPageNavigationProp = StackNavigationProp<RootStackParamList, 'MainPage'>;
 
 const MainPage = () => {
+  const route = useRoute<MainPageRouteProp>();
   const navigation = useNavigation<MainPageNavigationProp>();
+
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+
   const { sortingState, sortingActions } = useSearchState();
   const { 
     movieEvents, 
@@ -40,33 +36,38 @@ const MainPage = () => {
     searchResults 
   } = useEvents(sortingState);
 
-  const addOnPressToEvents = (events: Event[]) => {
-    return events.map(event => ({
+  useEffect(() => {
+    if (route.params?.searchQuery) {
+      sortingActions.setSearchQuery(route.params.searchQuery);
+    }
+  }, [route.params?.searchQuery]);
+
+  const addOnPressToEvents = (events: Event[]) =>
+    events.map(event => ({
       ...event,
       onPress: () => {
         setSelectedEvent(event);
         setModalVisible(true);
       },
     }));
+
+  const navigateToCategory = (
+    category: 'movie' | 'game' | 'table_game' | 'other' | 'popular' | 'new',
+    title: string,
+    imageSource: any
+  ) => {
+    try {
+      navigation.navigate('CategoryPage', {
+        category,
+        title,
+        imageSource,
+      });
+    } catch (error) {
+      console.error('❌ Navigation error:', error);
+    }
   };
 
-const navigateToCategory = (
-  category: 'movie' | 'game' | 'table_game' | 'other' | 'popular' | 'new',
-  title: string,
-  imageSource: any
-) => {
-  try {
-    navigation.navigate('CategoryPage', {
-      category,
-      title,
-      imageSource,
-    });
-  } catch (error) {
-    console.error('❌ Navigation error:', error);
-  }
-};
-
-return (
+  return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }} edges={['top', 'left', 'right']}>
       <ImageBackground
         source={require('../../assets/images/wallpaper.png')}
@@ -74,9 +75,9 @@ return (
         resizeMode="cover"
       >
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
-        
+
         <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
-          {sortingState.searchQuery.trim() && (
+          {sortingState.searchQuery.trim() ? (
             <>
               <CategoryButton
                 title="Результаты поиска"
@@ -93,29 +94,31 @@ return (
                 </View>
               )}
             </>
-          )}
-
-          {!sortingState.searchQuery.trim() && (
+          ) : (
             <>
               <CategoryButton
                 title="Популярные события"
                 imageSource={require('../../assets/images/category/popular-pattern.png')}
-                onPress={() => navigateToCategory(
-                  'popular',
-                  'Популярные события',
-                  require('../../assets/images/category/popular-pattern.png')
-                )}
+                onPress={() =>
+                  navigateToCategory(
+                    'popular',
+                    'Популярные события',
+                    require('../../assets/images/category/popular-pattern.png')
+                  )
+                }
               />
               <EventCarousel events={addOnPressToEvents(popularEvents)} />
 
               <CategoryButton
                 title="Новые события"
                 imageSource={require('../../assets/images/category/new-pattern.png')}
-                onPress={() => navigateToCategory(
-                  'new',
-                  'Новые события',
-                  require('../../assets/images/category/new-pattern.png')
-                )}
+                onPress={() =>
+                  navigateToCategory(
+                    'new',
+                    'Новые события',
+                    require('../../assets/images/category/new-pattern.png')
+                  )
+                }
               />
               <EventCarousel events={addOnPressToEvents(newEvents)} />
 
@@ -128,26 +131,30 @@ return (
                   <CategoryButton
                     title="Фильмы"
                     imageSource={require('../../assets/images/category/movies-pattern.png')}
-                    onPress={() => navigateToCategory(
-                      'movie',
-                      'Фильмы',
-                      require('../../assets/images/category/movies-pattern.png')
-                    )}
+                    onPress={() =>
+                      navigateToCategory(
+                        'movie',
+                        'Фильмы',
+                        require('../../assets/images/category/movies-pattern.png')
+                      )
+                    }
                   />
                   <EventCarousel events={addOnPressToEvents(movieEvents)} />
                 </>
               )}
-              
+
               {gameEvents.length > 0 && (
                 <>
                   <CategoryButton
                     title="Игры"
                     imageSource={require('../../assets/images/category/games-pattern.png')}
-                    onPress={() => navigateToCategory(
-                      'game',
-                      'Игры',
-                      require('../../assets/images/category/games-pattern.png')
-                    )}
+                    onPress={() =>
+                      navigateToCategory(
+                        'game',
+                        'Игры',
+                        require('../../assets/images/category/games-pattern.png')
+                      )
+                    }
                   />
                   <EventCarousel events={addOnPressToEvents(gameEvents)} />
                 </>
@@ -158,11 +165,13 @@ return (
                   <CategoryButton
                     title="Настольные игры"
                     imageSource={require('../../assets/images/category/table_games-pattern.png')}
-                    onPress={() => navigateToCategory(
-                      'table_game',
-                      'Настольные игры',
-                      require('../../assets/images/category/table_games-pattern.png')
-                    )}
+                    onPress={() =>
+                      navigateToCategory(
+                        'table_game',
+                        'Настольные игры',
+                        require('../../assets/images/category/table_games-pattern.png')
+                      )
+                    }
                   />
                   <EventCarousel events={addOnPressToEvents(tableGameEvents)} />
                 </>
@@ -173,11 +182,13 @@ return (
                   <CategoryButton
                     title="Другое"
                     imageSource={require('../../assets/images/category/other-pattern.png')}
-                    onPress={() => navigateToCategory(
-                      'other',
-                      'Другое',
-                      require('../../assets/images/category/other-pattern.png')
-                    )}
+                    onPress={() =>
+                      navigateToCategory(
+                        'other',
+                        'Другое',
+                        require('../../assets/images/category/other-pattern.png')
+                      )
+                    }
                   />
                   <EventCarousel events={addOnPressToEvents(otherEvents)} />
                 </>
@@ -186,6 +197,7 @@ return (
           )}
         </ScrollView>
       </ImageBackground>
+
       <BottomBar />
 
       {selectedEvent && (

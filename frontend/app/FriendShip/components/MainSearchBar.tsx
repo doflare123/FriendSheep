@@ -1,6 +1,9 @@
 import barsStyle from '@/app/styles/barsStyle';
 import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
+import { RootStackParamList } from '@/navigation/types';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useRef, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +14,17 @@ interface MainSearchBarProps {
   sortingActions: SortingActions;
 }
 
+type MainSearchBarNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'MainPage'
+>;
+
+type MainSearchBarRouteProp = RouteProp<RootStackParamList, 'MainPage'>;
+
 const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActions }) => {
+  const navigation = useNavigation<MainSearchBarNavigationProp>();
+  const route = useRoute<MainSearchBarRouteProp>();
+
   const insets = useSafeAreaInsets();
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -67,6 +80,10 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
   const handleSearchSubmit = () => {
     if (activeSearchType === 'event') {
       setSearchQuery(inputText);
+
+      if (navigation.getState().routes[navigation.getState().index].name !== 'MainPage') {
+        navigation.navigate('MainPage', { searchQuery: inputText });
+      }
     }
   };
 

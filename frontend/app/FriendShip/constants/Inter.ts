@@ -13,4 +13,8 @@ export const inter = {
     ios: 'Inter-Black',
     android: 'Inter-Black',
   }),
+  medium: Platform.select({
+    ios: 'Inter-Medium',
+    android: 'Inter-Medium',
+  }),
 };

@@ -42,6 +42,25 @@ const placeIcons: Record<Event["typePlace"], any> = {
   offline: require("../assets/images/event_card/offline.png"),
 };
 
+const getVisibleGenres = (genres: string[], maxBadges = 3, maxChars = 20) => {
+  const visible: string[] = [];
+  let totalChars = 0;
+
+  for (let i = 0; i < genres.length; i++) {
+    const g = genres[i];
+    totalChars += g.length;
+
+    if (visible.length >= maxBadges || totalChars > maxChars) {
+      visible.push("…");
+      break;
+    }
+
+    visible.push(g);
+  }
+
+  return visible;
+};
+
 const EventCard: React.FC<Event> = ({
   title,
   date,
@@ -65,7 +84,14 @@ const EventCard: React.FC<Event> = ({
         </Text>
       );
     } else {
-      return <Text style={styles.title}>{formatTitle(title)}</Text>;
+      return <Text
+        style={styles.title}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {formatTitle(title)}
+      </Text>
+      ;
     }
   };
 
@@ -87,9 +113,9 @@ const EventCard: React.FC<Event> = ({
       <View style={styles.content}>
         {renderTitle()}
         <View style={styles.genres}>
-          <Text style={[styles.metaText, { marginRight: 6 }]}>Жанры:</Text>
-          {genres.map((genre) => (
-            <View key={genre} style={styles.genreBadge}>
+          <Text style={[styles.metaText, { marginRight: 6, fontFamily: inter.medium }]}>Жанры:</Text>
+          {getVisibleGenres(genres).map((genre, index) => (
+            <View key={index} style={styles.genreBadge}>
               <Text style={styles.genreText}>{genre}</Text>
             </View>
           ))}
