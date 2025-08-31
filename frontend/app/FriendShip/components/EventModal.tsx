@@ -127,6 +127,8 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             nestedScrollEnabled
+            bounces={false}
+            alwaysBounceVertical={false}
           >
               <View style={styles.header}>
                 <Image source={{ uri: event.imageUri }} style={styles.image} />
