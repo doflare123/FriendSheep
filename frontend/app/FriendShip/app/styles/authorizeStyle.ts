@@ -39,7 +39,7 @@ const authorizeStyle = StyleSheet.create({
   label: {
     fontFamily: inter.regular,
     fontSize: 20,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   hintLabel: {
     fontFamily: inter.regular,

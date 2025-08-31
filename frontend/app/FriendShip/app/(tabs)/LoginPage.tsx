@@ -13,6 +13,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
 
   const handleLogin = () => {
+    navigation.navigate('MainPage' as never);
   };
 
   return (
