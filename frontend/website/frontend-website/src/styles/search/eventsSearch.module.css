@@ -89,7 +89,6 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translateX(-50%);
   background: white;
   border: 2px solid #37A2E6;
   border-radius: 0px 12px 12px 12px;
@@ -141,6 +140,7 @@
   overflow-y: auto;
   max-height: calc(85vh - 200px);
   padding-right: 8px;
+  padding-left: 80px;
   position: relative;
   /* Скрываем скроллбар, но оставляем возможность скролла */
   scrollbar-width: none; /* Firefox */

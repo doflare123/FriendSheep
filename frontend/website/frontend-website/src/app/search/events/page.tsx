@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from "next/navigation"
 import Image from 'next/image';
 import styles from '../../../styles/search/eventsSearch.module.css';
 import EventCard from '../../../components/Events/EventCard';
@@ -27,8 +28,10 @@ const mockEvents: EventCardProps[] = Array.from({ length: 10 }, (_, i) => ({
   groupId: i + 100
 }));
 
-export default function EventsSearchPage({ searchParams }: { searchParams: { category?: string } }) {
-  const category = searchParams?.category || 'популярные';
+export default function EventsSearchPage() {
+  const searchParams = useSearchParams()
+  const category = searchParams?.get("category") || 'Популярные';
+  const pattern = searchParams?.get("pattern") || '/events/movie_bg.png';
   const [searchQuery, setSearchQuery] = useState('');
   const [events, setEvents] = useState<EventCardProps[]>(mockEvents);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -152,8 +155,8 @@ export default function EventsSearchPage({ searchParams }: { searchParams: { cat
         <div className={styles.contentWrapper}>
           <div className={styles.categoryHeader}>
             <CategoryLabel 
-                title={category.charAt(0).toUpperCase() + category.slice(1)} 
-                patternUrl="/events/movie_bg.png" 
+                title={category} 
+                patternUrl={pattern} 
                 clickable={false} // делаем некликабельным
             />
           </div>
