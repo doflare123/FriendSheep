@@ -1,0 +1,308 @@
+.container {
+  max-width: 100%;
+  margin: 0;
+  padding: 20px;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 40px;
+}
+
+.contentWrapper {
+  width: 100%;
+  min-height: 80%;
+  display: flex;
+  flex-direction: column;
+  position: relative; /* Добавляем для позиционирования градиентов */
+}
+
+.categoryHeader {
+  margin-bottom: 20px;
+  margin-left: 2%;
+  width: 15%;
+  max-width: 300px;
+}
+
+.searchHeader {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  position: relative;
+  margin-left: 2%;
+}
+
+.searchInputWrapper {
+  flex: 0.6;
+  position: relative;
+  z-index: 101;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 16px;
+  padding-right: 50px;
+  border: 2px solid #316BC2;
+  border-radius: 20px;
+  background: white;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.searchInput:focus {
+  border-color: #37A2E6;
+}
+
+.searchInput::placeholder {
+  color: #999;
+}
+
+.filterWrapper {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 102;
+}
+
+.filterButton {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filterButton:hover {
+  background: rgba(55, 162, 230, 0.1);
+}
+
+.filterMenu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: white;
+  border: 2px solid #37A2E6;
+  border-radius: 0px 12px 12px 12px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 103;
+  min-width: 250px;
+}
+
+.filterSection {
+  margin-bottom: 16px;
+}
+
+.filterSection:last-child {
+  margin-bottom: 0;
+}
+
+.filterTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: black;
+  margin: 0 0 8px 0;
+}
+
+.filterOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: black;
+}
+
+.filterOption:last-child {
+  margin-bottom: 0;
+}
+
+.filterOption input[type="radio"] {
+  accent-color: #316BC2;
+}
+
+.filterOption span {
+  user-select: none;
+}
+
+.resultsContainer {
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(85vh - 200px);
+  padding-right: 8px;
+  padding-left: 80px;
+  position: relative;
+  /* Скрываем скроллбар, но оставляем возможность скролла */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE и Edge */
+  
+  /* Создаем градиентную маску для плавного перехода в прозрачность по вертикали */
+  mask: linear-gradient(
+    to bottom,
+    transparent 0px,
+    black 40px,
+    black calc(100% - 40px),
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(
+    to bottom,
+    transparent 0px,
+    black 40px,
+    black calc(100% - 40px),
+    transparent 100%
+  );
+}
+
+.resultsContainer::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.eventsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 30px;
+  padding: 20px;
+}
+
+.eventWrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.loadingIndicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  color: black;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(55, 162, 230, 0.2);
+  border-top: 4px solid #37A2E6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+.scrollIndicator {
+  position: fixed;
+  left: 50%; /* Центрируем по горизонтали */
+  transform: translateX(-50%);
+  width: 60px; /* Увеличиваем размер кружка */
+  height: 60px;
+  background: white;
+  border: 2px solid #316BC2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 100;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.scrollIndicator:hover {
+  background: rgba(49, 107, 194, 0.1);
+  transform: translateX(-50%) scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.scrollDown {
+  bottom: 30px;
+}
+
+.scrollUp {
+  top: 100px; /* Увеличиваем отступ сверху */
+}
+
+/* Увеличиваем размер стрелочек */
+.scrollIndicator span {
+  font-size: 28px !important;
+  color: #316BC2;
+  font-weight: bold;
+  line-height: 1;
+}
+
+@keyframes spin {
+  0% { 
+    transform: rotate(0deg); 
+  }
+  100% { 
+    transform: rotate(360deg); 
+  }
+}
+
+/* Адаптивность для минимальных размеров десктопа */
+@media (max-width: 1024px) {
+  .container {
+    max-width: 100%;
+    padding: 15px;
+  }
+  
+  .contentWrapper {
+    padding: 20px;
+  }
+  
+  .eventsGrid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 25px;
+    padding: 15px;
+  }
+  
+  .scrollIndicator {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .scrollIndicator span {
+    font-size: 24px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .eventsGrid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    padding: 10px;
+  }
+  
+  .filterMenu {
+    right: 0;
+    left: auto;
+    transform: none;
+    min-width: 200px;
+  }
+  
+  .searchHeader {
+    gap: 15px;
+  }
+  
+  .scrollIndicator {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .scrollIndicator span {
+    font-size: 22px !important;
+  }
+  
+  .scrollUp {
+    top: 150px;
+  }
+}

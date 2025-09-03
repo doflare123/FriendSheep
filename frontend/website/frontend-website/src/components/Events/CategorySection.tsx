@@ -1,6 +1,7 @@
 "use client";
 
 import {SectionData} from "../../types/Events"
+import { useRouter } from 'next/navigation';
 import EventCard from "./EventCard"
 import styles from '../../styles/MainPage.module.css';
 import React, { useRef, useState, useEffect } from 'react';
@@ -10,13 +11,16 @@ interface CategorySectionProps {
     section: SectionData;
     title: string;
     showCategoryLabel?: boolean;
+    clickable?: boolean;
 }
 
 const CategorySection: React.FC<CategorySectionProps> = ({ 
     section, 
     title, 
-    showCategoryLabel = true 
+    showCategoryLabel = true,
+    clickable = true
 }) => {
+    const router = useRouter();
     const scrollRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(true);
@@ -56,11 +60,17 @@ const CategorySection: React.FC<CategorySectionProps> = ({
         }
     };
 
+    const onClick = () => {
+        if (title && clickable) {
+            router.push(`/search/events?category=${title}&pattern=${section.pattern}`);
+        }
+    };
+
     return (
         <div className={styles.categorySection}>
             {showCategoryLabel && (
                 <div className={styles.categoryHeader}>
-                    <CategoryLabel title={title} patternUrl={section.pattern} />
+                    <CategoryLabel title={title} patternUrl={section.pattern} onClick={onClick} clickable={clickable} />
                 </div>
             )}
             <div className={styles.cardsContainer}>

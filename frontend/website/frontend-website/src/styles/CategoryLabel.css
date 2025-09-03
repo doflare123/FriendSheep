@@ -4,13 +4,20 @@
     background-blend-mode: normal;
     padding: 12px 24px;
     border-radius: 12px;
-    transition: transform 0.2s ease;
-    cursor: pointer;
     text-align: center;
 }
 
-.categoryLabel:hover {
+.categoryLabel--clickable {
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+
+.categoryLabel--clickable:hover {
     transform: scale(1.05);
+}
+
+.categoryLabel--static {
+    cursor: default;
 }
 
 .categoryLabelText {

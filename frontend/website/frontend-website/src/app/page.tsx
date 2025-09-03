@@ -210,7 +210,7 @@ export default function Home() {
         {/* Главные категории */}
         {mainSections.map((section, sectionIndex) => (
           <div key={sectionIndex} className={styles.section}>
-            <CategorySection section={section} title={section.title} />
+            <CategorySection section={section} title={section.title} clickable={section.title!="Новые события"}/>
           </div>
         ))}
 

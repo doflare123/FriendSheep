@@ -1,0 +1,490 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contentWrapper {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+.searchHeader {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start; /* Изменено с center на flex-start */
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.searchInputWrapper {
+  flex: 0.5;
+  position: relative;
+  z-index: 101; /* Выше чем у меню фильтров */
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 16px;
+  padding-right: 50px; /* Место для кнопки фильтра */
+  border: 2px solid #316BC2;
+  border-radius: 20px;
+  background: white;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.searchInput:focus {
+  border-color: #37A2E6;
+}
+
+.searchInput::placeholder {
+  color: black;
+}
+
+.filterWrapper {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 102; /* Еще выше */
+}
+
+.filterButton {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filterButton:hover {
+  background: rgba(55, 162, 230, 0.1);
+}
+
+.filterMenu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: white;
+  border: 2px solid #37A2E6;
+  border-radius: 0px 12px 12px 12px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 103; /* Самый высокий */
+  min-width: 250px;
+}
+
+.filterSection {
+  margin-bottom: 16px;
+}
+
+.filterSection:last-child {
+  margin-bottom: 0;
+}
+
+.filterTitle {
+  font-size: 14px;
+  font-weight: 200;
+  color: black;
+  margin: 0 0 8px 0;
+}
+
+.filterOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: black;
+}
+
+.filterOption:last-child {
+  margin-bottom: 0;
+}
+
+.filterOption input[type="radio"] {
+  accent-color: #316BC2;
+}
+
+.filterOption span {
+  user-select: none;
+}
+
+.toggleButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  border: 2px solid #316BC2;
+  border-radius: 8px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggleButton:hover {
+  background: #f8f8f8; /* Изменено с #2a8bc7 на светло-серый */
+}
+
+.resultsContainer {
+  margin-bottom: 30px;
+  height: 650px; /* Увеличил высоту контейнера */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Группы */
+.groupsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.groupItem {
+  background: white;
+  border: 2px solid #37A2E6;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+
+.groupItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(55, 162, 230, 0.2);
+  /* Убираем z-index: 1; чтобы не создавать новый stacking context */
+}
+
+.groupContent {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.groupImageWrapper {
+  flex-shrink: 0;
+}
+
+.groupImage {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.groupInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.groupHeader {
+  margin-bottom: 8px;
+}
+
+.groupName {
+  font-size: 18px;
+  font-weight: 400;
+  color: black;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+  display: inline;
+}
+
+.groupIcons {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding-top: 3px;
+  vertical-align: top;
+}
+
+.categoryIcon {
+  flex-shrink: 0;
+}
+
+.groupDescription {
+  font-size: 14px;
+  color: black;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.groupActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.joinButton {
+  padding: 8px 16px;
+  background: #37A2E6;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.joinButton:hover {
+  background: #2a8bc7;
+  transform: translateY(-1px);
+}
+
+.joinButton:disabled {
+  cursor: not-allowed;
+  transform: none;
+}
+
+.joinedButton {
+  background: #4CAF50 !important;
+}
+
+.joinedButton:hover {
+  background: #45a049 !important;
+}
+
+.requestedButton {
+  background: #FF9800 !important;
+}
+
+.requestedButton:hover {
+  background: #e68900 !important;
+}
+
+.memberCount {
+  font-size: 14px;
+  color: black;
+  white-space: nowrap;
+}
+
+/* Пользователи */
+.usersList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.userItem {
+  background: white;
+  border: 2px solid #37A2E6;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+  min-height: 92px; /* Фиксированная минимальная высота для выравнивания с группами */
+}
+
+.userItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(55, 162, 230, 0.2);
+}
+
+.userContent {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.userImageWrapper {
+  flex-shrink: 0;
+}
+
+.userImage {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.userInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.userName {
+  font-size: 18px;
+  font-weight: 400;
+  color: black;
+  margin: 0 0 4px 0;
+}
+
+.userStatus {
+  font-size: 14px;
+  color: #37A2E6;
+  margin: 0 0 4px 0;
+  font-weight: 500;
+}
+
+.userDescription {
+  font-size: 14px;
+  color: black;
+  margin: 0;
+}
+
+.addButton {
+  padding: 8px 16px;
+  background: #37A2E6;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.addButton:hover {
+  background: #2a8bc7;
+  transform: translateY(-1px);
+}
+
+/* Пагинация */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.arrowButton {
+  background: none;
+  border: none;
+  color: #37A2E6;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.3s ease;
+}
+
+.arrowButton:hover:not(:disabled) {
+  color: #2a8bc7;
+}
+
+.arrowButton:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.pageNumber {
+  background: none;
+  border: none;
+  color: #37A2E6;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  min-width: 32px;
+  transition: color 0.3s ease;
+}
+
+.pageNumber:hover {
+  color: #2a8bc7;
+}
+
+.activePage {
+  color: #2a8bc7 !important;
+  font-weight: 600;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .container {
+    padding: 15px;
+  }
+  
+  .contentWrapper {
+    padding: 20px;
+  }
+  
+  .searchHeader {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch; /* Изменено */
+  }
+  
+  .toggleButton {
+    position: relative; /* Возвращаем relative позиционирование на мобильных */
+    top: auto;
+    right: auto;
+    align-self: flex-end;
+  }
+  
+  .filterMenu {
+    right: -100px;
+    min-width: 200px;
+  }
+  
+  .groupItem,
+  .userItem {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    min-height: auto;
+  }
+  
+  .groupContent,
+  .userContent {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .groupActions {
+    align-items: center;
+  }
+  
+  .groupHeader {
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+  }
+  
+  .groupIcons {
+    margin-top: 0;
+  }
+  
+  .pagination {
+    gap: 8px;
+  }
+  
+  .pageNumber {
+    font-size: 14px;
+    min-width: 28px;
+  }
+  
+  .arrowButton {
+    font-size: 16px;
+  }
+}
