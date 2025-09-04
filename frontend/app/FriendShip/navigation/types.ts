@@ -9,4 +9,5 @@ export type RootStackParamList = {
     title: string;
     imageSource: any;
   };
+  GroupsPage: undefined;
 };
