@@ -21,7 +21,7 @@ export default function Header() {
                 </div>
                 <nav className="nav-section">
                     <Link href="/" className="nav-link">Главная</Link>
-                    <Link href="#" className="nav-link">Новости</Link>
+                    <Link href="/news" className="nav-link">Новости</Link>
                     <Link href="/groups" className="nav-link">Группы</Link>
                 </nav>
                 <div className="auth-section">
@@ -40,7 +40,7 @@ export default function Header() {
 
             <nav className="nav-section">
                 <Link href="/" className="nav-link">Главная</Link>
-                <Link href="#" className="nav-link">Новости</Link>
+                <Link href="/news" className="nav-link">Новости</Link>
                 <Link href="/groups" className="nav-link">Группы</Link>
             </nav>
 
