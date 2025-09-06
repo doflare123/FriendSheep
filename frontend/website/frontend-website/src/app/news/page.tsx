@@ -1,56 +1,11 @@
-// src/app/news/page.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import NewsCard from '@/components/news/NewsCard';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import styles from '@/styles/news/newsPage.module.css';
-
-// Типы данных
-export interface User {
-  createdAt: string;
-  data_register: string;
-  email: string;
-  enterprise: boolean;
-  image: string;
-  name: string;
-  password: string;
-  updatedAt: string;
-  us: string;
-}
-
-export interface Comment {
-  id: number;
-  news_id: number;
-  text: string;
-  user: User;
-  user_id: number;
-}
-
-export interface Content {
-  id: number;
-  news_id: number;
-  text: string;
-}
-
-export interface NewsItem {
-  comments: Comment[];
-  content: Content[];
-  createdAt: string;
-  created_time: string;
-  description: string;
-  id: number;
-  image: string;
-  title: string;
-  updatedAt: string;
-}
-
-export interface NewsResponse {
-  hasMore: boolean;
-  items: NewsItem[];
-  page: number;
-  total: number;
-}
+import { NewsItem, NewsResponse } from '@/types/news';
 
 // Тестовые данные - создаем один раз и кешируем
 const TEST_DATES = [
@@ -103,6 +58,7 @@ export default function NewsPage() {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const [initialized, setInitialized] = useState(false);
+  const router = useRouter();
   
   // Используем ref для предотвращения множественных запросов
   const loadingRef = useRef(false);
@@ -169,8 +125,7 @@ export default function NewsPage() {
   }, [hasMore, page]);
 
   const handleCardClick = (newsItem: NewsItem) => {
-    console.log('Clicked news item:', newsItem);
-    // TODO: Навигация к полной новости
+    router.push(`/news/info/${newsItem.id}`);
   };
 
   return (

@@ -1,8 +1,7 @@
-// src/components/news/NewsCard.tsx
 import { useState } from 'react';
 import Image from 'next/image';
 import styles from '@/styles/news/NewsCard.module.css';
-import { NewsItem } from '@/app/news/page';
+import { NewsItem } from '@/types/news';
 
 interface NewsCardProps {
   newsItem: NewsItem;
