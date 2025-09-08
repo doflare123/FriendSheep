@@ -24,11 +24,12 @@ type NewsPage struct {
 }
 
 type CommentDTO struct {
-	ID     int    `json:"id"`
-	UserID uint   `json:"user_id"`
-	Name   string `json:"name"`
-	Image  string `json:"image"`
-	Text   string `json:"text"`
+	ID         int       `json:"id"`
+	UserID     uint      `json:"user_id"`
+	Name       string    `json:"name"`
+	Image      string    `json:"image"`
+	Text       string    `json:"text"`
+	CreateTime time.Time `json:"created_time"`
 }
 
 type NewsDTO struct {
@@ -46,9 +47,10 @@ type CreateCommentInput struct {
 }
 
 type CommentResponse struct {
-	ID     uint   `json:"id"`
-	NewsID uint   `json:"news_id"`
-	Text   string `json:"text"`
+	ID     uint      `json:"id"`
+	NewsID uint      `json:"news_id"`
+	Text   string    `json:"text"`
+	Data   time.Time `json:"data"`
 	User   struct {
 		Name  string `json:"name"`
 		Image string `json:"image"`
@@ -140,11 +142,12 @@ func GetNewsByID(id int) (*NewsDTO, error) {
 	var comments []CommentDTO
 	for _, c := range item.Comments {
 		comments = append(comments, CommentDTO{
-			ID:     c.ID,
-			UserID: c.User.ID,
-			Name:   c.User.Name,
-			Image:  c.User.Image,
-			Text:   c.Text,
+			ID:         c.ID,
+			UserID:     c.User.ID,
+			Name:       c.User.Name,
+			Image:      c.User.Image,
+			Text:       c.Text,
+			CreateTime: c.CreatedAt,
 		})
 	}
 
@@ -174,9 +177,10 @@ func CreateComment(newsID uint, email string, input CreateCommentInput) (*Commen
 	}
 
 	comment := &news.Comments{
-		NewsID: newsID,
-		UserID: user.ID,
-		Text:   input.Text,
+		NewsID:    newsID,
+		UserID:    user.ID,
+		Text:      input.Text,
+		CreatedAt: time.Now(),
 	}
 
 	if err := database.Create(comment).Error; err != nil {
@@ -187,6 +191,7 @@ func CreateComment(newsID uint, email string, input CreateCommentInput) (*Commen
 		ID:     uint(comment.ID),
 		NewsID: comment.NewsID,
 		Text:   comment.Text,
+		Data:   comment.CreatedAt,
 		User: struct {
 			Name  string `json:"name"`
 			Image string `json:"image"`

@@ -1,12 +1,17 @@
 package news
 
-import "friendship/models"
+import (
+	"friendship/models"
+	"time"
+)
 
 type Comments struct {
-	ID     int         `json:"id" gorm:"primaryKey;autoIncrement"`
-	NewsID uint        `json:"news_id" gorm:"not null;index"`
-	News   News        `json:"-" gorm:"foreignKey:NewsID;constraint:OnDelete:CASCADE"`
-	Text   string      `json:"text" gorm:"not null"`
-	UserID uint        `json:"user_id" gorm:"not null"`
-	User   models.User `json:"user" gorm:"foreignKey:UserID"`
+	ID        int         `json:"id" gorm:"primaryKey;autoIncrement"`
+	NewsID    uint        `json:"news_id" gorm:"not null;index"`
+	News      News        `json:"-" gorm:"foreignKey:NewsID;constraint:OnDelete:CASCADE"`
+	Text      string      `json:"text" gorm:"not null"`
+	UserID    uint        `json:"user_id" gorm:"not null"`
+	User      models.User `json:"user" gorm:"foreignKey:UserID"`
+	CreatedAt time.Time   `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt time.Time   `json:"updated_at" gorm:"autoUpdateTime"`
 }
