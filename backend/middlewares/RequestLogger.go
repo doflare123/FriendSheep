@@ -3,6 +3,7 @@ package middlewares
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"friendship/utils"
 	"io"
 	"os"
@@ -247,8 +248,10 @@ func (r responseBodyWriter) Write(b []byte) (int, error) {
 }
 
 func generateRequestID() string {
-	return time.Now().Format("20060102150405") + "-" +
-		string(rune(time.Now().UnixNano()%1000))
+	return fmt.Sprintf("%s-%d",
+		time.Now().Format("20060102150405"),
+		time.Now().UnixNano()%1000,
+	)
 }
 
 func shouldLogBody(contentType, method string) bool {
