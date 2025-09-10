@@ -13,6 +13,8 @@ definitions:
         items:
           $ref: '#/definitions/groups.GroupContact'
         type: array
+      createdAt:
+        type: string
       creater:
         $ref: '#/definitions/models.User'
       createrId:
@@ -26,6 +28,8 @@ definitions:
       nameGroup:
         type: string
       smallDescription:
+        type: string
+      updatedAt:
         type: string
     type: object
   groups.GroupContact:
@@ -242,11 +246,15 @@ definitions:
     type: object
   news.Comments:
     properties:
+      created_at:
+        type: string
       id:
         type: integer
       news_id:
         type: integer
       text:
+        type: string
+      updated_at:
         type: string
       user:
         $ref: '#/definitions/models.User'
@@ -362,6 +370,8 @@ definitions:
     type: object
   services.CommentDTO:
     properties:
+      created_time:
+        type: string
       id:
         type: integer
       image:
@@ -424,6 +434,8 @@ definitions:
       email:
         type: string
       name:
+        maxLength: 40
+        minLength: 5
         type: string
       password:
         type: string
@@ -450,6 +462,8 @@ definitions:
         type: array
       count:
         type: integer
+      createdAt:
+        type: string
       description:
         type: string
       id:
@@ -825,10 +839,16 @@ definitions:
       image:
         type: string
       name:
+        maxLength: 40
+        minLength: 5
         type: string
       status:
+        maxLength: 50
+        minLength: 1
         type: string
       us:
+        maxLength: 40
+        minLength: 5
         type: string
     type: object
   services.UserStatsInfo:
@@ -846,6 +866,8 @@ definitions:
       count_table_games:
         type: integer
       most_big_session:
+        type: integer
+      most_pop_day:
         type: integer
       series_session_count:
         type: integer

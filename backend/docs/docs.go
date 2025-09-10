@@ -3362,6 +3362,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/groups.GroupContact"
                     }
                 },
+                "createdAt": {
+                    "type": "string"
+                },
                 "creater": {
                     "$ref": "#/definitions/models.User"
                 },
@@ -3381,6 +3384,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "smallDescription": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 }
             }
@@ -3706,6 +3712,9 @@ const docTemplate = `{
         "news.Comments": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -3713,6 +3722,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "text": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 },
                 "user": {
@@ -3888,6 +3900,9 @@ const docTemplate = `{
         "services.CommentDTO": {
             "type": "object",
             "properties": {
+                "created_time": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -3986,7 +4001,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 40,
+                    "minLength": 5
                 },
                 "password": {
                     "type": "string"
@@ -4018,6 +4035,9 @@ const docTemplate = `{
                 },
                 "count": {
                     "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
                 },
                 "description": {
                     "type": "string"
@@ -4592,13 +4612,19 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 40,
+                    "minLength": 5
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 1
                 },
                 "us": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 40,
+                    "minLength": 5
                 }
             }
         },
@@ -4624,6 +4650,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "most_big_session": {
+                    "type": "integer"
+                },
+                "most_pop_day": {
                     "type": "integer"
                 },
                 "series_session_count": {

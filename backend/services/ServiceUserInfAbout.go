@@ -48,6 +48,7 @@ type UserStatsInfo struct {
 	CountCreateSession uint16 `json:"count_create_session"`
 	SeriesSessionCount uint16 `json:"series_session_count"`
 	MostBigSession     uint16 `json:"most_big_session"`
+	MostPopDay         string `json:"most_pop_day,omitempty"`
 	CountFilms         uint16 `json:"count_films"`
 	CountGames         uint16 `json:"count_games"`
 	CountTableGames    uint16 `json:"count_table_games"`
@@ -348,7 +349,7 @@ func getUserStats(db *gorm.DB, userID uint) (UserStatsInfo, error) {
 	var sideStats statsusers.SideStats_users
 	var sessionStats statsusers.SessionStats_users
 
-	err := db.Where("user_id = ?", userID).First(&sideStats).Error
+	err := db.Where("user_id = ?", userID).Preload("DaysWeek").First(&sideStats).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return UserStatsInfo{}, err
 	}
@@ -362,6 +363,7 @@ func getUserStats(db *gorm.DB, userID uint) (UserStatsInfo, error) {
 		CountCreateSession: safeUint16Value(sideStats.CountCreateSession),
 		SeriesSessionCount: safeUint16Value(sideStats.SeriesSesionCount),
 		MostBigSession:     safeUint16Value(sideStats.MostBigSession),
+		MostPopDay:         safeStringValue(&sideStats.DaysWeek.Name),
 		CountFilms:         safeUint16Value(&sessionStats.CountFilms),
 		CountGames:         safeUint16Value(&sessionStats.CountGames),
 		CountTableGames:    safeUint16Value(&sessionStats.CountTableGames),
