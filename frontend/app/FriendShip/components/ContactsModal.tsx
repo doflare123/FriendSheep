@@ -2,16 +2,16 @@ import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    Image,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View
+  Dimensions,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
 } from 'react-native';
 
 const screenHeight = Dimensions.get("window").height;
@@ -218,6 +218,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 0,
     marginBottom: 8,
+    marginLeft: 10,
     fontFamily: inter.regular,
     fontSize: 14,
     color: Colors.black,
@@ -229,8 +230,8 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.lightGrey,
   },
   saveButton: {
-    backgroundColor: Colors.blue,
-    paddingVertical: 12,
+    backgroundColor: Colors.lightBlue,
+    paddingVertical: 6,
     borderRadius: 25,
     alignItems: 'center',
   },

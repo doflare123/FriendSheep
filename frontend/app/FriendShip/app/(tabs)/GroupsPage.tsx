@@ -6,18 +6,28 @@ import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import { useSearchState } from '@/hooks/useSearchState';
+import { RootStackParamList } from '@/navigation/types';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import { Image, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const mockManagedGroups: Group[] = [
+type GroupsPageNavigationProp = StackNavigationProp<RootStackParamList, 'GroupsPage'>;
+
+const GroupsPage = () => {
+  const { sortingState, sortingActions } = useSearchState();
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const navigation = useNavigation<GroupsPageNavigationProp>();
+
+  const mockManagedGroups: Group[] = [
   {
     id: '1',
     name: 'Мега крутая группа',
     participantsCount: 47,
     description: 'Мы крутые пацантре, ёёёёу 😎\nПрисоединяйтесь к нам',
     imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-    onPress: () => console.log('Manage group 1'),
+    onPress: () => navigation.navigate('GroupPage', { groupId: '1', mode: 'manage' }),
   },
   {
     id: '2',
@@ -25,7 +35,7 @@ const mockManagedGroups: Group[] = [
     participantsCount: 32,
     description: 'Мы крутые пацантре, ёёёёу 😎\nПрисоединяйтесь к н',
     imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-    onPress: () => console.log('Manage group 2'),
+    onPress: () => navigation.navigate('GroupPage', { groupId: '2', mode: 'manage' }),
   },
 ];
 
@@ -36,7 +46,7 @@ const mockSubscriptions: Group[] = [
     participantsCount: 47,
     description: 'Мы крутые пацантре, ёёёёу 😎\nПрисоединяйтесь к нам',
     imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-    onPress: () => console.log('Go to group 3'),
+    onPress: () => navigation.navigate('GroupPage', { groupId: '3', mode: 'view' }),
   },
   {
     id: '4',
@@ -44,13 +54,9 @@ const mockSubscriptions: Group[] = [
     participantsCount: 25,
     description: 'Мы крутые пацантре, ёёёёу 😎\nПрисоединяйтесь к н',
     imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-    onPress: () => console.log('Go to group 4'),
+    onPress: () => navigation.navigate('GroupPage', { groupId: '4', mode: 'view' }),
   },
 ];
-
-const GroupsPage = () => {
-  const { sortingState, sortingActions } = useSearchState();
-  const [createModalVisible, setCreateModalVisible] = useState(false);
 
   const handleAddGroup = () => {
     setCreateModalVisible(true);
@@ -61,7 +67,7 @@ const GroupsPage = () => {
 };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }}>
       <ImageBackground
         source={require('../../assets/images/wallpaper.png')}
         style={{ flex: 1 }}

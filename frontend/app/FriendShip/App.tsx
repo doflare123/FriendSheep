@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import CategoryPage from './app/(tabs)/CategoryPage';
 import Confirm from './app/(tabs)/ConfirmPage';
 import Done from './app/(tabs)/DonePage';
+import GroupPage from './app/(tabs)/GroupPage';
 import GroupsPage from './app/(tabs)/GroupsPage';
 import Login from './app/(tabs)/LoginPage';
 import MainPage from './app/(tabs)/MainPage';
@@ -36,6 +37,11 @@ export default function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="GroupsPage" component={GroupsPage} />
+          <Stack.Screen 
+            name="GroupPage" 
+            component={GroupPage}
+            options={{ headerShown: false }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

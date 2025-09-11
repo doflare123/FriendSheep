@@ -10,4 +10,8 @@ export type RootStackParamList = {
     imageSource: any;
   };
   GroupsPage: undefined;
+  GroupPage: {
+    groupId: string;
+    mode: 'manage' | 'view';
+  };
 };

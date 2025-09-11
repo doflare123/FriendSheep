@@ -2,17 +2,16 @@ import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    Image,
-    ImageBackground,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View
+  Dimensions,
+  Image,
+  ImageBackground,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import ContactsModal from './ContactsModal';
 
@@ -98,10 +97,6 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
     <>
     <Modal visible={visible} animationType="fade" transparent>
       <View style={styles.overlay}>
-        <TouchableWithoutFeedback onPress={handleClose}>
-          <View style={StyleSheet.absoluteFill} />
-        </TouchableWithoutFeedback>
-
         <View style={styles.modal}>
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -343,7 +338,7 @@ const styles = StyleSheet.create({
   categoriesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 6,
     marginBottom: 16,
   },
   categoryButton: {

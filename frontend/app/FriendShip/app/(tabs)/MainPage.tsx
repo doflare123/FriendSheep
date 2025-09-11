@@ -68,7 +68,7 @@ const MainPage = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }}>
       <ImageBackground
         source={require('../../assets/images/wallpaper.png')}
         style={{ flex: 1 }}
