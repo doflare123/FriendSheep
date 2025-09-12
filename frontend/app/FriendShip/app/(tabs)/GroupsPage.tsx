@@ -35,7 +35,7 @@ const GroupsPage = () => {
     participantsCount: 32,
     description: 'Мы крутые пацантре, ёёёёу 😎\nПрисоединяйтесь к н',
     imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-    onPress: () => navigation.navigate('GroupPage', { groupId: '2', mode: 'manage' }),
+    onPress: () => navigation.navigate('GroupPage', { groupId: '1', mode: 'manage' }),
   },
 ];
 
@@ -46,7 +46,7 @@ const mockSubscriptions: Group[] = [
     participantsCount: 47,
     description: 'Мы крутые пацантре, ёёёёу 😎\nПрисоединяйтесь к нам',
     imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-    onPress: () => navigation.navigate('GroupPage', { groupId: '3', mode: 'view' }),
+    onPress: () => navigation.navigate('GroupPage', { groupId: '1', mode: 'view' }),
   },
   {
     id: '4',
@@ -54,7 +54,7 @@ const mockSubscriptions: Group[] = [
     participantsCount: 25,
     description: 'Мы крутые пацантре, ёёёёу 😎\nПрисоединяйтесь к н',
     imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-    onPress: () => navigation.navigate('GroupPage', { groupId: '4', mode: 'view' }),
+    onPress: () => navigation.navigate('GroupPage', { groupId: '1', mode: 'view' }),
   },
 ];
 
@@ -80,7 +80,7 @@ const mockSubscriptions: Group[] = [
             <ImageBackground
               source={require('../../assets/images/title_rectangle.png')}
               style={styles.sectionHeader}
-              resizeMode="cover"
+              resizeMode="stretch"
             >
               <Text style={styles.sectionTitle}>Группы под управлением:</Text>
               <TouchableOpacity style={styles.managementIcon} onPress={handleAddGroup}>
@@ -101,7 +101,7 @@ const mockSubscriptions: Group[] = [
             <ImageBackground
               source={require('../../assets/images/title_rectangle.png')}
               style={styles.sectionHeader}
-              resizeMode="cover"
+              resizeMode="stretch"
             >
               <Text style={styles.sectionTitle}>Подписки:</Text>
             </ImageBackground>

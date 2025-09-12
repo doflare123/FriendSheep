@@ -119,7 +119,7 @@ const GroupPage = () => {
           <ImageBackground
             source={require('../../assets/images/title_rectangle.png')}
             style={styles.sectionHeader}
-            resizeMode="cover"
+            resizeMode="stretch"
           >
             <Text style={styles.sectionTitle}>Описание:</Text>
           </ImageBackground>
@@ -134,10 +134,13 @@ const GroupPage = () => {
           <ImageBackground
             source={require('../../assets/images/title_rectangle.png')}
             style={styles.sectionHeader}
-            resizeMode="cover"
+            resizeMode="stretch"
           >
             <Text style={styles.sectionTitle}>
-              Подписчики: {groupData.subscribersCount.toLocaleString()}
+              Подписчики:
+            </Text>
+            <Text style={styles.subscribersText}>
+              {groupData.subscribersCount.toLocaleString()}
             </Text>
           </ImageBackground>
           <FlatList
@@ -156,7 +159,7 @@ const GroupPage = () => {
           <ImageBackground
             source={require('../../assets/images/title_rectangle.png')}
             style={styles.sectionHeader}
-            resizeMode="cover"
+            resizeMode="stretch"
           >
             <Text style={styles.sectionTitle}>Сессии:</Text>
           </ImageBackground>
@@ -167,7 +170,7 @@ const GroupPage = () => {
           <ImageBackground
             source={require('../../assets/images/title_rectangle.png')}
             style={styles.sectionHeader}
-            resizeMode="cover"
+            resizeMode="stretch"
           >
             <Text style={styles.sectionTitle}>Контакты:</Text>
           </ImageBackground>
@@ -303,6 +306,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
+  subscribersText: {
+    color: Colors.black,
+    fontSize: 18,
+    fontFamily: inter.bold_italic,
+    marginLeft: 6
+  },
   subscribersList: {
     paddingVertical: 16,
   },
@@ -378,13 +387,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.lightGrey,
   },
   modalTitle: {
     fontFamily: inter.bold,
     fontSize: 18,
+    marginLeft: 8,
     color: Colors.black,
   },
   closeButton: {
