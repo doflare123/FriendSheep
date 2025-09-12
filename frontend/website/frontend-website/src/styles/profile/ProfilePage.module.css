@@ -1,8 +1,9 @@
 .profileContainer {
   width: 100%;
   max-width: 1600px;
-  height: calc(100% - 40px);
-  min-height: 1050px;
+  /*height: calc(100% - 40px);
+  min-height: 1050px;*/
+  height: 1050px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);

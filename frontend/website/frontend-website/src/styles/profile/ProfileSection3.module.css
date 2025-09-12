@@ -1,0 +1,150 @@
+.subscriptionsSection {
+  border: 2px solid #37A2E6;
+  border-radius: 12px;
+  padding: 20px;
+  grid-row: 2;
+  grid-column: 1;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.subscriptionsTitle {
+  font-size: 30px;
+  font-weight: 100;
+  color: #000;
+  margin-top: -10px;
+  text-align: center;
+}
+
+
+.scrollWrapper {
+  position: relative;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.groupsList {
+  width: 100%;
+  overflow-y: auto;
+  max-height: 275px;
+  padding-right: 12px; /* отодвигаем контент, чтобы скролл был чуть правее */
+  margin-right: -8px;  /* скролл уходит на 8px вправо */
+  padding-top: 15px;
+  padding-bottom: 15px;
+  mask: linear-gradient(to bottom,
+    transparent 0%,
+    black 20px,
+    black calc(100% - 20px),
+    transparent 100%);
+  -webkit-mask: linear-gradient(to bottom,
+    transparent 0%,
+    black 20px,
+    black calc(100% - 20px),
+    transparent 100%);
+  scrollbar-width: thin;
+  scrollbar-color: #37A2E6 transparent;
+}
+
+.groupsList::-webkit-scrollbar {
+  width: 4px;
+}
+
+.groupsList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.groupsList::-webkit-scrollbar-thumb {
+  background: #37A2E6;
+  border-radius: 2px;
+}
+
+.groupsList::-webkit-scrollbar-thumb:hover {
+  background: #2a8bc7;
+}
+
+.groupItem {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border: 2px solid #37A2E6;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.groupItem:last-child {
+  margin-bottom: 0;
+}
+
+.groupItem:hover {
+  background: rgba(55, 162, 230, 0.05);
+  transform: translateY(-1px);
+}
+
+.groupContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.groupImageWrapper {
+  flex-shrink: 0;
+}
+
+.groupImage {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.groupInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.groupName {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.memberCount {
+  font-size: 14px;
+  color: #666;
+}
+
+/* стрелки */
+.scrollArrow {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  color: #316BC2;
+  background: white;
+  border: 3px solid #316BC2;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  z-index: 10;
+}
+
+.scrollArrow:hover {
+  background: #f0f7ff;
+}
+
+.topArrow {
+  top: -18px; /* половина кнопки выходит за край секции */
+}
+
+.bottomArrow {
+  bottom: -18px; /* половина кнопки выходит за край секции */
+}

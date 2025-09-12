@@ -57,7 +57,7 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  gap: 10px; /* Уменьшен gap между диаграммой и легендой */
+  padding-left: 100px;
 }
 
 /* Кастомная легенда */
@@ -65,6 +65,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-left: -50px;
   min-width: 180px;
 }
 
@@ -98,8 +99,8 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 12px; /* Уменьшен gap */
   align-items: end; /* Выравнивание от низа */
-  margin-top: auto; /* Прижимаем к низу секции */
-  padding: 0 10px; /* Добавлен padding чтобы не заходили за края */
+  margin-top: -120px; /* Прижимаем к низу секции */
+  padding: 0 10px 10px 10px; /* Добавлен padding чтобы не заходили за края */
 }
 
 .statisticsTile {
@@ -132,9 +133,9 @@
 }
 
 .tileTitle {
-  font-size: 13px; /* Уменьшен размер шрифта */
-  color: #666;
-  font-weight: 500;
+  font-size: 26px; /* Уменьшен размер шрифта */
+  color: #000;
+  font-weight: 800;
   line-height: 1.2;
   text-align: center;
 }
@@ -145,15 +146,15 @@
 }
 
 .tileValue {
-  font-size: 20px; /* Уменьшен размер шрифта */
+  font-size: 30px; /* Уменьшен размер шрифта */
   font-weight: bold;
   color: #000;
   margin: 0;
 }
 
 .tileSubtitle {
-  font-size: 11px; /* Уменьшен размер шрифта */
-  color: #999;
+  font-size: 22px; /* Уменьшен размер шрифта */
+  color: #000;
   margin-top: 6px;
 }
 
@@ -163,7 +164,7 @@
   align-items: center;
   justify-content: center;
   height: calc(100% - 60px);
-  color: #999;
+  color: #000;
   font-size: 18px;
   border: 2px dashed #ddd;
   border-radius: 8px;
@@ -215,4 +216,25 @@
   .tileTitle {
     font-size: 11px;
   }
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.chartLabelAnimated {
+  opacity: 0;
+  transform: scale(0.3);
+  transform-box: fill-box; /* важно для SVG */
+  transform-origin: center;
+  animation: fadeInScale 0.6s ease-out forwards;
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
 }

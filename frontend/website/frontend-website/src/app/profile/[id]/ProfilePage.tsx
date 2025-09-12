@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo  } from 'react';
 import Image from 'next/image';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import styles from '../../../styles/profile/ProfilePage.module.css';
 import section1Styles from '../../../styles/profile/ProfileSection1.module.css';
 import section2Styles from '../../../styles/profile/ProfileSection2.module.css';
+import section3Styles from '../../../styles/profile/ProfileSection3.module.css';
 import StatisticsTile from '../../../components/profile/StatisticsTile';
+import SubscriptionItem from '../../../components/profile/SubscriptionItem';
 import {getSocialIcon} from '../../../Constants';
+import GenrePieChart from '../../../components/profile/GenrePieChart';
 
 // Тестовые данные на основе API
 const testProfileData = {
@@ -22,7 +25,7 @@ const testProfileData = {
     { count: 27, name: "Приколы" },
     { count: 25, name: "Веселье" },
     { count: 23, name: "Русские" },
-    { count: 21, name: "Анекдоты" }
+    { count: 1, name: "Анекдоты" }
   ],
   tiles: ["count_films", "spent_time", "count_games", "count_all"],
   telegram_link: false,
@@ -53,21 +56,158 @@ const testSubscriptions = [
   },
   {
     id: 2,
-    name: "Группа крутых пацанят",
-    small_description: "47 участников", 
+    name: "Киноманы",
+    small_description: "128 участников",
     image: "/default/group.jpg",
     type: "group",
     category: ["movies"]
   },
   {
     id: 3,
-    name: "Группа крутых пацанят",
-    small_description: "47 участников",
-    image: "/default/group.jpg", 
+    name: "Настольщики",
+    small_description: "63 участника",
+    image: "/default/group.jpg",
     type: "group",
     category: ["board"]
+  },
+  {
+    id: 4,
+    name: "Футбольный чат",
+    small_description: "212 участников",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["sport"]
+  },
+  {
+    id: 5,
+    name: "Любители музыки",
+    small_description: "98 участников",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["music"]
+  },
+  {
+    id: 6,
+    name: "Путешественники",
+    small_description: "76 участников",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["travel"]
+  },
+  {
+    id: 7,
+    name: "Игроманы",
+    small_description: "301 участник",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["games"]
+  },
+  {
+    id: 8,
+    name: "Аниме клуб",
+    small_description: "145 участников",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["anime"]
+  },
+  {
+    id: 9,
+    name: "IT тусовка",
+    small_description: "512 участников",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["tech"]
+  },
+  {
+    id: 10,
+    name: "Книжный клуб",
+    small_description: "84 участника",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["books"]
+  },
+  {
+    id: 11,
+    name: "Фанаты Marvel",
+    small_description: "133 участника",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["movies"]
+  },
+  {
+    id: 12,
+    name: "Сериальщики",
+    small_description: "210 участников",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["series"]
+  },
+  {
+    id: 13,
+    name: "Гурманы",
+    small_description: "59 участников",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["food"]
+  },
+  {
+    id: 14,
+    name: "Беговой клуб",
+    small_description: "42 участника",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["sport"]
+  },
+  {
+    id: 15,
+    name: "Фотографы",
+    small_description: "77 участников",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["photo"]
+  },
+  {
+    id: 16,
+    name: "Художники",
+    small_description: "64 участника",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["art"]
+  },
+  {
+    id: 17,
+    name: "Киберспорт",
+    small_description: "189 участников",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["games"]
+  },
+  {
+    id: 18,
+    name: "Фанаты DC",
+    small_description: "101 участник",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["movies"]
+  },
+  {
+    id: 19,
+    name: "Мастера настолок",
+    small_description: "55 участников",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["board"]
+  },
+  {
+    id: 20,
+    name: "Поклонники классики",
+    small_description: "39 участников",
+    image: "/default/group.jpg",
+    type: "group",
+    category: ["music"]
   }
 ];
+
 
 interface ProfilePageProps {
   params: {
@@ -87,6 +227,10 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [animatedChart, setAnimatedChart] = useState(false);
 
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [showUpArrow, setShowUpArrow] = useState(false);
+  const [showDownArrow, setShowDownArrow] = useState(false);
+
   // Анимация диаграммы при загрузке
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -97,33 +241,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
   // Цвета для диаграммы
   const chartColors = ['#316BC2', '#1E5CB9', '#1851A6', '#134693', '#0D3E86', '#0A3677'];
-
-  // Подготовка данных для диаграммы
-  const prepareChartData = () => {
-    const topGenres = testProfileData.popular_genres.slice(0, 5);
-    const totalTopCount = topGenres.reduce((sum, genre) => sum + genre.count, 0);
-    
-    // Предполагаем, что есть другие жанры
-    const otherCount = Math.max(0, Math.floor(totalTopCount * 0.2)); // примерно 20% от топа
-    
-    const chartData = topGenres.map((genre, index) => ({
-      name: genre.name,
-      value: genre.count,
-      color: chartColors[index]
-    }));
-
-    if (otherCount > 0) {
-      chartData.push({
-        name: 'Другое',
-        value: otherCount,
-        color: chartColors[5]
-      });
-    }
-
-    return chartData;
-  };
-
-  const chartData = prepareChartData();
 
   // Все доступные типы плиток
   const availableTiles = ['count_all', 'count_films', 'count_games', 'count_other', 'count_table', 'spent_time'];
@@ -211,82 +328,47 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     }
   };
 
-  // Кастомный tooltip для диаграммы
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      return (
-        <div style={{
-          background: 'white',
-          border: '2px solid #37A2E6',
-          borderRadius: '8px',
-          padding: '8px 12px',
-          fontSize: '14px',
-          color: '#000',
-          pointerEvents: 'none',
-          zIndex: 1000
-        }}>
-          <p style={{ margin: 0, fontWeight: 'bold' }}>{data.name}</p>
-          <p style={{ margin: 0, color: '#666' }}>Количество: {data.value}</p>
-        </div>
-      );
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      setShowUpArrow(scrollTop > 0);
+      setShowDownArrow(scrollTop + clientHeight < scrollHeight);
     }
-    return null;
   };
 
-  // Кастомная анимированная метка для номеров
-  const AnimatedNumberLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, index }: any) => {
-    const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.4; // Ближе к центру
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-    return (
-      <text 
-        x={x} 
-        y={y} 
-        fill="white" 
-        textAnchor="middle" 
-        dominantBaseline="central"
-        fontSize="18"
-        fontWeight="bold"
-        style={{
-          opacity: animatedChart ? 1 : 0,
-          transition: `opacity 0.8s ease-in-out ${0.2 * index}s`,
-          pointerEvents: 'none'
-        }}
-      >
-        {index + 1}
-      </text>
-    );
+  const scrollUp = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ top: -100, behavior: 'smooth' });
+    }
   };
 
-  // Кастомная анимированная метка для процентов
-  const AnimatedPercentLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }: any) => {
-    const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.8; // Дальше от центра
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-    return (
-      <text 
-        x={x} 
-        y={y} 
-        fill="white" 
-        textAnchor="middle" 
-        dominantBaseline="central"
-        fontSize="14"
-        fontWeight="bold"
-        style={{
-          opacity: animatedChart ? 1 : 0,
-          transition: `opacity 0.8s ease-in-out ${0.4 + 0.2 * index}s`,
-          pointerEvents: 'none'
-        }}
-      >
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
+  const scrollDown = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ top: 100, behavior: 'smooth' });
+    }
   };
+
+  useEffect(() => {
+    handleScroll();
+  }, []);
+
+  const chartData = useMemo(() => {
+    const topGenres = testProfileData.popular_genres.slice(0, 5);
+    const totalTopCount = topGenres.reduce((sum, genre) => sum + genre.count, 0);
+    const otherCount = Math.max(0, Math.floor(totalTopCount * 0.2));
+
+    const data = topGenres.map((genre, index) => ({
+      name: genre.name,
+      value: genre.count,
+      color: chartColors[index]
+    }));
+
+    if (otherCount > 0) {
+      data.push({ name: 'Другое', value: otherCount, color: chartColors[5] });
+    }
+
+    return data;
+  }, [testProfileData.popular_genres]);
 
   return (
     <div className="bgPage">
@@ -480,41 +562,10 @@ export default function ProfilePage({ params }: ProfilePageProps) {
             <div className={section2Styles.chartContainer}>
               <div className={section2Styles.chartWrapper}>
                 <div className={section2Styles.chartWithLegend}>
-                  <ResponsiveContainer width="60%" height={320}>
-                    <PieChart>
-                      <Pie
-                        data={chartData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={130}
-                        dataKey="value"
-                        labelLine={false}
-                        label={AnimatedNumberLabel}
-                      >
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Pie
-                        data={chartData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={130}
-                        dataKey="value"
-                        labelLine={false}
-                        label={AnimatedPercentLabel}
-                      >
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-percent-${index}`} fill="transparent" />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  
-                  {/* Кастомная легенда */}
+                  <GenrePieChart data={chartData} animated={animatedChart} />
+                  {/* кастомная легенда остаётся как была */}
                   <div className={section2Styles.customLegend}>
-                    <h4 className={section2Styles.genresTitle}>Жанры</h4>
+                    <h4 className={section2Styles.genresTitle}>Жанры:</h4>
                     {chartData.map((entry, index) => (
                       <div key={index} className={section2Styles.legendItem}>
                         <span className={section2Styles.legendNumber}>{index + 1}.</span>
@@ -547,11 +598,44 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           </div>
         </div>
 
-        {/* Секция 3: Подписки (заглушка) */}
-        <div className={styles.subscriptionsSection}>
-          <h3>Ваши подписки</h3>
-          <div className={styles.placeholder}>
-            Скролл подписок будет здесь
+        {/* Секция 3: Подписки */}
+        <div className={section3Styles.subscriptionsSection}>
+          <h3 className={section3Styles.subscriptionsTitle}>Ваши подписки</h3>
+
+          <div className={section3Styles.scrollWrapper}>
+            {showUpArrow && (
+              <button
+                className={`${section3Styles.scrollArrow} ${section3Styles.topArrow}`}
+                onClick={scrollUp}
+              >
+                ↑
+              </button>
+            )}
+
+            <div
+              className={section3Styles.groupsList}
+              ref={scrollRef}
+              onScroll={handleScroll}
+            >
+              {testSubscriptions.map((group) => (
+                <SubscriptionItem
+                  key={group.id}
+                  id={group.id}
+                  name={group.name}
+                  small_description={group.small_description}
+                  image={group.image}
+                />
+              ))}
+            </div>
+
+            {showDownArrow && (
+              <button
+                className={`${section3Styles.scrollArrow} ${section3Styles.bottomArrow}`}
+                onClick={scrollDown}
+              >
+                ↓
+              </button>
+            )}
           </div>
         </div>
 
