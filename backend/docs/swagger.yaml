@@ -771,6 +771,8 @@ definitions:
     type: object
   services.SessionResponse:
     properties:
+      city:
+        type: string
       count_users_max:
         type: integer
       current_users:
@@ -868,7 +870,7 @@ definitions:
       most_big_session:
         type: integer
       most_pop_day:
-        type: integer
+        type: string
       series_session_count:
         type: integer
       spent_time:
@@ -2876,12 +2878,16 @@ paths:
         in: query
         name: sessionType
         type: string
+      - description: Фильтр по городу (берётся из метаданных Mongo)
+        in: query
+        name: city
+        type: string
       - description: Номер страницы (начиная с 1)
         in: query
         name: page
         required: true
         type: integer
-      - description: 'Критерий сортировки: date или users'
+      - description: 'Критерий сортировки: date, users или city'
         in: query
         name: sort_by
         type: string

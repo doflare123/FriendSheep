@@ -17,13 +17,11 @@ func GetSessionsMetadata(sessionIDs []uint) (map[uint]*sessions.SessionMetadata,
 		return make(map[uint]*sessions.SessionMetadata), nil
 	}
 
-	// ИСПРАВЛЕНИЕ: Получаем коллекцию из базы данных
 	collection := mongoDatabase.Collection("session_metadata")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Преобразуем []uint в []interface{} для MongoDB запроса
 	sessionIDsInterface := make([]interface{}, len(sessionIDs))
 	for i, id := range sessionIDs {
 		sessionIDsInterface[i] = id
@@ -61,7 +59,7 @@ func GetSessionMetadataId(sessionID *uint) (*sessions.SessionMetadata, error) {
 
 	mongoDatabase := GetMongoDB()
 	if mongoDatabase == nil {
-		return nil, nil // возвращаем nil без ошибки, если MongoDB недоступна
+		return nil, nil
 	}
 
 	collection := mongoDatabase.Collection("session_metadata")
@@ -74,7 +72,7 @@ func GetSessionMetadataId(sessionID *uint) (*sessions.SessionMetadata, error) {
 	err := collection.FindOne(ctx, filter).Decode(&metadata)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, nil // метаданные не найдены - это нормально
+			return nil, nil
 		}
 		return nil, err
 	}

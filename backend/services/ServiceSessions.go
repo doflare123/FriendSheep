@@ -729,7 +729,6 @@ func GetInfoAboutSession(email *string, sessionID *uint) (*SessionDetailResponse
 		return nil, fmt.Errorf("ошибка при получении информации о группе: %v", err)
 	}
 
-	// Проверяем доступ к сессии через группу
 	if group.IsPrivate {
 		var membership struct {
 			UserID  *uint `gorm:"column:user_id"`
@@ -795,7 +794,6 @@ func GetSessionsUserGroups(email *string, page int) (*GetNewSessionsResponse, er
 		}
 	}()
 
-	// Найти пользователя
 	var user models.User
 	if err := dbTx.Where("email = ?", *email).First(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -806,7 +804,6 @@ func GetSessionsUserGroups(email *string, page int) (*GetNewSessionsResponse, er
 		return nil, fmt.Errorf("ошибка при поиске пользователя: %v", err)
 	}
 
-	// Получить ID групп пользователя
 	var groupMemberships []struct {
 		GroupID *uint `gorm:"column:group_id"`
 	}
@@ -828,20 +825,17 @@ func GetSessionsUserGroups(email *string, page int) (*GetNewSessionsResponse, er
 		}, nil
 	}
 
-	// Извлечь ID групп
 	var groupIDs []*uint
 	for _, membership := range groupMemberships {
 		groupIDs = append(groupIDs, membership.GroupID)
 	}
 
-	// Найти статус "Набор"
 	var recruitmentStatus sessions.Status
 	if err := dbTx.Where("status = ?", "Набор").First(&recruitmentStatus).Error; err != nil {
 		dbTx.Rollback()
 		return nil, fmt.Errorf("статус 'Набор' не найден: %v", err)
 	}
 
-	// Подсчитать общее количество записей
 	var totalCount int64
 	if err := dbTx.Model(&sessions.Session{}).
 		Where("group_id IN ? AND status_id = ?", groupIDs, recruitmentStatus.ID).
@@ -850,13 +844,12 @@ func GetSessionsUserGroups(email *string, page int) (*GetNewSessionsResponse, er
 		return nil, fmt.Errorf("ошибка при подсчете общего количества сессий: %v", err)
 	}
 
-	// Получить сессии с пагинацией
 	var sessionModels []sessions.Session
 	query := dbTx.Preload("SessionType").
 		Preload("SessionPlace").
 		Preload("Status").
 		Preload("User").
-		Preload("Group"). // Добавляем Preload для группы, если есть связь
+		Preload("Group").
 		Where("group_id IN ? AND status_id = ?", groupIDs, recruitmentStatus.ID).
 		Order("created_at DESC").
 		Limit(limit).
@@ -867,32 +860,34 @@ func GetSessionsUserGroups(email *string, page int) (*GetNewSessionsResponse, er
 		return nil, fmt.Errorf("ошибка при получении сессий: %v", err)
 	}
 
-	// Получить ID сессий для загрузки метаданных
 	var sessionIDs []uint
 	for _, session := range sessionModels {
 		sessionIDs = append(sessionIDs, session.ID)
 	}
 
-	// Получить метаданные из MongoDB
 	metadataMap, err := db.GetSessionsMetadata(sessionIDs)
 	if err != nil {
-		// Логируем ошибку, но не прерываем выполнение
-		// В реальном приложении лучше использовать logger
 		fmt.Printf("Предупреждение: не удалось загрузить метаданные сессий: %v\n", err)
 		metadataMap = make(map[uint]*sessions.SessionMetadata)
 	}
 
-	// Преобразовать в SessionResponse
 	for _, session := range sessionModels {
 		var genres []string
 		var groupName *string
+		var city string
 
-		// Получить метаданные для текущей сессии
 		if metadata, exists := metadataMap[session.ID]; exists {
 			genres = metadata.Genres
+			if metadata.Fields != nil {
+				if v, ok := metadata.Fields["city"]; ok {
+					if strCity, ok := v.(string); ok {
+						city = strCity
+					}
+				}
+			}
 		}
 
-		groupName = &session.Group.Name // Предполагается, что у группы есть поле Name
+		groupName = &session.Group.Name
 
 		sessionResponse := SessionResponse{
 			ID:            session.ID,
@@ -906,6 +901,7 @@ func GetSessionsUserGroups(email *string, page int) (*GetNewSessionsResponse, er
 			ImageURL:      session.ImageURL,
 			Genres:        genres,
 			GroupName:     *groupName,
+			City:          &city,
 		}
 		sessionsUser = append(sessionsUser, sessionResponse)
 	}
@@ -914,7 +910,6 @@ func GetSessionsUserGroups(email *string, page int) (*GetNewSessionsResponse, er
 		return nil, fmt.Errorf("ошибка при коммите транзакции: %v", err)
 	}
 
-	// Вычислить has_more
 	hasMore := int64(offset+len(sessionModels)) < totalCount
 
 	return &GetNewSessionsResponse{

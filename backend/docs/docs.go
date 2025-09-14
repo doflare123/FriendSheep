@@ -2906,6 +2906,12 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "description": "Фильтр по городу (берётся из метаданных Mongo)",
+                        "name": "city",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "Номер страницы (начиная с 1)",
                         "name": "page",
@@ -2914,7 +2920,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Критерий сортировки: date или users",
+                        "description": "Критерий сортировки: date, users или city",
                         "name": "sort_by",
                         "in": "query"
                     },
@@ -4509,6 +4515,9 @@ const docTemplate = `{
         "services.SessionResponse": {
             "type": "object",
             "properties": {
+                "city": {
+                    "type": "string"
+                },
                 "count_users_max": {
                     "type": "integer"
                 },
@@ -4653,7 +4662,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "most_pop_day": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "series_session_count": {
                     "type": "integer"

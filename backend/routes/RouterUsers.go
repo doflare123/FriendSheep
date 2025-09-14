@@ -10,16 +10,16 @@ import (
 
 func RouterUsersInfo(r *gin.Engine) {
 	GetSessionGroup := r.Group("api/users")
-	GetSessionGroup.Use(middlewares.JWTAuthMiddleware())
+	GetSessionGroup.Use()
 	{
-		GetSessionGroup.GET("/search", handlers.SearchUsers)
+		GetSessionGroup.GET("/search", middlewares.JWTAuthMiddleware(), handlers.SearchUsers)
 		// GetSessionGroup.GET("/sessions/new", handlers.GetNewSessions)
 		GetSessionGroup.GET("/sessions/popular", handlers.GetPopularSessions)
 		// GetSessionGroup.GET("/sessions/category", handlers.GetCategorySessions)
-		GetSessionGroup.GET("/sessions/:sessionId", handlers.GetDetailedInfo)
-		GetSessionGroup.GET("/sessions/search", handlers.SearchSessions)
-		GetSessionGroup.GET("/sessions/user-groups", handlers.GetSessionsUserGroups)
-		GetSessionGroup.GET("/subscriptions", handlers.GetGroupsUserSub)
+		GetSessionGroup.GET("/sessions/:sessionId", middlewares.JWTAuthMiddleware(), handlers.GetDetailedInfo)
+		GetSessionGroup.GET("/sessions/search", middlewares.JWTAuthMiddleware(), handlers.SearchSessions)
+		GetSessionGroup.GET("/sessions/user-groups", middlewares.JWTAuthMiddleware(), handlers.GetSessionsUserGroups)
+		GetSessionGroup.GET("/subscriptions", middlewares.JWTAuthMiddleware(), handlers.GetGroupsUserSub)
 	}
 	BotGroup := r.Group("api/bot")
 	BotGroup.Use(middlewares.BotAuthMiddleware())

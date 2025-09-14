@@ -6,6 +6,7 @@ import (
 	"friendship/models"
 	"friendship/models/sessions"
 	"log"
+	"sort"
 	"time"
 )
 
@@ -28,6 +29,7 @@ type SessionResponse struct {
 	CurrentUsers  uint16    `json:"current_users"`
 	CountUsersMax uint16    `json:"count_users_max"`
 	GroupName     string    `json:"group_name"`
+	City          *string   `json:"city" default:"prikol"`
 }
 
 // func getSessionGenres(sessionID uint) ([]string, error) {
@@ -176,8 +178,9 @@ type GetSessionsInput struct {
 	Query       *string `form:"query"`
 	CategoryID  *uint   `form:"category_id"`
 	SessionType *string `form:"session_type"`
+	City        *string `form:"city"`
 	Page        int     `form:"page" binding:"required,min=1"`
-	SortBy      *string `form:"sort_by"`  // "date" или "users"
+	SortBy      *string `form:"sort_by"`  // "date" или "users", "city"
 	Order       *string `form:"order"`    // "asc" или "desc"
 	NewOnly     bool    `form:"new_only"` // true — только новые
 }
@@ -186,6 +189,7 @@ func GetSessions(email string, input GetSessionsInput) (*PaginatedSearchResponse
 	if email == "" {
 		return nil, fmt.Errorf("email не может быть пустым")
 	}
+
 	const pageSize = 10
 	currentPage := input.Page
 	if currentPage < 1 {
@@ -234,6 +238,14 @@ func GetSessions(email string, input GetSessionsInput) (*PaginatedSearchResponse
 		query = query.Where("sessions.created_at BETWEEN ? AND ?", startOfDay, endOfDay)
 	}
 
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("ошибка подсчета: %v", err)
+	}
+
+	var allSessions []sessions.Session
+
 	sortColumn := "sessions.start_time"
 	if input.SortBy != nil {
 		switch *input.SortBy {
@@ -247,17 +259,11 @@ func GetSessions(email string, input GetSessionsInput) (*PaginatedSearchResponse
 	if input.Order != nil && (*input.Order == "desc" || *input.Order == "DESC") {
 		sortOrder = "DESC"
 	}
-	query = query.Order(fmt.Sprintf("%s %s", sortColumn, sortOrder))
-
-	var total int64
-	if err := query.Count(&total).Error; err != nil {
-		dbTx.Rollback()
-		return nil, fmt.Errorf("ошибка подсчета: %v", err)
+	if input.SortBy == nil || *input.SortBy != "city" {
+		query = query.Order(fmt.Sprintf("%s %s", sortColumn, sortOrder))
 	}
 
-	offset := (currentPage - 1) * pageSize
-	var sessionsList []sessions.Session
-	if err := query.Limit(pageSize).Offset(offset).Find(&sessionsList).Error; err != nil {
+	if err := query.Find(&allSessions).Error; err != nil {
 		dbTx.Rollback()
 		return nil, fmt.Errorf("ошибка получения: %v", err)
 	}
@@ -266,23 +272,37 @@ func GetSessions(email string, input GetSessionsInput) (*PaginatedSearchResponse
 		return nil, fmt.Errorf("ошибка коммита: %v", err)
 	}
 
-	sessionIDs := make([]uint, len(sessionsList))
-	for i, s := range sessionsList {
+	sessionIDs := make([]uint, len(allSessions))
+	for i, s := range allSessions {
 		sessionIDs[i] = s.ID
 	}
+
 	metadataMap, err := db.GetSessionsMetadata(sessionIDs)
 	if err != nil {
 		log.Printf("Ошибка получения метаданных: %v", err)
 		metadataMap = make(map[uint]*sessions.SessionMetadata)
 	}
 
-	result := make([]SessionResponse, 0, len(sessionsList))
-	for _, s := range sessionsList {
+	var filteredResult []SessionResponse
+	for _, s := range allSessions {
 		var genres []string
+		var city string
+
 		if metadata, exists := metadataMap[s.ID]; exists && metadata != nil {
 			genres = metadata.Genres
-		} else {
-			genres = []string{}
+			if metadata.Fields != nil {
+				if v, ok := metadata.Fields["city"]; ok {
+					if strCity, ok := v.(string); ok {
+						city = strCity
+					}
+				}
+			}
+		}
+
+		if input.City != nil && *input.City != "" {
+			if city != *input.City {
+				continue
+			}
 		}
 
 		resp := SessionResponse{
@@ -297,17 +317,48 @@ func GetSessions(email string, input GetSessionsInput) (*PaginatedSearchResponse
 			CurrentUsers:  s.CurrentUsers,
 			CountUsersMax: s.CountUsersMax,
 			GroupName:     s.Group.Name,
+			City:          &city,
 		}
-		result = append(result, resp)
+		filteredResult = append(filteredResult, resp)
 	}
 
-	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
+	if input.SortBy != nil && *input.SortBy == "city" {
+		sort.Slice(filteredResult, func(i, j int) bool {
+			cityI := ""
+			cityJ := ""
+			if filteredResult[i].City != nil {
+				cityI = *filteredResult[i].City
+			}
+			if filteredResult[j].City != nil {
+				cityJ = *filteredResult[j].City
+			}
+
+			if input.Order != nil && (*input.Order == "desc" || *input.Order == "DESC") {
+				return cityI > cityJ
+			}
+			return cityI < cityJ
+		})
+	}
+
+	totalFiltered := len(filteredResult)
+	totalPages := int((int64(totalFiltered) + int64(pageSize) - 1) / int64(pageSize))
+
+	offset := (currentPage - 1) * pageSize
+	end := offset + pageSize
+	if end > totalFiltered {
+		end = totalFiltered
+	}
+
+	var paginatedResult []SessionResponse
+	if offset < totalFiltered {
+		paginatedResult = filteredResult[offset:end]
+	}
 
 	return &PaginatedSearchResponse{
-		Sessions:    result,
+		Sessions:    paginatedResult,
 		Page:        currentPage,
 		PageSize:    pageSize,
-		Total:       int(total),
+		Total:       totalFiltered,
 		TotalPages:  totalPages,
 		HasNext:     currentPage < totalPages,
 		HasPrevious: currentPage > 1,

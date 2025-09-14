@@ -37,6 +37,7 @@ type SessionInfo struct {
 	Status       string    `json:"status"`
 	Location     string    `json:"location,omitempty"`
 	Genres       []string  `json:"genres,omitempty"`
+	City         *string   `json:"city"`
 }
 
 type GenreStats struct {
@@ -257,6 +258,15 @@ func getUpcomingSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 		if meta, exists := metadata[su.Session.ID]; exists && meta != nil {
 			sessionInfo.Location = safeStringValue(&meta.Location)
 			sessionInfo.Genres = safeStringSlice(meta.Genres)
+			var city *string
+			if meta.Fields != nil {
+				if v, ok := meta.Fields["city"]; ok {
+					if strCity, ok := v.(string); ok {
+						city = &strCity
+					}
+				}
+			}
+			sessionInfo.City = city
 		}
 
 		result[i] = sessionInfo
@@ -308,11 +318,18 @@ func getRecentSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 		if meta, exists := metadata[su.Session.ID]; exists && meta != nil {
 			sessionInfo.Location = safeStringValue(&meta.Location)
 			sessionInfo.Genres = safeStringSlice(meta.Genres)
+			var city *string
+			if meta.Fields != nil {
+				if v, ok := meta.Fields["city"]; ok {
+					if strCity, ok := v.(string); ok {
+						city = &strCity
+					}
+				}
+			}
+			sessionInfo.City = city
 		}
-
 		result[i] = sessionInfo
 	}
-
 	return result, nil
 }
 

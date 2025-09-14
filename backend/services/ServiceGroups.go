@@ -418,12 +418,10 @@ func UpdateGroup(groupID uint, input GroupUpdateInput) (err error) {
 	}
 
 	if input.Categories != nil {
-		// удаляем все имеющиеся связи
 		if err = tx.Model(&group).Association("Categories").Clear(); err != nil {
 			return fmt.Errorf("не удалось очистить старые категории: %v", err)
 		}
 
-		// добавляем новые (если передан пустой [] — просто останутся пустые категории)
 		if len(input.Categories) > 0 {
 			var newCategories []models.Category
 			if err = tx.Where("id IN ?", input.Categories).Find(&newCategories).Error; err != nil {
@@ -445,9 +443,7 @@ func UpdateGroup(groupID uint, input GroupUpdateInput) (err error) {
 	return tx.Commit().Error
 }
 
-// обрабатывает логику обновления контактов группы в рамках транзакции.
 func updateContactsInTx(tx *gorm.DB, groupID *uint, newContacts map[string]string) error {
-	// Получаем все существующие контакты группы
 	var existingContacts []groups.GroupContact
 	if err := tx.Where("group_id = ?", groupID).Find(&existingContacts).Error; err != nil {
 		return fmt.Errorf("ошибка получения существующих контактов: %v", err)
@@ -463,7 +459,6 @@ func updateContactsInTx(tx *gorm.DB, groupID *uint, newContacts map[string]strin
 	// Обрабатываем новые контакты
 	for name, link := range newContacts {
 		if existingContact, ok := existingMap[name]; ok {
-			// Контакт существует - обновляем, если ссылка изменилась
 			if existingContact.Link != "" && existingContact.Link != link {
 				if err := tx.Model(&existingContact).Update("link", link).Error; err != nil {
 					return fmt.Errorf("ошибка обновления контакта '%s': %v", name, err)
@@ -471,7 +466,6 @@ func updateContactsInTx(tx *gorm.DB, groupID *uint, newContacts map[string]strin
 			}
 			delete(existingMap, name)
 		} else {
-			// Новый контакт - создаем
 			newContact := groups.GroupContact{
 				GroupID: *groupID,
 				Name:    name,
@@ -483,7 +477,6 @@ func updateContactsInTx(tx *gorm.DB, groupID *uint, newContacts map[string]strin
 		}
 	}
 
-	// Удаляем контакты, которые не были переданы в новом списке
 	for _, contactToDelete := range existingMap {
 		if err := tx.Delete(&contactToDelete).Error; err != nil {
 			contactName := "unknown"
