@@ -18,7 +18,7 @@ const BottomBar = () => {
       </TouchableOpacity>
       <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('GroupsPage' as never)}>
           <Image 
-            style={[barsStyle.iconsMenu, (isActive('GroupsPage') || isActive('GroupPage')) && { tintColor: Colors.darkGrey }]} 
+            style={[barsStyle.iconsMenu, (isActive('GroupsPage') || isActive('GroupPage') || isActive('GroupManagePage')) && { tintColor: Colors.darkGrey }]} 
             source={require("../assets/images/bottom_bar/groups.png")} />
           <Text style={barsStyle.textMenu}>Группы</Text>
       </TouchableOpacity>

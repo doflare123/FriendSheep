@@ -129,7 +129,7 @@ const MainPage = () => {
               {movieEvents.length > 0 && (
                 <>
                   <CategoryButton
-                    title="Фильмы"
+                    title="Медиа"
                     imageSource={require('../../assets/images/category/movies-pattern.png')}
                     onPress={() =>
                       navigateToCategory(

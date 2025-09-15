@@ -14,4 +14,7 @@ export type RootStackParamList = {
     groupId: string;
     mode: 'manage' | 'view';
   };
+  GroupManagePage: {
+    groupId: string;
+  };
 };

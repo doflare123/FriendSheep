@@ -6,7 +6,8 @@ import { inter } from '@/constants/Inter';
 import { Contact, getGroupData, Subscriber } from '@/data/groupsData';
 import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
@@ -26,6 +27,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 type GroupPageRouteProp = RouteProp<RootStackParamList, 'GroupPage'>;
 
+type GroupManagePageNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'GroupManagePage'
+>;
+
 const { width } = Dimensions.get('window');
 const SUBSCRIBER_ITEM_WIDTH = 80;
 const SUBSCRIBER_SPACING = 16;
@@ -42,6 +48,7 @@ const GroupPage = () => {
   const { groupId, mode } = route.params;
   const [descriptionModalVisible, setDescriptionModalVisible] = useState(false);
   const { sortingState, sortingActions } = useSearchState();
+  const navigation = useNavigation<GroupManagePageNavigationProp>();
   
   const groupData = getGroupData(groupId);
   
@@ -100,7 +107,15 @@ const GroupPage = () => {
                 ))}
               </View>
             </View>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                if (mode === 'manage') {
+                  navigation.navigate('GroupManagePage', { groupId });
+                } else {
+                  console.log('Присоединиться');
+                }
+              }}
+            >
               <LinearGradient
                 colors={[Colors.lightBlue, Colors.blue]}
                 start={{ x: 0, y: 0 }}
@@ -111,7 +126,7 @@ const GroupPage = () => {
                   {mode === 'manage' ? 'Управлять' : 'Присоединиться'}
                 </Text>
               </LinearGradient>
-          </TouchableOpacity>
+            </TouchableOpacity>
           </View>
         </View>
 
