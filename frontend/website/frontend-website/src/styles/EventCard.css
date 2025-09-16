@@ -80,9 +80,10 @@
 
 .cardContent {
     padding: 16px;
-    height: calc(100% - 150px); /* Оставшееся место после картинки */
+    height: calc(100% - 150px);
     display: flex;
     flex-direction: column;
+    border-top: 2px solid #316BC2; /* ✅ разделительная линия */
 }
 
 .cardTitle {
@@ -166,4 +167,19 @@
 
 .detailsButton:hover {
     background: #2d93d5;
+}
+
+.cityBadge {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: white;
+    color: black;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 4px 10px 4px 20px; /* компактнее */
+    border-top-left-radius: 20px; /* менее "надутый" */
+    display: flex;
+    align-items: center;
+    line-height: 1.2;
 }

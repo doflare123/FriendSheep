@@ -198,7 +198,7 @@ export default function Home() {
           participants: 5,
           maxParticipants: 8,
           duration: "1ч 30мин",
-          location: "online"
+          location: "offline"
         }
       ]
     }

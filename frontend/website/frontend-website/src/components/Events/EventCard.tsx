@@ -17,6 +17,7 @@ const EventCard: React.FC<EventCardProps> = ({
     duration,
     location,
     isEditMode = false,
+    city,
     onEdit
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,6 +50,12 @@ const EventCard: React.FC<EventCardProps> = ({
                         <Image src={getCategoryIcon(type)} alt={type} width={20} height={20} />
                     </div>
                     <div className='cardDate'>{date}</div>
+
+                    {location === 'offline' && (
+                        <div className='cityBadge'>
+                            <span>{city || 'Калининград'}</span>
+                        </div>
+                    )}
                 </div>
                 <div className='locationIcon'>
                     <Image src={`/events/${location}.png`} alt={location} width={20} height={20} />
