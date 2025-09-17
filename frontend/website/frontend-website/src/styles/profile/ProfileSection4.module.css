@@ -1,0 +1,57 @@
+.eventsSection {
+  border: 2px solid #37A2E6;
+  border-radius: 12px;
+  padding: 20px;
+  grid-row: 2;
+  grid-column: 2;
+}
+
+.eventsSection h3 {
+  margin: 0 0 15px 0;
+  font-size: 24px;
+  color: #000;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.buttonsGroup {
+  display: flex;
+  gap: 8px;
+  margin-left: 4px;
+  margin-bottom: 18px;
+}
+
+.tabButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow 0.12s ease, border 0.12s ease;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+}
+
+.tabButton img,
+.tabButton :global(img) {
+  display: block;
+}
+
+.active {
+  box-shadow: 0 0 0 2px #37A2E6;
+}
+
+.content {
+  transform: scale(0.85);
+  width: 116%;
+  margin-left: -8%;
+  margin-top: -40px;
+}

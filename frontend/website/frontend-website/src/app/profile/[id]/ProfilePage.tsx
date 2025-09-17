@@ -7,8 +7,10 @@ import styles from '../../../styles/profile/ProfilePage.module.css';
 import section1Styles from '../../../styles/profile/ProfileSection1.module.css';
 import section2Styles from '../../../styles/profile/ProfileSection2.module.css';
 import section3Styles from '../../../styles/profile/ProfileSection3.module.css';
+import section4Styles from '../../../styles/profile/ProfileSection4.module.css';
 import StatisticsTile from '../../../components/profile/StatisticsTile';
 import SubscriptionItem from '../../../components/profile/SubscriptionItem';
+import CategorySection from '../../../components/Events/CategorySection';
 import {getSocialIcon} from '../../../Constants';
 import GenrePieChart from '../../../components/profile/GenrePieChart';
 
@@ -41,8 +43,167 @@ const testProfileData = {
     spent_time: 20,
     most_popular_day: "Воскресенье" // добавлено для статистики
   },
-  recent_sessions: [],
-  upcoming_sessions: []
+  recent_sessions: [
+    {
+      id: '1',
+      type: 'games',
+      image: '/event_card.jpg',
+      date: '12 сен',
+      title: 'Мафия в центре',
+      genres: ['Настольные игры'],
+      participants: 8,
+      maxParticipants: 12,
+      duration: '2ч',
+      location: 'offline',
+    },
+    {
+      id: '2',
+      type: 'movies',
+      image: '/event_card.jpg',
+      date: '5 сен',
+      title: 'Киновечер: Интерстеллар',
+      genres: ['Фантастика'],
+      participants: 15,
+      maxParticipants: 20,
+      duration: '3ч',
+      location: 'offline',
+    },
+    {
+      id: '3',
+      type: 'board',
+      image: '/event_card.jpg',
+      date: '1 сен',
+      title: 'Монополия батл',
+      genres: ['Экономика'],
+      participants: 6,
+      maxParticipants: 6,
+      duration: '1ч 30м',
+      location: 'online',
+    },
+    {
+      id: '4',
+      type: 'games',
+      image: '/event_card.jpg',
+      date: '28 авг',
+      title: 'Квиз вечер',
+      genres: ['Викторина'],
+      participants: 10,
+      maxParticipants: 12,
+      duration: '2ч',
+      location: 'offline',
+    },
+    {
+      id: '5',
+      type: 'other',
+      image: '/event_card.jpg',
+      date: '20 авг',
+      title: 'Караоке-вечеринка',
+      genres: ['Музыка'],
+      participants: 12,
+      maxParticipants: 15,
+      duration: '3ч',
+      location: 'offline',
+    },
+    {
+      id: '6',
+      type: 'movies',
+      image: '/event_card.jpg',
+      date: '15 авг',
+      title: 'Фильм: Матрица',
+      genres: ['Фантастика'],
+      participants: 10,
+      maxParticipants: 15,
+      duration: '2ч 30м',
+      location: 'online',
+    },
+  ],
+
+  upcoming_sessions: [
+    {
+      id: '7',
+      type: 'games',
+      image: '/event_card.jpg',
+      date: '20 сен',
+      title: 'Among Us Online',
+      genres: ['Кооператив'],
+      participants: 5,
+      maxParticipants: 10,
+      duration: '1ч',
+      location: 'online',
+    },
+    {
+      id: '8',
+      type: 'movies',
+      image: '/event_card.jpg',
+      date: '25 сен',
+      title: 'Показ фильма: Начало',
+      genres: ['Триллер'],
+      participants: 20,
+      maxParticipants: 30,
+      duration: '2ч 30м',
+      location: 'offline',
+    },
+    {
+      id: '9',
+      type: 'board',
+      image: '/event_card.jpg',
+      date: '28 сен',
+      title: 'Каркассон турнир',
+      genres: ['Настолки'],
+      participants: 8,
+      maxParticipants: 12,
+      duration: '2ч',
+      location: 'offline',
+    },
+    {
+      id: '10',
+      type: 'games',
+      image: '/event_card.jpg',
+      date: '30 сен',
+      title: 'CS:GO турнир',
+      genres: ['Шутер'],
+      participants: 10,
+      maxParticipants: 10,
+      duration: '3ч',
+      location: 'online',
+    },
+    {
+      id: '11',
+      type: 'other',
+      image: '/event_card.jpg',
+      date: '2 окт',
+      title: 'Кулинарный мастер-класс',
+      genres: ['Еда'],
+      participants: 6,
+      maxParticipants: 10,
+      duration: '2ч',
+      location: 'offline',
+    },
+    {
+      id: '12',
+      type: 'movies',
+      image: '/event_card.jpg',
+      date: '5 окт',
+      title: 'Вечер комедий',
+      genres: ['Комедия'],
+      participants: 12,
+      maxParticipants: 20,
+      duration: '2ч',
+      location: 'offline',
+    },
+    {
+      id: '13',
+      type: 'games',
+      image: '/event_card.jpg',
+      date: '10 окт',
+      title: 'PUBG Squad Night',
+      genres: ['Battle Royale'],
+      participants: 4,
+      maxParticipants: 4,
+      duration: '2ч',
+      location: 'online',
+    },
+  ],
 };
 
 const testSubscriptions = [
@@ -230,6 +391,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [showUpArrow, setShowUpArrow] = useState(false);
   const [showDownArrow, setShowDownArrow] = useState(false);
+  const [activeTab, setActiveTab] = useState<'recent' | 'upcoming'>('recent');
 
   // Анимация диаграммы при загрузке
   useEffect(() => {
@@ -639,11 +801,52 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           </div>
         </div>
 
-        {/* Секция 4: События (заглушка) */}
-        <div className={styles.eventsSection}>
-          <h3>События</h3>
-          <div className={styles.placeholder}>
-            Скролл событий будет здесь
+        {/* Секция 4: События */}
+        <div className={section4Styles.eventsSection}>
+          <div className={section4Styles.header}>
+            <h3>События</h3>
+            {/* Кнопки сразу справа от заголовка */}
+            <div className={section4Styles.buttonsGroup}>
+              <button
+                type="button"
+                className={`${section4Styles.tabButton} ${activeTab === 'recent' ? section4Styles.active : ''}`}
+                onClick={() => setActiveTab('recent')}
+                aria-pressed={activeTab === 'recent'}
+              >
+                <Image
+                  src="/profile/recent_sessions.png"
+                  alt="Завершённые"
+                  width={32}
+                  height={32}
+                />
+              </button>
+
+              <button
+                type="button"
+                className={`${section4Styles.tabButton} ${activeTab === 'upcoming' ? section4Styles.active : ''}`}
+                onClick={() => setActiveTab('upcoming')}
+                aria-pressed={activeTab === 'upcoming'}
+              >
+                <Image
+                  src="/profile/upcoming_sessions.png"
+                  alt="Будущие"
+                  width={32}
+                  height={32}
+                />
+              </button>
+            </div>
+          </div>
+
+          <div className={section4Styles.content}>
+            <CategorySection
+              section={
+                activeTab === 'recent'
+                  ? {categories: testProfileData.recent_sessions}
+                  : {categories: testProfileData.upcoming_sessions}
+              }
+              title=""
+              showCategoryLabel={false}
+            />
           </div>
         </div>
       </div>
