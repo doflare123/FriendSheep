@@ -405,6 +405,73 @@
   color: #000;
 }
 
+/* Кнопка добавления в группу */
+.addUserButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.addUserButton:hover {
+  background-color: rgba(55, 162, 230, 0.1);
+}
+
+.addUserButton:hover .addUserTooltip {
+  display: block;
+}
+
+/* Tooltip для кнопки добавления */
+.addUserTooltip {
+  display: none;
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  color: #000;
+  border: 2px solid #37A2E6;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+/* Треугольник снизу tooltip'а */
+.addUserTooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #37A2E6;
+}
+
+/* Внутренний треугольник для создания белого центра */
+.addUserTooltip::before {
+  content: '';
+  position: absolute;
+  top: calc(100% - 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid white;
+  z-index: 1;
+}
+
 /* Responsive adjustments для секции 1 */
 @media (max-width: 1200px) {
   .avatar {

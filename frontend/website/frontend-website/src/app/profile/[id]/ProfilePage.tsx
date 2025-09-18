@@ -13,6 +13,7 @@ import SubscriptionItem from '../../../components/profile/SubscriptionItem';
 import CategorySection from '../../../components/Events/CategorySection';
 import {getSocialIcon} from '../../../Constants';
 import GenrePieChart from '../../../components/profile/GenrePieChart';
+import AddUserModal from '../../../components/search/AddUserModal';
 
 // Тестовые данные на основе API
 const testProfileData = {
@@ -392,6 +393,8 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const [showUpArrow, setShowUpArrow] = useState(false);
   const [showDownArrow, setShowDownArrow] = useState(false);
   const [activeTab, setActiveTab] = useState<'recent' | 'upcoming'>('recent');
+  const [isOwnProfile, setOwnProfile] = useState(false);
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
 
   // Анимация диаграммы при загрузке
   useEffect(() => {
@@ -532,13 +535,27 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     return data;
   }, [testProfileData.popular_genres]);
 
+  const handleAddUserClick = () => {
+    setIsAddUserModalOpen(true);
+  };
+
   return (
     <div className="bgPage">
       <div className={styles.profileContainer}>
         {/* Секция 1: Краткая информация */}
         <div className={section1Styles.profileInfo}>
           <div className={section1Styles.settingsButton}>
-            {!isEditMode ? (
+            {!isOwnProfile ? (
+              <button 
+                onClick={handleAddUserClick}
+                className={section1Styles.addUserButton}
+              >
+                <Image src="/add_button.png" alt="add user" width={32} height={32} />
+                <div className={section1Styles.addUserTooltip}>
+                  Добавить в группу
+                </div>
+              </button>
+            ) : !isEditMode ? (
               <button onClick={handleSettingsClick} className={section1Styles.settingsBtn}>
                 <Image src="/setting.png" alt="settings" width={24} height={24} />
               </button>
@@ -590,7 +607,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   )}
                 </div>
                 
-                {!isEditMode ? (
+                {isOwnProfile && !isEditMode ? (
                   <div className={section1Styles.telegramContainer}>
                     <div 
                       className={`${section1Styles.telegramIcon}`}
@@ -718,7 +735,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
         {/* Секция 2: Статистика */}
         <div className={section2Styles.statisticsSection}>
-          <h3>Ваша статистика</h3>
+          <h3>{isOwnProfile ? 'Ваша статистика' : 'Статистика'}</h3>
           <div className={section2Styles.statisticsContent}>
             {/* Диаграмма жанров */}
             <div className={section2Styles.chartContainer}>
@@ -762,7 +779,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
         {/* Секция 3: Подписки */}
         <div className={section3Styles.subscriptionsSection}>
-          <h3 className={section3Styles.subscriptionsTitle}>Ваши подписки</h3>
+          <h3 className={section3Styles.subscriptionsTitle}>
+            {isOwnProfile ? 'Ваши подписки' : 'Подписки'}
+          </h3>
 
           <div className={section3Styles.scrollWrapper}>
             {showUpArrow && (
@@ -806,49 +825,60 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           <div className={section4Styles.header}>
             <h3>События</h3>
             {/* Кнопки сразу справа от заголовка */}
-            <div className={section4Styles.buttonsGroup}>
-              <button
-                type="button"
-                className={`${section4Styles.tabButton} ${activeTab === 'recent' ? section4Styles.active : ''}`}
-                onClick={() => setActiveTab('recent')}
-                aria-pressed={activeTab === 'recent'}
-              >
-                <Image
-                  src="/profile/recent_sessions.png"
-                  alt="Завершённые"
-                  width={32}
-                  height={32}
-                />
-              </button>
+            
+            {isOwnProfile && (
+              <div className={section4Styles.buttonsGroup}>
+                <button
+                  type="button"
+                  className={`${section4Styles.tabButton} ${activeTab === 'recent' ? section4Styles.active : ''}`}
+                  onClick={() => setActiveTab('recent')}
+                  aria-pressed={activeTab === 'recent'}
+                >
+                  <Image
+                    src="/profile/recent_sessions.png"
+                    alt="Завершённые"
+                    width={32}
+                    height={32}
+                  />
+                </button>
 
-              <button
-                type="button"
-                className={`${section4Styles.tabButton} ${activeTab === 'upcoming' ? section4Styles.active : ''}`}
-                onClick={() => setActiveTab('upcoming')}
-                aria-pressed={activeTab === 'upcoming'}
-              >
-                <Image
-                  src="/profile/upcoming_sessions.png"
-                  alt="Будущие"
-                  width={32}
-                  height={32}
-                />
-              </button>
-            </div>
+                <button
+                  type="button"
+                  className={`${section4Styles.tabButton} ${activeTab === 'upcoming' ? section4Styles.active : ''}`}
+                  onClick={() => setActiveTab('upcoming')}
+                  aria-pressed={activeTab === 'upcoming'}
+                >
+                  <Image
+                    src="/profile/upcoming_sessions.png"
+                    alt="Будущие"
+                    width={32}
+                    height={32}
+                  />
+                </button>
+              </div>
+            )}
           </div>
 
           <div className={section4Styles.content}>
             <CategorySection
               section={
-                activeTab === 'recent'
-                  ? {categories: testProfileData.recent_sessions}
-                  : {categories: testProfileData.upcoming_sessions}
+                isOwnProfile 
+                  ? (activeTab === 'recent'
+                      ? {categories: testProfileData.recent_sessions}
+                      : {categories: testProfileData.upcoming_sessions})
+                  : {categories: testProfileData.recent_sessions}
               }
               title=""
               showCategoryLabel={false}
             />
           </div>
         </div>
+        
+        <AddUserModal
+          isOpen={isAddUserModalOpen}
+          onClose={() => setIsAddUserModalOpen(false)}
+          userId={parseInt(params.id)}
+        />
       </div>
     </div>
   );
