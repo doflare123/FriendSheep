@@ -40,6 +40,10 @@ export const useGroupManage = (groupId: string) => {
   
   const [contactsModalVisible, setContactsModalVisible] = useState(false);
 
+  const [createEventModalVisible, setCreateEventModalVisible] = useState(false);
+  const [editEventModalVisible, setEditEventModalVisible] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string>('');
+
   const pendingRequests: RequestItem[] = [
     {
       id: '6',
@@ -148,6 +152,28 @@ export const useGroupManage = (groupId: string) => {
     Alert.alert('Успешно', 'Изменения сохранены!');
   };
 
+  const handleCreateEvent = () => {
+    setCreateEventModalVisible(true);
+  };
+
+  const handleEditEvent = (eventId: string) => {
+    setSelectedEventId(eventId);
+    setEditEventModalVisible(true);
+  };
+
+  const handleCreateEventSave = (eventData: any) => {
+    console.log('Creating new event:', eventData);
+    setCreateEventModalVisible(false);
+    Alert.alert('Успешно', 'Событие создано!');
+  };
+
+  const handleEditEventSave = (eventData: any) => {
+    console.log('Editing event:', selectedEventId, eventData);
+    setEditEventModalVisible(false);
+    setSelectedEventId('');
+    Alert.alert('Успешно', 'Событие обновлено!');
+  };
+
   const getSectionTitle = () => {
     switch (activeTab) {
       case 'info':
@@ -189,6 +215,7 @@ export const useGroupManage = (groupId: string) => {
     handleContactsSave,
     contactsModalVisible,
     setContactsModalVisible,
+    handleSaveChanges,
 
     pendingRequests,
     searchQuery,
@@ -202,7 +229,16 @@ export const useGroupManage = (groupId: string) => {
     confirmAction,
     cancelConfirmation,
 
-    handleSaveChanges,
+    createEventModalVisible,
+    setCreateEventModalVisible,
+    editEventModalVisible,
+    setEditEventModalVisible,
+    selectedEventId,
+    handleCreateEvent,
+    handleEditEvent,
+    handleCreateEventSave,
+    handleEditEventSave,
+
     getSectionTitle,
   };
-}
+};

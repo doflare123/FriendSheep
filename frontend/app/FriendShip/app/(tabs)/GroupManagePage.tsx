@@ -14,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomBar from '@/components/BottomBar';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import ContactsModal from '@/components/ContactsModal';
+import CreateEventModal from '@/components/CreateEventModal';
+import EventsTabContent from '@/components/EventsTabContent';
 import GroupManageTabPanel from '@/components/GroupManageTabPanel';
 import InfoTabContent from '@/components/InfoTabContent';
 import RequestsTabContent from '@/components/RequestsTabContent';
@@ -76,6 +78,16 @@ const GroupManagePage = () => {
 
     handleSaveChanges,
     getSectionTitle,
+
+    createEventModalVisible,
+    setCreateEventModalVisible,
+    editEventModalVisible,
+    setEditEventModalVisible,
+    selectedEventId,
+    handleCreateEvent,
+    handleEditEvent,
+    handleCreateEventSave,
+    handleEditEventSave,
   } = useGroupManage(groupId);
 
   const handleBackPress = () => {
@@ -123,9 +135,11 @@ const GroupManagePage = () => {
       
       case 'events':
         return (
-          <View style={styles.tabContent}>
-            <Text style={styles.comingSoonText}>Управление событиями - скоро</Text>
-          </View>
+          <EventsTabContent
+            events={groupData?.sessions || []}
+            onCreateEvent={handleCreateEvent}
+            onEditEvent={handleEditEvent}
+          />
         );
       
       default:
@@ -185,6 +199,15 @@ const GroupManagePage = () => {
         onConfirm={confirmAction}
         onCancel={cancelConfirmation}
       />
+
+      <CreateEventModal
+        visible={createEventModalVisible}
+        onClose={() => setCreateEventModalVisible(false)}
+        onCreate={handleCreateEventSave}
+        groupName={groupData?.name}
+      />
+
+      {/* TODO: Добавить модалку редактирования события */}
       
       <BottomBar />
     </SafeAreaView>
@@ -242,13 +265,6 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
-  },
-  comingSoonText: {
-    fontFamily: inter.regular,
-    fontSize: 16,
-    color: Colors.grey,
-    textAlign: 'center',
-    marginTop: 50,
   },
 });
 
