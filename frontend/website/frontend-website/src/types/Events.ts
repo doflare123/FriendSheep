@@ -10,8 +10,9 @@ export interface EventCardProps {
     participants: number;
     maxParticipants: number;
     duration?: string;
-    location: 'online' | 'offline'; // Изменено: теперь содержит только статус онлайн/оффлайн
-    adress: string; // Изменено: содержит фактический адрес или ссылку
+    location: 'online' | 'offline'; // онлайн/оффлайн
+    adress: string; // фактический адрес или ссылка
+    city?: string;  // ✅ новое свойство
     scale?: number;
     isEditMode?: boolean;
     onEdit?: (id: number) => void;

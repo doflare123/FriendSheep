@@ -1,0 +1,240 @@
+/* Секция 2: Статистика */
+.statisticsSection {
+  border: 2px solid #37A2E6;
+  border-radius: 12px;
+  padding: 20px;
+  grid-row: 1;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.statisticsSection h3 {
+  margin: 0 0 10px 0; /* Уменьшен отступ снизу */
+  font-size: 24px;
+  color: #000;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.statisticsContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 15px; /* Уменьшен gap */
+  justify-content: space-between; /* Распределение контента */
+}
+
+/* Контейнер диаграммы */
+.chartContainer {
+  background: white;
+  border-radius: 12px;
+  padding: 10px 15px; /* Уменьшен верхний padding */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 340px; /* Уменьшена минимальная высота */
+}
+
+.chartTitle {
+  font-size: 18px;
+  font-weight: bold;
+  color: #000;
+  margin-bottom: 15px;
+  align-self: flex-start;
+}
+
+.chartWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+}
+
+.chartWithLegend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding-left: 100px;
+}
+
+/* Кастомная легенда */
+.customLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: -50px;
+  min-width: 180px;
+}
+
+.genresTitle {
+  font-size: 18px;
+  font-weight: bold;
+  color: #000;
+  margin: 0 0 10px 0;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  color: #000;
+}
+
+.legendNumber {
+  margin-right: 8px;
+  font-weight: bold;
+  min-width: 25px;
+}
+
+.legendName {
+  flex: 1;
+}
+
+/* Плитки статистики */
+.statisticsTiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px; /* Уменьшен gap */
+  align-items: end; /* Выравнивание от низа */
+  margin-top: -120px; /* Прижимаем к низу секции */
+  padding: 0 10px 10px 10px; /* Добавлен padding чтобы не заходили за края */
+}
+
+.statisticsTile {
+  background: white;
+  border: 2px solid #37A2E6;
+  border-radius: 12px;
+  padding: 15px 12px; /* Уменьшен padding */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  aspect-ratio: 4 / 3;
+  transition: transform 0.2s, box-shadow 0.2s;
+  transform: scale(0.75); /* Уменьшение на 25% */
+  transform-origin: center bottom; /* Точка трансформации снизу */
+}
+
+.statisticsTile:hover {
+  transform: scale(0.75) translateY(-2px);
+  box-shadow: 0 4px 12px rgba(55, 162, 230, 0.2);
+}
+
+.tileHeader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 12px; /* Уменьшен отступ */
+  width: 100%;
+}
+
+.tileTitle {
+  font-size: 26px; /* Уменьшен размер шрифта */
+  color: #000;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.tileIcon {
+  margin: 0 0 12px 0; /* Уменьшен отступ */
+  flex-shrink: 0;
+}
+
+.tileValue {
+  font-size: 30px; /* Уменьшен размер шрифта */
+  font-weight: bold;
+  color: #000;
+  margin: 0;
+}
+
+.tileSubtitle {
+  font-size: 22px; /* Уменьшен размер шрифта */
+  color: #000;
+  margin-top: 6px;
+}
+
+/* Placeholder для пустого состояния */
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100% - 60px);
+  color: #000;
+  font-size: 18px;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+}
+
+/* Responsive adjustments для секции 2 */
+@media (max-width: 1200px) {
+  .statisticsSection {
+    padding: 15px;
+  }
+  
+  .chartContainer {
+    min-height: 280px;
+    padding: 10px;
+  }
+  
+  .chartTitle {
+    font-size: 16px;
+  }
+  
+  .statisticsTiles {
+    gap: 10px;
+    padding: 0 8px;
+  }
+  
+  .tileValue {
+    font-size: 18px;
+  }
+  
+  .tileTitle {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .statisticsTiles {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .chartContainer {
+    min-height: 240px;
+  }
+  
+  .tileValue {
+    font-size: 16px;
+  }
+  
+  .tileTitle {
+    font-size: 11px;
+  }
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.chartLabelAnimated {
+  opacity: 0;
+  transform: scale(0.3);
+  transform-box: fill-box; /* важно для SVG */
+  transform-origin: center;
+  animation: fadeInScale 0.6s ease-out forwards;
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+}
