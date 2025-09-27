@@ -4,6 +4,7 @@ import '../../styles/EventCard.css';
 import Image from "next/image";
 import {getCategoryIcon} from '../../Constants';
 import EventDetailModal from './EventDetailModal';
+import { showNotification } from "@/utils";
 
 const EventCard: React.FC<EventCardProps> = ({
     id,
@@ -23,6 +24,7 @@ const EventCard: React.FC<EventCardProps> = ({
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleButtonClick = () => {
+        //showNotification(300, "Страница не найденааааааааааааааааааааааааааааааааааааааАаааааааааааааааааааааааааааааааааааааааааААААААААААААААААААААААААААААААААААААААААААААА");
         if (isEditMode && onEdit) {
             onEdit(id);
         } else {
