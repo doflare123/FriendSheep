@@ -1,0 +1,94 @@
+.commentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.commentItem {
+  display: flex;
+  align-items: center; /* Центрирую аватарку по вертикали */
+  gap: 15px; /* Увеличил отступ */
+  padding: 15px;
+  background: white; /* Белый фон */
+  border-radius: 8px;
+  border: 2px solid #37A2E6; /* Обводка цвета #37A2E6 */
+}
+
+.avatarContainer {
+  flex-shrink: 0;
+  align-self: center; /* Дополнительно центрирую аватарку */
+}
+
+.avatar {
+  width: 50px; /* Увеличил размер аватарки с 40px */
+  height: 50px; /* Увеличил размер аватарки с 40px */
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+.commentContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.commentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.userName {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.commentDate {
+  font-size: 12px;
+  color: #666;
+}
+
+.commentText {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #444;
+  margin-bottom: auto;
+  word-wrap: break-word;
+  flex: 1;
+}
+
+.commentTime {
+  font-size: 12px;
+  color: #666;
+  text-align: right;
+  margin-top: 8px;
+  align-self: flex-end;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .commentItem {
+    padding: 12px;
+    gap: 12px;
+  }
+  
+  .avatar {
+    width: 45px; /* Немного меньше на мобильных */
+    height: 45px;
+  }
+  
+  .commentHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    margin-bottom: 6px;
+  }
+  
+  .commentText {
+    font-size: 13px;
+  }
+}

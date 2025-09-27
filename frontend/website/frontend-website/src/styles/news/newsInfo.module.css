@@ -1,0 +1,128 @@
+.newsInfoContainer {
+  max-width: 1200px; /* Увеличил ширину с 800px до 1200px */
+  margin: 0 auto;
+  background: white; /* Единый белый фон */
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  min-height: calc(100vh - 120px);
+}
+
+.commentsSection {
+  padding: 30px;
+  /* Убрал border-top - нет разделения между секциями */
+}
+
+.commentsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.commentsHeader h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.commentButton {
+  background: #37A2E6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.commentButton:hover {
+  background: #2891d1;
+  transform: translateY(-1px);
+}
+
+.commentButton:active {
+  transform: translateY(0);
+}
+
+.loadMoreContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  /* Убрал border-top */
+}
+
+.loadMoreButton {
+  background: #37A2E6;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.loadMoreButton:hover {
+  background: #2891d1;
+  transform: translateY(-1px);
+}
+
+.loadMoreButton:active {
+  transform: translateY(0);
+}
+
+.errorContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  margin: 50px auto;
+  max-width: 600px;
+}
+
+.errorContainer h2 {
+  color: #666;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+/* Адаптивность для маленьких десктопов */
+@media (max-width: 1300px) {
+  .newsInfoContainer {
+    max-width: 95%;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 1024px) {
+  .newsInfoContainer {
+    max-width: 90%;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .newsInfoContainer {
+    max-width: 95%;
+    margin: 0 auto;
+  }
+  
+  .commentsSection {
+    padding: 20px;
+  }
+  
+  .commentsHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+}
