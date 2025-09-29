@@ -385,8 +385,6 @@ definitions:
     type: object
   services.ConfirmResetPasswordInput:
     properties:
-      code:
-        type: string
       email:
         type: string
       password:
@@ -394,7 +392,6 @@ definitions:
       session_id:
         type: string
     required:
-    - code
     - email
     - password
     - session_id
@@ -746,6 +743,8 @@ definitions:
     type: object
   services.SessionInfo:
     properties:
+      city:
+        type: string
       current_users:
         type: integer
       end_time:
@@ -772,6 +771,7 @@ definitions:
   services.SessionResponse:
     properties:
       city:
+        default: prikol
         type: string
       count_users_max:
         type: integer
@@ -2335,7 +2335,7 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Подтверждение сброса пароля
+      summary: Сброс пароля
       tags:
       - auth
   /api/users/delete:

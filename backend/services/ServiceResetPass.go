@@ -7,7 +7,6 @@ import (
 	"friendship/utils"
 	"log"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -17,7 +16,6 @@ type ResetPasswordRequest struct {
 
 type ConfirmResetPasswordInput struct {
 	SessionID string `json:"session_id" binding:"required"`
-	Code      string `json:"code" binding:"required"`
 	Email     string `json:"email" binding:"required,email"`
 	Password  string `json:"password" binding:"required,password"`
 }
@@ -120,19 +118,12 @@ func ResetPassword(input ConfirmResetPasswordInput) error {
 		return err
 	}
 
-	if fields["type"] != string(models.SessionTypeResetPassword) {
-		return fmt.Errorf("неверный тип сессии")
+	if fields == nil {
+		return fmt.Errorf("Превышено количество попыток смены пароля, сессия деактивирована")
 	}
 
-	if fields["code"] != input.Code {
-		attempts, _ := strconv.Atoi(fields["attempts"])
-		attempts++
-		if attempts >= 3 {
-			_ = store.DeleteSession(input.SessionID)
-			return fmt.Errorf("превышено количество попыток, сессия удалена")
-		}
-		_ = store.UpdateSessionField(input.SessionID, "attempts", attempts)
-		return fmt.Errorf("неверный код")
+	if fields["type"] != string(models.SessionTypeResetPassword) {
+		return fmt.Errorf("неверный тип сессии")
 	}
 
 	var user models.User

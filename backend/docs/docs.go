@@ -2118,7 +2118,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Подтверждение сброса пароля",
+                "summary": "Сброс пароля",
                 "parameters": [
                     {
                         "description": "Данные для подтверждения и новый пароль",
@@ -3929,15 +3929,11 @@ const docTemplate = `{
         "services.ConfirmResetPasswordInput": {
             "type": "object",
             "required": [
-                "code",
                 "email",
                 "password",
                 "session_id"
             ],
             "properties": {
-                "code": {
-                    "type": "string"
-                },
                 "email": {
                     "type": "string"
                 },
@@ -4477,6 +4473,9 @@ const docTemplate = `{
         "services.SessionInfo": {
             "type": "object",
             "properties": {
+                "city": {
+                    "type": "string"
+                },
                 "current_users": {
                     "type": "integer"
                 },
@@ -4516,7 +4515,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "city": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "prikol"
                 },
                 "count_users_max": {
                     "type": "integer"

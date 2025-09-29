@@ -130,7 +130,7 @@ func RequestPasswordReset(c *gin.Context) {
 }
 
 // ConfirmPasswordReset godoc
-// @Summary      Подтверждение сброса пароля
+// @Summary      Сброс пароля
 // @Description  Пользователь вводит session_id, код из email и новый пароль. При успешной верификации пароль меняется.
 // @Tags         auth
 // @Accept       json
