@@ -35,6 +35,7 @@ type SessionInfo struct {
 	MaxUsers     uint16    `json:"max_users"`
 	ImageURL     string    `json:"image_url"`
 	Status       string    `json:"status"`
+	Type_session string    `json:"type_session"`
 	Location     string    `json:"location,omitempty"`
 	Genres       []string  `json:"genres,omitempty"`
 	City         *string   `json:"city"`
@@ -251,6 +252,7 @@ func getUpcomingSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 			EndTime:      su.Session.EndTime,
 			CurrentUsers: su.Session.CurrentUsers,
 			MaxUsers:     su.Session.CountUsersMax,
+			Type_session: su.Session.SessionPlace.Title,
 			ImageURL:     safeStringValue(&su.Session.ImageURL),
 			Status:       su.Session.Status.Status,
 		}
@@ -311,6 +313,7 @@ func getRecentSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 			EndTime:      su.Session.EndTime,
 			CurrentUsers: su.Session.CurrentUsers,
 			MaxUsers:     su.Session.CountUsersMax,
+			Type_session: su.Session.SessionPlace.Title,
 			ImageURL:     safeStringValue(&su.Session.ImageURL),
 			Status:       su.Session.Status.Status,
 		}
