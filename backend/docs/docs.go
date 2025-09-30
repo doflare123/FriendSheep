@@ -137,6 +137,152 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/groups/requests/all/{groupId}/approveAll": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Одобрение всех заявок на вступление в закрытую группу. Только админ может это сделать.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups_admin"
+                ],
+                "summary": "Одобрить все заявки",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "groupId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Все заявки одобрены",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка: нет ожидающих заявок или уже обработаны",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Ошибка авторизации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Вы не админ",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/groups/requests/all/{groupId}/rejectAll": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Отклонение всех заявок на вступление в закрытую группу. Только админ может это сделать.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups_admin"
+                ],
+                "summary": "Отклонить все заявки",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "groupId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Все заявки отклонены",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка: нет ожидающих заявок",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Ошибка авторизации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Вы не админ",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/groups/requests/{requestId}/approve": {
             "post": {
                 "security": [
@@ -4473,6 +4619,9 @@ const docTemplate = `{
         "services.SessionInfo": {
             "type": "object",
             "properties": {
+                "category_session": {
+                    "type": "string"
+                },
                 "city": {
                     "type": "string"
                 },
@@ -4507,6 +4656,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "title": {
+                    "type": "string"
+                },
+                "type_session": {
                     "type": "string"
                 }
             }
