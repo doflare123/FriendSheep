@@ -130,7 +130,7 @@ func RequestPasswordReset(c *gin.Context) {
 }
 
 // ConfirmPasswordReset godoc
-// @Summary      Подтверждение сброса пароля
+// @Summary      Сброс пароля
 // @Description  Пользователь вводит session_id, код из email и новый пароль. При успешной верификации пароль меняется.
 // @Tags         auth
 // @Accept       json
@@ -152,4 +152,27 @@ func ConfirmPasswordReset(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Пароль успешно изменён"})
+}
+
+// @Summary      Get user by us
+// @Description  Получение информации о пользователе по значению поля "us"
+// @Tags         users
+// @Security BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        us   path      string  true  "User us"
+// @Success      200  {object}  models.User
+// @Failure      400  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Router       /api/users/{us} [get]
+func GettingUserId(c *gin.Context) {
+	us := c.Param("us")
+
+	user, err := services.FindUserByUs(us)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "User not found"})
+		return
+	}
+
+	c.JSON(200, user)
 }

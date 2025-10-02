@@ -115,3 +115,73 @@ func RejectJoinRequest(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Заявка отклонена"})
 }
+
+// ApproveJoinAllRequest godoc
+// @Summary Одобрить все заявки
+// @Description Одобрение всех заявок на вступление в закрытую группу. Только админ может это сделать.
+// @Tags groups_admin
+// @Security BearerAuth
+// @Param groupId path int true "ID группы"
+// @Produce json
+// @Success 200 {object} map[string]string "Все заявки одобрены"
+// @Failure 400 {object} map[string]string "Ошибка: нет ожидающих заявок или уже обработаны"
+// @Failure 401 {object} map[string]string "Ошибка авторизации"
+// @Failure 403 {object} map[string]string "Вы не админ"
+// @Failure 500 {object} map[string]string "Ошибка сервера"
+// @Router /api/admin/groups/requests/all/{groupId}/approveAll [post]
+func ApproveJoinAllRequest(c *gin.Context) {
+	email, _ := c.Get("email")
+	groupIDStr := c.Param("groupId")
+
+	groupID, err := strconv.Atoi(groupIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		return
+	}
+
+	if err := services.ApproveAllJoinRequests(email.(string), uint(groupID)); err != nil {
+		if err.Error() == "нет ожидающих заявок для этой группы" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Все заявки одобрены, пользователи добавлены в группу"})
+}
+
+// RejectJoinAllRequest godoc
+// @Summary Отклонить все заявки
+// @Description Отклонение всех заявок на вступление в закрытую группу. Только админ может это сделать.
+// @Tags groups_admin
+// @Security BearerAuth
+// @Param groupId path int true "ID группы"
+// @Produce json
+// @Success 200 {object} map[string]string "Все заявки отклонены"
+// @Failure 400 {object} map[string]string "Ошибка: нет ожидающих заявок"
+// @Failure 401 {object} map[string]string "Ошибка авторизации"
+// @Failure 403 {object} map[string]string "Вы не админ"
+// @Failure 500 {object} map[string]string "Ошибка сервера"
+// @Router /api/admin/groups/requests/all/{groupId}/rejectAll [post]
+func RejectJoinAllRequest(c *gin.Context) {
+	email, _ := c.Get("email")
+	groupIDStr := c.Param("groupId")
+
+	groupID, err := strconv.Atoi(groupIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		return
+	}
+
+	if err := services.RejectAllJoinRequests(email.(string), uint(groupID)); err != nil {
+		if err.Error() == "нет ожидающих заявок для этой группы" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Все заявки отклонены"})
+}

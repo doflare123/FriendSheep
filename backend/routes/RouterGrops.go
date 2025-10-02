@@ -24,6 +24,8 @@ func RouterGroups(r *gin.Engine) {
 		GroupAdminGroups.POST("/requestsForUser", middlewares.JWTAuthMiddleware(), handlers.SentJoinRequests)
 		GroupAdminGroups.POST("/requests/:requestId/approve", middlewares.JWTAuthMiddleware(), handlers.ApproveJoinRequest)
 		GroupAdminGroups.POST("/requests/:requestId/reject", middlewares.JWTAuthMiddleware(), handlers.RejectJoinRequest)
+		GroupAdminGroups.POST("/requests/all/:groupId/approveAll", middlewares.JWTAuthMiddleware(), handlers.ApproveJoinAllRequest)
+		GroupAdminGroups.POST("/requests/all/:groupId/rejectAll", middlewares.JWTAuthMiddleware(), handlers.RejectJoinAllRequest)
 		GroupAdminGroups.POST("/UploadPhoto", middlewares.JWTAuthMiddleware(), handlers.ChangePhoto)
 
 		// Роуты, требующие прав администратора или оператора

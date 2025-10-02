@@ -89,8 +89,26 @@ func CreateUser(input CreateUserInput) (*models.User, error) {
 		Spent_time:  false,
 	}
 
+	StatsUser := statsusers.SessionStats_users{
+		UserID: user.ID,
+	}
+
+	defaultDay := uint16(1)
+	SideInf := statsusers.SideStats_users{
+		UserID:     &user.ID,
+		MostPopDay: &defaultDay,
+	}
+
+	if err := db.GetDB().Create(&StatsUser).Error; err != nil {
+		return nil, fmt.Errorf("не удалось создать статистику пользователя: %v", err)
+	}
+
 	if err := db.GetDB().Create(&defaultTiles).Error; err != nil {
 		return nil, fmt.Errorf("не удалось создать настройки тайлов: %v", err)
+	}
+
+	if err := db.GetDB().Create(&SideInf).Error; err != nil {
+		return nil, fmt.Errorf("не удалось создать статистику сессии: %v", err)
 	}
 
 	if err := store.DeleteSession(input.SessionID); err != nil {

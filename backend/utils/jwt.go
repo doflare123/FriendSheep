@@ -16,7 +16,7 @@ type TokenPair struct {
 
 type UserFinder func(email string) (*models.User, error)
 
-func GenerateTokenPair(email, us, name, image string) (TokenPair, error) {
+func GenerateTokenPair(email, name, us, image string) (TokenPair, error) {
 	secretKey := os.Getenv("SECRET_KEY_JWT")
 	if len(secretKey) == 0 {
 		return TokenPair{}, fmt.Errorf("пустой секретный ключ")

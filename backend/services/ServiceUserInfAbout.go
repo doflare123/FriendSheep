@@ -13,6 +13,7 @@ import (
 
 type InformationAboutUser struct {
 	Name         string    `json:"name"`
+	Us           string    `json:"us"`
 	Image        string    `json:"image"`
 	DataRegister time.Time `json:"data_register"`
 	Enterprise   bool      `json:"enterprise"`
@@ -27,17 +28,19 @@ type InformationAboutUser struct {
 }
 
 type SessionInfo struct {
-	ID           uint      `json:"id"`
-	Title        string    `json:"title"`
-	StartTime    time.Time `json:"start_time"`
-	EndTime      time.Time `json:"end_time"`
-	CurrentUsers uint16    `json:"current_users"`
-	MaxUsers     uint16    `json:"max_users"`
-	ImageURL     string    `json:"image_url"`
-	Status       string    `json:"status"`
-	Location     string    `json:"location,omitempty"`
-	Genres       []string  `json:"genres,omitempty"`
-	City         *string   `json:"city"`
+	ID               uint      `json:"id"`
+	Title            string    `json:"title"`
+	StartTime        time.Time `json:"start_time"`
+	EndTime          time.Time `json:"end_time"`
+	CurrentUsers     uint16    `json:"current_users"`
+	MaxUsers         uint16    `json:"max_users"`
+	ImageURL         string    `json:"image_url"`
+	Status           string    `json:"status"`
+	Type_session     string    `json:"type_session"`
+	Category_session string    `json:"category_session"`
+	Location         string    `json:"location,omitempty"`
+	Genres           []string  `json:"genres,omitempty"`
+	City             *string   `json:"city"`
 }
 
 type GenreStats struct {
@@ -126,6 +129,7 @@ func GetInfAboutUser(email string) (*InformationAboutUser, error) {
 
 	result := &InformationAboutUser{
 		Name:             user.Name,
+		Us:               user.Us,
 		Image:            user.Image,
 		DataRegister:     user.DataRegister,
 		Enterprise:       user.Enterprise,
@@ -202,6 +206,7 @@ func GetInfAboutAnotherUser(email string) (*InformationAboutUser, error) {
 
 	result := &InformationAboutUser{
 		Name:         user.Name,
+		Us:           user.Us,
 		Image:        user.Image,
 		DataRegister: user.DataRegister,
 		Enterprise:   user.Enterprise,
@@ -223,6 +228,7 @@ func getUpcomingSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 	err := dbCon.Preload("Session").
 		Preload("Session.Status").
 		Preload("Session.SessionPlace").
+		Preload("Session.SessionType").
 		Joins("JOIN sessions ON session_users.session_id = sessions.id").
 		Joins("JOIN statuses ON sessions.status_id = statuses.id").
 		Where("session_users.user_id = ? AND statuses.status = ?", userID, "Набор").
@@ -245,14 +251,16 @@ func getUpcomingSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 	result := make([]SessionInfo, len(sessionUsers))
 	for i, su := range sessionUsers {
 		sessionInfo := SessionInfo{
-			ID:           su.Session.ID,
-			Title:        su.Session.Title,
-			StartTime:    su.Session.StartTime,
-			EndTime:      su.Session.EndTime,
-			CurrentUsers: su.Session.CurrentUsers,
-			MaxUsers:     su.Session.CountUsersMax,
-			ImageURL:     safeStringValue(&su.Session.ImageURL),
-			Status:       su.Session.Status.Status,
+			ID:               su.Session.ID,
+			Title:            su.Session.Title,
+			StartTime:        su.Session.StartTime,
+			EndTime:          su.Session.EndTime,
+			CurrentUsers:     su.Session.CurrentUsers,
+			MaxUsers:         su.Session.CountUsersMax,
+			Type_session:     su.Session.SessionPlace.Title,
+			Category_session: su.Session.SessionType.Name,
+			ImageURL:         safeStringValue(&su.Session.ImageURL),
+			Status:           su.Session.Status.Status,
 		}
 
 		if meta, exists := metadata[su.Session.ID]; exists && meta != nil {
@@ -311,6 +319,7 @@ func getRecentSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 			EndTime:      su.Session.EndTime,
 			CurrentUsers: su.Session.CurrentUsers,
 			MaxUsers:     su.Session.CountUsersMax,
+			Type_session: su.Session.SessionPlace.Title,
 			ImageURL:     safeStringValue(&su.Session.ImageURL),
 			Status:       su.Session.Status.Status,
 		}

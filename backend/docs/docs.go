@@ -137,6 +137,152 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/groups/requests/all/{groupId}/approveAll": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Одобрение всех заявок на вступление в закрытую группу. Только админ может это сделать.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups_admin"
+                ],
+                "summary": "Одобрить все заявки",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "groupId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Все заявки одобрены",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка: нет ожидающих заявок или уже обработаны",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Ошибка авторизации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Вы не админ",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/groups/requests/all/{groupId}/rejectAll": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Отклонение всех заявок на вступление в закрытую группу. Только админ может это сделать.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups_admin"
+                ],
+                "summary": "Отклонить все заявки",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "groupId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Все заявки отклонены",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка: нет ожидающих заявок",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Ошибка авторизации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Вы не админ",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/groups/requests/{requestId}/approve": {
             "post": {
                 "security": [
@@ -2118,7 +2264,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Подтверждение сброса пароля",
+                "summary": "Сброс пароля",
                 "parameters": [
                     {
                         "description": "Данные для подтверждения и новый пароль",
@@ -3344,6 +3490,61 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/users/{us}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Получение информации о пользователе по значению поля \"us\"",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get user by us",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User us",
+                        "name": "us",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -3698,6 +3899,9 @@ const docTemplate = `{
                 "enterprise": {
                     "type": "boolean"
                 },
+                "id": {
+                    "type": "integer"
+                },
                 "image": {
                     "type": "string"
                 },
@@ -3929,15 +4133,11 @@ const docTemplate = `{
         "services.ConfirmResetPasswordInput": {
             "type": "object",
             "required": [
-                "code",
                 "email",
                 "password",
                 "session_id"
             ],
             "properties": {
-                "code": {
-                    "type": "string"
-                },
                 "email": {
                     "type": "string"
                 },
@@ -4318,6 +4518,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/services.SessionInfo"
                     }
                 },
+                "us": {
+                    "type": "string"
+                },
                 "user_stats": {
                     "$ref": "#/definitions/services.UserStatsInfo"
                 }
@@ -4477,6 +4680,12 @@ const docTemplate = `{
         "services.SessionInfo": {
             "type": "object",
             "properties": {
+                "category_session": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
                 "current_users": {
                     "type": "integer"
                 },
@@ -4509,6 +4718,9 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                },
+                "type_session": {
+                    "type": "string"
                 }
             }
         },
@@ -4516,7 +4728,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "city": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "prikol"
                 },
                 "count_users_max": {
                     "type": "integer"
