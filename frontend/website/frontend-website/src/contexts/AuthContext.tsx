@@ -1,9 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { refreshAccessToken, decodeJWT, isTokenValid, getCookie, setCookie, deleteCookie } from '../api/auth';
+import { refreshAccessToken, isTokenValid, getCookie, setCookie, deleteCookie } from '../api/auth';
+import {decodeJWT} from '@/Constants'
 
 interface UserData {
+  us: string;
   username: string;
   email: string;
   avatar?: string;
@@ -38,7 +40,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const decoded = decodeJWT(token);
     if (decoded) {
       setUserData({
-        username: decoded.Us || 'Пользователь',
+        us: decoded.Us,
+        username: decoded.Username || 'Пользователь',
         email: decoded.Email || '',
         avatar: decoded.Image
       });

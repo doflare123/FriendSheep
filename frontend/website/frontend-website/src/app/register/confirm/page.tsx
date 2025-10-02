@@ -7,6 +7,7 @@ import { registerSession } from '../../../api/register_sessions';
 import { confirm_code } from '../../../api/confirm_code';
 import { createUser } from '../../../api/create_user';
 import { usePageProtection, PAGE_KEYS } from '../../../api/pageProtection';
+import { showNotification } from "@/utils";
 
 import FormButton from '../../../components/FormButton';
 import VerifiContainer from '../../../components/VerifiContainer';
@@ -119,7 +120,7 @@ export default function ConfirmCode() {
                 errorMessage = 'Ошибка сервера. Попробуйте позже';
             }
             
-            setErrors(prev => ({ ...prev, general: errorMessage }));
+            showNotification(error.status, errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -216,10 +217,10 @@ export default function ConfirmCode() {
                         errorMessage = 'Ошибка сервера. Попробуйте позже';
                     }
                     
-                    setErrors(prev => ({ ...prev, general: errorMessage }));
+                    showNotification(error.status, errorMessage);
                 }
             } else {
-                setErrors(prev => ({ ...prev, code: 'Неверный код подтверждения' }));
+                showNotification(404, 'Неверный код подтверждения');
             }
         } catch (error: any) {
             console.error('Ошибка при проверке кода:', error);
@@ -236,7 +237,7 @@ export default function ConfirmCode() {
                 errorMessage = 'Ошибка сервера. Попробуйте позже';
             }
             
-            setErrors(prev => ({ ...prev, code: errorMessage }));
+            showNotification(error.status, errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -248,12 +249,6 @@ export default function ConfirmCode() {
 			<div className="text-center text-base text-black">
                 Введите код подтверждения из письма, отправленного на почту <span className="font-bold">{email}</span>
             </div>
-
-            {errors.general && (
-                <div className="errorMessage" style={{ marginTop: '16px', textAlign: 'center' }}>
-                    {errors.general}
-                </div>
-            )}
 
 			<div className="flex gap-3 justify-center mt-8">
                 {values.map((val, index) => (

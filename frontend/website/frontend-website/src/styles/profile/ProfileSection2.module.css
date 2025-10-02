@@ -27,13 +27,13 @@
 
 /* Контейнер диаграммы */
 .chartContainer {
-  background: white;
   border-radius: 12px;
   padding: 10px 15px; /* Уменьшен верхний padding */
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: 340px; /* Уменьшена минимальная высота */
+  margin-top: -30px;
 }
 
 .chartTitle {

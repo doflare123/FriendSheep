@@ -5,11 +5,13 @@ import Link from 'next/link';
 import { useState } from 'react';
 import NotificationDropdown from './NotificationDropdown';
 import { useAuth } from '../contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import '../styles/Header.css';
 
 export default function Header() {
     const { isLoggedIn, userData, logout, isLoading } = useAuth();
     const [showNotifications, setShowNotifications] = useState(false);
+    const router = useRouter();
 
     // Показываем скелетон во время загрузки
     if (isLoading) {
@@ -30,6 +32,10 @@ export default function Header() {
             </header>
         );
     }
+
+    const handleAvatarClick = () => {
+        router.push('/profile/' + userData?.us);
+    };
 
     return (
         <header className="header">
@@ -72,7 +78,17 @@ export default function Header() {
                         
                         <span className="username">{userData?.username}</span>
                         
-                        <div className="avatar-container">
+                        <div 
+                            className="avatar-container" 
+                            onClick={handleAvatarClick}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    handleAvatarClick();
+                                }
+                            }}
+                        >
                             <Image 
                                 src={userData?.avatar || '/default-avatar.png'} 
                                 alt="Аватар" 

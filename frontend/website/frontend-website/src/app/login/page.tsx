@@ -9,6 +9,7 @@ import FormInput from '../../components/FormInput';
 import FormButton from '../../components/FormButton';
 import FormLink from '../../components/FormLink';
 import LinkNote from '../../components/LinkNote';
+import {updateUserData} from '@/Constants'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -87,6 +88,7 @@ export default function LoginPage() {
         login(response.access_token, response.refresh_token);
         
         // Перенаправляем на главную страницу
+        updateUserData();
         router.push('/');
       } else {
         throw new Error('Токены не получены');
