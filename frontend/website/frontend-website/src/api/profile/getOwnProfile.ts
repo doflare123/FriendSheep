@@ -10,6 +10,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function getUserInfo(accessToken: string): Promise<UserDataResponse> {
   try {
+    
+    console.log("accessToken", accessToken);
+
     const response = await axios.get(`${API_URL}/api/users/inf`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`

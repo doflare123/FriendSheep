@@ -42,7 +42,7 @@ export default function Page() {
         const isOwnProfile = userUs === ownUs;
         setIsOwn(isOwnProfile);
 
-        console.log("ZXC", ownUs, userUs, convertedUserId, userData, isOwnProfile);
+        console.log("ZXC", ownUs, userUs, convertedUserId, userData, isOwnProfile, accessToken);
 
         let data: UserDataResponse;
 
