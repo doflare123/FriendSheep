@@ -3888,6 +3888,9 @@
                 "enterprise": {
                     "type": "boolean"
                 },
+                "id": {
+                    "type": "integer"
+                },
                 "image": {
                     "type": "string"
                 },
@@ -4503,6 +4506,9 @@
                     "items": {
                         "$ref": "#/definitions/services.SessionInfo"
                     }
+                },
+                "us": {
+                    "type": "string"
                 },
                 "user_stats": {
                     "$ref": "#/definitions/services.UserStatsInfo"

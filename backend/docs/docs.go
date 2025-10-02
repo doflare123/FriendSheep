@@ -3899,6 +3899,9 @@ const docTemplate = `{
                 "enterprise": {
                     "type": "boolean"
                 },
+                "id": {
+                    "type": "integer"
+                },
                 "image": {
                     "type": "string"
                 },
@@ -4514,6 +4517,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/services.SessionInfo"
                     }
+                },
+                "us": {
+                    "type": "string"
                 },
                 "user_stats": {
                     "$ref": "#/definitions/services.UserStatsInfo"

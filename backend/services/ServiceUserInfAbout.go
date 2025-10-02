@@ -13,6 +13,7 @@ import (
 
 type InformationAboutUser struct {
 	Name         string    `json:"name"`
+	Us           string    `json:"us"`
 	Image        string    `json:"image"`
 	DataRegister time.Time `json:"data_register"`
 	Enterprise   bool      `json:"enterprise"`
@@ -128,6 +129,7 @@ func GetInfAboutUser(email string) (*InformationAboutUser, error) {
 
 	result := &InformationAboutUser{
 		Name:             user.Name,
+		Us:               user.Us,
 		Image:            user.Image,
 		DataRegister:     user.DataRegister,
 		Enterprise:       user.Enterprise,
@@ -204,6 +206,7 @@ func GetInfAboutAnotherUser(email string) (*InformationAboutUser, error) {
 
 	result := &InformationAboutUser{
 		Name:         user.Name,
+		Us:           user.Us,
 		Image:        user.Image,
 		DataRegister: user.DataRegister,
 		Enterprise:   user.Enterprise,

@@ -228,6 +228,8 @@ definitions:
         type: string
       enterprise:
         type: boolean
+      id:
+        type: integer
       image:
         type: string
       name:
@@ -640,6 +642,8 @@ definitions:
         items:
           $ref: '#/definitions/services.SessionInfo'
         type: array
+      us:
+        type: string
       user_stats:
         $ref: '#/definitions/services.UserStatsInfo'
     type: object
