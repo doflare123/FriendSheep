@@ -2407,6 +2407,41 @@ paths:
       summary: Создать пользователя
       tags:
       - users
+  /api/users/{us}:
+    get:
+      consumes:
+      - application/json
+      description: Получение информации о пользователе по значению поля "us"
+      parameters:
+      - description: User us
+        in: path
+        name: us
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user by us
+      tags:
+      - users
   /api/users/confirm-reset:
     post:
       consumes:
