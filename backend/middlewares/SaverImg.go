@@ -3,7 +3,9 @@ package middlewares
 import (
 	"fmt"
 	"image"
+	_ "image/gif"
 	"image/jpeg"
+	_ "image/png"
 	"io"
 	"mime/multipart"
 	"net/http"
