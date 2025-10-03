@@ -3303,6 +3303,14 @@ const docTemplate = `{
                     "Users inf"
                 ],
                 "summary": "Получить подписки пользователя на группы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID пользователя (опционально)",
+                        "name": "id",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Список групп, на которые подписан пользователь",
@@ -3315,6 +3323,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Не передан jwt",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Нет прав",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {

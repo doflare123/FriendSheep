@@ -19,6 +19,52 @@ type GroupResponse struct {
 	MemberCount      *int64    `json:"member_count"`
 }
 
+func GetGroupsUserSubByID(userID uint) ([]GroupResponse, error) {
+	var groupUsers []groups.GroupUsers
+	err := db.GetDB().Preload("Group").
+		Preload("Group.Categories").
+		Where("user_id = ? AND role_in_group = 'member'", userID).
+		Find(&groupUsers).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при получении групп: %v", err)
+	}
+
+	if len(groupUsers) == 0 {
+		return []GroupResponse{}, nil
+	}
+
+	filteredGroups := make([]groups.GroupUsers, 0)
+	groupIDs := make([]uint, 0)
+
+	for _, gu := range groupUsers {
+		if gu.Group.ID != 0 && gu.Group.CreaterID != 0 &&
+			gu.UserID != 0 && gu.Group.CreaterID != userID {
+			filteredGroups = append(filteredGroups, gu)
+			groupIDs = append(groupIDs, gu.Group.ID)
+		}
+	}
+
+	if len(filteredGroups) == 0 {
+		return []GroupResponse{}, nil
+	}
+
+	memberCounts, err := getGroupMemberCounts(groupIDs)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при подсчете участников: %v", err)
+	}
+
+	groupResponses := make([]GroupResponse, 0, len(filteredGroups))
+	for _, groupUser := range filteredGroups {
+		groupResponse := createSafeGroupResponse(groupUser.Group, memberCounts)
+		if groupResponse != nil {
+			groupResponses = append(groupResponses, *groupResponse)
+		}
+	}
+
+	return groupResponses, nil
+}
+
 func GetGroupsUserSub(email string) ([]GroupResponse, error) {
 	if email == "" {
 		return nil, fmt.Errorf("не передан jwt")
@@ -43,7 +89,6 @@ func GetGroupsUserSub(email string) ([]GroupResponse, error) {
 		return []GroupResponse{}, nil
 	}
 
-	// Фильтруем группы, где пользователь НЕ является создателем
 	filteredGroups := make([]groups.GroupUsers, 0)
 	groupIDs := make([]uint, 0)
 
@@ -59,13 +104,11 @@ func GetGroupsUserSub(email string) ([]GroupResponse, error) {
 		return []GroupResponse{}, nil
 	}
 
-	// Получаем количество участников для групп
 	memberCounts, err := getGroupMemberCounts(groupIDs)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при подсчете участников: %v", err)
 	}
 
-	// Преобразуем в GroupResponse
 	groupResponses := make([]GroupResponse, 0, len(filteredGroups))
 	for _, groupUser := range filteredGroups {
 		groupResponse := createSafeGroupResponse(groupUser.Group, memberCounts)
@@ -92,6 +135,14 @@ func createSafeGroupResponse(group groups.Group, memberCounts map[uint]int64) *G
 
 	if group.SmallDescription != "" {
 		response.SmallDescription = &group.SmallDescription
+	}
+
+	if group.IsPrivate {
+		t := "приватная группа"
+		response.Type = &t
+	} else {
+		t := "открытая группа"
+		response.Type = &t
 	}
 
 	if group.Image != "" {
