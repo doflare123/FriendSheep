@@ -10,22 +10,13 @@ import { createGroup } from '../../api/add_group';
 import { getGroups } from '../../api/get_groups';
 import { getOwnGroups } from '../../api/get_owngroups';
 import { convertCategoriesToIds, convertSocialContactsToString } from '../../Constants';
-
-interface Group {
-  id: string;
-  name: string;
-  description: string;
-  memberCount: number;
-  image?: string;
-  categories: ('games' | 'movies' | 'board' | 'other')[];
-  city: string;
-}
+import {SmallGroup} from '@/types/Groups';
 
 export default function GroupsPage() {
   const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [managedGroups, setManagedGroups] = useState<Group[]>([]);
-  const [subscriptions, setSubscriptions] = useState<Group[]>([]);
+  const [managedGroups, setManagedGroups] = useState<SmallGroup[]>([]);
+  const [subscriptions, setSubscriptions] = useState<SmallGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
 

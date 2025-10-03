@@ -18,14 +18,14 @@ export async function getOtherUserInfo(accessToken: string, id: string): Promise
 
     const data = response.data;
 
-    // Конвертация сырых данных
-    const recent_sessions: EventCardProps[] = data.recent_sessions.map((s: RawSession) =>
-      mapServerSessionToEvent(s)
-    );
+    // Конвертация сырых данных с проверкой на существование
+    const recent_sessions: EventCardProps[] = data.recent_sessions 
+      ? data.recent_sessions.map((s: RawSession) => mapServerSessionToEvent(s))
+      : [];
 
-    const upcoming_sessions: EventCardProps[] = data.upcoming_sessions.map((s: RawSession) =>
-      mapServerSessionToEvent(s)
-    );
+    const upcoming_sessions: EventCardProps[] = data.upcoming_sessions 
+      ? data.upcoming_sessions.map((s: RawSession) => mapServerSessionToEvent(s))
+      : [];
 
     return mapRawUserDataToUserData({...data, recent_sessions, upcoming_sessions});
   } catch (error: any) {

@@ -59,3 +59,13 @@ export interface GroupData {
 export interface GroupProfileProps {
   groupData: GroupData;
 }
+
+export interface SmallGroup {
+  id: string;
+  name: string;
+  description: string;
+  memberCount: number;
+  image?: string;
+  categories: ('games' | 'movies' | 'board' | 'other')[];
+  city: string;
+}

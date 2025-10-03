@@ -10,6 +10,8 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 import { convertUstoId } from '@/api/search/convertUstoId';
 import { showNotification } from '@/utils';
 import {getAccesToken} from '@/Constants';
+import { getGroups } from '@/api/get_groups';
+import {SmallGroup} from '@/types/Groups';
 
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -19,6 +21,7 @@ export default function Page() {
   const { userData } = useAuth();
 
   const [profileData, setProfileData] = useState<UserDataResponse | null>(null);
+  const [subsData, setSubsData] = useState<SmallGroup[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOwn, setIsOwn] = useState(false);
   const [userId, setUserId] = useState<string>('');
@@ -42,17 +45,19 @@ export default function Page() {
         const isOwnProfile = userUs === ownUs;
         setIsOwn(isOwnProfile);
 
-        console.log("ZXC", ownUs, userUs, convertedUserId, userData, isOwnProfile, accessToken);
-
         let data: UserDataResponse;
+        let subs: SmallGroup[];
 
         if (isOwnProfile) {
           data = await getUserInfo(accessToken);
+          subs = await getGroups(accessToken);
         } else {
           data = await getOtherUserInfo(accessToken, convertedUserId);
+          subs = await getGroups(accessToken, convertedUserId);
         }
 
         setProfileData(data);
+        setSubsData(subs);
       } catch (err: any) {
         showNotification(
           err.status || 'error',
@@ -79,5 +84,5 @@ export default function Page() {
     return null;
   }
 
-  return <ProfilePage params={{ id: userId, data: profileData, isOwn }} />;
+  return <ProfilePage params={{ id: userId, data: profileData, isOwn, subs: subsData}} />;
 }
