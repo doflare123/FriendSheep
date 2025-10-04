@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import styles from '../../../styles/profile/ProfilePage.module.css';
 import section1Styles from '../../../styles/profile/ProfileSection1.module.css';
 import section2Styles from '../../../styles/profile/ProfileSection2.module.css';
@@ -66,6 +66,22 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
+  const router = useRouter();
+
+  // Функция для расчета размера шрифта в зависимости от длины текста
+  const calculateFontSize = (text: string, maxSize: number, minSize: number, maxLength: number) => {
+    const length = text.length;
+    if (length === 0) return maxSize;
+    if (length <= maxLength / 2) return maxSize;
+    
+    const ratio = Math.min(length / maxLength, 1);
+    const fontSize = maxSize - (maxSize - minSize) * ratio;
+    return Math.max(fontSize, minSize);
+  };
+
+  const nameFontSize = calculateFontSize(editedData.name, 22, 14, 40);
+  const statusFontSize = calculateFontSize(editedData.status, 16, 12, 50);
+  const usFontSize = calculateFontSize(editedData.us, 16, 12, 40);
 
   // Анимация диаграммы при загрузке
   useEffect(() => {
@@ -131,12 +147,10 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
       let imageUrl = editedData.image;
 
-      // если загружена новая аватарка → загружаем
       if (avatarFile) {
         imageUrl = await getImage(accessToken, avatarFile);
       }
 
-      // данные профиля
       const profileData: UpdateProfileRequest = {
         name: editedData.name,
         us: editedData.us,
@@ -146,7 +160,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
       await editProfile(accessToken, profileData);
 
-      // конструируем плитки
       const counters: Counters = {
         count_all: editedData.tiles.includes("count_all"),
         count_films: editedData.tiles.includes("count_films"),
@@ -157,19 +170,24 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       };
 
       await editTiles(accessToken, counters);
-
-      setIsEditMode(false);
-      setAvatarFile(null);
-
       await forceRefreshToken();
+      router.replace('/profile/' + editedData.us);
+
+      // Выходим из режима редактирования перед навигацией
+      setIsEditMode(false);
+      setIsSaving(false);
+
       showNotification(200, "Изменения успешно сохранены");
+      
+      // Используем replace для избежания записи в историю
+      
+
     } catch (error: any) {
       console.error("❌ Ошибка при сохранении профиля:", error);
       showNotification(
         error.response?.status || 500,
         "Не удалось сохранить изменения",
       );
-    } finally {
       setIsSaving(false);
     }
   };
@@ -360,15 +378,28 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     <div style={{ position: 'relative' }}>
                       <input 
                         value={editedData.name}
-                        onChange={(e) => setEditedData({...editedData, name: e.target.value})}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
+                          if (value.length <= 40) {
+                            setEditedData({...editedData, name: value});
+                          }
+                        }}
                         className={section1Styles.nameInput}
+                        style={{ fontSize: `${nameFontSize}px` }}
+                        title={editedData.name}
                       />
                       <div className={section1Styles.nameEditIcon}>
                         <Image src="/profile/edit.png" alt="edit" width={14} height={14} />
                       </div>
                     </div>
                   ) : (
-                    <h2 className={section1Styles.userName}>{editedData.name}</h2>
+                    <h2 
+                      className={section1Styles.userName}
+                      style={{ fontSize: `${nameFontSize}px` }}
+                      title={editedData.name}
+                    >
+                      {editedData.name}
+                    </h2>
                   )}
                   {profileData.enterprise && !isEditMode && (
                     <Image src="/profile/mark.png" alt="verified" width={20} height={20} className={section1Styles.verifiedMark} />
@@ -402,9 +433,16 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   <div className={section1Styles.usEditWrapper}>
                     <input 
                       value={editedData.us}
-                      onChange={(e) => setEditedData({...editedData, us: e.target.value})}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
+                        if (value.length <= 40) {
+                          setEditedData({...editedData, us: value});
+                        }
+                      }}
                       className={section1Styles.usInput}
+                      style={{ fontSize: `${usFontSize}px` }}
                       placeholder="username"
+                      title={editedData.us}
                     />
                     <div className={section1Styles.editIconUs}>
                       <Image 
@@ -416,7 +454,13 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     </div>
                   </div>
                 ) : (
-                  <p className={section1Styles.userUs}>@{editedData.us}</p>
+                  <p 
+                    className={section1Styles.userUs}
+                    style={{ fontSize: `${usFontSize}px` }}
+                    title={`@${editedData.us}`}
+                  >
+                    @{editedData.us}
+                  </p>
                 )}
               </div>
 
@@ -425,10 +469,17 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   <div className={section1Styles.statusEditWrapper}>
                     <textarea 
                       value={editedData.status}
-                      onChange={(e) => setEditedData({...editedData, status: e.target.value})}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
+                        if (value.length <= 50) {
+                          setEditedData({...editedData, status: value});
+                        }
+                      }}
                       className={section1Styles.statusInput}
+                      style={{ fontSize: `${statusFontSize}px` }}
                       rows={2}
                       placeholder="Введите статус"
+                      title={editedData.status}
                     />
                     <div className={section1Styles.statusEditIcon}>
                       <Image 
@@ -440,7 +491,13 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     </div>
                   </div>
                 ) : (
-                  <p className={section1Styles.userStatus}>{editedData.status}</p>
+                  <p 
+                    className={section1Styles.userStatus}
+                    style={{ fontSize: `${statusFontSize}px` }}
+                    title={editedData.status}
+                  >
+                    {editedData.status}
+                  </p>
                 )}
                 <div className={section1Styles.registerDate}>
                   Участник с {profileData.data_register}

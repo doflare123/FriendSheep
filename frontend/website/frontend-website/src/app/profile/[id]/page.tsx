@@ -26,9 +26,11 @@ export default function Page() {
   const [isOwn, setIsOwn] = useState(false);
   const [userId, setUserId] = useState<string>('');
 
+  const [complete, setComplete] = useState(false); 
+
   useEffect(() => {
 
-    if (!userData) {
+    if (!userData || complete) {
       return;
     }
 
@@ -65,11 +67,12 @@ export default function Page() {
         );
       } finally {
         setLoading(false);
+        setComplete(true);
       }
     };
 
     loadProfile();
-  }, [userUs, userData]); // Зависимость только от userUs, чтобы не было бесконечного цикла
+  }, [userData]); // Зависимость только от userUs, чтобы не было бесконечного цикла
 
   if (loading) {
     return (
