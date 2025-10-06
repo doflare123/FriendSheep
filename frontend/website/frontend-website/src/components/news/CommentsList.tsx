@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import styles from '@/styles/news/CommentsList.module.css';
-import { NewsComment } from '@/types/news';
+import {formatTime} from '@/Constants'
+import { Comment } from '@/types/news';
 
 interface CommentsListProps {
-  comments: NewsComment[];
+  comments: Comment[];
 }
 
 interface CommentItemProps {
-  comment: NewsComment;
+  comment: Comment;
 }
 
 function CommentItem({ comment }: CommentItemProps) {
@@ -40,7 +41,7 @@ function CommentItem({ comment }: CommentItemProps) {
           {comment.text}
         </div>
         <div className={styles.commentTime}>
-          {comment.created_time || "14:56"}
+          {formatTime(comment.created_time) || "14:56"}
         </div>
       </div>
     </div>
