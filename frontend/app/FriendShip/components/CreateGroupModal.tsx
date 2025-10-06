@@ -199,15 +199,15 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                     ))}
                   </View>
                 </View>
-                
-                <View style={styles.imageUpload}>
+                            
+                <TouchableOpacity style={styles.imageUpload}>
                   <View style={styles.uploadPlaceholder}>
                     <Image 
                       source={require('../assets/images/groups/upload_image.png')} 
                       style={styles.uploadIcon}
                     />
-                  </View>
-                </View>
+                  </View>          
+                </TouchableOpacity>
               </View>
             </View>
 

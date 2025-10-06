@@ -1,6 +1,5 @@
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -11,10 +10,20 @@ export interface Group {
   description: string;
   imageUri: string | any;
   onPress?: () => void;
+  highlightedName?: {
+    before: string;
+    match: string;
+    after: string;
+  };
+  highlightedDescription?: {
+    before: string;
+    match: string;
+    after: string;
+  };
 }
 
 interface GroupCardProps extends Group {
-  actionText: string;
+  actionText?: string;
   actionColor?: string[];
 }
 
@@ -24,119 +33,141 @@ const GroupCard: React.FC<GroupCardProps> = ({
   description,
   imageUri,
   onPress,
-  actionText,
-  actionColor = [Colors.lightBlue, Colors.blue],
+  highlightedName,
+  highlightedDescription,
 }) => {
-  return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <Image 
-          source={typeof imageUri === 'string' ? { uri: imageUri } : imageUri} 
-          style={styles.groupImage} 
-        />
-        <View style={styles.headerContent}>
-          <Text style={styles.groupName} numberOfLines={1} ellipsizeMode="tail">
-            {name}
-          </Text>
-          <View style={styles.iconsContainer}>
-            <Image
-              source={require('../assets/images/event_card/movie.png')}
-              style={styles.icon}
-            />
-            <Image
-              source={require('../assets/images/event_card/game.png')}
-              style={styles.icon}
-            />
-            <Image
-              source={require('../assets/images/event_card/table_game.png')}
-              style={styles.icon}
-            />
-          </View>
-          <View style={styles.participantsRow}>
-            <Text style={styles.participantsText}>
-              Участников: {participantsCount}
-            </Text>
-            <Image
-              source={require('../assets/images/event_card/person.png')}
-              style={styles.personIcon}
-            />
-          </View>
-        </View>
-      </View>
+  const renderHighlightedText = (
+    normalText: string,
+    highlighted: { before: string; match: string; after: string } | undefined,
+    style: any
+  ) => {
+    if (!highlighted) {
+      return <Text style={style}>{normalText}</Text>;
+    }
 
-      <Text style={styles.description} numberOfLines={2} ellipsizeMode="tail">
-        {description}
+    return (
+      <Text style={style}>
+        {highlighted.before}
+        <Text style={styles.highlight}>{highlighted.match}</Text>
+        {highlighted.after}
       </Text>
+    );
+  };
 
-      <TouchableOpacity onPress={onPress}>
-        <LinearGradient
-          colors={[Colors.blue, Colors.lightBlue]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.button}
-        >
-          <Text style={styles.buttonText}>{actionText}</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    </View>
+  return (
+    <TouchableOpacity 
+      style={styles.card}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.header}>
+        <View style={styles.content}>
+          <Image 
+            source={typeof imageUri === 'string' ? { uri: imageUri } : imageUri} 
+            style={styles.groupImage}
+          />
+        </View>
+        <View style={styles.content}>
+          <View style={styles.headerContent}>
+            {renderHighlightedText(
+              name,
+              highlightedName,
+              [styles.groupName, { numberOfLines: 2, ellipsizeMode: 'tail' }]
+            )}
+            
+            <View style={styles.iconsContainer}>
+              <Image
+                source={require('../assets/images/event_card/movie.png')}
+                style={styles.icon}
+              />
+              <Image
+                source={require('../assets/images/event_card/game.png')}
+                style={styles.icon}
+              />
+              <Image
+                source={require('../assets/images/event_card/table_game.png')}
+                style={styles.icon}
+              />
+            </View>
+            
+            {renderHighlightedText(
+              description,
+              highlightedDescription,
+              [styles.description, { numberOfLines: 3, ellipsizeMode: 'tail' }]
+            )}
+            
+            <View style={styles.participantsRow}>
+              <Text style={styles.participantsText}>
+                Участники:  {participantsCount}
+              </Text>
+              <Image
+                source={require('../assets/images/event_card/person2.png')}
+                style={styles.personIcon}
+              />
+            </View>
+          </View>
+        </View> 
+      </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    width: 320,
+    width: 360,
     alignSelf: 'center',
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: Colors.white,
-    borderColor: Colors.lightBlue,
-    borderWidth: 3,
     overflow: 'hidden',
     elevation: 4,
-    padding: 12,
-    minHeight: 180,
+    padding: 8,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     marginBottom: 12,
   },
+  content:{
+    flexDirection: 'column',
+    justifyContent: 'center',
+  },
   groupImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    resizeMode: 'cover',
+    width: 130,
+    height: 130,
+    borderRadius: 100,
+    resizeMode: 'contain',
     marginRight: 12,
   },
   headerContent: {
     flex: 1,
-    justifyContent: 'space-between',
-    height: 80,
+    justifyContent: 'flex-start',
   },
   groupName: {
-    fontFamily: inter.black,
+    width: 200,
+    fontFamily: Montserrat.bold,
     fontSize: 18,
     color: Colors.black,
-    marginBottom: 4,
   },
   iconsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8
   },
   icon: {
-    width: 20,
-    height: 20,
+    width: 16,
+    height: 16,
     resizeMode: 'contain',
     marginRight: 8,
   },
   participantsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 'auto',
   },
   participantsText: {
-    fontFamily: inter.regular,
-    fontSize: 16,
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
     color: Colors.black,
+    marginRight: 2,
   },
   personIcon: {
     width: 20,
@@ -144,24 +175,17 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   description: {
-    fontFamily: inter.regular,
+    width: 200,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     color: Colors.black,
-    lineHeight: 16,
-    marginBottom: 16,
+    lineHeight: 18,
+    marginBottom: 8,
     flex: 1,
   },
-  button: {
+  highlight: {
     backgroundColor: Colors.lightBlue,
-    borderRadius: 20,
-    paddingVertical: 4,
-    alignItems: 'center',
-    marginTop: 'auto',
-  },
-  buttonText: {
-    fontFamily: inter.regular,
-    color: Colors.white,
-    fontSize: 18,
+    color: Colors.black,
   },
 });
 

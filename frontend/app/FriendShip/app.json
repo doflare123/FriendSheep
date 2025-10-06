@@ -21,12 +21,13 @@
       "package": "com.anonymous.FriendShip"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
     },
-    "assetBundlePatterns":[
+    "assetBundlePatterns": [
       "**/*"
     ]
   }
