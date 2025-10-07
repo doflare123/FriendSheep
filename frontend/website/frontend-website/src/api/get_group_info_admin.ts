@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { GroupData } from '../types/Groups';
-import { convertCategRuToEng } from '../Constants'
+import { convertCategRuToEng, convertSessionsToEventCards } from '../Constants'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -22,7 +22,7 @@ export async function getGroupInfoAdmin(accessToken: string, groupId: number): P
       image: response.data.image,
       count_members: response.data.count_members || 0,
       users: response.data.users || [],
-      sessions: response.data.sessions || [],
+      sessions: convertSessionsToEventCards(response.data.sessions) || [],
       small_description: response.data.small_description,
       private: response.data.private
     }

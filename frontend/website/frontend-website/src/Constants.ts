@@ -1,5 +1,6 @@
 import {RawSession, RawUserDataResponse} from './types/RawEvents';
 import {EventCardProps} from './types/Events'
+import {SessionData} from './types/apiTypes'
 import {UserDataResponse} from './types/UserData'
 import { getUserInfo } from './api/profile/getOwnProfile';
 
@@ -236,3 +237,49 @@ export function formatTime(dateString: string): string {
   const minutes = date.getMinutes().toString().padStart(2, '0');
   return `${hours}:${minutes}`;
 }
+
+export const convertSessionToEventCard = (session: SessionData): EventCardProps => {
+  // Конвертируем session_type через существующую функцию
+  const typeArray = convertCategRuToEng([session.session_type]);
+  const type = typeArray.length > 0 ? typeArray[0] : 'other';
+
+  // Конвертируем session_place в location
+  const location: 'online' | 'offline' = 
+    session.session_place.toLowerCase() === 'онлайн' ? 'online' : 'offline';
+
+  return {
+    id: session.id,
+    type,
+    image: session.image_url,
+    date: formatDate(session.start_time),
+    title: session.title,
+    genres: session.genres,
+    participants: session.current_users,
+    maxParticipants: session.count_users_max,
+    duration: session.duration ? `${session.duration}` : undefined,
+    location,
+    adress: '',
+    city: session.city || undefined
+  };
+};
+
+export const convertSessionsToEventCards = (sessions: SessionData[]): EventCardProps[] => {
+  return sessions.map(convertSessionToEventCard);
+};
+
+export const convertMinutesToReadableTime = (minutes: number): string => {
+  if (minutes < 0) return '0 мин';
+  
+  if (minutes < 60) {
+    return `${minutes} мин`;
+  }
+  
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  if (mins === 0) {
+    return `${hours} ч`;
+  }
+  
+  return `${hours} ч ${mins} мин`;
+};

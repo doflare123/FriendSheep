@@ -6,83 +6,14 @@ import EventCard from '../Events/EventCard';
 import styles from '../../styles/Groups/admin/EventsManagement.module.css';
 import { EventCardProps } from '../../types/Events';
 import EventModal from '../Events/EventModal';
-import {getOwnGroups} from '../../api/get_owngroups'
-import {getAccesToken} from '../../Constants'
+import {showNotification} from '@/utils'
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { GroupData } from '../../types/Groups';
 
 interface EventsManagementComponentProps {
   groupId?: string;
+  groupData?: GroupData;
 }
-
-// Интерфейс для групп из API
-interface ApiGroup {
-  category: string[];
-  id: number;
-  image: string;
-  member_count: number;
-  name: string;
-  small_description: string;
-  type: string;
-}
-
-// Тестовые данные событий
-const mockEvents: EventCardProps[] = [
-  {
-    id: 1,
-    type: 'movies',
-    image: '/events/minecraft_movie.jpg',
-    date: '03.12.2024',
-    title: 'Minecraft в кино',
-    genres: ['Комедия', 'Фентези', 'Приключения'],
-    participants: 666,
-    maxParticipants: 666,
-    duration: '101 минуты',
-    location: 'offline',
-    adress: 'Кинотеатр "Родина"',
-    groupId: 10
-  },
-  {
-    id: 2,
-    type: 'games',
-    image: '/events/dota2_tournament.jpg',
-    date: '05.12.2024',
-    title: 'Dota 2 Tournament',
-    genres: ['MOBA', 'Командная'],
-    participants: 32,
-    maxParticipants: 64,
-    duration: '4 часа',
-    location: 'online',
-    adress: 'https://discord.gg/tournament',
-    groupId: 2
-  },
-  {
-    id: 3,
-    type: 'board',
-    image: '/events/board_games.jpg',
-    date: '07.12.2024',
-    title: 'Настольные игры',
-    genres: ['Стратегия', 'Карточные'],
-    participants: 8,
-    maxParticipants: 12,
-    duration: '3 часа',
-    location: 'offline',
-    adress: 'Антикафе "Место"',
-    groupId: 3
-  },
-  {
-    id: 4,
-    type: 'other',
-    image: '/events/meetup.jpg',
-    date: '10.12.2024',
-    title: 'IT Meetup',
-    genres: ['Программирование', 'Сети'],
-    participants: 25,
-    maxParticipants: 50,
-    duration: '2 часа',
-    location: 'online',
-    adress: 'https://meet.google.com/abc-def-ghi',
-    groupId: 4
-  }
-];
 
 interface SortOptions {
   category: 'all' | 'games' | 'movies' | 'other';
@@ -96,8 +27,8 @@ const parseDate = (dateString: string): Date => {
   return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
 };
 
-const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ groupId }) => {
-  const [events, setEvents] = useState<EventCardProps[]>(mockEvents);
+const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ groupId, groupData }) => {
+  const [events, setEvents] = useState<EventCardProps[]>(groupData.sessions);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOptions, setSortOptions] = useState<SortOptions>({
     category: 'all',
@@ -107,45 +38,14 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   
   // Состояния для модального окна
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventCardProps | undefined>(undefined);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   
-  // Состояния для групп пользователя
-  const [userGroups, setUserGroups] = useState<ApiGroup[]>([]);
-  const [userGroupIds, setUserGroupIds] = useState<Set<number>>(new Set());
-  
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
-
-  // Загрузка групп пользователя при монтировании компонента
-  useEffect(() => {
-    loadUserGroups();
-  }, []);
-
-  const loadUserGroups = async () => {
-    try {
-      const accessToken = getAccesToken() || ''; // Временное решение
-      const groups = await getOwnGroups(accessToken);
-      setUserGroups(groups);
-      
-      // Создаем Set с ID групп пользователя для быстрой проверки
-      const groupIds = new Set(groups.map((group: ApiGroup) => group.id));
-      setUserGroupIds(groupIds);
-      
-      // Фильтруем события, оставляя только те, что принадлежат группам пользователя
-      setEvents(prevEvents => 
-        prevEvents.filter(event => 
-          !event.groupId || groupIds.has(event.groupId)
-        )
-      );
-    } catch (error) {
-      console.error('Ошибка загрузки групп пользователя:', error);
-    }
-  };
 
   // Закрытие меню сортировки при клике вне его
   useEffect(() => {
@@ -167,16 +67,9 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
   // Фильтрация и сортировка событий
   const filteredAndSortedEvents = React.useMemo(() => {
     let filtered = events.filter(event => {
-      // Фильтр по названию
+      // Фильтр только по названию
       const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      // Фильтр по конкретной группе (если groupId указан)
-      const matchesGroup = !groupId || event.groupId?.toString() === groupId;
-      
-      // Фильтр по принадлежности к группам пользователя
-      const belongsToUserGroup = !event.groupId || userGroupIds.has(event.groupId);
-      
-      return matchesSearch && matchesGroup && belongsToUserGroup;
+      return matchesSearch;
     });
 
     // Применяем фильтрацию по категориям
@@ -213,7 +106,7 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     });
 
     return filtered;
-  }, [events, searchTerm, sortOptions, groupId, userGroupIds]);
+  }, [events, searchTerm, sortOptions]);
 
   // Проверка возможности скролла
   const checkScrollability = useCallback(() => {
@@ -293,20 +186,8 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     setEditingEvent(undefined);
   };
 
-  // Проверка принадлежности группы пользователю
-  const isValidGroupForUser = (groupId?: number): boolean => {
-    if (!groupId) return true; // События без группы разрешены
-    return userGroupIds.has(groupId);
-  };
-
   // Обработчик сохранения события
   const handleEventSave = (eventData: Partial<EventCardProps>) => {
-    // Проверяем, принадлежит ли выбранная группа пользователю
-    if (eventData.groupId && !isValidGroupForUser(eventData.groupId)) {
-      alert('Выбранная группа не принадлежит вам. Выберите другую группу или оставьте поле пустым.');
-      return;
-    }
-
     if (modalMode === 'create') {
       // Создание нового события
       const newEvent: EventCardProps = {
@@ -334,22 +215,13 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
       // Редактирование существующего события
       const updatedEvent = { ...editingEvent, ...eventData };
       
-      // Если группа изменилась и новая группа не принадлежит пользователю, удаляем событие
-      if (updatedEvent.groupId && !isValidGroupForUser(updatedEvent.groupId)) {
-        setEvents(prevEvents => 
-          prevEvents.filter(event => event.id !== editingEvent.id)
-        );
-        console.log('Событие удалено из-за смены группы:', editingEvent.id);
-        alert('Событие было удалено, так как выбранная группа вам не принадлежит.');
-      } else {
-        // Обновляем событие
-        setEvents(prevEvents => 
-          prevEvents.map(event => 
-            event.id === editingEvent.id ? updatedEvent : event
-          )
-        );
-        console.log('Обновлено событие:', updatedEvent);
-      }
+      // Обновляем событие
+      setEvents(prevEvents => 
+        prevEvents.map(event => 
+          event.id === editingEvent.id ? updatedEvent : event
+        )
+      );
+      console.log('Обновлено событие:', updatedEvent);
     }
     
     handleModalClose();

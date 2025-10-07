@@ -13,3 +13,18 @@ export interface UpdateProfileRequest {
   status?: string;
   us?: string;
 }
+
+export interface SessionData {
+  city: string;
+  count_users_max: number;
+  current_users: number;
+  duration: number;
+  genres: string[];
+  group_name: string;
+  id: number;
+  image_url: string;
+  session_place: string;
+  session_type: string;
+  start_time: string;
+  title: string;
+}
