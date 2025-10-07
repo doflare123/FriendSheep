@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import styles from '../../styles/search/addUserModal.module.css';
-import { getCategoryIcon } from '../../Constants';
+import { getCategoryIcon, getAccesToken } from '@/Constants';
+import {inviteGroup} from '@/api/groups/inviteGroup';
+import {showNotification} from '@/utils';
 
 interface Group {
   id: number;
@@ -70,11 +72,23 @@ export default function AddUserModal({ isOpen, onClose, userId }: AddUserModalPr
     });
   };
 
-  const handleSubmit = () => {
-    if (selectedGroups.size > 0) {
-      // Здесь будет отправка приглашений
-      console.log('Inviting user', userId, 'to groups', Array.from(selectedGroups));
-      onClose();
+  const handleSubmit = async () => {
+    if (selectedGroups.size > 0 && userId) {
+      try {
+        const accessToken = getAccesToken();
+
+        await Promise.all(
+          Array.from(selectedGroups).map(groupId =>
+            inviteGroup(accessToken, groupId, userId)
+          )
+        );
+
+        showNotification(200, `Пользователь приглашён в ${selectedGroups.size} групп(ы)`, "success");
+        onClose();
+      } catch (error: any) {
+        console.error('Ошибка при приглашении в группы:', error);
+        showNotification(error.response?.status || 500, 'Не удалось отправить приглашения', 'error');
+      }
     }
   };
 

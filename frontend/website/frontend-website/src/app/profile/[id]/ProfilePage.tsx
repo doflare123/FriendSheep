@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import styles from '../../../styles/profile/ProfilePage.module.css';
 import section1Styles from '../../../styles/profile/ProfileSection1.module.css';
 import section2Styles from '../../../styles/profile/ProfileSection2.module.css';
@@ -11,33 +11,28 @@ import section4Styles from '../../../styles/profile/ProfileSection4.module.css';
 import StatisticsTile from '../../../components/profile/StatisticsTile';
 import SubscriptionItem from '../../../components/profile/SubscriptionItem';
 import CategorySection from '../../../components/Events/CategorySection';
-import { getSocialIcon } from '../../../Constants';
+import { getSocialIcon, getAccesToken } from '../../../Constants';
 import GenrePieChart from '../../../components/profile/GenrePieChart';
 import AddUserModal from '../../../components/search/AddUserModal';
 import { UserDataResponse } from '../../../types/UserData';
-import {GroupData} from '@/types/Groups';
+import {SmallGroup} from '@/types/Groups';
+import {Counters, UpdateProfileRequest} from '@/types/apiTypes';
+import {editProfile} from '@/api/profile/editProfile';
+import {editTiles} from '@/api/profile/editTiles';
+import {getImage} from '@/api/getImage';
+
+import {useAuth} from '@/contexts/AuthContext'
+
+import {showNotification} from '@/utils';
 
 interface ProfilePageProps {
   params: {
     id: string;
     data?: UserDataResponse;
     isOwn?: boolean;
-    subs?: GroupData[];
+    subs?: SmallGroup[];
   };
 }
-
-// Временные тестовые подписки (если их нет в API)
-const testSubscriptions = [
-  {
-    id: 1,
-    name: "Группа крутых пацанят",
-    small_description: "47 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["games"]
-  },
-  // ... остальные подписки можно оставить или получать через API
-];
 
 export default function ProfilePage({ params }: ProfilePageProps) {
   // Проверка наличия данных
@@ -45,27 +40,48 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     notFound();
   }
 
+  const { forceRefreshToken } = useAuth();
   const profileData = params.data;
-  console.log("profileData", profileData);
+  const subsData = params.subs;
   const userId = parseInt(params.id);
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedData, setEditedData] = useState({
     name: profileData.name,
-    us: profileData.us, // Добавлено
+    us: profileData.us,
     status: profileData.status,
     image: profileData.image,
     tiles: [...profileData.tiles]
   });
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [animatedChart, setAnimatedChart] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
-  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [showUpArrow, setShowUpArrow] = useState(false);
   const [showDownArrow, setShowDownArrow] = useState(false);
   const [activeTab, setActiveTab] = useState<'recent' | 'upcoming'>('recent');
   const [isOwnProfile, setOwnProfile] = useState(params.isOwn || false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+
+  const [isSaving, setIsSaving] = useState(false);
+  const router = useRouter();
+
+  // Функция для расчета размера шрифта в зависимости от длины текста
+  const calculateFontSize = (text: string, maxSize: number, minSize: number, maxLength: number) => {
+    const length = text.length;
+    if (length === 0) return maxSize;
+    if (length <= maxLength / 2) return maxSize;
+    
+    const ratio = Math.min(length / maxLength, 1);
+    const fontSize = maxSize - (maxSize - minSize) * ratio;
+    return Math.max(fontSize, minSize);
+  };
+
+  const nameFontSize = calculateFontSize(editedData.name, 22, 14, 40);
+  const statusFontSize = calculateFontSize(editedData.status, 16, 12, 50);
+  const usFontSize = calculateFontSize(editedData.us, 16, 12, 40);
 
   // Анимация диаграммы при загрузке
   useEffect(() => {
@@ -118,20 +134,74 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     }
   };
 
-  const handleSave = () => {
-    // Логика сохранения (здесь нужно добавить API запрос)
-    setIsEditMode(false);
-    console.log('Сохранение данных:', editedData);
+  const handleSave = async () => {
+    const accessToken = getAccesToken();
+    if (!accessToken) {
+      console.error("❌ Нет accessToken");
+      showNotification(401, "Нет токена доступа");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      let imageUrl = editedData.image;
+
+      if (avatarFile) {
+        imageUrl = await getImage(accessToken, avatarFile);
+      }
+
+      const profileData: UpdateProfileRequest = {
+        name: editedData.name,
+        us: editedData.us,
+        status: editedData.status,
+        image: imageUrl,
+      };
+
+      await editProfile(accessToken, profileData);
+
+      const counters: Counters = {
+        count_all: editedData.tiles.includes("count_all"),
+        count_films: editedData.tiles.includes("count_films"),
+        count_games: editedData.tiles.includes("count_games"),
+        count_other: editedData.tiles.includes("count_other"),
+        count_table: editedData.tiles.includes("count_table"),
+        spent_time: editedData.tiles.includes("spent_time"),
+      };
+
+      await editTiles(accessToken, counters);
+      await forceRefreshToken();
+      router.replace('/profile/' + editedData.us);
+
+      // Выходим из режима редактирования перед навигацией
+      setIsEditMode(false);
+      setIsSaving(false);
+
+      showNotification(200, "Изменения успешно сохранены");
+      
+      // Используем replace для избежания записи в историю
+      
+
+    } catch (error: any) {
+      console.error("❌ Ошибка при сохранении профиля:", error);
+      showNotification(
+        error.response?.status || 500,
+        "Не удалось сохранить изменения",
+      );
+      setIsSaving(false);
+    }
   };
+
 
   const handleCancel = () => {
     setEditedData({
       name: profileData.name,
-      us: profileData.us, // Добавлено
+      us: profileData.us,
       status: profileData.status,
       image: profileData.image,
       tiles: [...profileData.tiles]
     });
+    setAvatarFile(null);
     setIsEditMode(false);
   };
 
@@ -143,6 +213,16 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
   const handleTileChange = (newTileType: string) => {
     if (selectedTileIndex !== null) {
+      // Проверяем, используется ли уже эта плитка
+      const isAlreadyUsed = editedData.tiles.some(
+        (tile, index) => tile === newTileType && index !== selectedTileIndex
+      );
+      
+      if (isAlreadyUsed) {
+        showNotification(400, "Эта плитка уже используется");
+        return;
+      }
+      
       const newTiles = [...editedData.tiles];
       newTiles[selectedTileIndex] = newTileType;
       setEditedData({...editedData, tiles: newTiles});
@@ -153,6 +233,24 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const handleTelegramClick = () => {
     if (!profileData.telegram_link) {
       window.open('https://t.me/FriendShipNotify_bot', '_blank');
+    }
+  };
+
+  const handleAvatarClick = () => {
+    if (isEditMode && avatarInputRef.current) {
+      avatarInputRef.current.click();
+    }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditedData({...editedData, image: reader.result as string});
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -224,10 +322,22 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               </button>
             ) : (
               <div className={section1Styles.editButtons}>
-                <button onClick={handleSave} className={section1Styles.editBtn}>
-                  <Image src="/profile/edit_save.png" alt="save" width={20} height={20} />
+                <button 
+                  onClick={handleSave} 
+                  className={section1Styles.editBtn} 
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <Image src="/loader.gif" alt="loading" width={20} height={20} />
+                  ) : (
+                    <Image src="/profile/edit_save.png" alt="save" width={20} height={20} />
+                  )}
                 </button>
-                <button onClick={handleCancel} className={section1Styles.editBtn}>
+                <button 
+                  onClick={handleCancel} 
+                  className={section1Styles.editBtn}
+                  disabled={isSaving}
+                >
                   <Image src="/profile/edit_cancel.png" alt="cancel" width={20} height={20} />
                 </button>
               </div>
@@ -242,11 +352,22 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                 width={120} 
                 height={120}
                 className={section1Styles.avatar}
+                style={{ cursor: isEditMode ? 'pointer' : 'default' }}
+                onClick={handleAvatarClick}
               />
               {isEditMode && (
-                <div className={section1Styles.editIcon}>
-                  <Image src="/profile/edit.png" alt="edit" width={16} height={16} />
-                </div>
+                <>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className={section1Styles.avatarInput}
+                  />
+                  <div className={section1Styles.avatarEditIcon} onClick={handleAvatarClick}>
+                    <Image src="/profile/edit.png" alt="edit" width={16} height={16} />
+                  </div>
+                </>
               )}
             </div>
 
@@ -254,26 +375,41 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               <div className={section1Styles.userNameContainer}>
                 <div className={section1Styles.nameWrapper}>
                   {isEditMode ? (
-                    <input 
-                      value={editedData.name}
-                      onChange={(e) => setEditedData({...editedData, name: e.target.value})}
-                      className={section1Styles.nameInput}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        value={editedData.name}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
+                          if (value.length <= 40) {
+                            setEditedData({...editedData, name: value});
+                          }
+                        }}
+                        className={section1Styles.nameInput}
+                        style={{ fontSize: `${nameFontSize}px` }}
+                        title={editedData.name}
+                      />
+                      <div className={section1Styles.nameEditIcon}>
+                        <Image src="/profile/edit.png" alt="edit" width={14} height={14} />
+                      </div>
+                    </div>
                   ) : (
-                    <h2 className={section1Styles.userName}>{editedData.name}</h2>
+                    <h2 
+                      className={section1Styles.userName}
+                      style={{ fontSize: `${nameFontSize}px` }}
+                      title={editedData.name}
+                    >
+                      {editedData.name}
+                    </h2>
                   )}
                   {profileData.enterprise && !isEditMode && (
                     <Image src="/profile/mark.png" alt="verified" width={20} height={20} className={section1Styles.verifiedMark} />
-                  )}
-                  {isEditMode && (
-                    <Image src="/profile/edit.png" alt="edit" width={16} height={16} className={section1Styles.editIcon} />
                   )}
                 </div>
                 
                 {isOwnProfile && !isEditMode && (
                   <div className={section1Styles.telegramContainer}>
                     <div 
-                      className={`${section1Styles.telegramIcon}`}
+                      className={section1Styles.telegramIcon}
                       onClick={handleTelegramClick}
                     >
                       <Image 
@@ -297,20 +433,34 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   <div className={section1Styles.usEditWrapper}>
                     <input 
                       value={editedData.us}
-                      onChange={(e) => setEditedData({...editedData, us: e.target.value})}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
+                        if (value.length <= 40) {
+                          setEditedData({...editedData, us: value});
+                        }
+                      }}
                       className={section1Styles.usInput}
+                      style={{ fontSize: `${usFontSize}px` }}
                       placeholder="username"
+                      title={editedData.us}
                     />
-                    <Image 
-                      src="/profile/edit.png" 
-                      alt="edit" 
-                      width={14} 
-                      height={14} 
-                      className={section1Styles.editIconUs} 
-                    />
+                    <div className={section1Styles.editIconUs}>
+                      <Image 
+                        src="/profile/edit.png" 
+                        alt="edit" 
+                        width={14} 
+                        height={14}
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <p className={section1Styles.userUs}>@{editedData.us}</p>
+                  <p 
+                    className={section1Styles.userUs}
+                    style={{ fontSize: `${usFontSize}px` }}
+                    title={`@${editedData.us}`}
+                  >
+                    @{editedData.us}
+                  </p>
                 )}
               </div>
 
@@ -319,21 +469,35 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   <div className={section1Styles.statusEditWrapper}>
                     <textarea 
                       value={editedData.status}
-                      onChange={(e) => setEditedData({...editedData, status: e.target.value})}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
+                        if (value.length <= 50) {
+                          setEditedData({...editedData, status: value});
+                        }
+                      }}
                       className={section1Styles.statusInput}
+                      style={{ fontSize: `${statusFontSize}px` }}
                       rows={2}
                       placeholder="Введите статус"
+                      title={editedData.status}
                     />
-                    <Image 
-                      src="/profile/edit.png" 
-                      alt="edit" 
-                      width={14} 
-                      height={14} 
-                      className={section1Styles.editIconStatus} 
-                    />
+                    <div className={section1Styles.statusEditIcon}>
+                      <Image 
+                        src="/profile/edit.png" 
+                        alt="edit" 
+                        width={14} 
+                        height={14}
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <p className={section1Styles.userStatus}>{editedData.status}</p>
+                  <p 
+                    className={section1Styles.userStatus}
+                    style={{ fontSize: `${statusFontSize}px` }}
+                    title={editedData.status}
+                  >
+                    {editedData.status}
+                  </p>
                 )}
                 <div className={section1Styles.registerDate}>
                   Участник с {profileData.data_register}
@@ -350,14 +514,14 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   <Image 
                     src={getTileIcon(tileType)} 
                     alt={tileType} 
-                    width={24} 
-                    height={24}
+                    width={42} 
+                    height={42}
                   />
                 </div>
                 <div className={section1Styles.tileValue}>{getTileValue(tileType)}</div>
                 <div className={section1Styles.tileLabel}>{getTileLabel(tileType)}</div>
                 {isEditMode && (
-                  <div className={section1Styles.editIcon}>
+                  <div className={section1Styles.tileEditIcon}>
                     <Image src="/profile/edit.png" alt="edit" width={12} height={12} />
                   </div>
                 )}
@@ -390,18 +554,20 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           )}
 
           {/* Топ жанров */}
-          <div className={section1Styles.topGenres}>
-            <h4>Топ любимых жанров:</h4>
-            <div className={section1Styles.genresList}>
-              {profileData.popular_genres.map((genre, index) => (
-                <div key={index} className={section1Styles.genreItem}>
-                  <span className={section1Styles.genreNumber}>{index + 1}.</span>
-                  <span className={section1Styles.genreName}>{genre.name}</span>
-                  <span className={section1Styles.genreCount}>{genre.count}</span>
-                </div>
-              ))}
+          {profileData.popular_genres.length > 0 && (
+            <div className={section1Styles.topGenres}>
+              <h4>Топ любимых жанров:</h4>
+              <div className={section1Styles.genresList}>
+                {profileData.popular_genres.map((genre, index) => (
+                  <div key={index} className={section1Styles.genreItem}>
+                    <span className={section1Styles.genreNumber}>{index + 1}.</span>
+                    <span className={section1Styles.genreName}>{genre.name}</span>
+                    <span className={section1Styles.genreCount}>{genre.count}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Секция 2: Статистика */}
@@ -411,18 +577,24 @@ export default function ProfilePage({ params }: ProfilePageProps) {
             {/* Диаграмма жанров */}
             <div className={section2Styles.chartContainer}>
               <div className={section2Styles.chartWrapper}>
-                <div className={section2Styles.chartWithLegend}>
-                  <GenrePieChart data={chartData} animated={animatedChart} />
-                  <div className={section2Styles.customLegend}>
-                    <h4 className={section2Styles.genresTitle}>Жанры:</h4>
-                    {chartData.map((entry, index) => (
-                      <div key={index} className={section2Styles.legendItem}>
-                        <span className={section2Styles.legendNumber}>{index + 1}.</span>
-                        <span className={section2Styles.legendName}>{entry.name}</span>
-                      </div>
-                    ))}
+                {profileData.popular_genres.length > 0 ? (
+                  <div className={section2Styles.chartWithLegend}>
+                    <GenrePieChart data={chartData} animated={animatedChart} />
+                    <div className={section2Styles.customLegend}>
+                      <h4 className={section2Styles.genresTitle}>Жанры:</h4>
+                      {chartData.map((entry, index) => (
+                        <div key={index} className={section2Styles.legendItem}>
+                          <span className={section2Styles.legendNumber}>{index + 1}.</span>
+                          <span className={section2Styles.legendName}>{entry.name}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className={styles.emptyPlaceholder}>
+                    Здесь пока пусто
+                  </div>
+                )}
               </div>
             </div>
 
@@ -468,15 +640,21 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               ref={scrollRef}
               onScroll={handleScroll}
             >
-              {testSubscriptions.map((group) => (
-                <SubscriptionItem
-                  key={group.id}
-                  id={group.id}
-                  name={group.name}
-                  small_description={group.small_description}
-                  image={group.image}
-                />
-              ))}
+              {subsData && subsData.length > 0 ? (
+                subsData.map((group) => (
+                  <SubscriptionItem
+                    key={group.id}
+                    id={group.id}
+                    name={group.name}
+                    small_description={group.small_description}
+                    image={group.image}
+                  />
+                ))
+              ) : (
+                <div className={styles.emptyPlaceholder}>
+                  Здесь пока пусто
+                </div>
+              )}
             </div>
 
             {showDownArrow && (
@@ -502,6 +680,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   className={`${section4Styles.tabButton} ${activeTab === 'recent' ? section4Styles.active : ''}`}
                   onClick={() => setActiveTab('recent')}
                   aria-pressed={activeTab === 'recent'}
+                  title = "Завершенные события"
                 >
                   <Image
                     src="/profile/recent_sessions.png"
@@ -516,6 +695,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   className={`${section4Styles.tabButton} ${activeTab === 'upcoming' ? section4Styles.active : ''}`}
                   onClick={() => setActiveTab('upcoming')}
                   aria-pressed={activeTab === 'upcoming'}
+                  title = "Наступающие события"
                 >
                   <Image
                     src="/profile/upcoming_sessions.png"
@@ -529,17 +709,26 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           </div>
 
           <div className={section4Styles.content}>
-            <CategorySection
-              section={
-                isOwnProfile 
-                  ? (activeTab === 'recent'
-                      ? {categories: profileData.recent_sessions}
-                      : {categories: profileData.upcoming_sessions})
-                  : {categories: profileData.recent_sessions}
-              }
-              title=""
-              showCategoryLabel={false}
-            />
+            {(() => {
+              const sessions = isOwnProfile 
+                ? (activeTab === 'recent' ? profileData.recent_sessions : profileData.upcoming_sessions)
+                : profileData.recent_sessions;
+              
+              const hasEvents = sessions && sessions.length > 0 && 
+                sessions.some(cat => cat.events && cat.events.length > 0);
+              
+              return hasEvents ? (
+                <CategorySection
+                  section={{categories: sessions}}
+                  title=""
+                  showCategoryLabel={false}
+                />
+              ) : (
+                <div className={styles.emptyPlaceholderEvents}>
+                  Здесь пока пусто
+                </div>
+              );
+            })()}
           </div>
         </div>
         

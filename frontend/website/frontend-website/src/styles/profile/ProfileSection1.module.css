@@ -6,7 +6,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  overflow: visible; /* Изменено для показа tooltip */
+  overflow: visible;
 }
 
 .settingsButton {
@@ -52,6 +52,27 @@
   object-fit: cover;
 }
 
+.avatarEditIcon {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: white;
+  border-radius: 50%;
+  padding: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: transform 0.2s;
+  z-index: 5;
+}
+
+.avatarEditIcon:hover {
+  transform: scale(1.1);
+}
+
+.avatarInput {
+  display: none;
+}
+
 .userInfo {
   flex: 1;
   display: flex;
@@ -79,6 +100,10 @@
   font-weight: bold;
   color: #000;
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 125px;
 }
 
 .nameInput {
@@ -91,13 +116,15 @@
   background: white;
   max-width: 180px;
   box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .verifiedMark {
   margin-left: 4px;
 }
 
-/* Обновленные стили для tooltip */
 .telegramContainer {
   position: relative;
   z-index: 10;
@@ -120,7 +147,7 @@
 .tooltip {
   display: none;
   position: absolute;
-  bottom: calc(100% + 8px); /* Позиционируем над иконкой, треугольник касается края иконки */
+  bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
   background: white;
@@ -130,7 +157,7 @@
   border-radius: 12px;
   font-size: 14px;
   white-space: normal;
-  width: 450px; /* Немного уменьшил ширину */
+  width: 450px;
   z-index: 9999;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   line-height: 1.4;
@@ -138,7 +165,6 @@
   pointer-events: none;
 }
 
-/* Треугольник снизу tooltip'а */
 .tooltip::after {
   content: '';
   position: absolute;
@@ -152,7 +178,6 @@
   border-top: 8px solid #37A2E6;
 }
 
-/* Внутренний треугольник для создания белого центра */
 .tooltip::before {
   content: '';
   position: absolute;
@@ -167,7 +192,6 @@
   z-index: 1;
 }
 
-/* Стиль для выделения ссылки на бота */
 .botLink {
   color: #37A2E6;
   font-weight: 600;
@@ -183,6 +207,13 @@
   font-size: 16px;
   margin: 0;
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 175px;
+}
+
+.statusEditWrapper {
+  position: relative;
 }
 
 .statusInput {
@@ -195,6 +226,18 @@
   resize: none;
   box-sizing: border-box;
   font-family: 'Inter', sans-serif;
+  padding: 8px;
+}
+
+.statusEditIcon {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: white;
+  border-radius: 50%;
+  padding: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 1;
 }
 
 .userContainer {
@@ -247,16 +290,6 @@
   text-align: right;
 }
 
-.editIcon {
-  position: absolute;
-  top: -5px;
-  right: -20px;
-  background: white;
-  border-radius: 50%;
-  padding: 2px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
 .userUsContainer {
   margin-top: 4px;
   margin-bottom: 8px;
@@ -267,19 +300,15 @@
   font-size: 16px;
   font-weight: 500;
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
 }
 
 .usEditWrapper {
-  display: flex;
-  align-items: center;
-  gap: 4px;
   position: relative;
-}
-
-.atSymbol {
-  color: #666;
-  font-size: 16px;
-  font-weight: 500;
+  display: inline-block;
 }
 
 .usInput {
@@ -292,15 +321,31 @@
   background: white;
   width: 150px;
   box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .editIconUs {
   position: absolute;
-  right: 1px;
+  top: -6px;
+  right: -6px;
   background: white;
   border-radius: 50%;
   padding: 2px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.nameEditIcon {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: white;
+  border-radius: 50%;
+  padding: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 1;
 }
 
 /* Статистические плитки */
@@ -315,16 +360,16 @@
   background: white;
   border: 2px solid #37A2E6;
   border-radius: 12px;
-  padding: 10px;
+  padding: 5px;
   text-align: center;
   position: relative;
   transition: transform 0.2s;
-  aspect-ratio: 1/0.5;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  cursor: pointer; /* Добавлен cursor для кликабельности */
+  cursor: pointer;
+  height: 115px;
 }
 
 .statTile:hover {
@@ -332,7 +377,6 @@
 }
 
 .tileIcon {
-  margin-bottom: 6px;
   display: flex;
   justify-content: center;
 }
@@ -341,13 +385,23 @@
   font-size: 24px;
   font-weight: bold;
   color: #000;
-  margin-bottom: 2px;
 }
 
 .tileLabel {
   font-size: 16px;
   color: #000;
   font-weight: bold;
+}
+
+.tileEditIcon {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: white;
+  border-radius: 50%;
+  padding: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 1;
 }
 
 /* Модальное окно выбора плитки */
@@ -489,7 +543,6 @@
   pointer-events: none;
 }
 
-/* Треугольник снизу tooltip'а */
 .addUserTooltip::after {
   content: '';
   position: absolute;
@@ -503,7 +556,6 @@
   border-top: 8px solid #37A2E6;
 }
 
-/* Внутренний треугольник для создания белого центра */
 .addUserTooltip::before {
   content: '';
   position: absolute;
