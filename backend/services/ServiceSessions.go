@@ -34,7 +34,7 @@ type SessionInput struct {
 	Year      *int   `form:"year"`
 	Country   string `form:"country"`
 	AgeLimit  string `form:"age_limit"`
-	Notes     string `form:"notes" binding:"min=5,max=300"`
+	Notes     string `form:"notes" binding:"min=0,max=300"`
 }
 
 type SearchSessionsRequest struct {
@@ -265,7 +265,6 @@ func JoinToSession(email *string, input SessionJoinInput) error {
 		dbTx.Rollback()
 		return fmt.Errorf("сессия не найдена: %v", err)
 	}
-	fmt.Println(session.Group.IsPrivate, "dfkjsldkfjlsdkjflskdjflsdjflsdkjf")
 
 	if session.Group.IsPrivate == true {
 		var groupUser groups.GroupUsers
