@@ -26,6 +26,17 @@ export const convertCategRuToEng = (categoryIds: string[]): ('games' | 'movies' 
     return categoryIds.map(id => idMap[id]).filter(category => category !== undefined);
 };
 
+export const convertCategEngToRu = (categories: ('games' | 'movies' | 'board' | 'other')[]): string[] => {
+  const categoryMap: { [key: string]: string } = {
+    'movies': 'Фильмы',
+    'games': 'Игры',
+    'board': 'Настольные игры',
+    'other': 'Другое'
+  };
+  
+  return categories.map(category => categoryMap[category]).filter(name => name !== undefined);
+};
+
 export const convertIdsToCategories = (categoryIds: number[]): ('games' | 'movies' | 'board' | 'other')[] => {
     const idMap: { [key: number]: 'games' | 'movies' | 'board' | 'other' } = {
       1: 'movies',    // Фильмы
@@ -247,6 +258,19 @@ export const convertSessionToEventCard = (session: SessionData): EventCardProps 
   const location: 'online' | 'offline' = 
     session.session_place.toLowerCase() === 'онлайн' ? 'online' : 'offline';
 
+  // Парсим fields для извлечения publisher
+  let publisher: string | undefined;
+  if (session.fields) {
+    const fieldsArray = session.fields.split(',');
+    for (const field of fieldsArray) {
+      const [key, value] = field.split(':').map(s => s.trim());
+      if (key === 'publisher') {
+        publisher = value;
+        break;
+      }
+    }
+  }
+
   return {
     id: session.id,
     type,
@@ -259,7 +283,8 @@ export const convertSessionToEventCard = (session: SessionData): EventCardProps 
     duration: session.duration ? `${session.duration}` : undefined,
     location,
     adress: '',
-    city: session.city || undefined
+    city: session.city || undefined,
+    publisher
   };
 };
 
@@ -282,4 +307,58 @@ export const convertMinutesToReadableTime = (minutes: number): string => {
   }
   
   return `${hours} ч ${mins} мин`;
+};
+
+export const convertToRFC3339 = (datetimeLocal: string): string => {
+  if (!datetimeLocal) return '';
+  
+  const date = new Date(datetimeLocal);
+  
+  // Получаем смещение часового пояса в минутах
+  const timezoneOffset = -date.getTimezoneOffset();
+  const offsetHours = Math.floor(Math.abs(timezoneOffset) / 60);
+  const offsetMinutes = Math.abs(timezoneOffset) % 60;
+  const offsetSign = timezoneOffset >= 0 ? '+' : '-';
+  
+  // Форматируем смещение как +02:00 или -05:00
+  const timezoneString = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
+  
+  // Форматируем дату в ISO формат и добавляем часовой пояс
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${timezoneString}`;
+};
+
+export const convertFromRFC3339 = (rfc3339: string): string => {
+  if (!rfc3339) return '';
+  
+  const date = new Date(rfc3339);
+  
+  // Форматируем в datetime-local формат
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+export const parseDuration = (duration?: string): number | undefined => {
+  if (!duration) return undefined;
+  
+  const match = duration.match(/(\d+)/);
+  return match ? parseInt(match[1]) : undefined;
+};
+
+export const truncateText = (text: string, maxLength: number = 300): string => {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  
+  return text.substring(0, maxLength).trim() + '...';
 };

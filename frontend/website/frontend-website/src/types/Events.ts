@@ -13,6 +13,7 @@ export interface EventCardProps {
     duration?: string;
     location: 'online' | 'offline';   // пока заглушка, сервер не даёт
     adress: string;                   // серверный location
+    publisher?: string;
     city?: string;
     scale?: number;
     isEditMode?: boolean;

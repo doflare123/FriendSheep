@@ -6,7 +6,7 @@ import EventCard from '../Events/EventCard';
 import styles from '../../styles/Groups/admin/EventsManagement.module.css';
 import { EventCardProps } from '../../types/Events';
 import EventModal from '../Events/EventModal';
-import {showNotification} from '@/utils'
+import { showNotification } from '@/utils';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import { GroupData } from '../../types/Groups';
 
@@ -21,7 +21,6 @@ interface SortOptions {
   participants: 'participants_asc' | 'participants_desc';
 }
 
-// Функция для преобразования даты из формата DD.MM.YYYY в Date
 const parseDate = (dateString: string): Date => {
   const [day, month, year] = dateString.split('.');
   return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
@@ -39,7 +38,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
   
-  // Состояния для модального окна
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventCardProps | undefined>(undefined);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -47,7 +45,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
 
-  // Закрытие меню сортировки при клике вне его
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
@@ -64,15 +61,12 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     };
   }, [showSortMenu]);
 
-  // Фильтрация и сортировка событий
   const filteredAndSortedEvents = React.useMemo(() => {
     let filtered = events.filter(event => {
-      // Фильтр только по названию
       const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesSearch;
     });
 
-    // Применяем фильтрацию по категориям
     if (sortOptions.category !== 'all') {
       if (sortOptions.category === 'other') {
         filtered = filtered.filter(event => event.type === 'other' || event.type === 'board');
@@ -82,7 +76,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     }
 
     filtered = filtered.sort((a, b) => {
-      // Сначала сортируем по дате
       const dateA = parseDate(a.date).getTime();
       const dateB = parseDate(b.date).getTime();
       
@@ -93,7 +86,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
         dateComparison = dateB - dateA;
       }
       
-      // Если даты одинаковые, сортируем по участникам
       if (dateComparison === 0) {
         if (sortOptions.participants === 'participants_asc') {
           return a.participants - b.participants;
@@ -108,7 +100,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     return filtered;
   }, [events, searchTerm, sortOptions]);
 
-  // Проверка возможности скролла
   const checkScrollability = useCallback(() => {
     if (scrollContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
@@ -119,7 +110,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     }
   }, []);
 
-  // Проверяем скролл при изменении данных
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       checkScrollability();
@@ -128,12 +118,10 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     return () => clearTimeout(timeoutId);
   }, [filteredAndSortedEvents, checkScrollability]);
 
-  // Проверяем скролл при монтировании компонента
   useEffect(() => {
     checkScrollability();
   }, [checkScrollability]);
 
-  // Обработчик изменения размера окна
   useEffect(() => {
     const handleResize = () => {
       checkScrollability();
@@ -143,7 +131,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     return () => window.removeEventListener('resize', handleResize);
   }, [checkScrollability]);
 
-  // Скролл вверх
   const scrollUp = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({
@@ -153,7 +140,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     }
   };
 
-  // Скролл вниз
   const scrollDown = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({
@@ -163,7 +149,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     }
   };
 
-  // Обработчик редактирования события
   const handleEditEvent = (eventId: number) => {
     const eventToEdit = events.find(event => event.id === eventId);
     if (eventToEdit) {
@@ -173,61 +158,27 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     }
   };
 
-  // Обработчик создания нового события
   const handleCreateEvent = () => {
     setEditingEvent(undefined);
     setModalMode('create');
     setIsModalOpen(true);
   };
 
-  // Обработчик закрытия модального окна
   const handleModalClose = () => {
     setIsModalOpen(false);
     setEditingEvent(undefined);
   };
 
-  // Обработчик сохранения события
-  const handleEventSave = (eventData: Partial<EventCardProps>) => {
-    if (modalMode === 'create') {
-      // Создание нового события
-      const newEvent: EventCardProps = {
-        id: Math.max(...events.map(e => e.id)) + 1,
-        type: eventData.type || 'other',
-        image: eventData.image || '/default/load_img.png',
-        date: eventData.date || '',
-        title: eventData.title || '',
-        genres: eventData.genres || [],
-        participants: eventData.participants || 0,
-        maxParticipants: eventData.maxParticipants || 0,
-        duration: eventData.duration || '',
-        location: eventData.location || 'offline',
-        adress: eventData.adress || '',
-        description: eventData.description,
-        publisher: eventData.publisher,
-        year: eventData.year,
-        ageLimit: eventData.ageLimit,
-        groupId: eventData.groupId
-      };
-      
-      setEvents(prevEvents => [...prevEvents, newEvent]);
-      console.log('Создано новое событие:', newEvent);
-    } else if (modalMode === 'edit' && editingEvent) {
-      // Редактирование существующего события
-      const updatedEvent = { ...editingEvent, ...eventData };
-      
-      // Обновляем событие
-      setEvents(prevEvents => 
-        prevEvents.map(event => 
-          event.id === editingEvent.id ? updatedEvent : event
-        )
-      );
-      console.log('Обновлено событие:', updatedEvent);
-    }
+  // Перезагрузка списка событий после создания
+  const handleEventSave = () => {
+    // TODO: Здесь нужно будет добавить запрос на получение обновленного списка событий
+    // Например: loadEvents(groupId);
+    console.log('Событие сохранено, требуется перезагрузка списка');
     
+    // Закрываем модальное окно
     handleModalClose();
   };
 
-  // Обработчик удаления события
   const handleEventDelete = () => {
     if (editingEvent) {
       setEvents(prevEvents => 
@@ -238,7 +189,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     }
   };
 
-  // Обработчики для сортировки
   const handleCategoryChange = (category: 'all' | 'games' | 'movies' | 'other') => {
     setSortOptions(prev => ({ ...prev, category }));
     setShowSortMenu(false);
@@ -256,7 +206,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
 
   return (
     <div className={styles.eventsContainer}>
-      {/* Поиск с кнопкой сортировки и кнопкой создания */}
       <div className={styles.controlsSection}>
         <div className={styles.searchWrapper}>
           <input
@@ -273,7 +222,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
             <Image src="/sorting.png" alt="sorting" width={20} height={20} />
           </button>
           
-          {/* Выпадающее меню сортировки */}
           {showSortMenu && (
             <div ref={sortMenuRef} className={styles.sortMenu}>
               <div className={styles.sortGroup}>
@@ -363,7 +311,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
           )}
         </div>
 
-        {/* Кнопка создания события */}
         <button 
           className={styles.createButton}
           onClick={handleCreateEvent}
@@ -372,16 +319,13 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
         </button>
       </div>
 
-      {/* Список событий с вертикальным скроллом */}
       <div className={styles.eventsList}>
-        {/* Стрелка вверх */}
         {canScrollUp && (
           <button className={`${styles.scrollButton} ${styles.scrollUp}`} onClick={scrollUp}>
             ↑
           </button>
         )}
 
-        {/* Контейнер со скроллом */}
         <div 
           ref={scrollContainerRef}
           className={styles.scrollContainer}
@@ -410,7 +354,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
           )}
         </div>
 
-        {/* Стрелка вниз */}
         {canScrollDown && (
           <button className={`${styles.scrollButton} ${styles.scrollDown}`} onClick={scrollDown}>
             ↓
@@ -418,7 +361,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
         )}
       </div>
 
-      {/* Модальное окно для создания/редактирования событий */}
       <EventModal
         isOpen={isModalOpen}
         onClose={handleModalClose}

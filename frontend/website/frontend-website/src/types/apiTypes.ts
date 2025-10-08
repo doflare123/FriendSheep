@@ -27,4 +27,5 @@ export interface SessionData {
   session_type: string;
   start_time: string;
   title: string;
+  fields?: string;
 }

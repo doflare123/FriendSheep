@@ -17,7 +17,7 @@ export async function addEvent(accessToken: string,
     country?: string,
     age_limit?: string,
     notes?: string,
-    image?: File,
+    image?: string,
 ): Promise<void> {
   try {
     const data = new FormData();
@@ -39,6 +39,7 @@ export async function addEvent(accessToken: string,
     if (notes) data.append('notes', notes);
     if (image) data.append('image', image);
 
+    console.log(data);
     await axios.post(`${API_URL}/api/sessions/createSession`, data, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,

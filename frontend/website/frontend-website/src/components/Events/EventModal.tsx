@@ -5,13 +5,18 @@ import MapModal from './MapModal';
 import { EventCardProps } from '../../types/Events';
 import { GroupData } from '../../types/Groups';
 import { kinopoiskAPI, PlaceInfo } from '../../lib/api';
-import {getCategoryIcon, getAccesToken} from '../../Constants'
-import {getOwnGroups} from '../../api/get_owngroups'
+import { getCategoryIcon, getAccesToken, convertToRFC3339, parseDuration, convertCategEngToRu } from '../../Constants';
+import { getOwnGroups } from '../../api/get_owngroups';
+import { addEvent } from '@/api/events/addEvent';
+import { getImage } from '@/api/getImage';
+import { getGenres } from '@/api/events/getGenres';
+import { showNotification } from '@/utils';
+import LoadingIndicator from '@/components/LoadingIndicator';
 
 interface EventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (eventData: Partial<EventCardProps>) => void;
+  onSave: () => void;
   onDelete?: () => void;
   eventData?: Partial<EventCardProps>;
   mode?: 'create' | 'edit';
@@ -24,13 +29,6 @@ const CATEGORIES = [
   { id: 'other', icon: getCategoryIcon("other") }
 ];
 
-const GENRES = [
-  'Экшн', 'Комедия', 'Драма', 'Ужасы', 'Фантастика', 'Триллер',
-  'Романтика', 'Приключения', 'Криминал', 'Детектив', 'Военный',
-  'Биография', 'История', 'Мюзикл', 'Семейный', 'Анимация'
-];
-
-// Интерфейс для групп из API
 interface ApiGroup {
   category: string[];
   id: number;
@@ -41,7 +39,6 @@ interface ApiGroup {
   type: string;
 }
 
-// Интерфейс для ошибок валидации
 interface ValidationErrors {
   title?: string;
   genres?: string;
@@ -81,19 +78,23 @@ export default function EventModal({
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [kinopoiskImageUrl, setKinopoiskImageUrl] = useState<string | null>(null);
   
-  // Состояния для групп
   const [groups, setGroups] = useState<ApiGroup[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupsError, setGroupsError] = useState<string | null>(null);
-
-  // Состояние для ошибок валидации
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [isCreating, setIsCreating] = useState(false);
+  
+  const [genres, setGenres] = useState<string[]>([]);
+  const [genresLoading, setGenresLoading] = useState(false);
+  const [genresError, setGenresError] = useState<string | null>(null);
 
-  // Загрузка групп при открытии модала
   useEffect(() => {
     if (isOpen) {
       loadGroups();
+      loadGenres();
     }
   }, [isOpen]);
 
@@ -102,15 +103,32 @@ export default function EventModal({
     setGroupsError(null);
     
     try {
-      const accessToken = getAccesToken() || ''; // Временное решение
+      const accessToken = getAccesToken() || '';
       const groupsData = await getOwnGroups(accessToken);
       setGroups(groupsData);
     } catch (error) {
       console.error('Ошибка загрузки групп:', error);
       setGroupsError('Не удалось загрузить группы');
-      setGroups([]); // Устанавливаем пустой массив при ошибке
+      setGroups([]);
     } finally {
       setGroupsLoading(false);
+    }
+  };
+
+  const loadGenres = async () => {
+    setGenresLoading(true);
+    setGenresError(null);
+    
+    try {
+      const accessToken = getAccesToken() || '';
+      const genresData = await getGenres(accessToken);
+      setGenres(genresData);
+    } catch (error) {
+      console.error('Ошибка загрузки жанров:', error);
+      setGenresError('Не удалось загрузить жанры');
+      setGenres([]);
+    } finally {
+      setGenresLoading(false);
     }
   };
 
@@ -123,11 +141,9 @@ export default function EventModal({
       setAgeLimit(eventData.ageLimit || '');
       setSelectedGroup(eventData.groupId || null);
       
-      // Определяем режим онлайн/офлайн по location
       const isEventOnline = eventData.location === 'online';
       setIsOnline(isEventOnline);
       
-      // Если данные не содержат location в новом формате, определяем по старому
       if (eventData.location !== 'online' && eventData.location !== 'offline') {
         if (eventData.location?.includes('онлайн') || eventData.location?.includes('online')) {
           setIsOnline(true);
@@ -138,7 +154,6 @@ export default function EventModal({
         }
       }
     } else {
-      // Сброс всех полей при создании нового события
       setFormData({
         title: '',
         type: 'movies',
@@ -157,43 +172,38 @@ export default function EventModal({
       setAgeLimit('');
       setIsOnline(false);
       setSelectedGroup(null);
+      setImageFile(null);
+      setKinopoiskImageUrl(null);
     }
     setShowGenreSelector(false);
-    setValidationErrors({}); // Сбрасываем ошибки валидации
+    setValidationErrors({});
   }, [eventData, isOpen]);
 
   if (!isOpen) return null;
 
-  // Функция валидации обязательных полей
   const validateForm = (): boolean => {
     const errors: ValidationErrors = {};
 
-    // Проверка названия
     if (!formData.title || formData.title.trim() === '') {
       errors.title = 'Название обязательно для заполнения';
     }
 
-    // Проверка жанров
     if (!formData.genres || formData.genres.length === 0) {
       errors.genres = 'Необходимо выбрать хотя бы один жанр';
     }
 
-    // Проверка количества участников
     if (!formData.maxParticipants || formData.maxParticipants <= 0) {
       errors.maxParticipants = 'Укажите количество участников (больше 0)';
     }
 
-    // Проверка группы
     if (!selectedGroup) {
       errors.selectedGroup = 'Необходимо выбрать группу';
     }
 
-    // Проверка картинки
-    if (!formData.image || formData.image === '') {
+    if (!imageFile && !kinopoiskImageUrl && !formData.image) {
       errors.image = 'Необходимо загрузить изображение';
     }
 
-    // Проверка даты и времени
     if (!formData.date || formData.date === '') {
       errors.date = 'Необходимо указать дату и время события';
     }
@@ -214,32 +224,93 @@ export default function EventModal({
         : [...(prev.genres || []), genre]
     }));
     
-    // Очищаем ошибку жанров при выборе
     if (validationErrors.genres) {
       setValidationErrors(prev => ({ ...prev, genres: undefined }));
     }
   };
 
-  const handleSave = () => {
-    // Проверяем валидность формы
+  const handleSave = async () => {
     if (!validateForm()) {
       return;
     }
 
-    const eventToSave = {
-      ...formData,
-      description,
-      publisher,
-      year: year ? parseInt(year) : undefined,
-      ageLimit,
-      groupId: selectedGroup
-    };
-    onSave(eventToSave);
+    if (mode === 'create') {
+      await handleCreateEvent();
+    } else {
+      const eventToSave = {
+        ...formData,
+        description,
+        publisher,
+        year: year ? parseInt(year) : undefined,
+        ageLimit,
+        groupId: selectedGroup
+      };
+      onSave();
+    }
+  };
+
+  const handleCreateEvent = async () => {
+    setIsCreating(true);
+    
+    try {
+      const accessToken = getAccesToken();
+      if (!accessToken) {
+        showNotification(401, 'Необходима авторизация');
+        return;
+      }
+
+      const startTimeRFC3339 = convertToRFC3339(formData.date!);
+      const sessionPlace = isOnline ? 1 : 0;
+      const genresString = formData.genres!.join(',');
+      const durationMinutes = parseDuration(formData.duration);
+      
+      const sessionTypeRu = convertCategEngToRu([formData.type!])[0] || 'Другое';
+      
+      let fieldsString = '';
+      if (publisher) {
+        fieldsString = `publisher:${publisher}`;
+      }
+
+      // Передаем либо imageFile, либо kinopoiskImageUrl
+      const imageToSend = imageFile || kinopoiskImageUrl || undefined;
+
+      await addEvent(
+        accessToken,
+        formData.title!,
+        sessionTypeRu,
+        sessionPlace,
+        selectedGroup!,
+        startTimeRFC3339,
+        formData.maxParticipants!,
+        durationMinutes,
+        genresString,
+        fieldsString || undefined,
+        formData.adress || undefined,
+        year ? parseInt(year) : undefined,
+        undefined,
+        ageLimit || undefined,
+        description || undefined,
+        imageToSend
+      );
+
+      showNotification(200, 'Событие успешно создано!');
+      onSave();
+      onClose();
+    } catch (error: any) {
+      console.error('Ошибка создания события:', error);
+      
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || 'Не удалось создать событие';
+      
+      showNotification(statusCode, errorMessage);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleKinopoiskSearch = async () => {
     if (!formData.title) {
-      alert('Введите название фильма для поиска');
+      showNotification(400, 'Введите название фильма для поиска');
       return;
     }
     
@@ -248,44 +319,126 @@ export default function EventModal({
       const movies = await kinopoiskAPI.searchMovies(formData.title);
       
       if (movies.length > 0) {
-        const movie = movies[0]; // Берем первый результат
+        const movie = movies[0];
         
-        // Заполняем поля данными из Кинопоиска
-        setDescription(movie.description || movie.shortDescription || '');
+        console.log('Данные фильма из Кинопоиска:', movie);
+        console.log('Длительность фильма:', movie.filmLength);
+        
+        // Обрезаем описание до 300 символов
+        const movieDescription = movie.description || movie.shortDescription || '';
+        const truncatedDescription = movieDescription.length > 300 
+          ? movieDescription.substring(0, 300).trim() + '...'
+          : movieDescription;
+        
+        setDescription(truncatedDescription);
         setPublisher(movie.countries?.[0]?.country || '');
         setYear(movie.year?.toString() || '');
         setAgeLimit(movie.ratingAgeLimits || '');
         
         if (movie.filmLength) {
+          // filmLength приходит в формате "HH:MM", конвертируем в минуты
+          const timeParts = movie.filmLength.split(':');
+          let totalMinutes = 0;
+          
+          if (timeParts.length === 2) {
+            const hours = parseInt(timeParts[0]) || 0;
+            const minutes = parseInt(timeParts[1]) || 0;
+            totalMinutes = hours * 60 + minutes;
+          } else {
+            // Если формат не "HH:MM", пробуем парсить как число
+            totalMinutes = parseInt(movie.filmLength) || 0;
+          }
+          
+          console.log('Длительность в минутах:', totalMinutes);
           setFormData(prev => ({ 
             ...prev, 
-            duration: `${movie.filmLength} мин` 
+            duration: `${totalMinutes} мин` 
           }));
         }
         
         if (movie.genres) {
           const movieGenres = movie.genres.map(g => g.genre);
+          
+          // Сопоставляем жанры из Кинопоиска с жанрами из API
+          const matchedGenres: string[] = [];
+          const unmatchedGenres: string[] = [];
+          
+          movieGenres.forEach(movieGenre => {
+            // Ищем точное совпадение
+            const exactMatch = genres.find(apiGenre => 
+              apiGenre.toLowerCase() === movieGenre.toLowerCase()
+            );
+            
+            if (exactMatch) {
+              matchedGenres.push(exactMatch);
+            } else {
+              // Ищем частичное совпадение
+              const partialMatch = genres.find(apiGenre => 
+                apiGenre.toLowerCase().includes(movieGenre.toLowerCase()) ||
+                movieGenre.toLowerCase().includes(apiGenre.toLowerCase())
+              );
+              
+              if (partialMatch) {
+                matchedGenres.push(partialMatch);
+              } else {
+                // Если не найдено совпадений, добавляем как новый жанр
+                unmatchedGenres.push(movieGenre);
+              }
+            }
+          });
+          
+          // Объединяем найденные жанры и добавляем несовпавшие
+          const finalGenres = [...matchedGenres, ...unmatchedGenres];
+          
+          // Также добавляем несовпавшие жанры в общий список для отображения
+          if (unmatchedGenres.length > 0) {
+            setGenres(prev => [...prev, ...unmatchedGenres]);
+          }
+          
           setFormData(prev => ({ 
             ...prev, 
-            genres: movieGenres,
-            image: movie.posterUrl || movie.posterUrlPreview || prev.image
+            genres: finalGenres
           }));
           
-          // Очищаем ошибки жанров и изображения если данные загрузились
           setValidationErrors(prev => ({ 
             ...prev, 
-            genres: undefined,
-            image: movie.posterUrl || movie.posterUrlPreview ? undefined : prev.image
+            genres: undefined
           }));
         }
         
-        alert(`Данные фильма "${movie.nameRu || movie.nameEn || movie.nameOriginal}" загружены!`);
+        // Устанавливаем URL изображения для превью и отправки
+        if (movie.posterUrl || movie.posterUrlPreview) {
+          const imageUrl = movie.posterUrl || movie.posterUrlPreview;
+          
+          console.log('URL постера:', imageUrl);
+          
+          // Сохраняем URL для отображения превью
+          setFormData(prev => ({ 
+            ...prev, 
+            image: imageUrl! 
+          }));
+          
+          // Сохраняем URL для отправки на сервер
+          setKinopoiskImageUrl(imageUrl!);
+          
+          // Убираем ошибку валидации изображения
+          setValidationErrors(prev => ({ 
+            ...prev, 
+            image: undefined 
+          }));
+          
+          // Очищаем imageFile на случай если было загружено ранее
+          setImageFile(null);
+        }
+        
+        const movieName = movie.nameRu || movie.nameEn || movie.nameOriginal;
+        showNotification(200, `Данные фильма "${movieName}" успешно загружены`);
       } else {
-        alert('Фильм не найден');
+        showNotification(404, 'Фильм не найден в Кинопоиске');
       }
     } catch (error) {
       console.error('Ошибка поиска:', error);
-      alert('Ошибка при поиске фильма. Проверьте настройки API.');
+      showNotification(500, 'Ошибка при поиске фильма. Проверьте настройки API');
     } finally {
       setIsLoading(false);
     }
@@ -306,10 +459,12 @@ export default function EventModal({
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setImageFile(file);
+      setKinopoiskImageUrl(null); // Очищаем URL из Кинопоиска при загрузке нового файла
+      
       const reader = new FileReader();
       reader.onload = (e) => {
         setFormData(prev => ({ ...prev, image: e.target?.result as string }));
-        // Очищаем ошибку изображения
         if (validationErrors.image) {
           setValidationErrors(prev => ({ ...prev, image: undefined }));
         }
@@ -335,7 +490,6 @@ export default function EventModal({
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, title: e.target.value }));
-    // Очищаем ошибку названия при вводе
     if (validationErrors.title) {
       setValidationErrors(prev => ({ ...prev, title: undefined }));
     }
@@ -344,7 +498,6 @@ export default function EventModal({
   const handleMaxParticipantsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value) || 0;
     setFormData(prev => ({ ...prev, maxParticipants: value }));
-    // Очищаем ошибку количества участников при вводе
     if (validationErrors.maxParticipants && value > 0) {
       setValidationErrors(prev => ({ ...prev, maxParticipants: undefined }));
     }
@@ -353,7 +506,6 @@ export default function EventModal({
   const handleGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value) || null;
     setSelectedGroup(value);
-    // Очищаем ошибку группы при выборе
     if (validationErrors.selectedGroup && value) {
       setValidationErrors(prev => ({ ...prev, selectedGroup: undefined }));
     }
@@ -361,18 +513,26 @@ export default function EventModal({
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, date: e.target.value }));
-    // Очищаем ошибку даты при вводе
     if (validationErrors.date) {
       setValidationErrors(prev => ({ ...prev, date: undefined }));
     }
   };
 
-  // Закрытие селектора жанров при клике вне его
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       setShowGenreSelector(false);
     }
   };
+
+  if (isCreating) {
+    return (
+      <div className={styles.modalOverlay}>
+        <div className={styles.modal}>
+          <LoadingIndicator text="Создаем событие..." />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.modalOverlay} onClick={handleOverlayClick}>
@@ -415,9 +575,20 @@ export default function EventModal({
                 <textarea
                   className={styles.textarea}
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 300) {
+                      setDescription(value);
+                    } else {
+                      setDescription(value.substring(0, 300));
+                    }
+                  }}
                   placeholder="Описание события..."
+                  maxLength={300}
                 />
+                <div className={styles.charCounter}>
+                  {description.length}/300
+                </div>
               </div>
 
               <div className={styles.fieldGroup}>
@@ -443,18 +614,32 @@ export default function EventModal({
                   type="button"
                   className={`${styles.genreButton} ${validationErrors.genres ? 'error' : ''}`}
                   onClick={() => setShowGenreSelector(!showGenreSelector)}
+                  disabled={genresLoading}
                 >
-                  {formData.genres && formData.genres.length > 0 
-                    ? `Выбрано жанров: ${formData.genres.length}` 
-                    : 'Выберите жанры... *'
+                  {genresLoading 
+                    ? 'Загрузка жанров...'
+                    : formData.genres && formData.genres.length > 0 
+                      ? `Выбрано жанров: ${formData.genres.length}` 
+                      : 'Выберите жанры... *'
                   }
                 </button>
                 {validationErrors.genres && (
                   <span className="errorMessage">{validationErrors.genres}</span>
                 )}
-                {showGenreSelector && (
+                {genresError && (
+                  <div className={styles.errorMessage}>
+                    {genresError}
+                    <button 
+                      onClick={loadGenres}
+                      className={styles.retryButton}
+                    >
+                      Повторить
+                    </button>
+                  </div>
+                )}
+                {showGenreSelector && !genresLoading && genres.length > 0 && (
                   <div className={styles.genreSelector}>
-                    {GENRES.map((genre) => (
+                    {genres.map((genre) => (
                       <label key={genre} className={styles.genreOption}>
                         <input
                           type="checkbox"
@@ -572,7 +757,7 @@ export default function EventModal({
                     className={styles.input}
                     value={formData.duration || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-                    placeholder="Длительность"
+                    placeholder="Длительность (мин)"
                   />
                 </div>
               </div>
@@ -661,7 +846,6 @@ export default function EventModal({
           </div>
         </div>
 
-        {/* Модальное окно карты как отдельный компонент */}
         <MapModal
             isOpen={showMapModal}
             onClose={() => setShowMapModal(false)}
