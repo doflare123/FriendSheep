@@ -18,13 +18,13 @@ const BottomBar = () => {
       </TouchableOpacity>
       <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('GroupsPage' as never)}>
           <Image 
-            style={[barsStyle.iconsMenu, (isActive('GroupsPage') || isActive('GroupPage') || isActive('GroupManagePage')) && { tintColor: Colors.darkGrey }]} 
+            style={[barsStyle.iconsMenu, (isActive('GroupsPage') || isActive('GroupPage') || isActive('GroupManagePage') || isActive('GroupSearchPage')) && { tintColor: Colors.darkGrey }]} 
             source={require("../assets/images/bottom_bar/groups.png")} />
           <Text style={barsStyle.textMenu}>Группы</Text>
       </TouchableOpacity>
       <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('MainPage' as never)}>
         <Image
-          style={[barsStyle.iconsMenu, isActive('MainPage') && { tintColor: Colors.darkGrey }]}
+          style={[barsStyle.iconsMenu, (isActive('MainPage') || isActive('CategoryPage')) && { tintColor: Colors.darkGrey }]}
           source={require("../assets/images/bottom_bar/main.png")}
         />
         <Text style={[barsStyle.textMenu, isActive('MainPage') && { color: Colors.darkGrey }]}>Главная</Text>

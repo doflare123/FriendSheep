@@ -5,12 +5,13 @@ import GroupCarousel from '@/components/GroupCarousel';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
+import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
 import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
-import { Image, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type GroupsPageNavigationProp = StackNavigationProp<RootStackParamList, 'GroupsPage'>;
@@ -68,53 +69,51 @@ const mockSubscriptions: Group[] = [
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }}>
-      <ImageBackground
-        source={require('../../assets/images/wallpaper.png')}
-        style={{ flex: 1 }}
-        resizeMode="cover"
-      >
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
-
-        <ScrollView contentContainerStyle={{ paddingVertical: 30 }}>
-          <ImageBackground style={{backgroundColor: Colors.white, paddingVertical: 10}}>
-            <ImageBackground
-              source={require('../../assets/images/title_rectangle.png')}
-              style={styles.sectionHeader}
-              resizeMode="stretch"
-            >
-              <Text style={styles.sectionTitle}>Группы под управлением:</Text>
-              <TouchableOpacity style={styles.managementIcon} onPress={handleAddGroup}>
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerTitle}>Ваши группы</Text>
+        </View>
+         <Image
+            source={require('../../assets/images/wave.png')}
+            style={{resizeMode: 'none', marginBottom: -20}}
+          />
+        <ScrollView>
+          <View style={styles.resultsHeader}>
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+              <Text style={styles.resultsText}>Группы под управлением:</Text>
+              <TouchableOpacity onPress={handleAddGroup}>
                 <Image
                   source={require('../../assets/images/groups/group_add.png')}
-                  style={styles.managementIconImage}
-                  resizeMode="contain"
+                  style={{resizeMode: 'contain', width: 30, height: 30}}
+                  tintColor={Colors.blue2}
                 />
               </TouchableOpacity>
-            </ImageBackground>
-
-            <GroupCarousel 
-              groups={mockManagedGroups} 
-              actionText="Управлять"
-              actionColor={[Colors.lightBlue, Colors.blue]}
+            </View>
+            <Image
+              source={require('../../assets/images/line.png')}
+              style={{resizeMode: 'none'}}
             />
+          </View>
+          <GroupCarousel 
+            groups={mockManagedGroups} 
+            actionText="Управлять"
+            actionColor={[Colors.lightBlue, Colors.blue]}
+          />
 
-            <ImageBackground
-              source={require('../../assets/images/title_rectangle.png')}
-              style={styles.sectionHeader}
-              resizeMode="stretch"
-            >
-              <Text style={styles.sectionTitle}>Подписки:</Text>
-            </ImageBackground>
-
-            <GroupCarousel 
-              groups={mockSubscriptions} 
-              actionText="Перейти"
-              actionColor={[Colors.lightBlue, Colors.blue]}
+          <View style={styles.resultsHeader}>
+            <Text style={styles.resultsText}>Подписки:</Text>
+            <Image
+              source={require('../../assets/images/line.png')}
+              style={{resizeMode: 'none'}}
             />
-          </ImageBackground>
+          </View>
+
+          <GroupCarousel 
+            groups={mockSubscriptions} 
+            actionText="Перейти"
+            actionColor={[Colors.lightBlue, Colors.blue]}
+          />
         </ScrollView>
-      </ImageBackground>
-
       <BottomBar />
 
       <CreateGroupModal
@@ -164,6 +163,27 @@ const styles = StyleSheet.create({
   managementIconImage: {
     width: 30,
     height: 30,
+  },
+  headerContainer: {
+    backgroundColor: Colors.lightBlue2,
+    paddingVertical: 20,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  headerTitle: {
+    fontFamily: Montserrat_Alternates.medium,
+    fontSize: 24,
+    color: Colors.white,
+    textTransform: 'none',
+  },
+  resultsHeader: {
+    paddingHorizontal: 16,
+  },
+  resultsText: {
+    fontFamily: Montserrat_Alternates.medium,
+    fontSize: 20,
+    color: Colors.blue2,
+    marginBottom: 4
   },
 });
 

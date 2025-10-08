@@ -11,7 +11,6 @@ import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
 import { useGroupSearchState } from '@/hooks/useGroupSearchState';
 import { useSearchState } from '@/hooks/useSearchState';
 
-// Моковые данные для групп (замените на реальные данные из API)
 const mockGroups: Group[] = [
   {
     id: '1',
@@ -47,9 +46,6 @@ const filterGroupsByCategories = (groups: Group[], categories: string[]): Group[
   if (categories.includes('Все') || categories.length === 0) {
     return groups;
   }
-  
-  // Здесь предполагается, что у Group есть поле categories
-  // Если его нет, верните все группы или реализуйте свою логику
   return groups;
 };
 
@@ -68,7 +64,6 @@ const sortGroupsByParticipants = (groups: Group[], order: 'asc' | 'desc' | 'none
 const sortGroupsByRegistration = (groups: Group[], order: 'asc' | 'desc' | 'none') => {
   if (order === 'none') return groups;
   
-  // Предполагаем, что группы с меньшим ID были зарегистрированы раньше
   return [...groups].sort((a, b) => {
     if (order === 'asc') {
       return parseInt(a.id) - parseInt(b.id);
@@ -86,8 +81,7 @@ const GroupSearchPage: React.FC = () => {
     if (!query.trim()) return group;
 
     const lowerQuery = query.toLowerCase();
-    
-    // Подсветка имени
+
     const lowerName = group.name.toLowerCase();
     const nameIndex = lowerName.indexOf(lowerQuery);
     let highlightedName = undefined;
@@ -100,7 +94,6 @@ const GroupSearchPage: React.FC = () => {
       };
     }
 
-    // Подсветка описания
     const lowerDescription = group.description.toLowerCase();
     const descIndex = lowerDescription.indexOf(lowerQuery);
     let highlightedDescription = undefined;
@@ -120,34 +113,28 @@ const GroupSearchPage: React.FC = () => {
     };
   };
 
-  // Фильтрация и сортировка групп
   const filteredAndSortedGroups = useMemo((): Group[] => {
     let groups = [...mockGroups];
     
-    // Фильтрация по поисковому запросу
     if (searchState.searchQuery.trim()) {
       groups = groups.filter(group =>
         group.name.toLowerCase().includes(searchState.searchQuery.toLowerCase()) ||
         group.description.toLowerCase().includes(searchState.searchQuery.toLowerCase())
       );
       
-      // Добавляем подсветку
       groups = groups.map(group => 
         createGroupWithHighlightedText(group, searchState.searchQuery)
       );
     }
 
-    // Фильтрация по категориям
     if (searchState.checkedCategories && searchState.checkedCategories.length > 0) {
       groups = filterGroupsByCategories(groups, searchState.checkedCategories);
     }
 
-    // Сортировка по участникам
     if (searchState.sortByParticipants !== 'none') {
       groups = sortGroupsByParticipants(groups, searchState.sortByParticipants);
     }
 
-    // Сортировка по регистрации
     if (searchState.sortByRegistration !== 'none') {
       groups = sortGroupsByRegistration(groups, searchState.sortByRegistration);
     }
@@ -161,7 +148,6 @@ const GroupSearchPage: React.FC = () => {
   ]);
 
   const handleGroupPress = (groupId: string) => {
-    // Навигация к странице группы
     console.log('Group pressed:', groupId);
   };
 

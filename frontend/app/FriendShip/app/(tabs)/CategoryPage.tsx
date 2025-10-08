@@ -1,7 +1,7 @@
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useMemo, useState } from 'react';
-import { ImageBackground, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BottomBar from '@/components/BottomBar';
@@ -206,14 +206,8 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
   }, [sortedCategoryEvents, categorySortingState.searchQuery]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <ImageBackground
-        source={require('../../assets/images/wallpaper.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
+    <SafeAreaView style={styles.container}>
         <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
-
         <CategoryButton
             title={title}
             imageSource={imageSource}
@@ -242,7 +236,6 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
             </View>
           )}
         </View>
-      </ImageBackground>
 
       <BottomBar />
 

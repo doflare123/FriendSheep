@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     paddingHorizontal: 10,
     margin: 4,
-    backgroundColor: Colors.white
+    backgroundColor: Colors.veryLightGrey
   },
   input: {
     flex: 1,

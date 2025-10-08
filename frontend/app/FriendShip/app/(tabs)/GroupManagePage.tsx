@@ -3,11 +3,10 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import React from 'react';
 import {
   Image,
-  ImageBackground,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -160,12 +159,6 @@ const GroupManagePage = () => {
   return (
     <SafeAreaView style={styles.container}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
-      
-      <ImageBackground
-        source={require('../../assets/images/groups/top_rectangle.png')}
-        style={styles.topBackground}
-        resizeMode='stretch'
-      >
         <View style={styles.sectionHeader}>
           <GroupManageTabPanel
             activeTab={activeTab}
@@ -182,7 +175,6 @@ const GroupManagePage = () => {
         </View>
         
         <Text style={styles.sectionTitle}>{getSectionTitle()}</Text>
-      </ImageBackground>
         
       {renderTabContent()}
 
