@@ -36,7 +36,7 @@ type SessionJoinInputDoc struct {
 // @Param country formData string false "Страна"
 // @Param age_limit formData string false "Возрастное ограничение (напр: 16+)"
 // @Param notes formData string false "Примечания"
-// @Param image formData file false "Изображение"
+// @Param image formData string true "Изображение"
 // @Success 200 {object} map[string]string "Сессия создана"
 // @Failure 400 {object} map[string]string "Ошибка запроса"
 // @Failure 401 {object} map[string]string "Не передан JWT"
@@ -56,28 +56,10 @@ func CreateSession(c *gin.Context) {
 		return
 	}
 
-	var imageURL string
-	header, err := c.FormFile("image")
-	if err == nil { // Если файл есть
-		file, err := header.Open()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "не удалось открыть изображение"})
-			return
-		}
-		defer file.Close()
-
-		imageURL, err = middlewares.UploadImage(file, header.Filename, "sessions")
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки изображения: " + err.Error()})
-			return
-		}
-		input.Image = imageURL
-	}
-
 	ok, err := services.CreateSession(email, input)
 	if err != nil || !ok {
 		if input.Image != "" {
-			middlewares.DeleteImage(fmt.Sprintf("uploads/%s", header.Filename))
+			middlewares.DeleteImage(fmt.Sprintf("uploads/%s", input.Image))
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

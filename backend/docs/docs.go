@@ -1768,10 +1768,11 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
-                        "type": "file",
+                        "type": "string",
                         "description": "Изображение",
                         "name": "image",
-                        "in": "formData"
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {

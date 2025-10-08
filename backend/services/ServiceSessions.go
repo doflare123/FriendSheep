@@ -26,7 +26,7 @@ type SessionInput struct {
 	StartTime    time.Time `form:"start_time" time_format:"2006-01-02T15:04:05Z07:00" binding:"required"`
 	Duration     uint16    `form:"duration"`
 	CountUsers   uint16    `form:"count_users" binding:"required"`
-	Image        string    `form:"-"`
+	Image        string    `form:"image" binding:"required"`
 
 	GenresRaw string `form:"genres"`
 	FieldsRaw string `form:"fields"`

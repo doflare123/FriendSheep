@@ -2140,7 +2140,8 @@ paths:
       - description: Изображение
         in: formData
         name: image
-        type: file
+        required: true
+        type: string
       produces:
       - application/json
       responses:
