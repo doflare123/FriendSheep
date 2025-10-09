@@ -96,62 +96,64 @@ const EventCard: React.FC<Event> = ({
   };
 
   return (
-    <TouchableOpacity onPress={onPress} style={styles.card}>
-      <View style={styles.imageWrapper}>
-        <Image source={{ uri: imageUri }} style={styles.image} />
-        <View style={styles.dateBadge}>
-          <Text style={styles.dateText}>{date}</Text>
+    <View style={styles.shadowWrapper}>
+      <TouchableOpacity onPress={onPress} style={styles.card}>
+        <View style={styles.imageWrapper}>
+          <Image source={{ uri: imageUri }} style={styles.image} />
+          <View style={styles.dateBadge}>
+            <Text style={styles.dateText}>{date}</Text>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.content}>
-        <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-          {renderTitle()}
+        <View style={styles.content}>
           <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-            <View style={styles.iconOverlay}>
-                <Image
-                  source={categoryIcons[category]}
-                  style={{ resizeMode: 'contain', width: 16, height: 16 }}
-                />
-            </View>
-            <View style={styles.iconOverlay}>
-                <Image
-                  source={placeIcons[typePlace]}
-                  style={{ resizeMode: 'contain', width: 16, height: 16 }}
-                />
+            {renderTitle()}
+            <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+              <View style={styles.iconOverlay}>
+                  <Image
+                    source={categoryIcons[category]}
+                    style={{ resizeMode: 'contain', width: 16, height: 16 }}
+                  />
+              </View>
+              <View style={styles.iconOverlay}>
+                  <Image
+                    source={placeIcons[typePlace]}
+                    style={{ resizeMode: 'contain', width: 16, height: 16 }}
+                  />
+              </View>
             </View>
           </View>
-        </View>
-        <View style={styles.genres}>
-          <Text style={[styles.metaText, { marginRight: 6, fontFamily: Montserrat.regular }]}>Жанры:</Text>
-          {getVisibleGenres(genres).map((genre, index) => (
-            <View key={index} style={styles.genreBadge}>
-              <Text style={styles.genreText}>{genre}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.metaContainer}>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaText}>
-              Участники: {currentParticipants}/{maxParticipants}
-            </Text>
-            <Image
-              source={require("../assets/images/event_card/person2.png")}
-              style={styles.metaIcon}
-            />
+          <View style={styles.genres}>
+            <Text style={[styles.metaText, { marginRight: 6, fontFamily: Montserrat.regular }]}>Жанры:</Text>
+            {getVisibleGenres(genres).map((genre, index) => (
+              <View key={index} style={styles.genreBadge}>
+                <Text style={styles.genreText}>{genre}</Text>
+              </View>
+            ))}
           </View>
 
-          <View style={styles.metaRow}>
-            <Text style={styles.metaText}>{duration}</Text>
-            <Image
-              source={require("../assets/images/event_card/duration.png")}
-              style={styles.metaIcon}
-            />
+          <View style={styles.metaContainer}>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaText}>
+                Участники: {currentParticipants}/{maxParticipants}
+              </Text>
+              <Image
+                source={require("../assets/images/event_card/person2.png")}
+                style={styles.metaIcon}
+              />
+            </View>
+
+            <View style={styles.metaRow}>
+              <Text style={styles.metaText}>{duration}</Text>
+              <Image
+                source={require("../assets/images/event_card/duration.png")}
+                style={styles.metaIcon}
+              />
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -164,6 +166,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     elevation: 4,
     minHeight: 200,
+  },
+  shadowWrapper:{
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
   imageWrapper: {
     minHeight: 100,

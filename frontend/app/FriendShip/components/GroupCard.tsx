@@ -55,60 +55,62 @@ const GroupCard: React.FC<GroupCardProps> = ({
   };
 
   return (
-    <TouchableOpacity 
-      style={styles.card}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.header}>
-        <View style={styles.content}>
-          <Image 
-            source={typeof imageUri === 'string' ? { uri: imageUri } : imageUri} 
-            style={styles.groupImage}
-          />
-        </View>
-        <View style={styles.content}>
-          <View style={styles.headerContent}>
-            {renderHighlightedText(
-              name,
-              highlightedName,
-              [styles.groupName, { numberOfLines: 2, ellipsizeMode: 'tail' }]
-            )}
-            
-            <View style={styles.iconsContainer}>
-              <Image
-                source={require('../assets/images/event_card/movie.png')}
-                style={styles.icon}
-              />
-              <Image
-                source={require('../assets/images/event_card/game.png')}
-                style={styles.icon}
-              />
-              <Image
-                source={require('../assets/images/event_card/table_game.png')}
-                style={styles.icon}
-              />
-            </View>
-            
-            {renderHighlightedText(
-              description,
-              highlightedDescription,
-              [styles.description, { numberOfLines: 3, ellipsizeMode: 'tail' }]
-            )}
-            
-            <View style={styles.participantsRow}>
-              <Text style={styles.participantsText}>
-                Участники:  {participantsCount}
-              </Text>
-              <Image
-                source={require('../assets/images/event_card/person2.png')}
-                style={styles.personIcon}
-              />
-            </View>
+    <View style={styles.shadowWrapper}>
+      <TouchableOpacity 
+        style={styles.card}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        <View style={styles.header}>
+          <View style={styles.content}>
+            <Image 
+              source={typeof imageUri === 'string' ? { uri: imageUri } : imageUri} 
+              style={styles.groupImage}
+            />
           </View>
-        </View> 
-      </View>
-    </TouchableOpacity>
+          <View style={styles.content}>
+            <View style={styles.headerContent}>
+              {renderHighlightedText(
+                name,
+                highlightedName,
+                [styles.groupName, { numberOfLines: 2, ellipsizeMode: 'tail' }]
+              )}
+              
+              <View style={styles.iconsContainer}>
+                <Image
+                  source={require('../assets/images/event_card/movie.png')}
+                  style={styles.icon}
+                />
+                <Image
+                  source={require('../assets/images/event_card/game.png')}
+                  style={styles.icon}
+                />
+                <Image
+                  source={require('../assets/images/event_card/table_game.png')}
+                  style={styles.icon}
+                />
+              </View>
+              
+              {renderHighlightedText(
+                description,
+                highlightedDescription,
+                [styles.description, { numberOfLines: 3, ellipsizeMode: 'tail' }]
+              )}
+              
+              <View style={styles.participantsRow}>
+                <Text style={styles.participantsText}>
+                  Участники:  {participantsCount}
+                </Text>
+                <Image
+                  source={require('../assets/images/event_card/person2.png')}
+                  style={styles.personIcon}
+                />
+              </View>
+            </View>
+          </View> 
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -121,6 +123,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     elevation: 4,
     padding: 8,
+  },
+  shadowWrapper:{
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   header: {
     flexDirection: 'row',

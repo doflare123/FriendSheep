@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   scrollContent: {
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   cardWrapper: {
     marginHorizontal: 4,
