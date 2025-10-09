@@ -5,6 +5,7 @@ export interface EventCardProps {
     type: 'games' | 'movies' | 'board' | 'other'; 
     image: string;
     date: string;                     // серверный start_time
+    start_time?: string;
     end_time?: string;                // 🔥 добавлено (для будущих эвентов)
     title: string;
     genres: string[];

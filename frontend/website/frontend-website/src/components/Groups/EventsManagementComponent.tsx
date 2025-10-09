@@ -169,14 +169,9 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     setEditingEvent(undefined);
   };
 
-  // Перезагрузка списка событий после создания
+  // Перезагрузка страницы после сохранения
   const handleEventSave = () => {
-    // TODO: Здесь нужно будет добавить запрос на получение обновленного списка событий
-    // Например: loadEvents(groupId);
-    console.log('Событие сохранено, требуется перезагрузка списка');
-    
-    // Закрываем модальное окно
-    handleModalClose();
+    window.location.reload();
   };
 
   const handleEventDelete = () => {
@@ -368,6 +363,7 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
         onDelete={modalMode === 'edit' ? handleEventDelete : undefined}
         eventData={editingEvent}
         mode={modalMode}
+        groupId={groupId ? Number(groupId) : undefined}
       />
     </div>
   );

@@ -20,7 +20,7 @@ export interface SessionData {
   current_users: number;
   duration: number;
   genres: string[];
-  group_name: string;
+  group_id: number;
   id: number;
   image_url: string;
   session_place: string;

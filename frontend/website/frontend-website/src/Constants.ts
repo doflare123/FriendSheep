@@ -235,7 +235,15 @@ export function mapRawUserDataToUserData(raw: RawUserDataResponse): UserDataResp
 }
 
 export function formatDate(dateString: string): string {
+  // Создаём объект Date из строки (автоматически конвертирует в локальное время)
   const date = new Date(dateString);
+  
+  // Проверяем валидность даты
+  if (isNaN(date.getTime())) {
+    console.error('Неверный формат даты:', dateString);
+    return '';
+  }
+  
   const day = date.getDate().toString().padStart(2, '0');
   const month = (date.getMonth() + 1).toString().padStart(2, '0'); // месяцы с 0
   const year = date.getFullYear();
@@ -243,7 +251,15 @@ export function formatDate(dateString: string): string {
 }
 
 export function formatTime(dateString: string): string {
+  // Создаём объект Date из строки (автоматически конвертирует в локальное время)
   const date = new Date(dateString);
+  
+  // Проверяем валидность даты
+  if (isNaN(date.getTime())) {
+    console.error('Неверный формат времени:', dateString);
+    return '';
+  }
+  
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
   return `${hours}:${minutes}`;
@@ -260,13 +276,15 @@ export const convertSessionToEventCard = (session: SessionData): EventCardProps 
 
   // Парсим fields для извлечения publisher
   let publisher: string | undefined;
+  let city: string | undefined;
   if (session.fields) {
     const fieldsArray = session.fields.split(',');
     for (const field of fieldsArray) {
       const [key, value] = field.split(':').map(s => s.trim());
       if (key === 'publisher') {
         publisher = value;
-        break;
+      } else if (key === 'city'){
+        city = value;
       }
     }
   }
@@ -276,6 +294,7 @@ export const convertSessionToEventCard = (session: SessionData): EventCardProps 
     type,
     image: session.image_url,
     date: formatDate(session.start_time),
+    start_time: formatTime(session.start_time),
     title: session.title,
     genres: session.genres,
     participants: session.current_users,
@@ -283,8 +302,9 @@ export const convertSessionToEventCard = (session: SessionData): EventCardProps 
     duration: session.duration ? `${session.duration}` : undefined,
     location,
     adress: '',
-    city: session.city || undefined,
-    publisher
+    city: city,
+    publisher,
+    groupId: session.group_id,
   };
 };
 
