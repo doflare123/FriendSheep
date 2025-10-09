@@ -4790,20 +4790,50 @@ const docTemplate = `{
         "services.SessionUpdateInput": {
             "type": "object",
             "properties": {
+                "age_limit": {
+                    "type": "string"
+                },
                 "count_users_max": {
                     "type": "integer"
+                },
+                "country": {
+                    "type": "string"
                 },
                 "duration": {
                     "type": "integer"
                 },
+                "end_time": {
+                    "type": "string"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "image_url": {
                     "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "session_place_id": {
+                    "type": "integer"
+                },
+                "session_type_id": {
+                    "type": "integer"
                 },
                 "start_time": {
                     "type": "string"
                 },
                 "title": {
                     "type": "string"
+                },
+                "year": {
+                    "type": "integer"
                 }
             }
         },

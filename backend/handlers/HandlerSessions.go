@@ -189,18 +189,18 @@ func UpdateSessionHandler(c *gin.Context) {
 	sessionIDStr := c.Param("sessionId")
 	sessionID, err := strconv.ParseUint(sessionIDStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID сессии"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "некорректный ID сессии"})
 		return
 	}
 
 	var input services.SessionUpdateInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ошибка в теле запроса: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "ошибка в теле запроса: " + err.Error()})
 		return
 	}
 
 	if err := services.UpdateSession(email, uint(sessionID), input); err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
 		return
 	}
 

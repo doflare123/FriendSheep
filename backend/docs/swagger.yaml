@@ -808,16 +808,36 @@ definitions:
     type: object
   services.SessionUpdateInput:
     properties:
+      age_limit:
+        type: string
       count_users_max:
         type: integer
+      country:
+        type: string
       duration:
         type: integer
+      end_time:
+        type: string
+      genres:
+        items:
+          type: string
+        type: array
       image_url:
         type: string
+      location:
+        type: string
+      notes:
+        type: string
+      session_place_id:
+        type: integer
+      session_type_id:
+        type: integer
       start_time:
         type: string
       title:
         type: string
+      year:
+        type: integer
     type: object
   services.SubSessionDetail:
     properties:
