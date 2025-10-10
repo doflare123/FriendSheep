@@ -1,4 +1,4 @@
-import { Event } from '@/components/EventCard';
+import { Event } from '@/components/event/EventCard';
 
 export interface GroupData {
   id: string;

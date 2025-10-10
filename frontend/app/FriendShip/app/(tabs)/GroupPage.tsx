@@ -1,8 +1,9 @@
 import BottomBar from '@/components/BottomBar';
-import EventCarousel from '@/components/EventCarousel';
+import CategorySection from '@/components/CategorySection';
+import EventCarousel from '@/components/event/EventCarousel';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import { Contact, getGroupData, Subscriber } from '@/data/groupsData';
 import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
@@ -14,7 +15,6 @@ import {
   Dimensions,
   FlatList,
   Image,
-  ImageBackground,
   Linking,
   Modal,
   ScrollView,
@@ -130,34 +130,15 @@ const GroupPage = () => {
           </View>
         </View>
 
-        <View>
-          <ImageBackground
-            source={require('../../assets/images/title_rectangle.png')}
-            style={styles.sectionHeader}
-            resizeMode="stretch"
-          >
-            <Text style={styles.sectionTitle}>Описание:</Text>
-          </ImageBackground>
+        <CategorySection title="Описание:">
           <TouchableOpacity onPress={() => setDescriptionModalVisible(true)}>
             <Text style={styles.descriptionText} numberOfLines={3}>
               {groupData.description}
             </Text>
           </TouchableOpacity>
-        </View>
+        </CategorySection>
 
-        <View>
-          <ImageBackground
-            source={require('../../assets/images/title_rectangle.png')}
-            style={styles.sectionHeader}
-            resizeMode="stretch"
-          >
-            <Text style={styles.sectionTitle}>
-              Подписчики:
-            </Text>
-            <Text style={styles.subscribersText}>
-              {groupData.subscribersCount.toLocaleString()}
-            </Text>
-          </ImageBackground>
+        <CategorySection title={`Подписчики: ${groupData.subscribersCount.toLocaleString()}`}>
           <FlatList
             horizontal
             data={groupData.subscribers}
@@ -168,27 +149,13 @@ const GroupPage = () => {
             decelerationRate="fast"
             style={styles.subscribersList}
           />
-        </View>
+        </CategorySection>
 
-        <View>
-          <ImageBackground
-            source={require('../../assets/images/title_rectangle.png')}
-            style={styles.sectionHeader}
-            resizeMode="stretch"
-          >
-            <Text style={styles.sectionTitle}>Сессии:</Text>
-          </ImageBackground>
+        <CategorySection title="Сессии:">
           <EventCarousel events={groupData.sessions} />
-        </View>
+        </CategorySection>
 
-        <View>
-          <ImageBackground
-            source={require('../../assets/images/title_rectangle.png')}
-            style={styles.sectionHeader}
-            resizeMode="stretch"
-          >
-            <Text style={styles.sectionTitle}>Контакты:</Text>
-          </ImageBackground>
+        <CategorySection title="Контакты:">
           <View style={styles.contactsContainer}>
             {groupData.contacts.map((contact) => (
               <TouchableOpacity
@@ -203,7 +170,7 @@ const GroupPage = () => {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </CategorySection>
       </ScrollView>
       <BottomBar />
 
@@ -248,7 +215,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.black,
   },
@@ -267,13 +234,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   groupName: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 20,
     color: Colors.black,
     marginBottom: 4,
   },
   location: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     color: Colors.black,
     marginBottom: 8,
@@ -294,38 +261,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionButtonText: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.white,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    resizeMode: 'contain',
-    marginHorizontal: 0,
-    marginTop: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    overflow: 'hidden',
-  },
-  sectionTitle: {
-    color: Colors.black,
-    fontSize: 18,
-    fontFamily: inter.bold,
-  },
   descriptionText: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     color: Colors.black,
     lineHeight: 20,
     paddingHorizontal: 18,
     paddingVertical: 12,
-  },
-  subscribersText: {
-    color: Colors.black,
-    fontSize: 18,
-    fontFamily: inter.bold_italic,
-    marginLeft: 6
   },
   subscribersList: {
     paddingVertical: 16,
@@ -340,15 +286,10 @@ const styles = StyleSheet.create({
     borderRadius: 100,
   },
   subscriberName: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     color: Colors.black,
     textAlign: 'center',
-  },
-  contactsBackground: {
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    marginHorizontal: 0,
   },
   contactsContainer: {
     paddingHorizontal: 18,
@@ -380,7 +321,7 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   contactDescription: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     color: Colors.black,
     textAlign: 'center',
@@ -407,7 +348,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.lightGrey,
   },
   modalTitle: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 18,
     marginLeft: 8,
     color: Colors.black,
@@ -419,7 +360,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeButtonText: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 18,
     color: Colors.black,
   },
@@ -427,7 +368,7 @@ const styles = StyleSheet.create({
     maxHeight: 300,
   },
   modalDescriptionText: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     color: Colors.black,
     lineHeight: 20,

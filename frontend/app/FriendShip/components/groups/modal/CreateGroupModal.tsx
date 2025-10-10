@@ -1,5 +1,5 @@
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import React, { useState } from 'react';
 import {
   Dimensions,
@@ -34,14 +34,14 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
   const [contactsModalVisible, setContactsModalVisible] = useState(false);
 
   const categories = [
-    { id: 'movie', icon: require('../assets/images/event_card/movie.png') },
-    { id: 'game', icon: require('../assets/images/event_card/game.png') },
-    { id: 'table_game', icon: require('../assets/images/event_card/table_game.png') },
-    { id: 'other', icon: require('../assets/images/event_card/other.png') },
+    { id: 'movie', icon: require('@/assets/images/event_card/movie.png') },
+    { id: 'game', icon: require('@/assets/images/event_card/game.png') },
+    { id: 'table_game', icon: require('@/assets/images/event_card/table_game.png') },
+    { id: 'other', icon: require('@/assets/images/event_card/other.png') },
   ];
 
   const contacts = [
-    { id: 'add_contact', icon: require('../assets/images/groups/contacts/add_contact.png') },
+    { id: 'add_contact', icon: require('@/assets/images/groups/contacts/add_contact.png') },
   ];
 
   const toggleCategory = (categoryId: string) => {
@@ -111,7 +111,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                     <Image
                     tintColor={Colors.black}
                     style={{ width: 35, height: 35, resizeMode: 'cover' }}
-                    source={require('../assets/images/event_card/back.png')}
+                    source={require('@/assets/images/event_card/back.png')}
                     />
                 </TouchableOpacity>
             </View>
@@ -203,7 +203,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                 <TouchableOpacity style={styles.imageUpload}>
                   <View style={styles.uploadPlaceholder}>
                     <Image 
-                      source={require('../assets/images/groups/upload_image.png')} 
+                      source={require('@/assets/images/groups/upload_image.png')} 
                       style={styles.uploadIcon}
                     />
                   </View>          
@@ -212,7 +212,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
             </View>
 
             <ImageBackground
-              source={require('../assets/images/event_card/bottom_rectangle.png')}
+              source={require('@/assets/images/event_card/bottom_rectangle.png')}
               style={styles.bottomBackground}
               resizeMode="stretch"
             >
@@ -256,20 +256,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     backgroundColor: Colors.white,
     position: 'relative',
   },
   title: {
-    fontFamily: inter.black,
+    fontFamily: Montserrat.bold,
     fontSize: 20,
     color: Colors.black,
     textAlign: 'center',
   },
   closeButton: {
     position: 'absolute',
-    right: 16,
+    right: 10,
     zIndex: 1,
   },
   content: {
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 0,
     marginBottom: 16,
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.black,
   },
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.lightBlue,
   },
   checkboxLabel: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     marginLeft: 12,
     color: Colors.black,
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   sectionLabel: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.black,
     marginBottom: 8,
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   createButtonText: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.blue,
   },

@@ -1,15 +1,15 @@
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
 import {
-    Image,
-    ImageBackground,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  ImageBackground,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { MediaType, launchImageLibrary } from 'react-native-image-picker';
 
@@ -55,14 +55,14 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
   onSaveChanges,
 }) => {
   const categories = [
-    { id: 'movie', icon: require('../assets/images/event_card/movie.png') },
-    { id: 'game', icon: require('../assets/images/event_card/game.png') },
-    { id: 'table_game', icon: require('../assets/images/event_card/table_game.png') },
-    { id: 'other', icon: require('../assets/images/event_card/other.png') },
+    { id: 'movie', icon: require('@/assets/images/event_card/movie.png') },
+    { id: 'game', icon: require('@/assets/images/event_card/game.png') },
+    { id: 'table_game', icon: require('@/assets/images/event_card/table_game.png') },
+    { id: 'other', icon: require('@/assets/images/event_card/other.png') },
   ];
 
   const contacts = [
-    { id: 'add_contact', icon: require('../assets/images/groups/contacts/add_contact.png') },
+    { id: 'add_contact', icon: require('@/assets/images/groups/contacts/add_contact.png') },
   ];
 
   const handleImagePicker = () => {
@@ -191,7 +191,7 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
                   <Image source={{ uri: groupImage }} style={styles.groupImage} />
                 ) : (
                   <Image 
-                    source={require('../assets/images/groups/upload_image.png')} 
+                    source={require('@/assets/images/groups/upload_image.png')} 
                     style={styles.uploadIcon}
                   />
                 )}
@@ -202,7 +202,7 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
       </View>
 
       <ImageBackground
-        source={require('../assets/images/event_card/bottom_rectangle.png')}
+        source={require('@/assets/images/event_card/bottom_rectangle.png')}
         style={styles.bottomBackground}
         resizeMode="stretch"
       >
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 0,
     marginBottom: 16,
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.black,
   },
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.lightBlue,
   },
   checkboxLabel: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     marginLeft: 12,
     color: Colors.black,
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   sectionLabel: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.black,
     marginBottom: 8,
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonText: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.blue,
   },

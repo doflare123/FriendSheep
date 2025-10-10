@@ -1,7 +1,7 @@
+import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Colors } from '../constants/Colors';
 
 interface InputSmallProps {
   length?: number;

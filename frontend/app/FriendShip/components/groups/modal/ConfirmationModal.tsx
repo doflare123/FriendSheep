@@ -1,12 +1,12 @@
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
 import {
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface ConfirmationModalProps {
@@ -70,14 +70,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 40,
   },
   modalTitle: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 18,
     color: Colors.black,
     textAlign: 'center',
     marginBottom: 12,
   },
   modalMessage: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.grey,
     textAlign: 'center',
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   modalButtonText: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 14,
     color: Colors.white,
   },

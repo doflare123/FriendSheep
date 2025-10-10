@@ -1,15 +1,15 @@
-import EditableEventCard from '@/components/EditableEventCard';
-import { Event } from '@/components/EventCard';
-import GroupEventsSearchBar from '@/components/GroupEventsSearchBar';
+import EditableEventCard from '@/components/event/EditableEventCard';
+import { Event } from '@/components/event/EventCard';
+import GroupEventsSearchBar from '@/components/groups/GroupEventsSearchBar';
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import React, { useMemo, useState } from 'react';
 import {
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface EventsTabContentProps {
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   createButtonText: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 18,
     color: Colors.white,
   },
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
   },
   emptyText: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.grey,
     textAlign: 'center',

@@ -78,15 +78,15 @@ const GroupCard: React.FC<GroupCardProps> = ({
               
               <View style={styles.iconsContainer}>
                 <Image
-                  source={require('../assets/images/event_card/movie.png')}
+                  source={require('@/assets/images/event_card/movie.png')}
                   style={styles.icon}
                 />
                 <Image
-                  source={require('../assets/images/event_card/game.png')}
+                  source={require('@/assets/images/event_card/game.png')}
                   style={styles.icon}
                 />
                 <Image
-                  source={require('../assets/images/event_card/table_game.png')}
+                  source={require('@/assets/images/event_card/table_game.png')}
                   style={styles.icon}
                 />
               </View>
@@ -102,7 +102,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
                   Участники:  {participantsCount}
                 </Text>
                 <Image
-                  source={require('../assets/images/event_card/person2.png')}
+                  source={require('@/assets/images/event_card/person2.png')}
                   style={styles.personIcon}
                 />
               </View>

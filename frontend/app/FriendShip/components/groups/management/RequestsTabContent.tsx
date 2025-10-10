@@ -1,14 +1,15 @@
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
+import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
 import React from 'react';
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface RequestItem {
@@ -90,7 +91,7 @@ const RequestsTabContent: React.FC<RequestsTabContentProps> = ({
                   onPress={() => onAcceptRequest(request.id)}
                 >
                   <Image 
-                    source={require('../assets/images/groups/check.png')} 
+                    source={require('@/assets/images/groups/check.png')} 
                     style={styles.actionIcon}
                   />
                 </TouchableOpacity>
@@ -100,7 +101,7 @@ const RequestsTabContent: React.FC<RequestsTabContentProps> = ({
                   onPress={() => onRejectRequest(request.id)}
                 >
                   <Image 
-                    source={require('../assets/images/groups/close.png')} 
+                    source={require('@/assets/images/groups/close.png')} 
                     style={styles.actionIcon}
                   />
                 </TouchableOpacity>
@@ -132,12 +133,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   counterNumber: {
-    fontFamily: inter.black,
+    fontFamily: Montserrat_Alternates.bold,
     fontSize: 26,
     color: Colors.black,
   },
   counterText: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.grey,
   },
@@ -158,12 +159,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   acceptAllText: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 14,
     color: Colors.white,
   },
   rejectAllText: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 14,
     color: Colors.white,
   },
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.black,
   },
@@ -204,12 +205,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.black,
   },
   userUsername: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     color: Colors.grey,
   },

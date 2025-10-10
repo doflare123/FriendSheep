@@ -37,7 +37,6 @@ const barsStyle = StyleSheet.create({
     height: 30,
     resizeMode: 'contain',
     alignSelf: 'center',
-    marginTop: 0,  // убираем
   },
   textMenu: {
     fontFamily: inter.regular,

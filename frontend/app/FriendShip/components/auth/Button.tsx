@@ -1,7 +1,7 @@
+import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { Colors } from '../constants/Colors';
 
 const Button = ({ title, onPress }: { title: string; onPress: () => void }) => (
   <TouchableOpacity onPress={onPress} style={styles.button}>

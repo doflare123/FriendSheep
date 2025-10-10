@@ -11,17 +11,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BottomBar from '@/components/BottomBar';
-import ConfirmationModal from '@/components/ConfirmationModal';
-import ContactsModal from '@/components/ContactsModal';
-import CreateEventModal from '@/components/CreateEventModal';
-import EventsTabContent from '@/components/EventsTabContent';
-import GroupManageTabPanel from '@/components/GroupManageTabPanel';
-import InfoTabContent from '@/components/InfoTabContent';
-import RequestsTabContent from '@/components/RequestsTabContent';
+import CreateEventModal from '@/components/event/CreateEventModal';
+import EventsTabContent from '@/components/groups/management/EventsTabContent';
+import GroupManageTabPanel from '@/components/groups/management/GroupManageTabPanel';
+import InfoTabContent from '@/components/groups/management/InfoTabContent';
+import RequestsTabContent from '@/components/groups/management/RequestsTabContent';
+import ConfirmationModal from '@/components/groups/modal/ConfirmationModal';
+import ContactsModal from '@/components/groups/modal/ContactsModal';
 import TopBar from '@/components/TopBar';
 
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
+import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
 import { useGroupManage } from '@/hooks/useGroupManage';
 import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.black,
   },
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   sectionTitle: {
-    fontFamily: inter.black,
+    fontFamily: Montserrat_Alternates.bold,
     fontSize: 20,
     color: Colors.black,
     textAlign: 'center',

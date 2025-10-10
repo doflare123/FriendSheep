@@ -1,7 +1,7 @@
+import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { Colors } from '../constants/Colors';
 
 const CategoryButton = ({ title, onPress, imageSource }: { title: string; imageSource?: ImageSourcePropType; onPress: () => void }) => (
  <TouchableOpacity onPress={onPress} style={styles.button}>

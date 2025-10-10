@@ -1,13 +1,12 @@
 import React, { useMemo } from 'react';
-import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BottomBar from '@/components/BottomBar';
-import GroupCard, { Group } from '@/components/GroupCard';
+import GroupCard, { Group } from '@/components/groups/GroupCard';
+import SearchResultsSection from '@/components/search/SearchResultsSection';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
-import { Montserrat } from '@/constants/Montserrat';
-import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
 import { useGroupSearchState } from '@/hooks/useGroupSearchState';
 import { useSearchState } from '@/hooks/useSearchState';
 
@@ -153,52 +152,32 @@ const GroupSearchPage: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-        <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
+      <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
 
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Поиск по группам</Text>
-        </View>
-
-        <Image
-            source={require('../../assets/images/wave.png')}
-            style={{resizeMode: 'none'}}
-        />
-
-        <View style={styles.resultsHeader}>
-          <Text style={styles.resultsText}>Результаты поиска:</Text>
-          <Image
-            source={require('../../assets/images/line.png')}
-            style={{resizeMode: 'none'}}
+      <SearchResultsSection
+        title="Поиск по группам"
+        searchQuery={searchState.searchQuery}
+        hasResults={filteredAndSortedGroups.length > 0}
+        showWave
+      >
+        <View style={styles.contentContainer}>
+          <FlatList
+            data={filteredAndSortedGroups}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.cardWrapper}>
+                <GroupCard
+                  {...item}
+                  onPress={() => handleGroupPress(item.id)}
+                />
+              </View>
+            )}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
           />
         </View>
+      </SearchResultsSection>
 
-        <View style={styles.contentContainer}>
-          {filteredAndSortedGroups.length > 0 ? (
-            <FlatList
-              data={filteredAndSortedGroups}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.cardWrapper}>
-                  <GroupCard
-                    {...item}
-                    onPress={() => handleGroupPress(item.id)}
-                  />
-                </View>
-              )}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
-            />
-          ) : (
-            <View style={styles.noGroupsContainer}>
-              <Text style={styles.noGroupsText}>
-                {searchState.searchQuery.trim() 
-                  ? `Ничего не найдено по запросу "${searchState.searchQuery}"` 
-                  : 'Группы не найдены'
-                }
-              </Text>
-            </View>
-          )}
-        </View>
       <BottomBar />
     </SafeAreaView>
   );
@@ -209,32 +188,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
-  backgroundImage: {
-    flex: 1,
-  },
-  headerContainer: {
-    backgroundColor: Colors.lightBlue2,
-    paddingVertical: 20,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  headerTitle: {
-    fontFamily: Montserrat_Alternates.medium,
-    fontSize: 24,
-    color: Colors.white,
-    textTransform: 'none',
-  },
-  resultsHeader: {
-    paddingHorizontal: 16,
-    marginTop: -16,
-    marginBottom: 16
-  },
-  resultsText: {
-    fontFamily: Montserrat_Alternates.medium,
-    fontSize: 20,
-    color: Colors.blue2,
-    marginBottom: 4
-  },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 8,
@@ -244,23 +197,6 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     marginBottom: 16,
-  },
-  noGroupsContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  noGroupsText: {
-    fontFamily: Montserrat.regular,
-    fontSize: 18,
-    color: Colors.black,
-    textAlign: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 40,
-    padding: 16,
-    borderWidth: 3,
-    borderColor: Colors.lightBlue,
   },
 });
 

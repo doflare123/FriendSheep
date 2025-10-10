@@ -1,9 +1,9 @@
 import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import { Montserrat } from '@/constants/Montserrat';
+import { formatTitle } from "@/utils/formatTitle";
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { formatTitle } from "../utils/formatTitle";
 
 export interface Event {
   id: string;
@@ -31,15 +31,15 @@ export interface Event {
 }
 
 const categoryIcons: Record<Event["category"], any> = {
-  movie: require("../assets/images/event_card/movie.png"),
-  game: require("../assets/images/event_card/game.png"),
-  table_game: require("../assets/images/event_card/table_game.png"),
-  other: require("../assets/images/event_card/other.png"),
+  movie: require("@/assets/images/event_card/movie.png"),
+  game: require("@/assets/images/event_card/game.png"),
+  table_game: require("@/assets/images/event_card/table_game.png"),
+  other: require("@/assets/images/event_card/other.png"),
 };
 
 const placeIcons: Record<Event["typePlace"], any> = {
-  online: require("../assets/images/event_card/online.png"),
-  offline: require("../assets/images/event_card/offline.png"),
+  online: require("@/assets/images/event_card/online.png"),
+  offline: require("@/assets/images/event_card/offline.png"),
 };
 
 const getVisibleGenres = (genres: string[], maxBadges = 3, maxChars = 20) => {
@@ -138,7 +138,7 @@ const EventCard: React.FC<Event> = ({
                 Участники: {currentParticipants}/{maxParticipants}
               </Text>
               <Image
-                source={require("../assets/images/event_card/person2.png")}
+                source={require("@/assets/images/event_card/person2.png")}
                 style={styles.metaIcon}
               />
             </View>
@@ -146,7 +146,7 @@ const EventCard: React.FC<Event> = ({
             <View style={styles.metaRow}>
               <Text style={styles.metaText}>{duration}</Text>
               <Image
-                source={require("../assets/images/event_card/duration.png")}
+                source={require("@/assets/images/event_card/duration.png")}
                 style={styles.metaIcon}
               />
             </View>

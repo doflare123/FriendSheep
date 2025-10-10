@@ -1,7 +1,7 @@
+import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import React from 'react';
 import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
-import { Colors } from '../constants/Colors';
 
 const Input = (props: TextInputProps) => (
   <View style={styles.container}>

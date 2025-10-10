@@ -42,9 +42,9 @@ const GroupManageTabPanel: React.FC<GroupManageTabPanelProps> = ({
 
   return (
     <View style={styles.tabsContainer}>
-      {renderTabButton('info', require('../assets/images/groups/panel/group.png'))}
-      {renderTabButton('requests', require('../assets/images/groups/panel/person_add.png'))}
-      {renderTabButton('events', require('../assets/images/groups/panel/event.png'))}
+      {renderTabButton('info', require('@/assets/images/groups/panel/group.png'))}
+      {renderTabButton('requests', require('@/assets/images/groups/panel/person_add.png'))}
+      {renderTabButton('events', require('@/assets/images/groups/panel/event.png'))}
     </View>
   );
 };

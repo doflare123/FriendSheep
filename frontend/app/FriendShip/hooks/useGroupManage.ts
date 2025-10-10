@@ -1,7 +1,7 @@
+import { TabType } from '@/components/groups/management/GroupManageTabPanel';
 import { getGroupData } from '@/data/groupsData';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { TabType } from '../components/GroupManageTabPanel';
 
 export interface RequestItem {
   id: string;

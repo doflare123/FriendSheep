@@ -49,10 +49,10 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [showGenreDropdown, setShowGenreDropdown] = useState(false);
 
   const categories = [
-    { id: 'movie', label: 'Фильм', icon: require('../assets/images/event_card/movie.png') },
-    { id: 'game', label: 'Игра', icon: require('../assets/images/event_card/game.png') },
-    { id: 'table_game', label: 'Настолка', icon: require('../assets/images/event_card/table_game.png') },
-    { id: 'other', label: 'Другое', icon: require('../assets/images/event_card/other.png') },
+    { id: 'movie', label: 'Фильм', icon: require('@/assets/images/event_card/movie.png') },
+    { id: 'game', label: 'Игра', icon: require('@/assets/images/event_card/game.png') },
+    { id: 'table_game', label: 'Настолка', icon: require('@/assets/images/event_card/table_game.png') },
+    { id: 'other', label: 'Другое', icon: require('@/assets/images/event_card/other.png') },
   ];
 
   const genres = [
@@ -173,7 +173,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 <Image
                   tintColor={Colors.black}
                   style={{ width: 35, height: 35, resizeMode: 'cover' }}
-                  source={require('../assets/images/event_card/back.png')}
+                  source={require('@/assets/images/event_card/back.png')}
                 />
               </TouchableOpacity>
             </View>
@@ -225,7 +225,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                     >
                     <View style={styles.typeIconContainer}>
                         <Image 
-                        source={require('../assets/images/event_card/offline.png')} 
+                        source={require('@/assets/images/event_card/offline.png')} 
                         style={styles.typeIcon}
                         />
                     </View>
@@ -240,7 +240,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                     >
                     <View style={styles.typeIconContainer}>
                         <Image 
-                        source={require('../assets/images/event_card/online.png')} 
+                        source={require('@/assets/images/event_card/online.png')} 
                         style={styles.typeIcon}
                         />
                     </View>
@@ -257,7 +257,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                   {selectedGenres.length > 0 ? selectedGenres.join(', ') : 'Выберите жанры...'}
                 </Text>
                 <Image 
-                  source={require('../assets/images/event_card/back.png')} 
+                  source={require('@/assets/images/event_card/back.png')} 
                   style={[styles.dropdownArrow, { transform: [{ rotate: showGenreDropdown ? '270deg' : '90deg' }] }]}
                 />
               </TouchableOpacity>
@@ -319,7 +319,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 >
                   <Text style={styles.dateText}>{formatDate(eventDate)}</Text>
                   <Image 
-                    source={require('../assets/images/top_bar/search_bar/event-bar.png')}
+                    source={require('@/assets/images/top_bar/search_bar/event-bar.png')}
                     style={styles.calendarIcon}
                   />
                 </TouchableOpacity>
@@ -353,7 +353,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                   {eventType === 'offline' && (
                     <TouchableOpacity style={styles.mapButton} onPress={handleMapPress}>
                       <Image 
-                        source={require('../assets/images/event_card/offline.png')} 
+                        source={require('@/assets/images/event_card/offline.png')} 
                         style={styles.mapIcon}
                       />
                     </TouchableOpacity>
@@ -377,7 +377,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                   ) : (
                     <>
                       <Image 
-                        source={require('../assets/images/groups/upload_image.png')} 
+                        source={require('@/assets/images/groups/upload_image.png')} 
                         style={styles.uploadIcon}
                       />
                       <Text style={styles.uploadText}>Загрузите своё изображение</Text>
@@ -388,7 +388,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
             </View>
 
             <ImageBackground
-              source={require('../assets/images/event_card/bottom_rectangle.png')}
+              source={require('@/assets/images/event_card/bottom_rectangle.png')}
               style={styles.bottomBackground}
               resizeMode="stretch"
             >

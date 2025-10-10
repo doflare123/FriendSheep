@@ -1,5 +1,5 @@
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import React, { useState } from 'react';
 import {
   Dimensions,
@@ -35,49 +35,49 @@ const ContactsModal: React.FC<ContactsModalProps> = ({ visible, onClose, onSave 
     {
       id: 'discord',
       name: 'Discord',
-      icon: require('../assets/images/groups/contacts/discord.png'),
+      icon: require('@/assets/images/groups/contacts/discord.png'),
       description: '',
       link: ''
     },
     {
       id: 'vk',
       name: 'VK',
-      icon: require('../assets/images/groups/contacts/vk.png'),
+      icon: require('@/assets/images/groups/contacts/vk.png'),
       description: '',
       link: ''
     },
     {
       id: 'telegram',
       name: 'Telegram',
-      icon: require('../assets/images/groups/contacts/telegram.png'),
+      icon: require('@/assets/images/groups/contacts/telegram.png'),
       description: '',
       link: ''
     },
     {
       id: 'twitch',
       name: 'Twitch',
-      icon: require('../assets/images/groups/contacts/twitch.png'),
+      icon: require('@/assets/images/groups/contacts/twitch.png'),
       description: '',
       link: ''
     },
     {
       id: 'youtube',
       name: 'YouTube',
-      icon: require('../assets/images/groups/contacts/youtube.png'),
+      icon: require('@/assets/images/groups/contacts/youtube.png'),
       description: '',
       link: ''
     },
     {
       id: 'whatsapp',
       name: 'WhatsApp',
-      icon: require('../assets/images/groups/contacts/whatsapp.png'),
+      icon: require('@/assets/images/groups/contacts/whatsapp.png'),
       description: '',
       link: ''
     },
     {
       id: 'max',
       name: 'Max',
-      icon: require('../assets/images/groups/contacts/max.png'),
+      icon: require('@/assets/images/groups/contacts/max.png'),
       description: '',
       link: ''
     }
@@ -170,15 +170,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   header: {
-    paddingVertical: 20,
+    paddingVertical: 10,
     paddingHorizontal: 20,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.lightGrey,
   },
   title: {
-    fontFamily: inter.bold,
-    fontSize: 18,
+    fontFamily: Montserrat.bold,
+    fontSize: 16,
     color: Colors.black,
     textAlign: 'center',
   },
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     marginBottom: 8,
     marginLeft: 10,
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     color: Colors.black,
   },
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonText: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.white,
   },

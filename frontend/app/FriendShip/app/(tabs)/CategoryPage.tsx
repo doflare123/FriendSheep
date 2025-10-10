@@ -5,12 +5,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BottomBar from '@/components/BottomBar';
-import CategoryButton from '@/components/CategoryButton';
-import CategorySearchBar from '@/components/CategorySearchBar';
-import { Event } from '@/components/EventCard';
-import EventModal from '@/components/EventModal';
+import CategorySection from '@/components/CategorySection';
+import { Event } from '@/components/event/EventCard';
+import EventModal from '@/components/event/EventModal';
+import VerticalEventList from '@/components/event/VerticalEventList';
+import CategorySearchBar from '@/components/search/CategorySearchBar';
 import TopBar from '@/components/TopBar';
-import VerticalEventList from '@/components/VerticalEventList';
 import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import { useEvents } from '@/hooks/useEvents';
@@ -78,7 +78,7 @@ interface CategoryPageProps {
 
 const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
   const route = useRoute<CategoryPageRouteProp>();
-  const { category, title, imageSource } = route.params;
+  const { category, title } = route.params;
   
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -94,7 +94,6 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
     otherEvents,
     popularEvents,
     newEvents,
-    searchResults 
   } = useEvents(globalSortingState);
 
   const isSpecialCategory = category === 'popular' || category === 'new';
@@ -168,16 +167,16 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
   const createEventWithHighlightedTitle = (event: Event, query: string): Event => {
     if (!query.trim()) return event;
 
-    const title = event.title;
-    const lowerTitle = title.toLowerCase();
+    const eventTitle = event.title;
+    const lowerTitle = eventTitle.toLowerCase();
     const lowerQuery = query.toLowerCase();
     const index = lowerTitle.indexOf(lowerQuery);
 
     if (index === -1) return event;
 
-    const beforeMatch = title.substring(0, index);
-    const match = title.substring(index, index + query.length);
-    const afterMatch = title.substring(index + query.length);
+    const beforeMatch = eventTitle.substring(0, index);
+    const match = eventTitle.substring(index, index + query.length);
+    const afterMatch = eventTitle.substring(index + query.length);
 
     return {
       ...event,
@@ -207,35 +206,36 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-        <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
-        <CategoryButton
-            title={title}
-            imageSource={imageSource}
-            onPress={() => navigation.goBack()}
+      <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
+      
+      <CategorySection
+        title={title}
+        showBackButton
+        onBackPress={() => navigation.goBack()}
+      />
+
+      <View style={styles.searchContainer}>
+        <CategorySearchBar 
+          sortingState={categorySortingState} 
+          sortingActions={categorySortingActions}
+          showCategoryFilter={isSpecialCategory}
         />
+      </View>
 
-        <View style={styles.searchContainer}>
-          <CategorySearchBar 
-            sortingState={categorySortingState} 
-            sortingActions={categorySortingActions}
-            showCategoryFilter={isSpecialCategory}
-          />
-        </View>
-
-        <View style={styles.contentContainer}>
-          {eventsToShow.length > 0 ? (
-            <VerticalEventList events={addOnPressToEvents(eventsToShow)} />
-          ) : (
-            <View style={styles.noEventsContainer}>
-              <Text style={styles.noEventsText}>
-                {categorySortingState.searchQuery.trim() 
-                  ? `Ничего не найдено по запросу "${categorySortingState.searchQuery}"` 
-                  : `В категории "${title}" пока нет событий`
-                }
-              </Text>
-            </View>
-          )}
-        </View>
+      <View style={styles.contentContainer}>
+        {eventsToShow.length > 0 ? (
+          <VerticalEventList events={addOnPressToEvents(eventsToShow)} />
+        ) : (
+          <View style={styles.noEventsContainer}>
+            <Text style={styles.noEventsText}>
+              {categorySortingState.searchQuery.trim() 
+                ? `Ничего не найдено по запросу "${categorySortingState.searchQuery}"` 
+                : `В категории "${title}" пока нет событий`
+              }
+            </Text>
+          </View>
+        )}
+      </View>
 
       <BottomBar />
 
@@ -255,10 +255,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
-  backgroundImage: {
-    flex: 1,
-  },
   searchContainer: {
+    marginTop: 8,
     paddingHorizontal: 16,
     paddingBottom: 12,
   },

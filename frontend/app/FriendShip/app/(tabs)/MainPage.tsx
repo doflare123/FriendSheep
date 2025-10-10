@@ -1,19 +1,19 @@
 import BottomBar from '@/components/BottomBar';
-import { Event } from '@/components/EventCard';
-import EventCarousel from '@/components/EventCarousel';
-import EventModal from '@/components/EventModal';
+import CategorySection from '@/components/CategorySection';
+import { Event } from '@/components/event/EventCard';
+import EventCarousel from '@/components/event/EventCarousel';
+import EventModal from '@/components/event/EventModal';
+import PageHeader from '@/components/PageHeader';
+import SearchResultsSection from '@/components/search/SearchResultsSection';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
-import { Montserrat } from '@/constants/Montserrat';
-import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
 import { useEvents } from '@/hooks/useEvents';
 import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type MainPageRouteProp = RouteProp<RootStackParamList, 'MainPage'>;
@@ -70,202 +70,117 @@ const MainPage = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }}>
-        <TopBar sortingState={sortingState} sortingActions={sortingActions} />
+      <TopBar sortingState={sortingState} sortingActions={sortingActions} />
 
-        <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>             
-          {sortingState.searchQuery.trim() ? (
-            <>
-              <View style={styles.headerContainer}>
-                <Text style={styles.headerTitle}>Поиск по событиям</Text>
-              </View>
-              <View style={styles.resultsHeader}>
-                <Text style={styles.resultsText}>Результаты поиска:</Text>
-                <Image
-                  source={require('../../assets/images/line.png')}
-                  style={{resizeMode: 'none'}}
-                />
-              </View>
-              {searchResults.length > 0 ? (
-                <EventCarousel events={addOnPressToEvents(searchResults)} />
-              ) : (
-                <Text style={styles.noResultsText}>
-                  Ничего не найдено по запросу "{sortingState.searchQuery}"
-                </Text>
-              )}
-            </>
-          ) : (
-            <>
-              <View style={styles.headerContainer}>
-                <Text style={styles.headerTitle}>С возвращением!</Text>
-              </View>
-              <Image
-                source={require('../../assets/images/wave.png')}
-                style={{resizeMode: 'none', marginBottom: -20}}
+      <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>             
+        {sortingState.searchQuery.trim() ? (
+          <SearchResultsSection
+            title="Поиск по событиям"
+            searchQuery={sortingState.searchQuery}
+            hasResults={searchResults.length > 0}
+          >
+            <EventCarousel events={addOnPressToEvents(searchResults)} />
+          </SearchResultsSection>
+        ) : (
+          <>
+            <PageHeader title="С возвращением!" showWave />
+
+            <CategorySection
+              title="Популярные:"
+              events={addOnPressToEvents(popularEvents)}
+              showArrow
+              onArrowPress={() =>
+                navigateToCategory(
+                  'popular',
+                  'Популярные события',
+                  require('../../assets/images/category/popular-pattern.png')
+                )
+              }
+            />
+
+            <CategorySection
+              title="Новые:"
+              events={addOnPressToEvents(newEvents)}
+              showArrow
+              onArrowPress={() =>
+                navigateToCategory(
+                  'new',
+                  'Новые события',
+                  require('../../assets/images/category/new-pattern.png')
+                )
+              }
+            />
+
+            <CategorySection
+              title="Категории"
+              events={[]}
+              centerTitle
+              showLineVariant="line2"
+              marginBottom={16}
+            />
+
+            {movieEvents.length > 0 && (
+              <CategorySection
+                title="Медиа:"
+                events={addOnPressToEvents(movieEvents)}
+                showArrow
+                onArrowPress={() =>
+                  navigateToCategory(
+                    'movie',
+                    'Фильмы',
+                    require('../../assets/images/category/movies-pattern.png')
+                  )
+                }
               />
-              <View style={styles.resultsHeader}>
-                <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                  <Text style={styles.resultsText}>Популярные:</Text>
-                  <TouchableOpacity onPress={() =>
+            )}
+
+            {gameEvents.length > 0 && (
+              <CategorySection
+                title="Игры:"
+                events={addOnPressToEvents(gameEvents)}
+                showArrow
+                onArrowPress={() =>
                   navigateToCategory(
-                    'popular',
-                    'Популярные события',
-                    require('../../assets/images/category/popular-pattern.png')
+                    'game',
+                    'Игры',
+                    require('../../assets/images/category/games-pattern.png')
                   )
-                }>
-                    <Image
-                      source={require('../../assets/images/arrow.png')}
-                      style={{resizeMode: 'contain', width: 30, height: 30}}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <Image
-                    source={require('../../assets/images/line.png')}
-                    style={{resizeMode: 'none'}}
-                />
-              </View>
-              <EventCarousel events={addOnPressToEvents(popularEvents)} />
+                }
+              />
+            )}
 
-              <View style={styles.resultsHeader}>
-                <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                  <Text style={styles.resultsText}>Новые:</Text>
-                  <TouchableOpacity onPress={() =>
+            {tableGameEvents.length > 0 && (
+              <CategorySection
+                title="Настольные игры:"
+                events={addOnPressToEvents(tableGameEvents)}
+                showArrow
+                onArrowPress={() =>
                   navigateToCategory(
-                    'new',
-                    'Новые события',
-                    require('../../assets/images/category/new-pattern.png')
+                    'table_game',
+                    'Настольные игры',
+                    require('../../assets/images/category/table_games-pattern.png')
                   )
-                }>
-                    <Image
-                      source={require('../../assets/images/arrow.png')}
-                      style={{resizeMode: 'contain', width: 30, height: 30}}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <Image
-                    source={require('../../assets/images/line.png')}
-                    style={{resizeMode: 'none'}}
-                />
-              </View>
-              <EventCarousel events={addOnPressToEvents(newEvents)} />
+                }
+              />
+            )}
 
-              <View style={[styles.resultsHeader, {marginBottom: 16}]}>
-                <Text style={[styles.resultsText, {textAlign: 'center'}]}>Категории</Text>
-                <Image
-                    source={require('../../assets/images/line2.png')}
-                    style={{resizeMode: 'none'}}
-                />
-              </View>
-
-              {movieEvents.length > 0 && (
-                <>
-                  <View style={styles.resultsHeader}>
-                    <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                      <Text style={styles.resultsText}>Медиа:</Text>
-                      <TouchableOpacity onPress={() =>
-                      navigateToCategory(
-                        'movie',
-                        'Фильмы',
-                        require('../../assets/images/category/movies-pattern.png')
-                      )
-                    }>
-                        <Image
-                          source={require('../../assets/images/arrow.png')}
-                          style={{resizeMode: 'contain', width: 30, height: 30}}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                    <Image
-                        source={require('../../assets/images/line.png')}
-                        style={{resizeMode: 'none'}}
-                    />
-                  </View>
-                  <EventCarousel events={addOnPressToEvents(movieEvents)} />
-                </>
-              )}
-
-              {gameEvents.length > 0 && (
-                <>
-                  <View style={styles.resultsHeader}>
-                    <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                      <Text style={styles.resultsText}>Игры:</Text>
-                      <TouchableOpacity onPress={() =>
-                      navigateToCategory(
-                        'game',
-                        'Игры',
-                        require('../../assets/images/category/games-pattern.png')
-                      )
-                    }>
-                        <Image
-                          source={require('../../assets/images/arrow.png')}
-                          style={{resizeMode: 'contain', width: 30, height: 30}}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                    <Image
-                        source={require('../../assets/images/line.png')}
-                        style={{resizeMode: 'none'}}
-                    />
-                  </View>
-                  <EventCarousel events={addOnPressToEvents(gameEvents)} />
-                </>
-              )}
-
-              {tableGameEvents.length > 0 && (
-                <>
-                  <View style={styles.resultsHeader}>
-                    <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                      <Text style={styles.resultsText}>Настольные игры:</Text>
-                      <TouchableOpacity onPress={() =>
-                      navigateToCategory(
-                        'table_game',
-                        'Настольные игры',
-                        require('../../assets/images/category/table_games-pattern.png')
-                      )
-                    }>
-                        <Image
-                          source={require('../../assets/images/arrow.png')}
-                          style={{resizeMode: 'contain', width: 30, height: 30}}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                    <Image
-                        source={require('../../assets/images/line.png')}
-                        style={{resizeMode: 'none'}}
-                    />
-                  </View>
-                  <EventCarousel events={addOnPressToEvents(tableGameEvents)} />
-                </>
-              )}
-
-              {otherEvents.length > 0 && (
-                <>
-                  <View style={styles.resultsHeader}>
-                    <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                      <Text style={styles.resultsText}>Другое:</Text>
-                      <TouchableOpacity onPress={() =>
-                      navigateToCategory(
-                        'other',
-                        'Другое',
-                        require('../../assets/images/category/other-pattern.png')
-                      )
-                    }>
-                        <Image
-                          source={require('../../assets/images/arrow.png')}
-                          style={{resizeMode: 'contain', width: 30, height: 30}}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                    <Image
-                        source={require('../../assets/images/line.png')}
-                        style={{resizeMode: 'none'}}
-                    />
-                  </View>
-                  <EventCarousel events={addOnPressToEvents(otherEvents)} />
-                </>
-              )}
-            </>
-          )}
-        </ScrollView>
+            {otherEvents.length > 0 && (
+              <CategorySection
+                title="Другое:"
+                events={addOnPressToEvents(otherEvents)}
+                showArrow
+                onArrowPress={() =>
+                  navigateToCategory(
+                    'other',
+                    'Другое',
+                    require('../../assets/images/category/other-pattern.png')
+                  )
+                }
+              />
+            )}
+          </>
+        )}
+      </ScrollView>
       <BottomBar />
 
       {selectedEvent && (
@@ -278,52 +193,5 @@ const MainPage = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  category: {
-    backgroundColor: Colors.white,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    margin: 8,
-    marginTop: 16,
-    height: 40,
-    width: '90%',
-    alignSelf: 'center',
-  },
-  textCategory: {
-    color: Colors.blue,
-    fontSize: 20,
-    fontFamily: inter.bold,
-  },
-  noResultsText: {
-    fontFamily: Montserrat.regular,
-    fontSize: 18,
-    color: Colors.black,
-    textAlign: 'center',
-  },
-  headerContainer: {
-    backgroundColor: Colors.lightBlue2,
-    paddingVertical: 20,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  headerTitle: {
-    fontFamily: Montserrat_Alternates.medium,
-    fontSize: 24,
-    color: Colors.white,
-    textTransform: 'none',
-  },
-  resultsHeader: {
-    paddingHorizontal: 16,
-  },
-  resultsText: {
-    fontFamily: Montserrat_Alternates.medium,
-    fontSize: 20,
-    color: Colors.blue2,
-    marginBottom: 4
-  },
-});
 
 export default MainPage;
