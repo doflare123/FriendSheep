@@ -1,10 +1,13 @@
 import { useState } from 'react';
 
+export type SearchType = 'event' | 'profile' | 'group';
+
 export interface SortingState {
   checkedCategories: string[];
   sortByDate: 'asc' | 'desc' | 'none';
   sortByParticipants: 'asc' | 'desc' | 'none';
   searchQuery: string;
+  activeSearchType: SearchType;
 }
 
 export interface SortingActions {
@@ -13,13 +16,38 @@ export interface SortingActions {
   setSortByParticipants: (order: 'asc' | 'desc' | 'none') => void;
   toggleCategoryCheckbox: (category: string) => void;
   setSearchQuery: (query: string) => void;
+  setActiveSearchType: (type: SearchType) => void;
 }
+
+let globalActiveSearchType: SearchType = 'event';
+const searchTypeListeners: Set<(type: SearchType) => void> = new Set();
+
+const notifySearchTypeListeners = (type: SearchType) => {
+  searchTypeListeners.forEach(listener => listener(type));
+};
 
 export const useSearchState = () => {
   const [checkedCategories, setCheckedCategories] = useState<string[]>(['Все']);
   const [sortByDate, setSortByDate] = useState<'asc' | 'desc' | 'none'>('none');
   const [sortByParticipants, setSortByParticipants] = useState<'asc' | 'desc' | 'none'>('none');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeSearchType, setActiveSearchTypeLocal] = useState<SearchType>(globalActiveSearchType);
+
+  useState(() => {
+    const listener = (type: SearchType) => {
+      setActiveSearchTypeLocal(type);
+    };
+    searchTypeListeners.add(listener);
+    return () => {
+      searchTypeListeners.delete(listener);
+    };
+  });
+
+  const setActiveSearchType = (type: SearchType) => {
+    globalActiveSearchType = type;
+    setActiveSearchTypeLocal(type);
+    notifySearchTypeListeners(type);
+  };
 
   const toggleCategoryCheckbox = (category: string) => {
     if (category === 'Все') {
@@ -40,6 +68,7 @@ export const useSearchState = () => {
     sortByDate,
     sortByParticipants,
     searchQuery,
+    activeSearchType,
   };
 
   const sortingActions: SortingActions = {
@@ -48,6 +77,7 @@ export const useSearchState = () => {
     setSortByParticipants,
     toggleCategoryCheckbox,
     setSearchQuery,
+    setActiveSearchType,
   };
 
   return {

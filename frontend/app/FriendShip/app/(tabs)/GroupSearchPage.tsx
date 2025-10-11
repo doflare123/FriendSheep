@@ -9,6 +9,7 @@ import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { useGroupSearchState } from '@/hooks/useGroupSearchState';
 import { useSearchState } from '@/hooks/useSearchState';
+import { highlightGroupText } from '@/utils/textHighlight';
 
 const mockGroups: Group[] = [
   {
@@ -76,42 +77,6 @@ const GroupSearchPage: React.FC = () => {
   const { searchState, searchActions } = useGroupSearchState();
   const { sortingState: globalSortingState, sortingActions: globalSortingActions } = useSearchState();
 
-  const createGroupWithHighlightedText = (group: Group, query: string): Group => {
-    if (!query.trim()) return group;
-
-    const lowerQuery = query.toLowerCase();
-
-    const lowerName = group.name.toLowerCase();
-    const nameIndex = lowerName.indexOf(lowerQuery);
-    let highlightedName = undefined;
-    
-    if (nameIndex !== -1) {
-      highlightedName = {
-        before: group.name.substring(0, nameIndex),
-        match: group.name.substring(nameIndex, nameIndex + query.length),
-        after: group.name.substring(nameIndex + query.length)
-      };
-    }
-
-    const lowerDescription = group.description.toLowerCase();
-    const descIndex = lowerDescription.indexOf(lowerQuery);
-    let highlightedDescription = undefined;
-    
-    if (descIndex !== -1) {
-      highlightedDescription = {
-        before: group.description.substring(0, descIndex),
-        match: group.description.substring(descIndex, descIndex + query.length),
-        after: group.description.substring(descIndex + query.length)
-      };
-    }
-
-    return {
-      ...group,
-      highlightedName,
-      highlightedDescription
-    };
-  };
-
   const filteredAndSortedGroups = useMemo((): Group[] => {
     let groups = [...mockGroups];
     
@@ -122,7 +87,7 @@ const GroupSearchPage: React.FC = () => {
       );
       
       groups = groups.map(group => 
-        createGroupWithHighlightedText(group, searchState.searchQuery)
+        highlightGroupText(group, searchState.searchQuery)
       );
     }
 
@@ -154,29 +119,33 @@ const GroupSearchPage: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
 
-      <SearchResultsSection
-        title="Поиск по группам"
-        searchQuery={searchState.searchQuery}
-        hasResults={filteredAndSortedGroups.length > 0}
-        showWave
-      >
-        <View style={styles.contentContainer}>
-          <FlatList
-            data={filteredAndSortedGroups}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={styles.cardWrapper}>
-                <GroupCard
-                  {...item}
-                  onPress={() => handleGroupPress(item.id)}
-                />
-              </View>
-            )}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-          />
-        </View>
-      </SearchResultsSection>
+      <View style={{flex: 1}}>
+        <SearchResultsSection
+          title="Поиск по группам"
+          searchQuery={searchState.searchQuery}
+          hasResults={filteredAndSortedGroups.length > 0}
+          showWave
+        >
+          {filteredAndSortedGroups.length > 0 && (
+            <View style={styles.contentContainer}>
+              <FlatList
+                data={filteredAndSortedGroups}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <View style={styles.cardWrapper}>
+                    <GroupCard
+                      {...item}
+                      onPress={() => handleGroupPress(item.id)}
+                    />
+                  </View>
+                )}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContent}
+              />
+            </View>
+          )}
+        </SearchResultsSection>
+      </View>
 
       <BottomBar />
     </SafeAreaView>

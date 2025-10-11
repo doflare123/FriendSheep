@@ -1,5 +1,5 @@
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
 import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
 
@@ -20,11 +20,11 @@ const styles = StyleSheet.create({
   input: {
     color: Colors.black,
     borderWidth: 3,
-    borderColor: Colors.blue,
+    borderColor: Colors.blue3,
     borderRadius: 12,
     padding: 6,
-    fontFamily: inter.regular,
-    fontSize: 18,
+    fontFamily: Montserrat.regular,
+    fontSize: 16,
   },
 });
 

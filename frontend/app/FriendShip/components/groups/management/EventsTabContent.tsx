@@ -1,8 +1,9 @@
-import EditableEventCard from '@/components/event/EditableEventCard';
-import { Event } from '@/components/event/EventCard';
+import EventCard, { Event } from '@/components/event/EventCard';
 import GroupEventsSearchBar from '@/components/groups/GroupEventsSearchBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { sortEventsByDate, sortEventsByParticipants } from '@/utils/eventSorting';
+import { highlightEventTitle } from '@/utils/textHighlight';
 import React, { useMemo, useState } from 'react';
 import {
   FlatList,
@@ -58,6 +59,10 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
       filtered = filtered.filter(event => 
         event.title.toLowerCase().includes(searchQuery.toLowerCase())
       );
+
+      filtered = filtered.map(event => 
+        highlightEventTitle(event, searchQuery)
+      );
     }
 
     if (!checkedCategories.includes('Все')) {
@@ -70,21 +75,11 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
     }
 
     if (sortByDate !== 'none') {
-      filtered = [...filtered].sort((a, b) => {
-        const dateA = new Date(a.date.split('.').reverse().join('-'));
-        const dateB = new Date(b.date.split('.').reverse().join('-'));
-        return sortByDate === 'asc' ? 
-          dateA.getTime() - dateB.getTime() : 
-          dateB.getTime() - dateA.getTime();
-      });
+      filtered = sortEventsByDate(filtered, sortByDate);
     }
 
     if (sortByParticipants !== 'none') {
-      filtered = [...filtered].sort((a, b) => {
-        return sortByParticipants === 'asc' ? 
-          a.currentParticipants - b.currentParticipants :
-          b.currentParticipants - a.currentParticipants;
-      });
+      filtered = sortEventsByParticipants(filtered, sortByParticipants);
     }
 
     return filtered;
@@ -92,9 +87,9 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
 
   const renderEventCard = ({ item }: { item: Event }) => (
     <View style={styles.cardContainer}>
-      <EditableEventCard
+      <EventCard
         {...item}
-        onEdit={() => onEditEvent(item.id)}
+        onPress={() => onEditEvent(item.id)}
       />
     </View>
   );

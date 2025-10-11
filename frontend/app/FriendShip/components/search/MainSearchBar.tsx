@@ -2,7 +2,7 @@ import barsStyle from '@/app/styles/barsStyle';
 import FilterModal from '@/components/search/modal/FilterModal';
 import SearchTypeModal from '@/components/search/modal/SearchTypeModal';
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import { useGroupSearchState } from '@/hooks/useGroupSearchState';
 import { SortingActions, SortingState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
@@ -34,9 +34,6 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
-  const [activeSearchType, setActiveSearchType] = useState<'event' | 'profile' | 'group'>('event');
-  const [inputText, setInputText] = useState('');
-
   const [categoryModalPos, setCategoryModalPos] = useState({ top: 0, left: 0 });
   const [filterModalPos, setFilterModalPos] = useState({ top: 0, left: 0 });
 
@@ -45,14 +42,16 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
 
   const [filterIconLayout, setFilterIconLayout] = useState({ width: 0, height: 0 });
 
-  const { searchQuery } = sortingState;
-  const { setSearchQuery } = sortingActions;
+  const { searchQuery, activeSearchType } = sortingState;
+  const { setSearchQuery, setActiveSearchType } = sortingActions;
+
+  const currentSearchQuery = activeSearchType === 'group' 
+    ? groupSearchState.searchQuery 
+    : searchQuery;
 
   const handleSearchTypeChange = (type: 'event' | 'profile' | 'group') => {
     setActiveSearchType(type);
     setCategoryModalVisible(false);
-    setSearchQuery('');
-    setInputText('');
   };
 
   const getPlaceholderByType = (type: 'event' | 'profile' | 'group') => {
@@ -69,23 +68,19 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
   };
 
   const handleSearchInputChange = (text: string) => {
-    setInputText(text);
-
-    if (text.trim() === '' && searchQuery.trim() !== '') {
-      setSearchQuery('');
+    if (activeSearchType === 'group') {
+      groupSearchActions.setSearchQuery(text);
+    } else {
+      setSearchQuery(text);
     }
   };
 
   const handleSearchSubmit = () => {
     if (activeSearchType === 'event') {
-      setSearchQuery(inputText);
-
       if (navigation.getState().routes[navigation.getState().index].name !== 'MainPage') {
-        navigation.navigate('MainPage', { searchQuery: inputText });
+        navigation.navigate('MainPage', { searchQuery: searchQuery });
       }
     } else if (activeSearchType === 'group') {
-      groupSearchActions.setSearchQuery(inputText);
-      
       navigation.navigate('GroupSearchPage');
     }
   };
@@ -118,7 +113,7 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
 
         <TextInput
           placeholder={getPlaceholderByType(activeSearchType)}
-          value={inputText}
+          value={currentSearchQuery}
           onChangeText={handleSearchInputChange}
           onSubmitEditing={handleSearchSubmit}
           returnKeyType="search"
@@ -192,8 +187,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 10,
-    fontFamily: inter.regular,
-    fontSize: 16,
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
     color: Colors.black,
   },
 });

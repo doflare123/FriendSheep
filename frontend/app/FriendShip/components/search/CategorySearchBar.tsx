@@ -1,6 +1,6 @@
 import barsStyle from '@/app/styles/barsStyle';
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import React, { useRef, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -177,8 +177,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 10,
-    fontFamily: inter.regular,
-    fontSize: 16,
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
     color: Colors.black,
   },
   modalOverlay: {
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   dropdownTitle: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     marginBottom: 8,
   },
   radioItem: {
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     marginVertical: 6,
   },
   radioLabel: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
   },
   radioCircleEmpty: {

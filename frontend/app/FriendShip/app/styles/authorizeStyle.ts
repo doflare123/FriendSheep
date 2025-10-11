@@ -1,4 +1,5 @@
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
+import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
 import { StyleSheet } from 'react-native';
 import { Colors } from '../../constants/Colors';
 
@@ -27,41 +28,41 @@ const authorizeStyle = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     color: Colors.lightGrey,
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
   },
   title: {
-    fontSize: 30,
-    fontFamily: inter.regular,
-    color: Colors.lightBlue,
+    fontSize: 28,
+    fontFamily: Montserrat_Alternates.medium,
+    color: Colors.lightBlue3,
     textAlign: 'center',
     marginBottom: 40,
   },
   label: {
-    fontFamily: inter.regular,
-    fontSize: 20,
+    fontFamily: Montserrat.regular,
+    fontSize: 18,
     marginBottom: 4,
   },
   hintLabel: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     marginBottom: 8,
     color: Colors.lightGrey,
     textAlign: 'center'
   },
   account: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: -8,
   },
   link: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 12,
     color: Colors.lightBlue,
   },
   terms: {
     marginTop: 12,
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 12,
     color: Colors.lightGrey,
   },

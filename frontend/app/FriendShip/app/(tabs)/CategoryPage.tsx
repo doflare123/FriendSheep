@@ -15,51 +15,9 @@ import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import { useEvents } from '@/hooks/useEvents';
 import { useSearchState } from '@/hooks/useSearchState';
+import { sortEventsByDate, sortEventsByParticipants } from '@/utils/eventSorting';
 import { filterEventsByCategories } from '@/utils/eventUtils';
-
-const parseDate = (dateString: string): Date => {
-  const parts = dateString.split(' ');
-  const datePart = parts[0];
-  const timePart = parts[1] || '00:00';
-  
-  const [day, month, year] = datePart.split('.');
-  const [hour, minute] = timePart.split(':');
-  
-  return new Date(
-    parseInt(year), 
-    parseInt(month) - 1,
-    parseInt(day), 
-    parseInt(hour) || 0, 
-    parseInt(minute) || 0
-  );
-};
-
-const sortEventsByDate = (events: Event[], order: 'asc' | 'desc' | 'none') => {
-  if (order === 'none') return events;
-  
-  return [...events].sort((a, b) => {
-    const dateA = parseDate(a.date);
-    const dateB = parseDate(b.date);
-    
-    if (order === 'asc') {
-      return dateA.getTime() - dateB.getTime();
-    } else {
-      return dateB.getTime() - dateA.getTime();
-    }
-  });
-};
-
-const sortEventsByParticipants = (events: Event[], order: 'asc' | 'desc' | 'none') => {
-  if (order === 'none') return events;
-  
-  return [...events].sort((a, b) => {
-    if (order === 'asc') {
-      return a.currentParticipants - b.currentParticipants;
-    } else {
-      return b.currentParticipants - a.currentParticipants;
-    }
-  });
-};
+import { highlightEventTitle } from '@/utils/textHighlight';
 
 type RootStackParamList = {
   CategoryPage: {
@@ -164,30 +122,6 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
     }));
   };
 
-  const createEventWithHighlightedTitle = (event: Event, query: string): Event => {
-    if (!query.trim()) return event;
-
-    const eventTitle = event.title;
-    const lowerTitle = eventTitle.toLowerCase();
-    const lowerQuery = query.toLowerCase();
-    const index = lowerTitle.indexOf(lowerQuery);
-
-    if (index === -1) return event;
-
-    const beforeMatch = eventTitle.substring(0, index);
-    const match = eventTitle.substring(index, index + query.length);
-    const afterMatch = eventTitle.substring(index + query.length);
-
-    return {
-      ...event,
-      highlightedTitle: {
-        before: beforeMatch,
-        match: match,
-        after: afterMatch
-      }
-    };
-  };
-
   const eventsToShow = useMemo(() => {
     if (categorySortingState.searchQuery.trim()) {
       let filtered = sortedCategoryEvents.filter(event =>
@@ -195,7 +129,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
       );
       
       filtered = filtered.map(event => 
-        createEventWithHighlightedTitle(event, categorySortingState.searchQuery)
+        highlightEventTitle(event, categorySortingState.searchQuery)
       );
       
       return filtered;
@@ -256,7 +190,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   searchContainer: {
-    marginTop: 8,
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
