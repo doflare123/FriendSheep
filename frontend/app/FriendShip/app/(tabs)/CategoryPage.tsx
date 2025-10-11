@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
 import { Event } from '@/components/event/EventCard';
-import EventModal from '@/components/event/EventModal';
+import EventModal from '@/components/event/modal/EventModal';
 import VerticalEventList from '@/components/event/VerticalEventList';
 import CategorySearchBar from '@/components/search/CategorySearchBar';
 import TopBar from '@/components/TopBar';

@@ -1,3 +1,5 @@
+import Toast from '@/components/Toast';
+import { Event } from '@/components/event/EventCard';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
@@ -14,8 +16,6 @@ import {
   TouchableWithoutFeedback,
   View
 } from 'react-native';
-import Toast from '../Toast';
-import { Event } from './EventCard';
 
 const screenHeight = Dimensions.get("window").height;
 

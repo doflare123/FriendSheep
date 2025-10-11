@@ -2,7 +2,7 @@ import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
 import { Event } from '@/components/event/EventCard';
 import EventCarousel from '@/components/event/EventCarousel';
-import EventModal from '@/components/event/EventModal';
+import EventModal from '@/components/event/modal/EventModal';
 import PageHeader from '@/components/PageHeader';
 import SearchResultsSection from '@/components/search/SearchResultsSection';
 import TopBar from '@/components/TopBar';

@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BottomBar from '@/components/BottomBar';
-import CreateEventModal from '@/components/event/CreateEventModal';
+import CreateEventModal from '@/components/event/modal/CreateEventModal';
 import EventsTabContent from '@/components/groups/management/EventsTabContent';
 import GroupManageTabPanel from '@/components/groups/management/GroupManageTabPanel';
 import InfoTabContent from '@/components/groups/management/InfoTabContent';
@@ -200,7 +200,18 @@ const GroupManagePage = () => {
         groupName={groupData?.name}
       />
 
-      {/* TODO: Добавить модалку редактирования события */}
+      {groupData && (
+        <CreateEventModal
+          visible={editEventModalVisible}
+          onClose={() => setEditEventModalVisible(false)}
+          onUpdate={handleEditEventSave}
+          groupName={groupData.name}
+          editMode={true}
+          initialData={
+            groupData.sessions?.find((event) => event.id === selectedEventId)
+          }
+        />
+      )}
       
       <BottomBar />
     </SafeAreaView>

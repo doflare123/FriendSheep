@@ -1,6 +1,10 @@
+import { Event } from '@/components/event/EventCard';
+import CategorySelector from '@/components/event/modal/CategorySelector';
+import EventTypeSelector from '@/components/event/modal/EventTypeSelector';
+import GenreSelector from '@/components/event/modal/GenreSelector';
 import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -19,18 +23,24 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 const screenHeight = Dimensions.get("window").height;
 
-interface CreateEventModalProps {
+interface CreateEditEventModalProps {
   visible: boolean;
   onClose: () => void;
   onCreate?: (eventData: any) => void;
+  onUpdate?: (eventId: string, eventData: any) => void;
   groupName?: string;
+  editMode?: boolean;
+  initialData?: Event;
 }
 
-const CreateEventModal: React.FC<CreateEventModalProps> = ({ 
+const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({ 
   visible, 
   onClose, 
   onCreate,
-  groupName = 'Мега крутая группа'
+  onUpdate,
+  groupName = 'Мега крутая группа',
+  editMode = false,
+  initialData
 }) => {
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
@@ -46,7 +56,37 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [maxParticipants, setMaxParticipants] = useState('');
   const [eventImage, setEventImage] = useState<string>('');
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
-  const [showGenreDropdown, setShowGenreDropdown] = useState(false);
+
+  useEffect(() => {
+    if (editMode && initialData) {
+      setEventName(initialData.title);
+      setDescription(initialData.description);
+      setSelectedCategory(initialData.category);
+      setEventType(initialData.typePlace);
+      setSelectedGenres(initialData.genres);
+      setPublisher(initialData.publisher);
+      setPublishYear(initialData.publicationDate);
+      setAgeRating(initialData.ageRating);
+      setDuration(initialData.duration);
+      setEventPlace(initialData.eventPlace);
+      setMaxParticipants(initialData.maxParticipants.toString());
+      setEventImage(initialData.imageUri);
+
+      const dateParts = initialData.date.split(' ');
+      if (dateParts.length === 2) {
+        const [datePart, timePart] = dateParts;
+        const [day, month, year] = datePart.split('.');
+        const [hours, minutes] = timePart.split(':');
+        setEventDate(new Date(
+          parseInt(year),
+          parseInt(month) - 1,
+          parseInt(day),
+          parseInt(hours),
+          parseInt(minutes)
+        ));
+      }
+    }
+  }, [editMode, initialData, visible]);
 
   const categories = [
     { id: 'movie', label: 'Фильм', icon: require('@/assets/images/event_card/movie.png') },
@@ -55,14 +95,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     { id: 'other', label: 'Другое', icon: require('@/assets/images/event_card/other.png') },
   ];
 
-  const genres = [
-    'Драма', 'Комедия', 'Боевик', 'Триллер', 'Ужасы', 'Фантастика', 
-    'Детектив', 'Приключения', 'Романтика', 'Криминал', 'Военный', 
-    'Исторический', 'Биография', 'Документальный', 'Анимация', 'Семейный',
-    'Мюзикл', 'Вестерн', 'Спорт', 'Фэнтези'
-  ];
-
-  const handleImagePicker = () => {
+  useEffect(() => {
     const options = {
       mediaType: 'photo' as MediaType,
       includeBase64: false,
@@ -79,7 +112,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         setEventImage(response.assets[0].uri || '');
       }
     });
-  };
+  });
 
   const handleGenreToggle = (genre: string) => {
     setSelectedGenres(prev => 
@@ -108,7 +141,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     });
   };
 
-  const handleCreate = () => {
+  const handleSubmit = () => {
     if (!eventName.trim()) {
       Alert.alert('Ошибка', 'Введите название события');
       return;
@@ -121,17 +154,22 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
       typePlace: eventType,
       genres: selectedGenres,
       publisher,
-      publishYear,
+      publicationDate: publishYear,
       ageRating,
       date: formatDate(eventDate),
       duration,
       eventPlace,
       maxParticipants: parseInt(maxParticipants) || 10,
       imageUri: eventImage,
-      currentParticipants: 0,
+      currentParticipants: initialData?.currentParticipants || 0,
     };
     
-    onCreate?.(eventData);
+    if (editMode && initialData) {
+      onUpdate?.(initialData.id, eventData);
+    } else {
+      onCreate?.(eventData);
+    }
+    
     resetForm();
     onClose();
   };
@@ -168,7 +206,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
             bounces={false}
           >
             <View style={styles.header}>
-              <Text style={styles.title}>Основная информация</Text>
+              <Text style={styles.title}>
+                {editMode ? 'Редактирование события' : 'Основная информация'}
+              </Text>
               <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
                 <Image
                   tintColor={Colors.black}
@@ -200,84 +240,21 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 maxLength={500}
               />
 
-              <Text style={styles.sectionLabel}>Выберите категорию:</Text>
-              <View style={styles.categoriesContainer}>
-                {categories.map((category) => (
-                  <TouchableOpacity
-                    key={category.id}
-                    style={[
-                      styles.categoryButton,
-                      selectedCategory === category.id && styles.categorySelected
-                    ]}
-                    onPress={() => setSelectedCategory(category.id)}
-                  >
-                    <Image source={category.icon} style={styles.categoryIcon} />
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <CategorySelector
+                categories={categories}
+                selected={selectedCategory}
+                onSelect={setSelectedCategory}
+              />
 
-              <Text style={styles.sectionLabel}>Выберите тип события:</Text>
-              <View style={styles.typeContainer}>
-                <View style={{flexDirection: 'column', alignItems: 'center'}}>
-                    <TouchableOpacity
-                    style={[styles.typeButton, eventType === 'offline' && styles.typeSelected]}
-                    onPress={() => setEventType('offline')}
-                    >
-                    <View style={styles.typeIconContainer}>
-                        <Image 
-                        source={require('@/assets/images/event_card/offline.png')} 
-                        style={styles.typeIcon}
-                        />
-                    </View>
-                    </TouchableOpacity>
-                    <Text style={styles.typeText}>Оффлайн</Text>
-                </View>
-    
-                <View style={{flexDirection: 'column', alignItems: 'center'}}>
-                    <TouchableOpacity
-                    style={[styles.typeButton, eventType === 'online' && styles.typeSelected]}
-                    onPress={() => setEventType('online')}
-                    >
-                    <View style={styles.typeIconContainer}>
-                        <Image 
-                        source={require('@/assets/images/event_card/online.png')} 
-                        style={styles.typeIcon}
-                        />
-                    </View>
-                    </TouchableOpacity>
-                    <Text style={styles.typeText}>Онлайн</Text>
-                </View>             
-              </View>
+              <EventTypeSelector
+                selected={eventType}
+                onSelect={setEventType}
+              />
 
-              <TouchableOpacity 
-                style={styles.dropdownButton}
-                onPress={() => setShowGenreDropdown(!showGenreDropdown)}
-              >
-                <Text style={[styles.dropdownText, selectedGenres.length > 0 && styles.dropdownTextActive]}>
-                  {selectedGenres.length > 0 ? selectedGenres.join(', ') : 'Выберите жанры...'}
-                </Text>
-                <Image 
-                  source={require('@/assets/images/event_card/back.png')} 
-                  style={[styles.dropdownArrow, { transform: [{ rotate: showGenreDropdown ? '270deg' : '90deg' }] }]}
-                />
-              </TouchableOpacity>
-
-              {showGenreDropdown && (
-                <View style={styles.genreDropdown}>
-                  {genres.map((genre) => (
-                    <TouchableOpacity
-                      key={genre}
-                      style={styles.genreItem}
-                      onPress={() => handleGenreToggle(genre)}
-                    >
-                      <View style={styles.checkbox}>
-                        {selectedGenres.includes(genre) && <View style={styles.checkboxSelected} />}
-                      </View>
-                      <Text style={styles.genreText}>{genre}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
+              <GenreSelector
+                selected={selectedGenres}
+                onToggle={handleGenreToggle}
+              />
 
               <TextInput
                 style={styles.input}
@@ -341,24 +318,24 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 />
               </View>
               
-                <View style={styles.placeContainer}>
-                  <TextInput
-                    style={[styles.input, styles.placeInput]}
-                    placeholder="Место проведения"
-                    placeholderTextColor={Colors.grey}
-                    value={eventPlace}
-                    onChangeText={setEventPlace}
-                    maxLength={100}
-                  />
-                  {eventType === 'offline' && (
-                    <TouchableOpacity style={styles.mapButton} onPress={handleMapPress}>
-                      <Image 
-                        source={require('@/assets/images/event_card/offline.png')} 
-                        style={styles.mapIcon}
-                      />
-                    </TouchableOpacity>
-                  )}
-                </View>
+              <View style={styles.placeContainer}>
+                <TextInput
+                  style={[styles.input, styles.placeInput]}
+                  placeholder="Место проведения"
+                  placeholderTextColor={Colors.grey}
+                  value={eventPlace}
+                  onChangeText={setEventPlace}
+                  maxLength={100}
+                />
+                {eventType === 'offline' && (
+                  <TouchableOpacity style={styles.mapButton} onPress={handleMapPress}>
+                    <Image 
+                      source={require('@/assets/images/event_card/offline.png')} 
+                      style={styles.mapIcon}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
 
               <TextInput
                 style={styles.input}
@@ -370,7 +347,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 maxLength={3}
               />
 
-              <TouchableOpacity style={styles.imageUpload} onPress={handleImagePicker}>
+              <TouchableOpacity style={styles.imageUpload}>
                 <View style={styles.uploadPlaceholder}>
                   {eventImage ? (
                     <Image source={{ uri: eventImage }} style={styles.eventImage} />
@@ -393,8 +370,10 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
               resizeMode="stretch"
             >
               <View style={styles.bottomContent}>
-                <TouchableOpacity style={styles.createButton} onPress={handleCreate}>
-                  <Text style={styles.createButtonText}>Создать событие</Text>
+                <TouchableOpacity style={styles.createButton} onPress={handleSubmit}>
+                  <Text style={styles.createButtonText}>
+                    {editMode ? 'Сохранить изменения' : 'Создать событие'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </ImageBackground>
@@ -429,7 +408,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: inter.black,
-    fontSize: 20,
+    fontSize: 18,
     color: Colors.black,
     textAlign: 'center',
   },
@@ -467,130 +446,9 @@ const styles = StyleSheet.create({
     color: Colors.black,
     marginBottom: 10,
   },
-  categoriesContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-    paddingHorizontal: 10,
-    marginHorizontal: 20,
-    marginBottom: 20,
-  },
-  categoryButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: Colors.lightGrey,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categorySelected: {
-    backgroundColor: Colors.lightBlue,
-  },
-  categoryIcon: {
-    width: 30,
-    height: 30,
-    resizeMode: 'contain',
-  },
-  typeContainer: {
-    paddingHorizontal: 10,
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 20,
-  },
-  typeButton: {
-    flex: 1,
-    borderRadius: 60,
-    padding: 8,
-    alignItems: 'center',
-    marginHorizontal: 40,
-    borderWidth: 3,
-    borderColor: Colors.lightGrey,
-  },
-  typeSelected: {
-    borderColor: Colors.lightBlue,
-  },
-  typeIconContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 20,
-    backgroundColor: Colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  typeIcon: {
-    width: 25,
-    height: 25,
-    resizeMode: 'contain',
-  },
-  typeText: {
-    marginTop: 2,
-    fontFamily: inter.medium,
-    fontSize: 10,
-    color: Colors.black,
-  },
-  dropdownButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.grey,
-    paddingVertical: 8,
-    marginBottom: 8,
-  },
-  dropdownText: {
-    flex: 1,
-    fontFamily: inter.regular,
-    fontSize: 16,
-    color: Colors.grey,
-  },
-  dropdownTextActive: {
-    color: Colors.black,
-  },
-  dropdownArrow: {
-    width: 20,
-    height: 20,
-    tintColor: Colors.grey,
-  },
-  genreDropdown: {
-    backgroundColor: Colors.veryLightGrey,
-    marginHorizontal: 20,
-    borderRadius: 20,
-    marginBottom: 16,
-  },
-  genreItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 40,
-    borderWidth: 2,
-    borderColor: Colors.lightGrey,
-    marginRight: 12,
-    backgroundColor: Colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxSelected: {
-    width: 12,
-    height: 12,
-    borderRadius: 40,
-    backgroundColor: Colors.lightBlue,
-  },
-  genreText: {
-    fontFamily: inter.regular,
-    fontSize: 14,
-    color: Colors.black,
-  },
   rowContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  halfInput: {
-    flex: 1,
   },
   disabledInput: {
     backgroundColor: Colors.lightLightGrey,
@@ -693,4 +551,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CreateEventModal;
+export default CreateEditEventModal;
