@@ -1,5 +1,7 @@
+import Toast from '@/components/Toast';
+import { Event } from '@/components/event/EventCard';
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
 import {
   Dimensions,
@@ -14,21 +16,19 @@ import {
   TouchableWithoutFeedback,
   View
 } from 'react-native';
-import { Event } from './EventCard';
-import Toast from './Toast';
 
 const screenHeight = Dimensions.get("window").height;
 
 const categoryIcons: Record<Event["category"], any> = {
-  movie: require("../assets/images/event_card/movie.png"),
-  game: require("../assets/images/event_card/game.png"),
-  table_game: require("../assets/images/event_card/table_game.png"),
-  other: require("../assets/images/event_card/other.png"),
+  movie: require("@/assets/images/event_card/movie.png"),
+  game: require("@/assets/images/event_card/game.png"),
+  table_game: require("@/assets/images/event_card/table_game.png"),
+  other: require("@/assets/images/event_card/other.png"),
 };
 
 const placeIcons: Record<Event["typePlace"], any> = {
-  online: require("../assets/images/event_card/online.png"),
-  offline: require("../assets/images/event_card/offline.png"),
+  online: require("@/assets/images/event_card/online.png"),
+  offline: require("@/assets/images/event_card/offline.png"),
 };
 
 interface EventModalProps {
@@ -133,7 +133,7 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
               <View style={styles.header}>
                 <Image source={{ uri: event.imageUri }} style={styles.image} />
                 <Image
-                  source={require('../assets/images/event_card/rectangle.png')}
+                  source={require('@/assets/images/event_card/rectangle.png')}
                   style={[styles.rectangle, { height: rectangleHeight }]}
                 />
                 <Text
@@ -172,7 +172,7 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
                   <View style={{ flexDirection: 'row' }}>
                     <Text style={styles.value}>{event.duration}</Text>
                     <Image
-                      source={require('../assets/images/event_card/duration.png')}
+                      source={require('@/assets/images/event_card/duration.png')}
                       style={{
                         width: 20,
                         height: 20,
@@ -208,7 +208,7 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
                       {event.currentParticipants}/{event.maxParticipants}
                     </Text>
                     <Image
-                      source={require('../assets/images/event_card/person.png')}
+                      source={require('@/assets/images/event_card/person.png')}
                       style={{
                         width: 20,
                         height: 20,
@@ -225,12 +225,12 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
                 <Image
                   tintColor={Colors.black}
                   style={{ width: 35, height: 35, resizeMode: 'cover' }}
-                  source={require('../assets/images/event_card/back.png')}
+                  source={require('@/assets/images/event_card/back.png')}
                 />
               </TouchableOpacity>
 
               <ImageBackground
-                source={require('../assets/images/event_card/bottom_rectangle.png')}
+                source={require('@/assets/images/event_card/bottom_rectangle.png')}
                 style={styles.bottomBackground}
                 resizeMode="stretch"
               >
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     bottom: 0,
-    fontFamily: inter.black,
+    fontFamily: Montserrat.bold,
     color: Colors.black,
     textAlign: 'left',
     width: 240,
@@ -340,19 +340,19 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   description: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     marginBottom: 16,
     lineHeight: 18,
   },
   label: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 14,
     marginEnd: 6,
     marginTop: 6,
   },
   value: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     color: Colors.black,
     marginTop: 6,
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     marginBottom: 8,
   },
-  genreText: { fontFamily: inter.regular, color: Colors.black, fontSize: 12 },
+  genreText: { fontFamily: Montserrat.regular, color: Colors.black, fontSize: 12 },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   joinButtonText: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.blue,
   },

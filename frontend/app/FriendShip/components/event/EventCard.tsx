@@ -1,9 +1,9 @@
 import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Montserrat } from '@/constants/Montserrat';
+import { formatTitle } from "@/utils/formatTitle";
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { formatTitle } from "../utils/formatTitle";
 
 export interface Event {
   id: string;
@@ -31,15 +31,15 @@ export interface Event {
 }
 
 const categoryIcons: Record<Event["category"], any> = {
-  movie: require("../assets/images/event_card/movie.png"),
-  game: require("../assets/images/event_card/game.png"),
-  table_game: require("../assets/images/event_card/table_game.png"),
-  other: require("../assets/images/event_card/other.png"),
+  movie: require("@/assets/images/event_card/movie.png"),
+  game: require("@/assets/images/event_card/game.png"),
+  table_game: require("@/assets/images/event_card/table_game.png"),
+  other: require("@/assets/images/event_card/other.png"),
 };
 
 const placeIcons: Record<Event["typePlace"], any> = {
-  online: require("../assets/images/event_card/online.png"),
-  offline: require("../assets/images/event_card/offline.png"),
+  online: require("@/assets/images/event_card/online.png"),
+  offline: require("@/assets/images/event_card/offline.png"),
 };
 
 const getVisibleGenres = (genres: string[], maxBadges = 3, maxChars = 20) => {
@@ -96,69 +96,63 @@ const EventCard: React.FC<Event> = ({
   };
 
   return (
-    <View style={styles.card}>
-      <View style={styles.imageWrapper}>
-        <Image source={{ uri: imageUri }} style={styles.image} />
-        <View style={styles.dateBadge}>
-          <Text style={styles.dateText}>{date}</Text>
+    <View style={styles.shadowWrapper}>
+      <TouchableOpacity onPress={onPress} style={styles.card}>
+        <View style={styles.imageWrapper}>
+          <Image source={{ uri: imageUri }} style={styles.image} />
+          <View style={styles.dateBadge}>
+            <Text style={styles.dateText}>{date}</Text>
+          </View>
         </View>
-        <View style={styles.iconOverlay}>
-          <Image
-            source={categoryIcons[category]}
-            style={{ resizeMode: 'contain', width: 25, height: 25 }}
-          />
-        </View>
-      </View>
 
-      <View style={styles.content}>
-        {renderTitle()}
-        <View style={styles.genres}>
-          <Text style={[styles.metaText, { marginRight: 6, fontFamily: inter.medium }]}>Жанры:</Text>
-          {getVisibleGenres(genres).map((genre, index) => (
-            <View key={index} style={styles.genreBadge}>
-              <Text style={styles.genreText}>{genre}</Text>
+        <View style={styles.content}>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+            {renderTitle()}
+            <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+              <View style={styles.iconOverlay}>
+                  <Image
+                    source={categoryIcons[category]}
+                    style={{ resizeMode: 'contain', width: 16, height: 16 }}
+                  />
+              </View>
+              <View style={styles.iconOverlay}>
+                  <Image
+                    source={placeIcons[typePlace]}
+                    style={{ resizeMode: 'contain', width: 16, height: 16 }}
+                  />
+              </View>
             </View>
-          ))}
-        </View>
-
-        <View style={styles.metaContainer}>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaText}>
-              Участников: {currentParticipants}/{maxParticipants}
-            </Text>
-            <Image
-              source={require("../assets/images/event_card/person.png")}
-              style={styles.metaIcon}
-            />
+          </View>
+          <View style={styles.genres}>
+            <Text style={[styles.metaText, { marginRight: 6, fontFamily: Montserrat.regular }]}>Жанры:</Text>
+            {getVisibleGenres(genres).map((genre, index) => (
+              <View key={index} style={styles.genreBadge}>
+                <Text style={styles.genreText}>{genre}</Text>
+              </View>
+            ))}
           </View>
 
-          <View style={styles.metaRow}>
-            <Text style={styles.metaText}>{duration}</Text>
-            <Image
-              source={require("../assets/images/event_card/duration.png")}
-              style={styles.metaIcon}
-            />
+          <View style={styles.metaContainer}>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaText}>
+                Участники: {currentParticipants}/{maxParticipants}
+              </Text>
+              <Image
+                source={require("@/assets/images/event_card/person2.png")}
+                style={styles.metaIcon}
+              />
+            </View>
+
+            <View style={styles.metaRow}>
+              <Text style={styles.metaText}>{duration}</Text>
+              <Image
+                source={require("@/assets/images/event_card/duration.png")}
+                style={styles.metaIcon}
+              />
+            </View>
           </View>
         </View>
-
-        <View style={styles.iconOverlay}>
-          <Image
-            source={placeIcons[typePlace]}
-            style={{ resizeMode: 'contain', width: 20, height: 20 }}
-          />
-        </View>
-
-        <TouchableOpacity onPress={onPress}>
-          <LinearGradient
-            colors={[Colors.lightBlue, Colors.blue]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={styles.button}
-          >
-            <Text style={styles.buttonText}>Узнать подробнее</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -167,13 +161,17 @@ const styles = StyleSheet.create({
   card: {
     width: 320,
     alignSelf: 'center',
-    borderRadius: 16,
+    borderRadius: 26,
     backgroundColor: Colors.white,
-    borderColor: Colors.blue,
-    borderWidth: 4,
     overflow: 'hidden',
     elevation: 4,
     minHeight: 200,
+  },
+  shadowWrapper:{
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
   imageWrapper: {
     minHeight: 100,
@@ -181,7 +179,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 120,
+    height: 130,
     resizeMode: 'cover',
   },
   content: {
@@ -197,30 +195,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderWidth: 2,
-    borderColor: Colors.lightBlue,
+    borderColor: Colors.lightBlue3,
   },
   dateText: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 12,
     margin: -4,
     color: Colors.black,
   },
   iconOverlay: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
+    width: 30,
+    height: 30,
     backgroundColor: Colors.white,
     borderRadius: 20,
-    padding: 6,
     borderWidth: 2,
-    borderColor: Colors.lightBlue,
+    marginLeft: 6,
+    borderColor: Colors.lightBlue3,
+    alignItems: 'center',
+    alignSelf: 'center',
+    justifyContent: 'center'
   },
   title: {
-    fontFamily: inter.black,
-    fontSize: 17,
+    fontFamily: Montserrat.bold,
+    fontSize: 18,
     maxWidth: '85%',
-    marginTop: -4,
-    marginBottom: 8,
+    marginTop: 4,
+    marginBottom: 4,
     color: Colors.black,
   },
   highlightedText: {
@@ -234,14 +234,15 @@ const styles = StyleSheet.create({
     marginBottom: 8 
   },
   genreBadge: {
+    justifyContent: 'center',
     marginRight: 6,
-    backgroundColor: Colors.lightBlue,
-    borderRadius: 20,
+    borderColor: Colors.lightBlue3,
+    borderWidth: 2,
+    borderRadius: 30,
     paddingHorizontal: 8,
-    paddingVertical: 2,
   },
   genreText: { 
-    fontFamily: inter.regular, 
+    fontFamily: Montserrat.regular, 
     color: Colors.black, 
     fontSize: 10 
   },
@@ -256,27 +257,16 @@ const styles = StyleSheet.create({
     marginRight: 6 
   },
   metaIcon: {
+    marginTop: -4,
     resizeMode: 'contain',
-    width: 20,
-    height: 20,
+    width: 18,
+    height: 18,
     marginLeft: 2,
   },
   metaText: { 
-    fontFamily: inter.regular, 
-    fontSize: 12, 
+    fontFamily: Montserrat.regular, 
+    fontSize: 14, 
     color: Colors.black 
-  },
-  button: {
-    marginTop: 4,
-    backgroundColor: Colors.lightBlue,
-    borderRadius: 20,
-    paddingVertical: 4,
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontFamily: inter.regular,
-    color: Colors.white,
-    fontSize: 16,
   },
 });
 

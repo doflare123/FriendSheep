@@ -9,7 +9,6 @@ interface EventCarouselProps {
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = 320;
 const CARD_SPACING = 16;
-
 const EventCarousel: React.FC<EventCarouselProps> = ({ events }) => {
   return (
     <FlatList

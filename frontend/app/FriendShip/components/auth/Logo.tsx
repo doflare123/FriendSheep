@@ -3,7 +3,7 @@ import { Image, StyleSheet } from 'react-native';
 
 const Logo = () => (
   <Image
-    source={require('../assets/images/logo.png')}
+    source={require('@/assets/images/logo.png')}
     style={styles.logo}
   />
 );

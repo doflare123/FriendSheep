@@ -1,10 +1,10 @@
-import InputSmall from '@/components/InputSmall';
+import InputSmall from '@/components/auth/InputSmall';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import Button from '../../components/Button';
-import Logo from '../../components/Logo';
+import Button from '../../components/auth/Button';
+import Logo from '../../components/auth/Logo';
 import PointAnimation from '../../components/ui/PointAnimation';
 import { Colors } from '../../constants/Colors';
 import authorizeStyle from '../styles/authorizeStyle';

@@ -1,7 +1,7 @@
-import { inter } from '@/constants/Inter';
+import { Colors } from '@/constants/Colors';
+import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { Colors } from '../constants/Colors';
 
 const Button = ({ title, onPress }: { title: string; onPress: () => void }) => (
   <TouchableOpacity onPress={onPress} style={styles.button}>
@@ -11,16 +11,16 @@ const Button = ({ title, onPress }: { title: string; onPress: () => void }) => (
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: Colors.lightBlue,
-    borderRadius: 20,
-    paddingVertical: 10,
+    backgroundColor: Colors.lightBlue3,
+    borderRadius: 40,
+    paddingVertical: 8,
     alignItems: 'center',
     marginTop: 16,
   },
   text: {
     color: Colors.white,
     fontSize: 20,
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
   },
 });
 

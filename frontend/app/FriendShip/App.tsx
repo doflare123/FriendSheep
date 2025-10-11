@@ -1,10 +1,17 @@
+import { Montserrat_400Regular, Montserrat_700Bold, useFonts } from '@expo-google-fonts/montserrat';
+import { MontserratAlternates_500Medium } from '@expo-google-fonts/montserrat-alternates';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import React from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import CategoryPage from './app/(tabs)/CategoryPage';
 import Confirm from './app/(tabs)/ConfirmPage';
 import Done from './app/(tabs)/DonePage';
+import GroupManagePage from './app/(tabs)/GroupManagePage';
+import GroupPage from './app/(tabs)/GroupPage';
+import GroupSearchPage from './app/(tabs)/GroupSearchPage';
+import GroupsPage from './app/(tabs)/GroupsPage';
 import Login from './app/(tabs)/LoginPage';
 import MainPage from './app/(tabs)/MainPage';
 import Register from './app/(tabs)/RegisterPage';
@@ -13,7 +20,23 @@ import { RootStackParamList } from './navigation/types';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
+SplashScreen.preventAutoHideAsync();
+
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Montserrat_400Regular,
+    Montserrat_700Bold,
+    MontserratAlternates_500Medium
+  });
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
   return (
     <SafeAreaProvider>
       <NavigationContainer>
@@ -34,6 +57,18 @@ export default function App() {
             component={CategoryPage}
             options={{ headerShown: false }}
           />
+          <Stack.Screen name="GroupsPage" component={GroupsPage} />
+          <Stack.Screen 
+            name="GroupPage" 
+            component={GroupPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="GroupManagePage" 
+            component={GroupManagePage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="GroupSearchPage" component={GroupSearchPage} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

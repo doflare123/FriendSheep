@@ -1,7 +1,7 @@
-import { inter } from '@/constants/Inter';
+import { Colors } from '@/constants/Colors';
+import { Montserrat } from '@/constants/Montserrat';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Colors } from '../constants/Colors';
 
 interface InputSmallProps {
   length?: number;
@@ -101,9 +101,9 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   input: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     borderWidth: 3,
-    borderColor: Colors.blue,
+    borderColor: Colors.blue3,
     borderRadius: 14,
     width: 45,
     height: 60,
@@ -111,12 +111,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   inputActive: {
-    borderColor: Colors.lightBlue,
+    borderColor: Colors.lightBlue3,
   },
   fakeInputText: {
     fontSize: 24,
     color: Colors.black,
     textAlign: 'center',
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
   },
 });

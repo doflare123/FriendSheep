@@ -1,65 +1,23 @@
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useMemo, useState } from 'react';
-import { ImageBackground, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BottomBar from '@/components/BottomBar';
-import CategoryButton from '@/components/CategoryButton';
-import CategorySearchBar from '@/components/CategorySearchBar';
-import { Event } from '@/components/EventCard';
-import EventModal from '@/components/EventModal';
+import CategorySection from '@/components/CategorySection';
+import { Event } from '@/components/event/EventCard';
+import EventModal from '@/components/event/modal/EventModal';
+import VerticalEventList from '@/components/event/VerticalEventList';
+import CategorySearchBar from '@/components/search/CategorySearchBar';
 import TopBar from '@/components/TopBar';
-import VerticalEventList from '@/components/VerticalEventList';
 import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import { useEvents } from '@/hooks/useEvents';
 import { useSearchState } from '@/hooks/useSearchState';
+import { sortEventsByDate, sortEventsByParticipants } from '@/utils/eventSorting';
 import { filterEventsByCategories } from '@/utils/eventUtils';
-
-const parseDate = (dateString: string): Date => {
-  const parts = dateString.split(' ');
-  const datePart = parts[0];
-  const timePart = parts[1] || '00:00';
-  
-  const [day, month, year] = datePart.split('.');
-  const [hour, minute] = timePart.split(':');
-  
-  return new Date(
-    parseInt(year), 
-    parseInt(month) - 1,
-    parseInt(day), 
-    parseInt(hour) || 0, 
-    parseInt(minute) || 0
-  );
-};
-
-const sortEventsByDate = (events: Event[], order: 'asc' | 'desc' | 'none') => {
-  if (order === 'none') return events;
-  
-  return [...events].sort((a, b) => {
-    const dateA = parseDate(a.date);
-    const dateB = parseDate(b.date);
-    
-    if (order === 'asc') {
-      return dateA.getTime() - dateB.getTime();
-    } else {
-      return dateB.getTime() - dateA.getTime();
-    }
-  });
-};
-
-const sortEventsByParticipants = (events: Event[], order: 'asc' | 'desc' | 'none') => {
-  if (order === 'none') return events;
-  
-  return [...events].sort((a, b) => {
-    if (order === 'asc') {
-      return a.currentParticipants - b.currentParticipants;
-    } else {
-      return b.currentParticipants - a.currentParticipants;
-    }
-  });
-};
+import { highlightEventTitle } from '@/utils/textHighlight';
 
 type RootStackParamList = {
   CategoryPage: {
@@ -78,7 +36,7 @@ interface CategoryPageProps {
 
 const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
   const route = useRoute<CategoryPageRouteProp>();
-  const { category, title, imageSource } = route.params;
+  const { category, title } = route.params;
   
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -94,7 +52,6 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
     otherEvents,
     popularEvents,
     newEvents,
-    searchResults 
   } = useEvents(globalSortingState);
 
   const isSpecialCategory = category === 'popular' || category === 'new';
@@ -165,30 +122,6 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
     }));
   };
 
-  const createEventWithHighlightedTitle = (event: Event, query: string): Event => {
-    if (!query.trim()) return event;
-
-    const title = event.title;
-    const lowerTitle = title.toLowerCase();
-    const lowerQuery = query.toLowerCase();
-    const index = lowerTitle.indexOf(lowerQuery);
-
-    if (index === -1) return event;
-
-    const beforeMatch = title.substring(0, index);
-    const match = title.substring(index, index + query.length);
-    const afterMatch = title.substring(index + query.length);
-
-    return {
-      ...event,
-      highlightedTitle: {
-        before: beforeMatch,
-        match: match,
-        after: afterMatch
-      }
-    };
-  };
-
   const eventsToShow = useMemo(() => {
     if (categorySortingState.searchQuery.trim()) {
       let filtered = sortedCategoryEvents.filter(event =>
@@ -196,7 +129,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
       );
       
       filtered = filtered.map(event => 
-        createEventWithHighlightedTitle(event, categorySortingState.searchQuery)
+        highlightEventTitle(event, categorySortingState.searchQuery)
       );
       
       return filtered;
@@ -206,43 +139,37 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
   }, [sortedCategoryEvents, categorySortingState.searchQuery]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <ImageBackground
-        source={require('../../assets/images/wallpaper.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
-        <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
+    <SafeAreaView style={styles.container}>
+      <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
+      
+      <CategorySection
+        title={title}
+        showBackButton
+        onBackPress={() => navigation.goBack()}
+      />
 
-        <CategoryButton
-            title={title}
-            imageSource={imageSource}
-            onPress={() => navigation.goBack()}
+      <View style={styles.searchContainer}>
+        <CategorySearchBar 
+          sortingState={categorySortingState} 
+          sortingActions={categorySortingActions}
+          showCategoryFilter={isSpecialCategory}
         />
+      </View>
 
-        <View style={styles.searchContainer}>
-          <CategorySearchBar 
-            sortingState={categorySortingState} 
-            sortingActions={categorySortingActions}
-            showCategoryFilter={isSpecialCategory}
-          />
-        </View>
-
-        <View style={styles.contentContainer}>
-          {eventsToShow.length > 0 ? (
-            <VerticalEventList events={addOnPressToEvents(eventsToShow)} />
-          ) : (
-            <View style={styles.noEventsContainer}>
-              <Text style={styles.noEventsText}>
-                {categorySortingState.searchQuery.trim() 
-                  ? `Ничего не найдено по запросу "${categorySortingState.searchQuery}"` 
-                  : `В категории "${title}" пока нет событий`
-                }
-              </Text>
-            </View>
-          )}
-        </View>
-      </ImageBackground>
+      <View style={styles.contentContainer}>
+        {eventsToShow.length > 0 ? (
+          <VerticalEventList events={addOnPressToEvents(eventsToShow)} />
+        ) : (
+          <View style={styles.noEventsContainer}>
+            <Text style={styles.noEventsText}>
+              {categorySortingState.searchQuery.trim() 
+                ? `Ничего не найдено по запросу "${categorySortingState.searchQuery}"` 
+                : `В категории "${title}" пока нет событий`
+              }
+            </Text>
+          </View>
+        )}
+      </View>
 
       <BottomBar />
 
@@ -261,9 +188,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.white,
-  },
-  backgroundImage: {
-    flex: 1,
   },
   searchContainer: {
     paddingHorizontal: 16,
