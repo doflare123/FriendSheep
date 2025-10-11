@@ -1,3 +1,4 @@
+import ProfilePage from '@/app/(tabs)/ProfilePage';
 import { Montserrat_400Regular, Montserrat_700Bold, useFonts } from '@expo-google-fonts/montserrat';
 import { MontserratAlternates_500Medium } from '@expo-google-fonts/montserrat-alternates';
 import { NavigationContainer } from '@react-navigation/native';
@@ -69,6 +70,7 @@ export default function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="GroupSearchPage" component={GroupSearchPage} />
+          <Stack.Screen name="ProfilePage" component={ProfilePage} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
