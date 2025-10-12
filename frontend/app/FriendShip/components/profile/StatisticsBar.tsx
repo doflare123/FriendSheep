@@ -33,16 +33,16 @@ const StatisticsBar = ({ title, count = 20, icon, fullWidth = false }: Statistic
   };
 
   return (
-    <View style={[styles.container, fullWidth && styles.containerFullWidth]}>
+    <View style={[styles.container, fullWidth ? styles.containerFullWidth : styles.containerFitContent]}>
       {icon && (
         <Image 
           source={getIconSource(icon)} 
           style={styles.icon}
         />
       )}
-      <Text style={styles.text}>{title}</Text>
+      <Text style={styles.text} numberOfLines={1}>{title}</Text>
       <Text style={styles.separator}>-</Text>
-      <Text style={styles.text}>{count}</Text>
+      <Text style={styles.countText} numberOfLines={1}>{count}</Text>
     </View>
   );
 };
@@ -52,30 +52,44 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.lightBlue2,
     flexDirection: 'row',    
     borderRadius: 40,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     marginRight: 8,
+    marginVertical: 2,
     alignItems: 'center',
   },
   containerFullWidth: {
     marginRight: 0,
+    flex: 1,
+  },
+  containerFitContent: {
+    alignSelf: 'flex-start',
   },
   icon: {
     width: 30,
     height: 30,
     resizeMode: 'contain',
-    marginRight: 6
+    marginRight: 6,
+    flexShrink: 0,
   },
   text: {
     color: Colors.black,
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Montserrat.regular,
+    flexShrink: 1,
   },
   separator: {
     color: Colors.black,
     fontSize: 16,
     fontFamily: Montserrat.regular,
     marginHorizontal: 6,
+    flexShrink: 0,
+  },
+  countText: {
+    color: Colors.black,
+    fontSize: 16,
+    fontFamily: Montserrat.regular,
+    flexShrink: 1,
   },
 });
 
