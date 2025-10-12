@@ -30,7 +30,7 @@ const BottomBar = () => {
           <Image style={barsStyle.iconsMenu} source={require("@/assets/images/bottom_bar/news.png")} />
       </TouchableOpacity>
       <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('ProfilePage' as never)}>
-          <Image style={[barsStyle.iconsMenu, {width: 25, height: 25}, isActive('ProfilePage') && { tintColor: Colors.darkGrey }]} source={require("@/assets/images/bottom_bar/profile.png")} />
+          <Image style={[barsStyle.iconsMenu, {width: 25, height: 25}, (isActive('ProfilePage') || isActive('UserSearchPage')) && { tintColor: Colors.darkGrey }]} source={require("@/assets/images/bottom_bar/profile.png")} />
       </TouchableOpacity>
     </View>
   );

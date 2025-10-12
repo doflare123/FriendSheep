@@ -49,3 +49,23 @@ export const highlightGroupText = <T extends { name: string; description: string
     ...(highlightedDescription && { highlightedDescription })
   };
 };
+
+export const highlightUserText = <T extends { name: string; username: string; description: string }>(
+  item: T,
+  query: string
+): T & { 
+  highlightedName?: HighlightedText; 
+  highlightedUsername?: HighlightedText;
+  highlightedDescription?: HighlightedText;
+} => {
+  const highlightedName = createHighlightedText(item.name, query);
+  const highlightedUsername = createHighlightedText(item.username, query);
+  const highlightedDescription = createHighlightedText(item.description, query);
+  
+  return {
+    ...item,
+    ...(highlightedName && { highlightedName }),
+    ...(highlightedUsername && { highlightedUsername }),
+    ...(highlightedDescription && { highlightedDescription })
+  };
+};

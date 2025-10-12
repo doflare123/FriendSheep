@@ -19,4 +19,5 @@ export type RootStackParamList = {
   };
   GroupSearchPage: undefined;
   ProfilePage: undefined;
+  UserSearchPage: undefined;
 };

@@ -45,9 +45,12 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
   const { searchQuery, activeSearchType } = sortingState;
   const { setSearchQuery, setActiveSearchType } = sortingActions;
 
-  const currentSearchQuery = activeSearchType === 'group' 
-    ? groupSearchState.searchQuery 
-    : searchQuery;
+  const getCurrentSearchQuery = () => {
+    if (activeSearchType === 'group') {
+      return groupSearchState.searchQuery;
+    }
+    return searchQuery;
+  };
 
   const handleSearchTypeChange = (type: 'event' | 'profile' | 'group') => {
     setActiveSearchType(type);
@@ -82,6 +85,8 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
       }
     } else if (activeSearchType === 'group') {
       navigation.navigate('GroupSearchPage');
+    } else if (activeSearchType === 'profile') {
+      navigation.navigate('UserSearchPage');
     }
   };
 
@@ -113,7 +118,7 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
 
         <TextInput
           placeholder={getPlaceholderByType(activeSearchType)}
-          value={currentSearchQuery}
+          value={getCurrentSearchQuery()}
           onChangeText={handleSearchInputChange}
           onSubmitEditing={handleSearchSubmit}
           returnKeyType="search"
