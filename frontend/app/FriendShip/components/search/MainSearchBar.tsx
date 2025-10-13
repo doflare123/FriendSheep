@@ -5,6 +5,7 @@ import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useGroupSearchState } from '@/hooks/useGroupSearchState';
 import { SortingActions, SortingState } from '@/hooks/useSearchState';
+import { useUserSearchState } from '@/hooks/useUserSearchState';
 import { RootStackParamList } from '@/navigation/types';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -29,6 +30,7 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
   const route = useRoute<MainSearchBarRouteProp>();
 
   const { searchState: groupSearchState, searchActions: groupSearchActions } = useGroupSearchState();
+  const { searchState: userSearchState, searchActions: userSearchActions } = useUserSearchState();
 
   const insets = useSafeAreaInsets();
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
@@ -46,10 +48,15 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
   const { setSearchQuery, setActiveSearchType } = sortingActions;
 
   const getCurrentSearchQuery = () => {
-    if (activeSearchType === 'group') {
-      return groupSearchState.searchQuery;
+    switch (activeSearchType) {
+      case 'group':
+        return groupSearchState.searchQuery;
+      case 'profile':
+        return userSearchState.searchQuery;
+      case 'event':
+      default:
+        return searchQuery;
     }
-    return searchQuery;
   };
 
   const handleSearchTypeChange = (type: 'event' | 'profile' | 'group') => {
@@ -62,7 +69,7 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
       case 'event':
         return 'Найти событие...';
       case 'profile':
-        return 'Найти профиль...';
+        return 'Найти пользователя...';
       case 'group':
         return 'Найти группу...';
       default:
@@ -71,10 +78,17 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
   };
 
   const handleSearchInputChange = (text: string) => {
-    if (activeSearchType === 'group') {
-      groupSearchActions.setSearchQuery(text);
-    } else {
-      setSearchQuery(text);
+    switch (activeSearchType) {
+      case 'group':
+        groupSearchActions.setSearchQuery(text);
+        break;
+      case 'profile':
+        userSearchActions.setSearchQuery(text);
+        break;
+      case 'event':
+      default:
+        setSearchQuery(text);
+        break;
     }
   };
 

@@ -8,6 +8,7 @@ import SearchResultsSection from '@/components/search/SearchResultsSection';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useUserSearchState } from '@/hooks/useUserSearchState';
 import { createHighlightedText } from '@/utils/textHighlight';
 
 const mockUsers: User[] = [
@@ -60,24 +61,25 @@ const highlightUserText = (user: User, query: string): User => {
 };
 
 const UserSearchPage: React.FC = () => {
-  const { sortingState, sortingActions } = useSearchState();
+  const { sortingState: globalSortingState, sortingActions: globalSortingActions } = useSearchState();
+  const { searchState: userSearchState, searchActions: userSearchActions } = useUserSearchState();
 
   const filteredUsers = useMemo((): User[] => {
     let users = [...mockUsers];
     
-    if (sortingState.searchQuery.trim()) {
+    if (userSearchState.searchQuery.trim()) {
       users = users.filter(user =>
-        user.name.toLowerCase().includes(sortingState.searchQuery.toLowerCase()) ||
-        user.username.toLowerCase().includes(sortingState.searchQuery.toLowerCase())
+        user.name.toLowerCase().includes(userSearchState.searchQuery.toLowerCase()) ||
+        user.username.toLowerCase().includes(userSearchState.searchQuery.toLowerCase())
       );
       
-      users = users.map(user => highlightUserText(user, sortingState.searchQuery));
+      users = users.map(user => highlightUserText(user, userSearchState.searchQuery));
     } else {
       return [];
     }
     
     return users;
-  }, [sortingState.searchQuery]);
+  }, [userSearchState.searchQuery]);
 
   const handleUserPress = (userId: string) => {
     console.log('User pressed:', userId);
@@ -85,12 +87,12 @@ const UserSearchPage: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TopBar sortingState={sortingState} sortingActions={sortingActions} />
+      <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
 
       <View style={styles.content}>
         <SearchResultsSection
           title="Поиск по профилям"
-          searchQuery={sortingState.searchQuery}
+          searchQuery={userSearchState.searchQuery}
           hasResults={filteredUsers.length > 0}
           showWave
         >
