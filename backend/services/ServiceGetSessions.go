@@ -29,6 +29,7 @@ type SessionResponse struct {
 	CurrentUsers  uint16    `json:"current_users"`
 	CountUsersMax uint16    `json:"count_users_max"`
 	GroupName     string    `json:"group_name"`
+	GroupID       uint      `json:"group_id"`
 	City          *string   `json:"city" default:"prikol"`
 }
 
@@ -317,6 +318,7 @@ func GetSessions(email string, input GetSessionsInput) (*PaginatedSearchResponse
 			CurrentUsers:  s.CurrentUsers,
 			CountUsersMax: s.CountUsersMax,
 			GroupName:     s.Group.Name,
+			GroupID:       s.Group.ID,
 			City:          &city,
 		}
 		filteredResult = append(filteredResult, resp)

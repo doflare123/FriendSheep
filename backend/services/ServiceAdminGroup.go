@@ -203,6 +203,7 @@ func GetAdminGroupInfo(email string, groupID *uint) (*AdminGroupInfResponse, err
 			Duration:      session.Duration,
 			CurrentUsers:  session.CurrentUsers,
 			CountUsersMax: session.CountUsersMax,
+			GroupID:       session.GroupID,
 		}
 		if session.SessionType.Name != "" {
 			sessionResponse.SessionType = session.SessionType.Name
