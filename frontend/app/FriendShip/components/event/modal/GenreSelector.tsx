@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 40,
-    backgroundColor: Colors.lightBlue,
+    backgroundColor: Colors.lightBlue3,
   },
   genreText: {
     fontFamily: inter.regular,

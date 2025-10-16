@@ -215,6 +215,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
               source={require('@/assets/images/event_card/bottom_rectangle.png')}
               style={styles.bottomBackground}
               resizeMode="stretch"
+              tintColor={Colors.lightBlue3}
             >
               <View style={styles.bottomContent}>
                 <TouchableOpacity
@@ -312,7 +313,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   checkboxSelected: {
-    backgroundColor: Colors.lightBlue,
+    backgroundColor: Colors.lightBlue3,
   },
   checkboxLabel: {
     fontFamily: Montserrat.regular,
@@ -352,7 +353,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   categoryButtonSelected: {
-    backgroundColor: Colors.lightBlue,
+    backgroundColor: Colors.lightBlue3,
   },
   categoryIcon: {
     width: 25,
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
   createButtonText: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.blue,
+    color: Colors.blue3,
   },
 });
 

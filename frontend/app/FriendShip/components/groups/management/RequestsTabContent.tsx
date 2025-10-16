@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   acceptAllButton: {
-    backgroundColor: Colors.lightBlue,
+    backgroundColor: Colors.lightBlue3,
     paddingHorizontal: 16,
     paddingVertical: 4,
     borderRadius: 20,
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   },
   requestsList: {
     borderWidth: 2,
-    borderColor: Colors.lightBlue,
+    borderColor: Colors.lightBlue3,
     borderRadius: 12,
     backgroundColor: Colors.white,
     overflow: 'hidden',

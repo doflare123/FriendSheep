@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.lightGrey,
   },
   saveButton: {
-    backgroundColor: Colors.lightBlue,
+    backgroundColor: Colors.lightBlue3,
     paddingVertical: 6,
     borderRadius: 25,
     alignItems: 'center',
