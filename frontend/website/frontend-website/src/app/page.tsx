@@ -1,223 +1,160 @@
-// pages/index.tsx (или app/page.tsx для App Router)
-import Image from "next/image";
+// app/page.tsx
+'use client';
+
+import { useState, useEffect } from 'react';
 import Footer from "../components/Footer";
 import styles from '../styles/MainPage.module.css';
-import { SectionData } from "../types/Events"
-import CategorySection from '../components/Events/CategorySection'
+import { SectionData } from "../types/Events";
+import CategorySection from '../components/Events/CategorySection';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { getGenreEvents } from '@/api/mainEvents/getGenreEvents';
+import { getGroupEvents } from '@/api/mainEvents/getGroupEvents';
+import { getNewEvents } from '@/api/mainEvents/getNewEvents';
+import { getPopular } from '@/api/mainEvents/getPopular';
+import { getAccesToken, convertCategoriesToIds } from '@/Constants';
+import { showNotification } from '@/utils';
 
 export default function Home() {
-  // Пример данных
+  const [mainSections, setMainSections] = useState<SectionData[]>([]);
+  const [additionalSections, setAdditionalSections] = useState<SectionData[]>([]);
+  const [loadingStage, setLoadingStage] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const mainSections: SectionData[] = [
-    {
-      title: "Популярные события",
-      pattern: "/events/popular_bg.png",
-      categories: [
-        {
-          id: "1",
-          type: "games",
-          image: "/event_card.jpg",
-          date: "25 июля",
-          title: "Командный шутер",
-          genres: ["Шутер", "Многопользовательская"],
-          participants: 5,
-          maxParticipants: 8,
-          location: "online"
-        },
-        {
-          id: "2",
-          type: "games",
-          image: "/event_card.jpg",
-          date: "26 июля",
-          title: "Стратегия в реальном времени",
-          genres: ["Стратегия", "RTS"],
-          participants: 3,
-          maxParticipants: 6,
-          duration: "2 часа",
-          location: "online"
-        },
-        {
-          id: "3",
-          type: "games",
-          image: "/event_card.jpg",
-          date: "27 июля",
-          title: "Исследование подземелий",
-          genres: ["Песочница", "Выживание"],
-          participants: 4,
-          maxParticipants: 6,
-          duration: "3 часа",
-          location: "online"
-        },
-        {
-          id: "4",
-          type: "movies",
-          image: "/event_card.jpg",
-          date: "28 июля",
-          title: "Фантастический триллер",
-          genres: ["Фантастика", "Триллер"],
-          participants: 12,
-          maxParticipants: 20,
-          duration: "2ч 15мин",
-          location: "online"
-        }
-      ]
-    },
-    {
-      title: "Новые события",
-      pattern: "/events/new_bg.png",
-      categories: [
-        {
-          id: "5",
-          type: "games",
-          image: "/event_card.jpg",
-          date: "30 июля",
-          title: "Новая MMORPG",
-          genres: ["MMORPG", "Фэнтези"],
-          participants: 2,
-          maxParticipants: 10,
-          location: "online"
-        },
-        {
-          id: "6",
-          type: "movies",
-          image: "/event_card.jpg",
-          date: "1 августа",
-          title: "Премьера комедии",
-          genres: ["Комедия", "Семейный"],
-          participants: 8,
-          maxParticipants: 15,
-          duration: "1ч 45мин",
-          location: "online"
-        }
-      ]
-    }
-  ];
+  useEffect(() => {
+    const loadData = async () => {
+      const token = getAccesToken();
+      
+      if (!token) {
+        showNotification(401, 'Необходима авторизация', 'error');
+        setIsLoading(false);
+        return;
+      }
 
-  const additionalSections: SectionData[] = [
-    {
-      title: "Фильмы",
-      pattern: "/events/new_bg.png",
-      categories: [
-        {
-          id: "7",
-          type: "movies",
-          image: "/event_card.jpg",
-          date: "2 августа",
-          title: "Классика кинематографа",
-          genres: ["Драма", "Классика"],
-          participants: 6,
-          maxParticipants: 12,
-          duration: "2ч 30мин",
-          location: "online"
-        },
-        {
-          id: "8",
-          type: "movies",
-          image: "/event_card.jpg",
-          date: "3 августа",
-          title: "Аниме-марафон",
-          genres: ["Аниме", "Приключения"],
-          participants: 15,
-          maxParticipants: 25,
-          duration: "4 часа",
-          location: "online"
+      const newMainSections: SectionData[] = [];
+      const newAdditionalSections: SectionData[] = [];
+
+      // Функция для фильтрации событий с пустыми изображениями
+      const filterValidEvents = (events: any[]) => {
+        return events.filter(event => event.image && event.image.trim() !== '');
+      };
+
+      // 1. Загружаем популярные события
+      setLoadingStage('Загружаем популярные события...');
+      try {
+        const popularEvents = await getPopular();
+        const validPopularEvents = filterValidEvents(popularEvents || []);
+        if (validPopularEvents.length > 0) {
+          newMainSections.push({
+            title: "Популярные события",
+            pattern: "/events/popular_bg.png",
+            categories: validPopularEvents
+          });
         }
-      ]
-    },
-    {
-      title: "Игры",
-      pattern: "/events/game_bg.png",
-      categories: [
-        {
-          id: "9",
-          type: "games",
-          image: "/event_card.jpg",
-          date: "4 августа",
-          title: "Турнир по Dota 2",
-          genres: ["MOBA", "Соревновательная"],
-          participants: 10,
-          maxParticipants: 10,
-          duration: "1 час",
-          location: "online"
+      } catch (error) {
+        console.error('Ошибка загрузки популярных событий:', error);
+        showNotification(500, 'Не удалось загрузить популярные события', 'error');
+      }
+
+      // 2. Загружаем новые события
+      setLoadingStage('Загружаем новые события...');
+      try {
+        const newEvents = await getNewEvents(token);
+        const validNewEvents = filterValidEvents(newEvents || []);
+        if (validNewEvents.length > 0) {
+          newMainSections.push({
+            title: "Новые события",
+            pattern: "/events/new_bg.png",
+            categories: validNewEvents
+          });
         }
-      ]
-    },
-    {
-      title: "Настольные игры",
-      pattern: "/events/board_bg.png",
-      categories: [
-        {
-          id: "10",
-          type: "board",
-          image: "/event_card.jpg",
-          date: "5 августа",
-          title: "Классическая мафия",
-          genres: ["Логическая", "Ролевая"],
-          participants: 8,
-          maxParticipants: 12,
-          duration: "1ч 30мин",
-          location: "online"
-        },
-        {
-          id: "11",
-          type: "board",
-          image: "/event_card.jpg",
-          date: "6 августа",
-          title: "Монополия: Московская версия",
-          genres: ["Экономическая", "Семейная"],
-          participants: 4,
-          maxParticipants: 6,
-          duration: "2 часа",
-          location: "online"
+      } catch (error) {
+        console.error('Ошибка загрузки новых событий:', error);
+        showNotification(500, 'Не удалось загрузить новые события', 'error');
+      }
+
+      // 3. Загружаем новые события из подписанных групп
+      setLoadingStage('Загружаем события из ваших подписок...');
+      try {
+        const groupEvents = await getGroupEvents(token, 1);
+        const validGroupEvents = filterValidEvents(groupEvents || []);
+        if (validGroupEvents.length > 0) {
+          newMainSections.push({
+            title: "Новые события в ваших подписках",
+            pattern: "/events/new_bg.png",
+            categories: validGroupEvents
+          });
         }
-      ]
-    },
-    {
-      title: "Другое",
-      pattern: "/events/other_bg.png",
-      categories: [
-        {
-          id: "12",
-          type: "other",
-          image: "/event_card.jpg",
-          date: "7 августа",
-          title: "Пешая экскурсия по центру",
-          genres: ["Туризм", "История"],
-          participants: 12,
-          maxParticipants: 20,
-          duration: "3 часа",
-          location: "online"
-        },
-        {
-          id: "13",
-          type: "other",
-          image: "/event_card.jpg",
-          date: "8 августа",
-          title: "Изучение японских иероглифов",
-          genres: ["Обучение", "Языки"],
-          participants: 5,
-          maxParticipants: 8,
-          duration: "1ч 30мин",
-          location: "offline"
+      } catch (error) {
+        console.error('Ошибка загрузки событий из групп:', error);
+        showNotification(500, 'Не удалось загрузить события из подписок', 'error');
+      }
+
+      setMainSections(newMainSections);
+
+      // 4. Загружаем события по категориям
+      const categories = [
+        { name: 'Фильмы', key: 'movies', pattern: '/events/new_bg.png' },
+        { name: 'Игры', key: 'games', pattern: '/events/game_bg.png' },
+        { name: 'Настольные игры', key: 'board', pattern: '/events/board_bg.png' },
+        { name: 'Другое', key: 'other', pattern: '/events/other_bg.png' }
+      ];
+
+      for (const category of categories) {
+        setLoadingStage(`Загружаем категорию "${category.name}"...`);
+        try {
+          const categoryIds = convertCategoriesToIds([category.key]);
+          if (categoryIds.length > 0) {
+            const categoryEvents = await getGenreEvents(token, categoryIds[0]);
+            const validCategoryEvents = filterValidEvents(categoryEvents || []);
+            if (validCategoryEvents.length > 0) {
+              newAdditionalSections.push({
+                title: category.name,
+                pattern: category.pattern,
+                categories: validCategoryEvents
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`Ошибка загрузки категории ${category.name}:`, error);
+          showNotification(500, `Не удалось загрузить категорию "${category.name}"`, 'error');
         }
-      ]
-    }
-  ];
+      }
+
+      setAdditionalSections(newAdditionalSections);
+      setIsLoading(false);
+      setLoadingStage('');
+    };
+
+    loadData();
+  }, []);
 
   return (
-    <div>
+    <div className={styles.pageWrapper}>
       <div className='bgPage'>
         {/* Главные категории */}
         {mainSections.map((section, sectionIndex) => (
           <div key={sectionIndex} className={styles.section}>
-            <CategorySection section={section} title={section.title} clickable={section.title!="Новые события"}/>
+            <CategorySection 
+              section={section} 
+              title={section.title} 
+              clickable={section.title !== "Новые события"}
+            />
           </div>
         ))}
 
-        {/* Заголовок "Категории" */}
-        <div className={styles.categoriesHeader}>
-          <h2>Категории</h2>
-        </div>
+        {/* Индикатор загрузки между секциями */}
+        {isLoading && mainSections.length > 0 && (
+          <div className={styles.section}>
+            <LoadingIndicator text={loadingStage} />
+          </div>
+        )}
+
+        {/* Заголовок "Категории" - показываем только если есть дополнительные секции или они загружаются */}
+        {(additionalSections.length > 0 || isLoading) && (
+          <div className={styles.categoriesHeader}>
+            <h2>Категории</h2>
+          </div>
+        )}
 
         {/* Дополнительные категории */}
         {additionalSections.map((section, sectionIndex) => (
@@ -225,8 +162,17 @@ export default function Home() {
             <CategorySection section={section} title={section.title} />
           </div>
         ))}
+
+        {/* Индикатор загрузки для дополнительных секций */}
+        {isLoading && mainSections.length === 0 && (
+          <div className={styles.section}>
+            <LoadingIndicator text={loadingStage} />
+          </div>
+        )}
       </div>
-      <Footer/>
+      <div className={styles.footerWrapper}>
+        <Footer />
+      </div>
     </div>
   );
 }

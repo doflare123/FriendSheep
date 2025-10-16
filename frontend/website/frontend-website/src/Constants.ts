@@ -66,7 +66,16 @@ export const getAccesToken = (): string => {
 export function decodeJWT(token: string) {
   try {
     const payload = token.split('.')[1];
-    const decoded = JSON.parse(atob(payload));
+    
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    
+    const decoded = JSON.parse(jsonPayload);
     return decoded;
   } catch (error) {
     console.error('Ошибка декодирования JWT:', error);
@@ -308,7 +317,13 @@ export const convertSessionToEventCard = (session: SessionData): EventCardProps 
   };
 };
 
+
 export const convertSessionsToEventCards = (sessions: SessionData[]): EventCardProps[] => {
+  // Проверяем что sessions существует, является массивом и не пустой
+  if (!sessions || !Array.isArray(sessions) || sessions.length === 0) {
+    return [];
+  }
+  
   return sessions.map(convertSessionToEventCard);
 };
 
