@@ -346,9 +346,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   uploadPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 140,
+    height: 140,
+    borderRadius: 100,
     backgroundColor: Colors.lightLightGrey,
     justifyContent: 'center',
     alignItems: 'center',

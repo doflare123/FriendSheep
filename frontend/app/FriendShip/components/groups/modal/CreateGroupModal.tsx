@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modal: {
-    marginHorizontal: 12,
+    marginHorizontal: 6,
     borderRadius: 25,
     overflow: "hidden",
     backgroundColor: Colors.white,

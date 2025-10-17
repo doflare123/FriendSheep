@@ -101,7 +101,7 @@ const Toast: React.FC<ToastProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    top: 40,
+    top: 100,
     right: 10,
     flexDirection: "row",
     alignItems: "center",

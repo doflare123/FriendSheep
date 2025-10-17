@@ -1,4 +1,4 @@
-import Toast from '@/components/Toast';
+import { useToast } from '@/components/ToastContext';
 import { Event } from '@/components/event/EventCard';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
@@ -75,7 +75,16 @@ const formatPublisher = (publisher?: string) => {
 };
 
 const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
-  const [toastVisible, setToastVisible] = React.useState(false);
+  const { showToast } = useToast();
+
+  const handleJoin = () => {
+    onClose();
+    showToast({
+      type: 'success',
+      title: 'Успешно!',
+      message: `Вы зарегистрированы на событие "${event.title}" ${event.date}`,
+    });
+  };
 
   return (
     <Modal visible={visible} animationType="fade" transparent>
@@ -219,22 +228,12 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
 
                   <TouchableOpacity
                     style={styles.joinButton}
-                    onPress={() => setToastVisible(true)}
+                    onPress={handleJoin}
                   >
                     <Text style={styles.joinButtonText}>Присоединиться</Text>
                   </TouchableOpacity>
                 </View>
               </ImageBackground>
-
-              {toastVisible && (
-                <Toast
-                  visible={toastVisible}
-                  type="success"
-                  title="Успешно!"
-                  message={`Вы зарегистрированы на событие "${event.title}" ${event.date}`}
-                  onHide={() => setToastVisible(false)}
-                />
-              )}
           </ScrollView>
         </View>
       </View>

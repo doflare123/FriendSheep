@@ -1,24 +1,39 @@
 import BottomBar from '@/components/BottomBar';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import PageHeader from '@/components/PageHeader';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import React, { useState } from 'react';
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const GroupPage = () => {
   const { sortingState, sortingActions } = useSearchState();
   const navigation = useNavigation();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const handleLogoutPress = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
+    navigation.navigate('Register' as never);
+  };
+
+  const handleCancelLogout = () => {
+    setShowLogoutModal(false);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -26,7 +41,7 @@ const GroupPage = () => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <PageHeader title="Настройки" showWave />
         <View style={styles.shadowWrapper}>
-            <TouchableOpacity style={styles.badge} onPress={() => navigation.navigate('Register' as never)}>
+            <TouchableOpacity style={styles.badge} onPress={handleLogoutPress}>
                 <Text style={styles.logout}>Выйти из аккаунта</Text>
                 <Image
                     source={require('@/assets/images/settings/logout.png')}
@@ -36,6 +51,14 @@ const GroupPage = () => {
         </View>
       </ScrollView>
       <BottomBar />
+
+      <ConfirmationModal
+        visible={showLogoutModal}
+        title="Выход из аккаунта"
+        message="Вы уверены, что хотите выйти из аккаунта?"
+        onConfirm={handleConfirmLogout}
+        onCancel={handleCancelLogout}
+      />
     </SafeAreaView>
   );
 };
