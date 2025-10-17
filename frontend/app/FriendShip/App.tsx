@@ -16,6 +16,7 @@ import GroupsPage from './app/(tabs)/GroupsPage';
 import Login from './app/(tabs)/LoginPage';
 import MainPage from './app/(tabs)/MainPage';
 import Register from './app/(tabs)/RegisterPage';
+import SettingsPage from './app/(tabs)/SettingsPage';
 import UserSearchPage from './app/(tabs)/UserSearchPage';
 import { RootStackParamList } from './navigation/types';
 
@@ -77,6 +78,7 @@ export default function App() {
             component={UserSearchPage}
             options={{ headerShown: false }}
           />
+          <Stack.Screen name="SettingsPage" component={SettingsPage} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
