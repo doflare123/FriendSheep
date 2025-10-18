@@ -67,6 +67,7 @@ type SubSessionDetail struct {
 	CurrantUsers  uint16    `json:"current_users"`
 	CountUsersMax uint16    `json:"count_users_max"`
 	ImageURL      string    `json:"image_url"`
+	IsSub         bool      `json:"is_sub"`
 }
 
 type PaginatedSearchResponse struct {
@@ -783,6 +784,11 @@ func GetInfoAboutSession(email *string, sessionID *uint) (*SessionDetailResponse
 		}
 		return nil, fmt.Errorf("ошибка при поиске сессии: %v", err)
 	}
+	var sessionUsers []sessions.SessionUser
+	if err := dbTx.Where("session_id = ? AND user_id = ?", session.ID, user.ID).Find(&sessionUsers).Error; err != nil {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("ошибка при поиске сессии: %v", err)
+	}
 
 	var group struct {
 		IsPrivate bool `gorm:"column:is_private"`
@@ -822,6 +828,7 @@ func GetInfoAboutSession(email *string, sessionID *uint) (*SessionDetailResponse
 		CurrantUsers:  session.CurrentUsers,
 		CountUsersMax: session.CountUsersMax,
 		ImageURL:      session.ImageURL,
+		IsSub:         len(sessionUsers) > 0,
 	}
 
 	sessionInf.Session = subIng
