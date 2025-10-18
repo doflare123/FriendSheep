@@ -29,3 +29,36 @@ export interface SessionData {
   title: string;
   fields?: string;
 }
+
+export interface EventMetadata {
+  SessionID: number;
+  Fields: {
+    publisher?: string;
+  };
+  Location: string;
+  Genres: string[];
+  Year: number;
+  Country: string;
+  AgeLimit: string;
+  Notes: string;
+}
+
+export interface EventSession {
+  id: number;
+  title: string;
+  session_type: string;
+  session_place: string;
+  group_id: number;
+  start_time: string;
+  end_time: string;
+  duration: number;
+  current_users: number;
+  count_users_max: number;
+  image_url: string;
+  is_sub?: boolean;
+}
+
+export interface EventFullResponse {
+  session: EventSession;
+  metadata: EventMetadata;
+}

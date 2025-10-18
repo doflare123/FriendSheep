@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import styles from '@/styles/Events/EventDetailModal.module.css';
+import { getEventInfo } from '@/api/events/getEventInfo';
+import { joinEvent } from '@/api/events/joinEvent';
+import { leaveEvent } from '@/api/events/leaveEvent';
+import { getAccesToken, convertSingleCategRuToEng, convertSessionPlaceToLocation } from '@/Constants';
+import { showNotification } from '@/utils';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import type { EventFullResponse } from '@/types/apiTypes'; // импортируй откуда у тебя интерфейсы
 
 interface EventDetailModalProps {
   isOpen: boolean;
@@ -10,52 +17,82 @@ interface EventDetailModalProps {
   eventId?: number;
 }
 
-// Тестовые данные на основе структуры с сервера
-const mockEventData = {
-  metadata: {
-    ageLimit: "18+",
-    country: "Russia",
-    genres: [
-      "Выживание",
-      "Соревновательная", 
-      "Батл роял",
-      "Приключения",
-      "Приключения",
-      "Соревновательная",
-      "Батл роял",
-      "Приключения",
-      "Приключения"
-    ],
-    location: "https://discord.gg/5fbH3cJr",
-    notes: "Банан - это съедобный плод, относящийся к ягодам, который вырастает на многолетнем травянистом растении, также называемом банан. Из рода Musa. Растения рода банан, обычно, имеют высокий стебель и крупные листья, и широко распространены в тропических и субтропических регионах",
-    year: 2026
-  },
-  session: {
-    count_users_max: 0,
-    current_users: 3,
-    duration: 120,
-    end_time: "2025-02-01T20:55:00",
-    group_id: 1,
-    id: 1,
-    image_url: "/events/banana.jpg", // путь к изображению банана
-    session_place: "https://discord.gg/5fbH3cJr",
-    session_type: "offline",
-    start_time: "2025-02-01T18:55:00",
-    title: "БАНАНЗА ФОРЕВА"
-  }
-};
-
 const EventDetailModal: React.FC<EventDetailModalProps> = ({ 
   isOpen, 
   onClose, 
   onJoin,
   eventId 
 }) => {
-  if (!isOpen) return null;
+  const [eventData, setEventData] = useState<EventFullResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
-  // TODO: Здесь будет запрос к серверу по eventId
-  // const eventData = await fetchEventById(eventId);
-  console.log('Загружаем данные для события с ID:', eventId);
+  useEffect(() => {
+    if (isOpen && eventId) {
+      loadEventData();
+    }
+    
+    // Очищаем данные при закрытии
+    if (!isOpen) {
+      setEventData(null);
+    }
+  }, [isOpen, eventId]);
+
+  const loadEventData = async () => {
+    if (!eventId) return;
+
+    setIsLoading(true);
+    try {
+      const accessToken = getAccesToken();
+      const response = await getEventInfo(accessToken, eventId);
+      setEventData(response as EventFullResponse);
+    } catch (error: any) {
+      console.error('Ошибка загрузки события:', error);
+      const errorMessage = error.response?.data?.message || 'Не удалось загрузить данные события';
+      const errorCode = error.response?.status || 500;
+      showNotification(errorCode, errorMessage);
+      onClose();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleJoinOrLeave = async () => {
+    if (!eventData || isActionLoading) return;
+
+    setIsActionLoading(true);
+    try {
+      const accessToken = getAccesToken();
+      const { session } = eventData;
+
+      if (session.is_sub) {
+        // Отписаться
+        await leaveEvent(accessToken, session.id);
+        showNotification(200, 'Вы успешно отписались от события');
+      } else {
+        // Присоединиться
+        await joinEvent(accessToken, session.group_id, session.id);
+        showNotification(200, 'Вы успешно присоединились к событию');
+      }
+
+      // Вызываем onJoin если он передан
+      if (onJoin) {
+        onJoin();
+      }
+
+      // Перезагружаем данные события чтобы обновить статус IsSub
+      await loadEventData();
+    } catch (error: any) {
+      console.error('Ошибка при присоединении/отписке:', error);
+      const errorMessage = error.response?.data?.message || 'Не удалось выполнить действие';
+      const errorCode = error.response?.status || 500;
+      showNotification(errorCode, errorMessage);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -72,7 +109,6 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
     return `${minutes} минут`;
   };
 
-  // Функция для проверки, является ли строка ссылкой
   const isUrl = (string: string) => {
     try {
       new URL(string);
@@ -82,30 +118,45 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
     }
   };
 
-  // Функция для получения ссылки на издателя (поиск в Яндексе)
-  const getPublisherLink = () => {
-    const publisher = "Japan Nintendo Co., Ltd.";
+  const getPublisherLink = (publisher?: string) => {
+    if (!publisher) return null;
     return `https://yandex.ru/search/?text=${encodeURIComponent(publisher)}`;
   };
 
-  // Функция для получения ссылки на место проведения
-  const getLocationLink = () => {
-    const location = mockEventData.session.session_place;
+  const getLocationLink = (location: string) => {
     if (isUrl(location)) {
       return location;
     }
     return `https://yandex.ru/search/?text=${encodeURIComponent(location)}`;
   };
 
+  // Показываем лоадер во время загрузки
+  if (isLoading || !eventData) {
+    const modalContent = (
+      <div className={styles.modalOverlay} onClick={onClose}>
+        <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
+          <LoadingIndicator text="Загрузка события..." />
+        </div>
+      </div>
+    );
+    return createPortal(modalContent, document.body);
+  }
+
+  const { session, metadata } = eventData;
+  
   // Показываем только первые 9 жанров
-  const displayGenres = mockEventData.metadata.genres.slice(0, 9);
+  const displayGenres = metadata.Genres.slice(0, 9);
+
+  // Получаем тип события для иконки
+  const eventType = convertSingleCategRuToEng(session.session_type);
+  const locationIcon = convertSessionPlaceToLocation(session.session_place);
 
   const modalContent = (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
         {/* Заголовок и кнопка закрытия */}
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>{mockEventData.session.title}</h2>
+          <h2 className={styles.modalTitle}>{session.title}</h2>
           <button className={styles.closeButton} onClick={onClose}>
             <Image 
               src="/icons/close.png" 
@@ -119,15 +170,15 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
         {/* Изображение события */}
         <div className={styles.eventImageContainer}>
           <Image
-            src={mockEventData.session.image_url}
-            alt={mockEventData.session.title}
+            src={session.image_url}
+            alt={session.title}
             fill
             className={styles.eventImage}
           />
           <div className={styles.participantsBadge}>
             <Image 
-              src={`/events/${mockEventData.session.session_type}.png`} 
-              alt={mockEventData.session.session_type} 
+              src={`/events/${locationIcon}.png`} 
+              alt={locationIcon} 
               width={20} 
               height={20}
             />
@@ -137,10 +188,10 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
         {/* Информация о дате и времени */}
         <div className={styles.eventInfo}>
           <div className={styles.dateInfo}>
-            <span className={styles.dateValue}>Дата проведения: {formatDate(mockEventData.session.start_time)}</span>
+            <span className={styles.dateValue}>Дата проведения: {formatDate(session.start_time)}</span>
           </div>
           <div className={styles.durationInfo}>
-            <span>{formatDuration(mockEventData.session.duration)}</span>
+            <span>{formatDuration(session.duration)}</span>
             <Image 
               src="/events/clock.png" 
               alt="Длительность" 
@@ -152,64 +203,79 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
         {/* Описание события */}
         <div className={styles.eventDescription}>
-          <p>{mockEventData.metadata.notes}</p>
+          <p>{metadata.Notes}</p>
         </div>
 
         {/* Жанры */}
-        <div className={styles.genresSection}>
-          <span className={styles.genresLabel}>Жанры:</span>
-          <div className={styles.genresContainer}>
-            {displayGenres.map((genre, index) => (
-              <span key={index} className={styles.genreTag}>
-                {genre}
-              </span>
-            ))}
+        {displayGenres.length > 0 && (
+          <div className={styles.genresSection}>
+            <span className={styles.genresLabel}>Жанры:</span>
+            <div className={styles.genresContainer}>
+              {displayGenres.map((genre, index) => (
+                <span key={index} className={styles.genreTag}>
+                  {genre}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Информация об издателе */}
-        <div className={styles.publisherInfo}>
-          <div className={styles.publisherRow}>
-            <span className={styles.publisherLabel}>Издатель:</span>
-            <a 
-              href={getPublisherLink()}
-              target="_blank" 
-              rel="noopener noreferrer"
-              className={`${styles.publisherValue} ${styles.underlined}`}
-            >
-              Japan Nintendo Co., Ltd.
-            </a>
+        {(metadata.Fields?.publisher || metadata.Year || metadata.Location || metadata.AgeLimit) && (
+          <div className={styles.publisherInfo}>
+            {metadata.Fields?.publisher && (
+              <div className={styles.publisherRow}>
+                <span className={styles.publisherLabel}>Издатель:</span>
+                <a 
+                  href={getPublisherLink(metadata.Fields.publisher) || '#'}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={`${styles.publisherValue} ${styles.underlined}`}
+                >
+                  {metadata.Fields.publisher}
+                </a>
+              </div>
+            )}
+            {metadata.Year && (
+              <div className={styles.publisherRow}>
+                <span className={styles.publisherLabel}>Год издания:</span>
+                <span className={styles.publisherValue}>{metadata.Year}</span>
+              </div>
+            )}
+            {metadata.Location && (
+              <div className={styles.publisherRow}>
+                <span className={styles.publisherLabel}>Место проведения:</span>
+                <a 
+                  href={getLocationLink(metadata.Location)}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={`${styles.publisherValue} ${styles.underlined}`}
+                >
+                  {metadata.Location}
+                </a>
+              </div>
+            )}
+            {metadata.AgeLimit && (
+              <div className={styles.publisherRow}>
+                <span className={styles.publisherLabel}>Возрастное ограничение:</span>
+                <span className={styles.publisherValue}>{metadata.AgeLimit}</span>
+              </div>
+            )}
           </div>
-          <div className={styles.publisherRow}>
-            <span className={styles.publisherLabel}>Год издания:</span>
-            <span className={styles.publisherValue}>{mockEventData.metadata.year}</span>
-          </div>
-          <div className={styles.publisherRow}>
-            <span className={styles.publisherLabel}>Место проведения:</span>
-            <a 
-                href={getLocationLink()}
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={`${styles.publisherValue} ${styles.underlined}`}
-            >
-              {mockEventData.session.session_place}
-            </a>
-          </div>
-          <div className={styles.publisherRow}>
-            <span className={styles.publisherLabel}>Возрастное ограничение:</span>
-            <span className={styles.publisherValue}>{mockEventData.metadata.ageLimit}</span>
-          </div>
-        </div>
+        )}
 
-        {/* Кнопка присоединиться */}
-        <button className={styles.joinButton} onClick={onJoin}>
-          Присоединиться
+        {/* Кнопка присоединиться/отписаться */}
+        <button 
+          className={`${styles.joinButton} ${session.is_sub ? styles.leaveButton : ''}`}
+          onClick={handleJoinOrLeave}
+          disabled={isActionLoading}
+        >
+          {isActionLoading ? 'Загрузка...' : (session.is_sub ? 'Отписаться' : 'Присоединиться')}
         </button>
       </div>
     </div>
   );
 
-  // Используем портал для рендера модального окна в body
   return createPortal(modalContent, document.body);
 };
 

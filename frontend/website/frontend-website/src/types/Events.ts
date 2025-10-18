@@ -20,6 +20,7 @@ export interface EventCardProps {
     isEditMode?: boolean;
     onEdit?: (id: number) => void;
     groupId?: number;
+    IsSub?: boolean;
 }
 
 export interface SectionData {

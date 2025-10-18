@@ -1,6 +1,6 @@
 import {RawSession, RawUserDataResponse} from './types/RawEvents';
 import {EventCardProps} from './types/Events'
-import {SessionData} from './types/apiTypes'
+import {SessionData, EventFullResponse} from './types/apiTypes'
 import {UserDataResponse} from './types/UserData'
 import { getUserInfo } from './api/profile/getOwnProfile';
 
@@ -396,4 +396,52 @@ export const truncateText = (text: string, maxLength: number = 300): string => {
   if (text.length <= maxLength) return text;
   
   return text.substring(0, maxLength).trim() + '...';
+};
+
+/**
+ * Конвертирует session_place в тип location
+ */
+export const convertSessionPlaceToLocation = (sessionPlace: string): 'online' | 'offline' => {
+  const normalized = sessionPlace.toLowerCase().trim();
+  if (normalized === 'онлайн' || normalized === 'online') {
+    return 'online';
+  }
+  return 'offline';
+};
+
+/**
+ * Конвертирует одну категорию из русского в английский
+ */
+export const convertSingleCategRuToEng = (category: string): string => {
+  const result = convertCategRuToEng([category]);
+  return result[0] || 'other';
+};
+
+/**
+ * Конвертирует полный ответ сервера (session + metadata) в EventCardProps
+ */
+export const convertFullEventToCard = (data: EventFullResponse): EventCardProps => {
+  const { session, metadata } = data;
+  
+  console.log("session.is_sub", session.is_sub)
+
+  return {
+    id: session.id,
+    type: convertSingleCategRuToEng(session.session_type) as 'games' | 'movies' | 'board' | 'other',
+    image: session.image_url,
+    date: session.start_time,
+    start_time: session.start_time,
+    end_time: session.end_time,
+    title: session.title,
+    genres: metadata.Genres || [],
+    participants: session.current_users,
+    maxParticipants: session.count_users_max,
+    duration: `${session.duration} минут`,
+    location: convertSessionPlaceToLocation(session.session_place),
+    adress: metadata.Location,
+    publisher: metadata.Fields?.publisher,
+    city: metadata.Country,
+    groupId: session.group_id,
+    IsSub: session.is_sub
+  };
 };
