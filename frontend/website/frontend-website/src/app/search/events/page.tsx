@@ -7,46 +7,52 @@ import styles from '../../../styles/search/eventsSearch.module.css';
 import EventCard from '../../../components/Events/EventCard';
 import { EventCardProps } from '../../../types/Events';
 import CategoryLabel from "../../../components/Events/CategoryLabel"
-
-const ITEMS_PER_PAGE = 10;
-
-// Тестовые данные
-const mockEvents: EventCardProps[] = Array.from({ length: 10 }, (_, i) => ({
-  id: i + 1,
-  type: (['games', 'movies', 'board', 'other'] as const)[i % 4],
-  image: '/event_card.jpg',
-  date: `${15 + (i % 15)} ноября`,
-  title: `Крестный отец ${i + 1}`,
-  genres: ['драма', 'криминал', 'классика'][Math.floor(i / 3)] ? 
-    ['драма', 'криминал', 'классика'].slice(0, Math.floor(i / 3) + 1) : 
-    ['драма'],
-  participants: 5 + (i % 10),
-  maxParticipants: 15 + (i % 5),
-  duration: `${120 + (i * 10)} мин`,
-  location: i % 2 === 0 ? 'online' : 'offline',
-  adress: i % 2 === 0 ? 'Discord' : 'ул. Примерная, д. 123',
-  groupId: i + 100
-}));
+import { getAccesToken, convertSessionsToEventCards, convertCategoriesToIds, convertCategRuToEng } from '@/Constants';
+import { showNotification } from '@/utils';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { searchEvents } from '@/api/search/searchEvents';
+import { yandexMapsAPI } from '@/lib/api/index';
 
 export default function EventsSearchPage() {
   const searchParams = useSearchParams()
   const category = searchParams?.get("category") || 'Популярные';
   const pattern = searchParams?.get("pattern") || '/events/movie_bg.png';
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [events, setEvents] = useState<EventCardProps[]>(mockEvents);
+  const [events, setEvents] = useState<EventCardProps[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedCategorySort, setSelectedCategorySort] = useState('Все');
   const [selectedDateSort, setSelectedDateSort] = useState('По возрастанию');
   const [selectedParticipantSort, setSelectedParticipantSort] = useState('По возрастанию');
+  const [selectedLocation, setSelectedLocation] = useState('Все');
+  const [selectedCity, setSelectedCity] = useState('');
+  const [cityQuery, setCityQuery] = useState('');
+  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   
   const filterRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const citySearchTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Проверяем, является ли категория специфическим типом контента
   const isSpecificCategory = ['фильмы', 'игры', 'настольные игры', 'другое'].includes(category.toLowerCase());
+
+  // Маппинг категорий для categoryID
+  const getCategoryID = (categoryName: string): number | undefined => {
+    const typeArray = convertCategRuToEng([categoryName]);
+    if (typeArray.length > 0) {
+      const ids = convertCategoriesToIds([typeArray[0]]);
+      return ids[0];
+    }
+    return undefined;
+  };
 
   // Проверка возможности прокрутки
   const checkScrollButtons = () => {
@@ -57,10 +63,168 @@ export default function EventsSearchPage() {
     }
   };
 
-  // Фильтрация по поисковому запросу
-  const filteredEvents = events.filter(event => 
-    event.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Поиск городов через Яндекс.Карты
+  useEffect(() => {
+    if (cityQuery.length >= 2) {
+      if (citySearchTimeoutRef.current) {
+        clearTimeout(citySearchTimeoutRef.current);
+      }
+
+      citySearchTimeoutRef.current = setTimeout(async () => {
+        try {
+          const cities = await yandexMapsAPI.searchCities(cityQuery);
+          setCitySuggestions(cities);
+          setShowCitySuggestions(true);
+        } catch (error) {
+          console.error('Ошибка поиска городов:', error);
+          setCitySuggestions([]);
+        }
+      }, 300);
+    } else {
+      setCitySuggestions([]);
+      setShowCitySuggestions(false);
+    }
+
+    return () => {
+      if (citySearchTimeoutRef.current) {
+        clearTimeout(citySearchTimeoutRef.current);
+      }
+    };
+  }, [cityQuery]);
+
+  // Функция загрузки событий
+  const loadEvents = useCallback(async (page: number, resetEvents: boolean = false) => {
+    if (isLoading || (!hasMore && !resetEvents)) return;
+
+    setIsLoading(true);
+    if (resetEvents) {
+      setIsInitialLoading(true);
+    }
+
+    try {
+      const accessToken = getAccesToken();
+      
+      // Формируем параметры запроса
+      const params: any = {};
+
+      // Поиск по названию
+      if (searchQuery.trim()) {
+        params.query = searchQuery.trim();
+      }
+
+      // Фильтр по категории через categoryID
+      if (isSpecificCategory) {
+        // Если мы на странице конкретной категории
+        const categoryID = getCategoryID(category);
+        if (categoryID) {
+          params.categoryID = categoryID;
+        }
+      } else if (selectedCategorySort !== 'Все') {
+        // Если выбрана категория в фильтре
+        const categoryID = getCategoryID(selectedCategorySort);
+        if (categoryID) {
+          params.categoryID = categoryID;
+        }
+      }
+
+      // Фильтр по местоположению (онлайн/оффлайн) через sessionType
+      if (selectedLocation !== 'Все') {
+        params.sessionType = selectedLocation === 'Онлайн' ? 'Онлайн' : 'Оффлайн';
+      }
+
+      // Фильтр по городу
+      if (selectedCity.trim()) {
+        params.city = selectedCity.trim();
+      }
+
+      // Сортировка
+      // Приоритет: участники > дата
+      if (selectedParticipantSort !== 'По возрастанию') {
+        params.sort_by = 'users';
+        params.order = selectedParticipantSort === 'По возрастанию' ? 'asc' : 'desc';
+      } else if (selectedDateSort !== 'По возрастанию') {
+        params.sort_by = 'date';
+        params.order = selectedDateSort === 'По возрастанию' ? 'asc' : 'desc';
+      } else {
+        // По умолчанию сортируем по дате по возрастанию
+        params.sort_by = 'date';
+        params.order = 'asc';
+      }
+
+      const response = await searchEvents(accessToken, page, params);
+
+      if (response && response.sessions) {
+        // Фильтруем события где могут быть проблемы с данными
+        const validSessions = response.sessions.filter((session: any) => 
+          session && session.id && session.title
+        );
+        
+        const convertedEvents = convertSessionsToEventCards(validSessions);
+        
+        if (resetEvents) {
+          setEvents(convertedEvents);
+        } else {
+          setEvents(prev => [...prev, ...convertedEvents]);
+        }
+
+        setHasMore(response.has_next || false);
+        setCurrentPage(page);
+      } else {
+        if (resetEvents) {
+          setEvents([]);
+        }
+        setHasMore(false);
+      }
+
+    } catch (error: any) {
+      console.error('Ошибка при загрузке событий:', error);
+      showNotification(
+        error.response?.status || 500,
+        error.response?.data?.message || 'Не удалось загрузить события'
+      );
+      
+      if (resetEvents) {
+        setEvents([]);
+      }
+      setHasMore(false);
+    } finally {
+      setIsLoading(false);
+      setIsInitialLoading(false);
+    }
+  }, [searchQuery, selectedCategorySort, selectedDateSort, selectedParticipantSort, selectedLocation, selectedCity, category, isSpecificCategory, isLoading, hasMore]);
+
+  // Загрузка следующей страницы
+  const loadMoreEvents = useCallback(() => {
+    if (!isLoading && hasMore) {
+      loadEvents(currentPage + 1, false);
+    }
+  }, [currentPage, isLoading, hasMore, loadEvents]);
+
+  // Начальная загрузка и перезагрузка при изменении фильтров
+  useEffect(() => {
+    setCurrentPage(1);
+    setHasMore(true);
+    loadEvents(1, true);
+  }, [selectedCategorySort, selectedDateSort, selectedParticipantSort, selectedLocation, selectedCity, category]);
+
+  // Поиск с задержкой
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      setCurrentPage(1);
+      setHasMore(true);
+      loadEvents(1, true);
+    }, 500);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   // Закрытие фильтра при клике вне его
   useEffect(() => {
@@ -76,39 +240,6 @@ export default function EventsSearchPage() {
     };
   }, []);
 
-  // Функция для подгрузки новых событий
-  const loadMoreEvents = useCallback(() => {
-    if (isLoading) return;
-
-    setIsLoading(true);
-    
-    // Имитируем загрузку
-    setTimeout(() => {
-      const newEvents = Array.from({ length: 10 }, (_, i) => {
-        const baseIndex = events.length + i;
-        return {
-          id: baseIndex + 1,
-          type: (['games', 'movies', 'board', 'other'] as const)[baseIndex % 4],
-          image: '/event_card.jpg',
-          date: `${15 + (baseIndex % 15)} ноября`,
-          title: `Новое событие ${baseIndex + 1}`,
-          genres: ['драма', 'криминал', 'классика'][Math.floor(baseIndex / 3)] ? 
-            ['драма', 'криминал', 'классика'].slice(0, Math.floor(baseIndex / 3) + 1) : 
-            ['драма'],
-          participants: 5 + (baseIndex % 10),
-          maxParticipants: 15 + (baseIndex % 5),
-          duration: `${120 + (baseIndex * 10)} мин`,
-          location: baseIndex % 2 === 0 ? 'online' : 'offline',
-          adress: baseIndex % 2 === 0 ? 'Discord' : 'ул. Примерная, д. 123',
-          groupId: baseIndex + 100
-        } as EventCardProps;
-      });
-
-      setEvents(prevEvents => [...prevEvents, ...newEvents]);
-      setIsLoading(false);
-    }, 1000);
-  }, [events.length, isLoading]);
-
   // Бесконечный скролл
   useEffect(() => {
     const handleScroll = () => {
@@ -117,8 +248,7 @@ export default function EventsSearchPage() {
       if (containerRef.current) {
         const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
         
-        // Проверяем, достиг ли пользователь конца контейнера
-        if (scrollHeight - scrollTop <= clientHeight + 100 && !isLoading) {
+        if (scrollHeight - scrollTop <= clientHeight + 100 && !isLoading && hasMore) {
           loadMoreEvents();
         }
       }
@@ -127,11 +257,11 @@ export default function EventsSearchPage() {
     const container = containerRef.current;
     if (container) {
       container.addEventListener('scroll', handleScroll);
-      checkScrollButtons(); // Проверяем сразу при монтировании
+      checkScrollButtons();
       
       return () => container.removeEventListener('scroll', handleScroll);
     }
-  }, [loadMoreEvents, isLoading]);
+  }, [loadMoreEvents, isLoading, hasMore]);
 
   // Функции прокрутки
   const scrollToTop = () => {
@@ -149,6 +279,20 @@ export default function EventsSearchPage() {
     }
   };
 
+  // Обработчик выбора города
+  const handleCitySelect = (city: string) => {
+    setSelectedCity(city);
+    setCityQuery(city);
+    setShowCitySuggestions(false);
+  };
+
+  // Очистка города
+  const handleClearCity = () => {
+    setSelectedCity('');
+    setCityQuery('');
+    setShowCitySuggestions(false);
+  };
+
   return (
     <div className="bgPage">
       <div className={styles.container}>
@@ -157,7 +301,7 @@ export default function EventsSearchPage() {
             <CategoryLabel 
                 title={category} 
                 patternUrl={pattern} 
-                clickable={false} // делаем некликабельным
+                clickable={false}
             />
           </div>
 
@@ -200,8 +344,8 @@ export default function EventsSearchPage() {
                           <input
                             type="radio"
                             name="categories"
-                            checked={selectedCategorySort === 'Кино'}
-                            onChange={() => setSelectedCategorySort('Кино')}
+                            checked={selectedCategorySort === 'Фильмы'}
+                            onChange={() => setSelectedCategorySort('Фильмы')}
                           />
                           <span>Кино</span>
                         </label>
@@ -234,6 +378,72 @@ export default function EventsSearchPage() {
                         </label>
                       </div>
                     )}
+                    
+                    <div className={styles.filterSection}>
+                      <h4 className={styles.filterTitle}>Тип проведения</h4>
+                      <label className={styles.filterOption}>
+                        <input
+                          type="radio"
+                          name="location"
+                          checked={selectedLocation === 'Все'}
+                          onChange={() => setSelectedLocation('Все')}
+                        />
+                        <span>Все</span>
+                      </label>
+                      <label className={styles.filterOption}>
+                        <input
+                          type="radio"
+                          name="location"
+                          checked={selectedLocation === 'Онлайн'}
+                          onChange={() => setSelectedLocation('Онлайн')}
+                        />
+                        <span>Онлайн</span>
+                      </label>
+                      <label className={styles.filterOption}>
+                        <input
+                          type="radio"
+                          name="location"
+                          checked={selectedLocation === 'Оффлайн'}
+                          onChange={() => setSelectedLocation('Оффлайн')}
+                        />
+                        <span>Оффлайн</span>
+                      </label>
+                    </div>
+
+                    <div className={styles.filterSection}>
+                      <h4 className={styles.filterTitle}>Город</h4>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          value={cityQuery}
+                          onChange={(e) => setCityQuery(e.target.value)}
+                          placeholder="Начните вводить город..."
+                          className={styles.cityInput}
+                        />
+                        {selectedCity && (
+                          <button
+                            onClick={handleClearCity}
+                            className={styles.clearCityButton}
+                            title="Очистить"
+                          >
+                            ×
+                          </button>
+                        )}
+                        {showCitySuggestions && citySuggestions.length > 0 && (
+                          <div className={styles.citySuggestions}>
+                            {citySuggestions.map((city, index) => (
+                              <div
+                                key={index}
+                                onClick={() => handleCitySelect(city)}
+                                className={styles.citySuggestionItem}
+                              >
+                                {city}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                     
                     <div className={styles.filterSection}>
                       <h4 className={styles.filterTitle}>Сортировка по дате</h4>
@@ -284,42 +494,63 @@ export default function EventsSearchPage() {
             </div>
           </div>
 
-          <div className={styles.resultsContainer} ref={containerRef}>
-            <div className={styles.eventsGrid}>
-              {filteredEvents.map((event) => (
-                <div key={event.id} className={styles.eventWrapper}>
-                  <EventCard {...event} />
-                </div>
-              ))}
+          {isInitialLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+              <LoadingIndicator text="Загрузка событий..." />
             </div>
-            
-            {isLoading && (
-              <div className={styles.loadingIndicator}>
-                <div className={styles.spinner}></div>
-                <span>Загружаем больше событий...</span>
+          ) : (
+            <>
+              <div className={styles.resultsContainer} ref={containerRef}>
+                {events.length > 0 ? (
+                  <>
+                    <div className={styles.eventsGrid}>
+                      {events.map((event) => (
+                        <div key={`${event.id}-${event.groupId}`} className={styles.eventWrapper}>
+                          <EventCard {...event} />
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {isLoading && (
+                      <div className={styles.loadingIndicator}>
+                        <div className={styles.spinner}></div>
+                        <span>Загружаем больше событий...</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '60px 20px', 
+                    color: '#666',
+                    fontSize: '18px'
+                  }}>
+                    Событий не найдено
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Кнопки прокрутки */}
-          {canScrollUp && (
-            <button 
-              className={`${styles.scrollIndicator} ${styles.scrollUp}`}
-              onClick={scrollToTop}
-              aria-label="Прокрутить вверх"
-            >
-              <span style={{ fontSize: '20px', color: '#316BC2' }}>↑</span>
-            </button>
-          )}
-          
-          {canScrollDown && (
-            <button 
-              className={`${styles.scrollIndicator} ${styles.scrollDown}`}
-              onClick={scrollToBottom}
-              aria-label="Прокрутить вниз"
-            >
-              <span style={{ fontSize: '20px', color: '#316BC2' }}>↓</span>
-            </button>
+              {/* Кнопки прокрутки */}
+              {canScrollUp && events.length > 0 && (
+                <button 
+                  className={`${styles.scrollIndicator} ${styles.scrollUp}`}
+                  onClick={scrollToTop}
+                  aria-label="Прокрутить вверх"
+                >
+                  <span style={{ fontSize: '20px', color: '#316BC2' }}>↑</span>
+                </button>
+              )}
+              
+              {canScrollDown && events.length > 0 && (
+                <button 
+                  className={`${styles.scrollIndicator} ${styles.scrollDown}`}
+                  onClick={scrollToBottom}
+                  aria-label="Прокрутить вниз"
+                >
+                  <span style={{ fontSize: '20px', color: '#316BC2' }}>↓</span>
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

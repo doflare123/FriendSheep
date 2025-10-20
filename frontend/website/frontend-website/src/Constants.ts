@@ -275,15 +275,12 @@ export function formatTime(dateString: string): string {
 }
 
 export const convertSessionToEventCard = (session: SessionData): EventCardProps => {
-  // Конвертируем session_type через существующую функцию
   const typeArray = convertCategRuToEng([session.session_type]);
   const type = typeArray.length > 0 ? typeArray[0] : 'other';
 
-  // Конвертируем session_place в location
   const location: 'online' | 'offline' = 
     session.session_place.toLowerCase() === 'онлайн' ? 'online' : 'offline';
 
-  // Парсим fields для извлечения publisher
   let publisher: string | undefined;
   let city: string | undefined;
   if (session.fields) {
@@ -301,17 +298,17 @@ export const convertSessionToEventCard = (session: SessionData): EventCardProps 
   return {
     id: session.id,
     type,
-    image: session.image_url,
+    image: session.image_url || '/event_card.jpg', // <-- ДОБАВЬ дефолтное изображение
     date: formatDate(session.start_time),
     start_time: formatTime(session.start_time),
     title: session.title,
-    genres: session.genres,
+    genres: session.genres || [], // <-- ДОБАВЬ проверку на undefined
     participants: session.current_users,
     maxParticipants: session.count_users_max,
     duration: session.duration ? `${session.duration}` : undefined,
     location,
     adress: '',
-    city: city,
+    city: city || session.city || '', // <-- ДОБАВЬ проверку
     publisher,
     groupId: session.group_id,
   };

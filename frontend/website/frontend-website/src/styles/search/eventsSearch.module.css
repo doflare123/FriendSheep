@@ -15,7 +15,7 @@
   min-height: 80%;
   display: flex;
   flex-direction: column;
-  position: relative; /* Добавляем для позиционирования градиентов */
+  position: relative;
 }
 
 .categoryHeader {
@@ -87,15 +87,20 @@
 
 .filterMenu {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: calc(100% + 5px);
+  right: 20px;
+  margin-top: -20px;
   background: white;
   border: 2px solid #37A2E6;
-  border-radius: 0px 12px 12px 12px;
+  border-radius: 12px;
   padding: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   z-index: 103;
-  min-width: 250px;
+  min-width: 275px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 12px;
+  scrollbar-width: thin;
 }
 
 .filterSection {
@@ -135,6 +140,75 @@
   user-select: none;
 }
 
+/* Стили для фильтра по городам */
+.cityInput {
+  width: 100%;
+  padding: 8px;
+  padding-right: 30px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.cityInput:focus {
+  border-color: #37A2E6;
+}
+
+.citySuggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-top: none;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.citySuggestionItem {
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  transition: background 0.2s;
+}
+
+.citySuggestionItem:last-child {
+  border-bottom: none;
+}
+
+.citySuggestionItem:hover {
+  background: #f0f0f0;
+}
+
+.clearCityButton {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #999;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.clearCityButton:hover {
+  color: #666;
+}
+
 .resultsContainer {
   flex: 1;
   overflow-y: auto;
@@ -142,11 +216,9 @@
   padding-right: 8px;
   padding-left: 80px;
   position: relative;
-  /* Скрываем скроллбар, но оставляем возможность скролла */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE и Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   
-  /* Создаем градиентную маску для плавного перехода в прозрачность по вертикали */
   mask: linear-gradient(
     to bottom,
     transparent 0px,
@@ -164,7 +236,7 @@
 }
 
 .resultsContainer::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
 }
 
 .eventsGrid {
@@ -199,11 +271,12 @@
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
 .scrollIndicator {
   position: fixed;
-  left: 50%; /* Центрируем по горизонтали */
+  left: 50%;
   transform: translateX(-50%);
-  width: 60px; /* Увеличиваем размер кружка */
+  width: 60px;
   height: 60px;
   background: white;
   border: 2px solid #316BC2;
@@ -228,10 +301,9 @@
 }
 
 .scrollUp {
-  top: 100px; /* Увеличиваем отступ сверху */
+  top: 100px;
 }
 
-/* Увеличиваем размер стрелочек */
 .scrollIndicator span {
   font-size: 28px !important;
   color: #316BC2;
@@ -248,7 +320,6 @@
   }
 }
 
-/* Адаптивность для минимальных размеров десктопа */
 @media (max-width: 1024px) {
   .container {
     max-width: 100%;

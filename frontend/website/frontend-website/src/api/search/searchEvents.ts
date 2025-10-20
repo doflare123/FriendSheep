@@ -34,6 +34,7 @@ export async function searchEvents(
 
     const queryString = new URLSearchParams(filteredData).toString();
 
+    console.log('ZXCZ', queryString);
     const response = await axios.get(`${API_URL}/api/users/sessions/search?${queryString}`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`

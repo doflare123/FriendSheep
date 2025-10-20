@@ -256,4 +256,94 @@ export class YandexMapsAPI {
       name: ''
     };
   }
+
+  async searchCities(query: string): Promise<string[]> {
+    await this.loadMaps();
+
+    return new Promise((resolve, reject) => {
+      window.ymaps.geocode(query, {
+        results: 10,
+        kind: 'locality' // Фильтруем только населенные пункты (города)
+      }).then((res: any) => {
+        const cities: string[] = [];
+        
+        res.geoObjects.each((geoObject: any) => {
+          try {
+            // Получаем полный адрес
+            const addressLine = geoObject.getAddressLine();
+            
+            // Пытаемся получить город разными способами
+            let cityName = '';
+            
+            // Способ 1: getLocalities() - самый надежный для городов
+            const localities = geoObject.getLocalities();
+            if (localities && localities.length > 0) {
+              cityName = localities[0];
+            }
+            
+            // Способ 2: через getAdministrativeAreas (для регионов/областей)
+            if (!cityName) {
+              const adminAreas = geoObject.getAdministrativeAreas();
+              if (adminAreas && adminAreas.length > 0) {
+                // Берем последний элемент (обычно это город)
+                cityName = adminAreas[adminAreas.length - 1];
+              }
+            }
+            
+            // Способ 3: парсим из адресной строки
+            if (!cityName && addressLine) {
+              // Убираем страну и индекс, берем первый элемент
+              const parts = addressLine.split(',').map(p => p.trim());
+              // Фильтруем индексы и короткие значения
+              const filtered = parts.filter(p => 
+                p.length > 2 && 
+                !/^\d+$/.test(p) && // не только цифры
+                !p.match(/^[А-Яа-я]\s/) // не "г Москва" или подобное
+              );
+              if (filtered.length > 0) {
+                cityName = filtered[0];
+              }
+            }
+            
+            // Способ 4: через метаданные компонентов
+            if (!cityName) {
+              try {
+                const metaData = geoObject.getMetaData();
+                if (metaData?.GeocoderMetaData?.Address?.Components) {
+                  const components = metaData.GeocoderMetaData.Address.Components;
+                  const locality = components.find((comp: any) => 
+                    comp.kind === 'locality' || comp.kind === 'province'
+                  );
+                  if (locality) {
+                    cityName = locality.name;
+                  }
+                }
+              } catch (e) {
+                // Игнорируем
+              }
+            }
+            
+            // Очищаем название города от префиксов типа "г ", "город "
+            if (cityName) {
+              cityName = cityName
+                .replace(/^(г\.|г|город|city)\s+/i, '')
+                .trim();
+              
+              // Добавляем только уникальные названия
+              if (cityName && !cities.includes(cityName)) {
+                cities.push(cityName);
+              }
+            }
+          } catch (e) {
+            console.error('Ошибка извлечения города:', e);
+          }
+        });
+        
+        resolve(cities);
+      }).catch((error) => {
+        console.error('Ошибка геокодирования:', error);
+        reject(error);
+      });
+    });
+  }
 }
