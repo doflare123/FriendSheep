@@ -19,7 +19,7 @@
 .searchHeader {
   display: flex;
   gap: 20px;
-  align-items: flex-start; /* Изменено с center на flex-start */
+  align-items: flex-start;
   margin-bottom: 30px;
   position: relative;
 }
@@ -27,13 +27,13 @@
 .searchInputWrapper {
   flex: 0.5;
   position: relative;
-  z-index: 101; /* Выше чем у меню фильтров */
+  z-index: 101;
 }
 
 .searchInput {
   width: 100%;
   padding: 12px 16px;
-  padding-right: 50px; /* Место для кнопки фильтра */
+  padding-right: 50px;
   border: 2px solid #316BC2;
   border-radius: 20px;
   background: white;
@@ -55,7 +55,7 @@
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 102; /* Еще выше */
+  z-index: 102;
 }
 
 .filterButton {
@@ -84,7 +84,7 @@
   border-radius: 0px 12px 12px 12px;
   padding: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  z-index: 103; /* Самый высокий */
+  z-index: 103;
   min-width: 250px;
 }
 
@@ -142,12 +142,12 @@
 }
 
 .toggleButton:hover {
-  background: #f8f8f8; /* Изменено с #2a8bc7 на светло-серый */
+  background: #f8f8f8;
 }
 
 .resultsContainer {
   margin-bottom: 30px;
-  height: 650px; /* Увеличил высоту контейнера */
+  height: 480px; /* Высота под 4 элемента: 4 * (92px min-height + 16px gap) + небольшой запас */
   display: flex;
   flex-direction: column;
 }
@@ -169,12 +169,12 @@
   align-items: center;
   justify-content: space-between;
   transition: all 0.3s ease;
+  min-height: 92px; /* Фиксированная минимальная высота */
 }
 
 .groupItem:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(55, 162, 230, 0.2);
-  /* Убираем z-index: 1; чтобы не создавать новый stacking context */
 }
 
 .groupContent {
@@ -186,10 +186,16 @@
 
 .groupImageWrapper {
   flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f0f0;
 }
 
 .groupImage {
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
@@ -301,7 +307,7 @@
   align-items: center;
   justify-content: space-between;
   transition: all 0.3s ease;
-  min-height: 92px; /* Фиксированная минимальная высота для выравнивания с группами */
+  min-height: 92px; /* Одинаковая высота с группами */
 }
 
 .userItem:hover {
@@ -431,11 +437,11 @@
   .searchHeader {
     flex-direction: column;
     gap: 15px;
-    align-items: stretch; /* Изменено */
+    align-items: stretch;
   }
   
   .toggleButton {
-    position: relative; /* Возвращаем relative позиционирование на мобильных */
+    position: relative;
     top: auto;
     right: auto;
     align-self: flex-end;
@@ -444,6 +450,11 @@
   .filterMenu {
     right: -100px;
     min-width: 200px;
+  }
+
+  .resultsContainer {
+    height: auto; /* На мобильных убираем фиксированную высоту */
+    min-height: 400px;
   }
   
   .groupItem,

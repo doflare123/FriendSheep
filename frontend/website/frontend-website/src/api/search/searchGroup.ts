@@ -1,19 +1,15 @@
 import axios from 'axios';
-import {EventCardProps} from '@/types/Events'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface SearchEventsParams {
-  query?: string;
-  categoryID?: number;
-  sessionType?: string;
-  city?: string;
+  name?: string;
+  category?: string;
   sort_by?: string;
   order?: string;
-  new_only?: boolean;
 }
 
-export async function searchEvents(
+export async function searchGroup(
   accessToken: string, 
   page: number,
   params: SearchEventsParams = {}
@@ -34,7 +30,7 @@ export async function searchEvents(
 
     const queryString = new URLSearchParams(filteredData).toString();
 
-    const response = await axios.get(`${API_URL}/api/users/sessions/search?${queryString}`, {
+    const response = await axios.get(`${API_URL}/api/groups/search?${queryString}`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }
@@ -42,7 +38,7 @@ export async function searchEvents(
 
     return response.data;
   } catch (error: any) {
-    console.error('Ошибка при поиске событий:', error);
+    console.error('Ошибка при получении результатов поиска групп:', error);
     
     if (error.response) {
       console.error('Статус ответа:', error.response.status);
