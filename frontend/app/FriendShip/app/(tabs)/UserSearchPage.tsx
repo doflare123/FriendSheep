@@ -50,12 +50,10 @@ const mockUsers: User[] = [
 ];
 
 const highlightUserText = (user: User, query: string): User => {
-  const highlightedName = createHighlightedText(user.name, query);
   const highlightedUsername = createHighlightedText(user.username, query);
   
   return {
     ...user,
-    ...(highlightedName && { highlightedName }),
     ...(highlightedUsername && { highlightedUsername }),
   };
 };
@@ -69,7 +67,6 @@ const UserSearchPage: React.FC = () => {
     
     if (userSearchState.searchQuery.trim()) {
       users = users.filter(user =>
-        user.name.toLowerCase().includes(userSearchState.searchQuery.toLowerCase()) ||
         user.username.toLowerCase().includes(userSearchState.searchQuery.toLowerCase())
       );
       

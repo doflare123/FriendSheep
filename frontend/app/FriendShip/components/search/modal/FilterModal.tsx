@@ -142,18 +142,34 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
                   Сортировка по категориям
                 </Text>
-                {['Все', 'Игры', 'Фильмы', 'Настолки', 'Другое'].map((cat) => (
+                {[
+                  { label: 'Все', value: null },
+                  { label: 'Фильмы', value: 'movie' },
+                  { label: 'Игры', value: 'game' },
+                  { label: 'Настолки', value: 'table_game' },
+                  { label: 'Другое', value: 'other' },
+                ].map(({ label, value }) => (
                   <TouchableOpacity
-                    key={cat}
+                    key={label}
                     style={styles.radioItem}
-                    onPress={() => groupSearchActions.toggleCategoryCheckbox(cat)}
+                    onPress={() => {
+                      if (value === null) {
+                        groupSearchActions.setCheckedCategories([]);
+                      } else {
+                        groupSearchActions.toggleCategoryCheckbox(value);
+                      }
+                    }}
                   >
                     <View style={styles.radioCircleEmpty}>
-                      {groupSearchState.checkedCategories.includes(cat) && (
-                        <View style={styles.radioInnerCircle} />
-                      )}
+                      {value === null
+                        ? groupSearchState.checkedCategories.length === 0 && (
+                            <View style={styles.radioInnerCircle} />
+                          )
+                        : groupSearchState.checkedCategories.includes(value) && (
+                            <View style={styles.radioInnerCircle} />
+                          )}
                     </View>
-                    <Text style={styles.radioLabel}>{cat}</Text>
+                    <Text style={styles.radioLabel}>{label}</Text>
                   </TouchableOpacity>
                 ))}
 

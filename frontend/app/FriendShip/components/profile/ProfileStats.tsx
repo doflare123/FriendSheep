@@ -1,31 +1,69 @@
 import StatisticsBar from '@/components/profile/StatisticsBar';
+import { TileType } from '@/components/profile/TileSelectionModal';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 interface ProfileStatsProps {
-  media: number;
-  games: number;
-  hours: number;
-  sessions: number;
+  selectedTiles: TileType[];
+  stats: {
+    media: number;
+    games: number;
+    table_games: number;
+    other: number;
+    hours: number;
+    sessions: number;
+  };
 }
 
-const ProfileStats: React.FC<ProfileStatsProps> = ({
-  media,
-  games,
-  hours,
-  sessions,
-}) => {
+interface TileConfig {
+  type: TileType;
+  title: string;
+  icon: string;
+}
+
+const tileConfigs: Record<TileType, TileConfig> = {
+  media: { type: 'media', title: 'Медиа', icon: 'movies' },
+  games: { type: 'games', title: 'Игры', icon: 'games' },
+  table_games: { type: 'table_games', title: 'Настолки', icon: 'table_games' },
+  other: { type: 'other', title: 'Другое', icon: 'other' },
+  hours: { type: 'hours', title: 'Часов', icon: 'hours' },
+  sessions: { type: 'sessions', title: 'Сессий', icon: 'sessions' },
+};
+
+const ProfileStats: React.FC<ProfileStatsProps> = ({ selectedTiles, stats }) => {
+  const displayedTiles = selectedTiles.slice(0, 4);
+  
+  const renderTile = (tileType: TileType) => {
+    const config = tileConfigs[tileType];
+    const count = stats[tileType];
+    
+    return (
+      <StatisticsBar
+        key={tileType}
+        title={config.title}
+        count={count}
+        icon={config.icon}
+        fullWidth
+      />
+    );
+  };
+
+  const firstRow = displayedTiles.slice(0, 2);
+  const secondRow = displayedTiles.slice(2, 4);
+
   return (
     <>
-      <View style={styles.statisticsRow}>
-        <StatisticsBar title='Медиа' count={media} icon="movies" fullWidth />
-        <StatisticsBar title='Игры' count={games} icon="games" fullWidth />
-      </View>
+      {firstRow.length > 0 && (
+        <View style={styles.statisticsRow}>
+          {firstRow.map(renderTile)}
+        </View>
+      )}
       
-      <View style={[styles.statisticsRow, styles.lastRow]}>
-        <StatisticsBar title='Часов' count={hours} icon="hours" fullWidth />
-        <StatisticsBar title='Сессий' count={sessions} icon="sessions" fullWidth />
-      </View>
+      {secondRow.length > 0 && (
+        <View style={[styles.statisticsRow, styles.lastRow]}>
+          {secondRow.map(renderTile)}
+        </View>
+      )}
     </>
   );
 };

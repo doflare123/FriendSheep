@@ -17,6 +17,10 @@ const StatisticsBar = ({ title, count = 20, icon, fullWidth = false }: Statistic
         return require('@/assets/images/profile/movies.png');
       case 'games':
         return require('@/assets/images/profile/games.png');
+      case 'table_games':
+        return require('@/assets/images/profile/table_games.png');
+      case 'other':
+        return require('@/assets/images/profile/others.png');
       case 'hours':
         return require('@/assets/images/profile/hours.png');
       case 'sessions':
@@ -53,7 +57,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',    
     borderRadius: 40,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     marginRight: 8,
     marginVertical: 2,
     alignItems: 'center',
@@ -66,28 +70,28 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   icon: {
-    width: 30,
-    height: 30,
+    width: 26,
+    height: 26,
     resizeMode: 'contain',
     marginRight: 6,
     flexShrink: 0,
   },
   text: {
     color: Colors.black,
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: Montserrat.regular,
     flexShrink: 1,
   },
   separator: {
     color: Colors.black,
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: Montserrat.regular,
     marginHorizontal: 6,
     flexShrink: 0,
   },
   countText: {
     color: Colors.black,
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: Montserrat.regular,
     flexShrink: 1,
   },

@@ -48,6 +48,9 @@ const Login = () => {
 
           <View style={authorizeStyle.account}>
             <TouchableOpacity onPress={() => navigation.navigate('Register' as never)}>
+              <Text style={authorizeStyle.password}>Забыли пароль?</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Register' as never)}>
               <Text>Нет аккаунта?</Text>
             </TouchableOpacity>
           </View>

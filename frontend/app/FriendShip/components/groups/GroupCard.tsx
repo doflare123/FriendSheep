@@ -3,19 +3,17 @@ import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+export type GroupCategory = 'movie' | 'game' | 'table_game' | 'other';
+
 export interface Group {
   id: string;
   name: string;
   participantsCount: number;
   description: string;
   imageUri: string | any;
+  categories: GroupCategory[];
   onPress?: () => void;
   highlightedName?: {
-    before: string;
-    match: string;
-    after: string;
-  };
-  highlightedDescription?: {
     before: string;
     match: string;
     after: string;
@@ -27,14 +25,21 @@ interface GroupCardProps extends Group {
   actionColor?: string[];
 }
 
+const categoryIcons: Record<GroupCategory, any> = {
+  movie: require('@/assets/images/event_card/movie.png'),
+  game: require('@/assets/images/event_card/game.png'),
+  table_game: require('@/assets/images/event_card/table_game.png'),
+  other: require('@/assets/images/event_card/other.png'),
+};
+
 const GroupCard: React.FC<GroupCardProps> = ({
   name,
   participantsCount,
   description,
   imageUri,
+  categories = [],
   onPress,
   highlightedName,
-  highlightedDescription,
 }) => {
   const renderHighlightedText = (
     normalText: string,
@@ -76,26 +81,25 @@ const GroupCard: React.FC<GroupCardProps> = ({
                 [styles.groupName, { numberOfLines: 2, ellipsizeMode: 'tail' }]
               )}
               
-              <View style={styles.iconsContainer}>
-                <Image
-                  source={require('@/assets/images/event_card/movie.png')}
-                  style={styles.icon}
-                />
-                <Image
-                  source={require('@/assets/images/event_card/game.png')}
-                  style={styles.icon}
-                />
-                <Image
-                  source={require('@/assets/images/event_card/table_game.png')}
-                  style={styles.icon}
-                />
-              </View>
-              
-              {renderHighlightedText(
-                description,
-                highlightedDescription,
-                [styles.description, { numberOfLines: 3, ellipsizeMode: 'tail' }]
+              {categories.length > 0 && (
+                <View style={styles.iconsContainer}>
+                  {categories.map((category, index) => (
+                    <Image
+                      key={`${category}-${index}`}
+                      source={categoryIcons[category]}
+                      style={styles.icon}
+                    />
+                  ))}
+                </View>
               )}
+              
+              <Text 
+                style={styles.description} 
+                numberOfLines={3} 
+                ellipsizeMode='tail'
+              >
+                {description}
+              </Text>
               
               <View style={styles.participantsRow}>
                 <Text style={styles.participantsText}>

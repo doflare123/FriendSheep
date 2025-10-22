@@ -56,7 +56,7 @@ const Register = () => {
           keyboardType="email-address"
         />
 
-        <View style={authorizeStyle.account}>
+        <View style={[authorizeStyle.account, {justifyContent: 'flex-end'}]}>
           <TouchableOpacity onPress={() => navigation.navigate('Login' as never)}>
             <Text>Есть аккаунт?</Text>
           </TouchableOpacity>

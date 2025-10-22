@@ -2,9 +2,12 @@ import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
 import { Event } from '@/components/event/EventCard';
 import PageHeader from '@/components/PageHeader';
+import EditProfileModal from '@/components/profile/EditProfileModal';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileStats from '@/components/profile/ProfileStats';
-import StatisticsChart, { StatisticsData, StatisticsType } from '@/components/profile/StatisticsChart';
+import StatisticsBottomBars from '@/components/profile/StatisticsBottomBars';
+import StatisticsChart, { StatisticsDataItem } from '@/components/profile/StatisticsChart';
+import TileSelectionModal, { TileType } from '@/components/profile/TileSelectionModal';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
@@ -22,20 +25,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const ProfilePage = () => {
   const { sortingState, sortingActions } = useSearchState();
   const [sessionFilter, setSessionFilter] = useState<'completed' | 'upcoming'>('upcoming');
-  const [statisticsType, setStatisticsType] = useState<StatisticsType>('media');
+  const [tileModalVisible, setTileModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedTiles, setSelectedTiles] = useState<TileType[]>(['media', 'games', 'hours', 'sessions']);
 
-  const profileData = {
+  const [profileData, setProfileData] = useState({
     avatar: require('@/assets/images/profile/profile_avatar.jpg'),
     name: 'Та самая Игфи',
     username: '@lgfi_22',
     description: 'Всем привет! Я новый участник сего проекта 🫶',
     registrationDate: '21.11.2025',
     telegramLink: 'https://t.me/your_bot',
-  };
+  });
 
-  const profileStats = {
+  const allStats = {
     media: 20,
     games: 20,
+    table_games: 20,
+    other: 20,
     hours: 20,
     sessions: 20,
   };
@@ -57,91 +64,89 @@ const ProfilePage = () => {
 
   const completedSessions: Event[] = [
     {
-      id: '1',
-      title: "Baldur's Gate 3",
-      date: '12.10.2025',
-      genres: ['РПГ', 'Фэнтези', 'Приключения'],
-      currentParticipants: 52752,
-      maxParticipants: 100000,
-      duration: '3 ч 30 мин',
-      imageUri: 'https://i.pinimg.com/736x/ee/61/45/ee61457f7cb7c9e1cd8662ad77b8e464.jpg',
-      description: 'Эпическая РПГ приключение',
-      typeEvent: 'Игровая сессия',
-      typePlace: 'online',
-      eventPlace: 'Discord',
-      publisher: 'Larian Studios',
-      publicationDate: '10.10.2025',
-      ageRating: '18+',
-      category: 'game',
+      id: '2',
+      title: 'Матрица',
+      date: '15.03.2004',
+      imageUri: 'https://i.pinimg.com/1200x/cf/ea/47/cfea4764cd43ffe11a177a54b1e5f4b8.jpg',
+      description: "мяу",
+      genres: ['Фантастика'],
+      group: 'Мега крутая группа',
+      currentParticipants: 48,
+      maxParticipants: 50,
+      duration: '136 минут',
+      typeEvent: 'Фильм',
+      typePlace: 'offline',
+      eventPlace: 'Кинотеатр «Октябрь»',
+      publisher: 'Warner Bros',
+      publicationDate: '1999',
+      ageRating: '16+',
+      category: 'movie',
     },
     {
-      id: '2',
-      title: "Baldur's Gate 3",
-      date: '12.10.2025',
-      genres: ['РПГ', 'Фэнтези'],
-      currentParticipants: 52752,
-      maxParticipants: 100000,
-      duration: '2 ч 45 мин',
-      imageUri: 'https://i.pinimg.com/736x/ee/61/45/ee61457f7cb7c9e1cd8662ad77b8e464.jpg',
-      description: 'Продолжение приключений',
-      typeEvent: 'Игровая сессия',
+      id: '3',
+      title: 'The Elder Scrolls V: Skyrim',
+      date: '10.01.2004',
+      imageUri: 'https://i.pinimg.com/1200x/cf/ea/47/cfea4764cd43ffe11a177a54b1e5f4b8.jpg',
+      description: "Киберспортивный турнир",
+      genres: ['Шутер'],
+      group: 'Мега крутая группа',
+      currentParticipants: 32,
+      maxParticipants: 64,
+      duration: '240 минут',
+      typeEvent: 'Турнир',
       typePlace: 'online',
-      eventPlace: 'Discord',
-      publisher: 'Larian Studios',
-      publicationDate: '10.10.2025',
-      ageRating: '18+',
+      eventPlace: 'Steam',
+      publisher: 'Valve',
+      publicationDate: '2012',
+      ageRating: '16+',
       category: 'game',
     },
   ];
 
   const upcomingSessions: Event[] = [
     {
-      id: '3',
-      title: "Baldur's Gate 3",
-      date: '20.10.2025',
-      genres: ['РПГ', 'Фэнтези', 'Приключения'],
-      currentParticipants: 45000,
-      maxParticipants: 100000,
-      duration: '4 ч 00 мин',
-      imageUri: 'https://i.pinimg.com/736x/ee/61/45/ee61457f7cb7c9e1cd8662ad77b8e464.jpg',
-      description: 'Новая глава приключений',
-      typeEvent: 'Игровая сессия',
+      id: '1',
+      title: 'Крестный отец',
+      date: '12.02.2004',
+      imageUri: 'https://i.pinimg.com/1200x/cf/ea/47/cfea4764cd43ffe11a177a54b1e5f4b8.jpg',
+      description: "ЭЩКЕРЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕ",
+      genres: ['Драма', 'Криминал'],
+      group: 'Мега крутая группа',
+      currentParticipants: 52,
+      maxParticipants: 52,
+      duration: '175 минут',
+      typeEvent: 'Фильм',
       typePlace: 'online',
-      eventPlace: 'Discord',
-      publisher: 'Larian Studios',
-      publicationDate: '15.10.2025',
+      eventPlace: 'https://cinema.com',
+      publisher: 'Paramount Pictures',
+      publicationDate: '1972',
       ageRating: '18+',
-      category: 'game',
+      category: 'movie',
     },
   ];
 
-  const statisticsData: StatisticsData = {
-    media: [
-      { name: 'Боевики', percentage: 44, color: '#4A90E2', legendFontColor: Colors.black },
-      { name: 'Приколы', percentage: 21, color: '#7B68EE', legendFontColor: Colors.black },
-      { name: 'Страшилки', percentage: 19, color: '#50C878', legendFontColor: Colors.black },
-      { name: 'Романтика', percentage: 11, color: '#FFB6C1', legendFontColor: Colors.black },
-      { name: 'РПГ', percentage: 6, color: '#FFA500', legendFontColor: Colors.black },
-    ],
-    games: [
-      { name: 'РПГ', percentage: 35, color: '#4A90E2', legendFontColor: Colors.black },
-      { name: 'Экшен', percentage: 30, color: '#7B68EE', legendFontColor: Colors.black },
-      { name: 'Стратегии', percentage: 20, color: '#50C878', legendFontColor: Colors.black },
-      { name: 'Приключения', percentage: 10, color: '#FFB6C1', legendFontColor: Colors.black },
-      { name: 'Инди', percentage: 5, color: '#FFA500', legendFontColor: Colors.black },
-    ],
-    boardgames: [
-      { name: 'Стратегии', percentage: 40, color: '#4A90E2', legendFontColor: Colors.black },
-      { name: 'Карточные', percentage: 25, color: '#7B68EE', legendFontColor: Colors.black },
-      { name: 'Кооператив', percentage: 20, color: '#50C878', legendFontColor: Colors.black },
-      { name: 'Семейные', percentage: 10, color: '#FFB6C1', legendFontColor: Colors.black },
-      { name: 'Партийные', percentage: 5, color: '#FFA500', legendFontColor: Colors.black },
-    ],
-    other: [
-      { name: 'Разное', percentage: 50, color: '#4A90E2', legendFontColor: Colors.black },
-      { name: 'Прочее', percentage: 30, color: '#7B68EE', legendFontColor: Colors.black },
-      { name: 'Другое', percentage: 20, color: '#50C878', legendFontColor: Colors.black },
-    ],
+  const statisticsData: StatisticsDataItem[] = [
+    { name: 'Боевики', percentage: 25, color: '#4A90E2', legendFontColor: Colors.black },
+    { name: 'РПГ', percentage: 22, color: '#7B68EE', legendFontColor: Colors.black },
+    { name: 'Приколы', percentage: 18, color: '#50C878', legendFontColor: Colors.black },
+    { name: 'Страшилки', percentage: 15, color: '#FFB6C1', legendFontColor: Colors.black },
+    { name: 'Романтика', percentage: 12, color: '#FFA500', legendFontColor: Colors.black },
+    { name: 'Стратегии', percentage: 8, color: '#FF6B6B', legendFontColor: Colors.black },
+  ];
+
+  const handleEditProfile = () => {
+    setEditModalVisible(true);
+  };
+
+  const handleChangeTiles = () => {
+    setTileModalVisible(true);
+  };
+
+  const handleProfileSave = (updatedProfile: any) => {
+    setProfileData(prev => ({
+      ...prev,
+      ...updatedProfile,
+    }));
   };
 
   return (
@@ -157,13 +162,13 @@ const ProfilePage = () => {
           description={profileData.description}
           registrationDate={profileData.registrationDate}
           telegramLink={profileData.telegramLink}
+          onEditProfile={handleEditProfile}
+          onChangeTiles={handleChangeTiles}
         />
 
         <ProfileStats 
-          media={profileStats.media}
-          games={profileStats.games}
-          hours={profileStats.hours}
-          sessions={profileStats.sessions}
+          selectedTiles={selectedTiles}
+          stats={allStats}
         />
 
         <CategorySection title="Любимые жанры:" marginBottom={16}>
@@ -206,8 +211,9 @@ const ProfilePage = () => {
 
         <StatisticsChart 
           statisticsData={statisticsData}
-          currentType={statisticsType}
-          onTypeChange={setStatisticsType}
+        />
+
+        <StatisticsBottomBars
           mostPopularDay="Воскресенье"
           sessionsCreated={4}
           sessionsSeries={4}
@@ -216,6 +222,20 @@ const ProfilePage = () => {
         <View style={{ height: 20 }} />
       </ScrollView>
       <BottomBar />
+
+      <TileSelectionModal
+        visible={tileModalVisible}
+        onClose={() => setTileModalVisible(false)}
+        selectedTiles={selectedTiles}
+        onTilesChange={setSelectedTiles}
+      />
+
+      <EditProfileModal
+        visible={editModalVisible}
+        onClose={() => setEditModalVisible(false)}
+        currentProfile={profileData}
+        onSave={handleProfileSave}
+      />
     </SafeAreaView>
   );
 };
