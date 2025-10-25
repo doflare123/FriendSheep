@@ -11,7 +11,6 @@ import { getGenreEvents } from '@/api/mainEvents/getGenreEvents';
 import { getGroupEvents } from '@/api/mainEvents/getGroupEvents';
 import { getNewEvents } from '@/api/mainEvents/getNewEvents';
 import { getPopular } from '@/api/mainEvents/getPopular';
-import { getEventInfo } from '@/api/events/getEventInfo';
 import { getAccesToken, convertCategoriesToIds } from '@/Constants';
 import { showNotification } from '@/utils';
 
