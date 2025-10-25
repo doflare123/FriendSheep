@@ -7,10 +7,12 @@ import Image from 'next/image';
 import styles from '../../styles/Groups/admin/RequestsManagement.module.css';
 import { RequestData } from '../../types/RequestData';
 import { getAccesToken } from '../../Constants';
-import { getGroupApplication, approveApplication, rejectApplication } from '../../api/group_requests';
+import { getGroupApplication, approve, approveAll, reject, rejectAll } from '../../api/group_requests';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { showNotification } from '@/utils';
 
 interface RequestsManagementComponentProps {
-  groupId?: string;
+  groupId: number;
 }
 
 const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = ({ groupId }) => {
@@ -25,27 +27,24 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
   // Загрузка заявок при монтировании компонента
   useEffect(() => {
     loadRequests();
-  }, []);
+  }, [groupId]);
 
   const loadRequests = async () => {
     setIsLoading(true);
     try {
       const accessToken = getAccesToken();
       if (!accessToken) {
-        console.error('Токен доступа не найден');
+        showNotification(401, 'Токен доступа не найден');
         return;
       }
 
-      const allRequestsData = await getGroupApplication(accessToken);
-      
-      // Фильтруем заявки только для текущей группы
-      const filteredByGroup = groupId 
-        ? allRequestsData.filter(request => request.groupId === parseInt(groupId))
-        : allRequestsData;
-      
-      setRequests(filteredByGroup);
-    } catch (error) {
+      const data = await getGroupApplication(accessToken, groupId);
+      setRequests(data.requests || []);
+    } catch (error: any) {
       console.error('Ошибка при загрузке заявок:', error);
+      const statusCode = error.response?.status || 500;
+      const message = error.response?.data?.message || 'Ошибка при загрузке заявок';
+      showNotification(statusCode, message);
     } finally {
       setIsLoading(false);
     }
@@ -53,8 +52,8 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
 
   // Фильтрация заявок по поиску
   const filteredRequests = requests.filter(request =>
-    request.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    request.user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    request.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    request.us.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Проверка возможности скролла с useCallback для оптимизации
@@ -63,14 +62,13 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
       const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
       const hasVerticalScroll = scrollHeight > clientHeight;
       
-      setCanScrollUp(hasVerticalScroll && scrollTop > 5); // Небольшой отступ для более точного определения
+      setCanScrollUp(hasVerticalScroll && scrollTop > 5);
       setCanScrollDown(hasVerticalScroll && scrollTop < scrollHeight - clientHeight - 5);
     }
   }, []);
 
   // Проверяем скролл при изменении данных
   useEffect(() => {
-    // Используем setTimeout чтобы дождаться завершения рендеринга
     const timeoutId = setTimeout(() => {
       checkScrollability();
     }, 100);
@@ -119,15 +117,18 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
     try {
       const accessToken = getAccesToken();
       if (!accessToken) {
-        console.error('Токен доступа не найден');
+        showNotification(401, 'Токен доступа не найден');
         return;
       }
 
-      await approveApplication(accessToken, requestId);
+      await approve(accessToken, requestId);
       setRequests(prev => prev.filter(req => req.id !== requestId));
-      console.log('Принята заявка:', requestId);
-    } catch (error) {
+      showNotification(200, 'Заявка успешно принята');
+    } catch (error: any) {
       console.error('Ошибка при принятии заявки:', error);
+      const statusCode = error.response?.status || 500;
+      const message = error.response?.data?.message || 'Ошибка при принятии заявки';
+      showNotification(statusCode, message);
     } finally {
       setIsProcessing(false);
     }
@@ -139,15 +140,18 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
     try {
       const accessToken = getAccesToken();
       if (!accessToken) {
-        console.error('Токен доступа не найден');
+        showNotification(401, 'Токен доступа не найден');
         return;
       }
 
-      await rejectApplication(accessToken, requestId);
+      await reject(accessToken, requestId);
       setRequests(prev => prev.filter(req => req.id !== requestId));
-      console.log('Отклонена заявка:', requestId);
-    } catch (error) {
+      showNotification(200, 'Заявка успешно отклонена');
+    } catch (error: any) {
       console.error('Ошибка при отклонении заявки:', error);
+      const statusCode = error.response?.status || 500;
+      const message = error.response?.data?.message || 'Ошибка при отклонении заявки';
+      showNotification(statusCode, message);
     } finally {
       setIsProcessing(false);
     }
@@ -161,24 +165,22 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
     try {
       const accessToken = getAccesToken();
       if (!accessToken) {
-        console.error('Токен доступа не найден');
+        showNotification(401, 'Токен доступа не найден');
         return;
       }
 
-      // Принимаем все заявки параллельно
-      const promises = filteredRequests.map(request => 
-        approveApplication(accessToken, request.id)
-      );
+      await approveAll(accessToken, groupId);
       
-      await Promise.all(promises);
-      
-      // Удаляем все принятые заявки из состояния
+      // Удаляем все отфильтрованные заявки из состояния
       const acceptedIds = filteredRequests.map(req => req.id);
       setRequests(prev => prev.filter(req => !acceptedIds.includes(req.id)));
       
-      console.log('Приняты все заявки');
-    } catch (error) {
+      showNotification(200, 'Все заявки успешно приняты');
+    } catch (error: any) {
       console.error('Ошибка при принятии всех заявок:', error);
+      const statusCode = error.response?.status || 500;
+      const message = error.response?.data?.message || 'Ошибка при принятии всех заявок';
+      showNotification(statusCode, message);
     } finally {
       setIsProcessing(false);
     }
@@ -192,24 +194,22 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
     try {
       const accessToken = getAccesToken();
       if (!accessToken) {
-        console.error('Токен доступа не найден');
+        showNotification(401, 'Токен доступа не найден');
         return;
       }
 
-      // Отклоняем все заявки параллельно
-      const promises = filteredRequests.map(request => 
-        rejectApplication(accessToken, request.id)
-      );
+      await rejectAll(accessToken, groupId);
       
-      await Promise.all(promises);
-      
-      // Удаляем все отклоненные заявки из состояния
+      // Удаляем все отфильтрованные заявки из состояния
       const rejectedIds = filteredRequests.map(req => req.id);
       setRequests(prev => prev.filter(req => !rejectedIds.includes(req.id)));
       
-      console.log('Отклонены все заявки');
-    } catch (error) {
+      showNotification(200, 'Все заявки успешно отклонены');
+    } catch (error: any) {
       console.error('Ошибка при отклонении всех заявок:', error);
+      const statusCode = error.response?.status || 500;
+      const message = error.response?.data?.message || 'Ошибка при отклонении всех заявок';
+      showNotification(statusCode, message);
     } finally {
       setIsProcessing(false);
     }
@@ -219,10 +219,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
   if (isLoading) {
     return (
       <div className={styles.requestsContainer} style={{ height: 'auto', maxHeight: 'none' }}>
-        <div className={styles.loadingState}>
-          <div className={styles.loadingSpinner}>⏳</div>
-          <div className={styles.loadingText}>Загружаем заявки...</div>
-        </div>
+        <LoadingIndicator text="Загрузка заявок..." />
       </div>
     );
   }
@@ -292,15 +289,15 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
               <div key={request.id} className={styles.requestItem}>
                 <div className={styles.userInfo}>
                   <Image
-                    src={request.user.image}
-                    alt={request.user.name}
+                    src={request.image}
+                    alt={request.name}
                     width={40}
                     height={40}
                     className={styles.userAvatar}
                   />
                   <div className={styles.userDetails}>
-                    <div className={styles.userName}>{request.user.name}</div>
-                    <div className={styles.userEmail}>@{request.user.email.split('@')[0]}</div>
+                    <div className={styles.userName}>{request.name}</div>
+                    <div className={styles.userEmail}>@{request.us}</div>
                   </div>
                 </div>
                 

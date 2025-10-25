@@ -9,6 +9,7 @@ export function showNotification(
   description: string,
   type?: NotifProps["type"]
 ) {
+  console.log("ZZZ", code, description)
   if (!container) {
     container = document.createElement("div");
     container.id = "notif-root";
