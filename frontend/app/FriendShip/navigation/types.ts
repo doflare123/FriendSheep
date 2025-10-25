@@ -18,7 +18,7 @@ export type RootStackParamList = {
     groupId: string;
   };
   GroupSearchPage: undefined;
-  ProfilePage: undefined;
+  ProfilePage: { userId?: string } | undefined;
   UserSearchPage: undefined;
   SettingsPage: undefined;
 };

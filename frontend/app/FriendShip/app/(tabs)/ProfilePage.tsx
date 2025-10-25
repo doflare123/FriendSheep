@@ -1,138 +1,51 @@
 import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
-import { Event } from '@/components/event/EventCard';
 import PageHeader from '@/components/PageHeader';
 import EditProfileModal from '@/components/profile/EditProfileModal';
+import InviteToGroupModal from '@/components/profile/InviteToGroupModal';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileStats from '@/components/profile/ProfileStats';
 import StatisticsBottomBars from '@/components/profile/StatisticsBottomBars';
-import StatisticsChart, { StatisticsDataItem } from '@/components/profile/StatisticsChart';
+import StatisticsChart from '@/components/profile/StatisticsChart';
 import TileSelectionModal, { TileType } from '@/components/profile/TileSelectionModal';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { getCurrentUser, getUserById } from '@/data/users';
 import { useSearchState } from '@/hooks/useSearchState';
+import { RootStackParamList } from '@/navigation/types';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import {
   Image,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const ProfilePage = () => {
+type ProfilePageRouteProp = RouteProp<RootStackParamList, 'ProfilePage'>;
+
+const ProfilePage: React.FC = () => {
+  const route = useRoute<ProfilePageRouteProp>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const userId = route.params?.userId;
+  
   const { sortingState, sortingActions } = useSearchState();
   const [sessionFilter, setSessionFilter] = useState<'completed' | 'upcoming'>('upcoming');
   const [tileModalVisible, setTileModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedTiles, setSelectedTiles] = useState<TileType[]>(['media', 'games', 'hours', 'sessions']);
+  const [inviteModalVisible, setInviteModalVisible] = useState(false);
 
-  const [profileData, setProfileData] = useState({
-    avatar: require('@/assets/images/profile/profile_avatar.jpg'),
-    name: 'Та самая Игфи',
-    username: '@lgfi_22',
-    description: 'Всем привет! Я новый участник сего проекта 🫶',
-    registrationDate: '21.11.2025',
-    telegramLink: 'https://t.me/your_bot',
-  });
+  const isOwnProfile = !userId;
 
-  const allStats = {
-    media: 20,
-    games: 20,
-    table_games: 20,
-    other: 20,
-    hours: 20,
-    sessions: 20,
-  };
+  const userData = isOwnProfile ? getCurrentUser() : getUserById(userId);
 
-  const favoriteGenres = [
-    { name: 'Боевики', count: 21 },
-    { name: 'Приколы', count: 18 },
-    { name: 'Страшилки', count: 18 },
-    { name: 'Романтика', count: 18 },
-    { name: 'РПГ', count: 18 },
-  ];
-
-  const subscriptions = [
-    { id: 1, image: require('@/assets/images/profile/profile_avatar.jpg') },
-    { id: 2, image: require('@/assets/images/profile/profile_avatar.jpg') },
-    { id: 3, image: require('@/assets/images/profile/profile_avatar.jpg') },
-    { id: 4, image: require('@/assets/images/profile/profile_avatar.jpg') },
-  ];
-
-  const completedSessions: Event[] = [
-    {
-      id: '2',
-      title: 'Матрица',
-      date: '15.03.2004',
-      imageUri: 'https://i.pinimg.com/1200x/cf/ea/47/cfea4764cd43ffe11a177a54b1e5f4b8.jpg',
-      description: "мяу",
-      genres: ['Фантастика'],
-      group: 'Мега крутая группа',
-      currentParticipants: 48,
-      maxParticipants: 50,
-      duration: '136 минут',
-      typeEvent: 'Фильм',
-      typePlace: 'offline',
-      eventPlace: 'Кинотеатр «Октябрь»',
-      publisher: 'Warner Bros',
-      publicationDate: '1999',
-      ageRating: '16+',
-      category: 'movie',
-    },
-    {
-      id: '3',
-      title: 'The Elder Scrolls V: Skyrim',
-      date: '10.01.2004',
-      imageUri: 'https://i.pinimg.com/1200x/cf/ea/47/cfea4764cd43ffe11a177a54b1e5f4b8.jpg',
-      description: "Киберспортивный турнир",
-      genres: ['Шутер'],
-      group: 'Мега крутая группа',
-      currentParticipants: 32,
-      maxParticipants: 64,
-      duration: '240 минут',
-      typeEvent: 'Турнир',
-      typePlace: 'online',
-      eventPlace: 'Steam',
-      publisher: 'Valve',
-      publicationDate: '2012',
-      ageRating: '16+',
-      category: 'game',
-    },
-  ];
-
-  const upcomingSessions: Event[] = [
-    {
-      id: '1',
-      title: 'Крестный отец',
-      date: '12.02.2004',
-      imageUri: 'https://i.pinimg.com/1200x/cf/ea/47/cfea4764cd43ffe11a177a54b1e5f4b8.jpg',
-      description: "ЭЩКЕРЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕ",
-      genres: ['Драма', 'Криминал'],
-      group: 'Мега крутая группа',
-      currentParticipants: 52,
-      maxParticipants: 52,
-      duration: '175 минут',
-      typeEvent: 'Фильм',
-      typePlace: 'online',
-      eventPlace: 'https://cinema.com',
-      publisher: 'Paramount Pictures',
-      publicationDate: '1972',
-      ageRating: '18+',
-      category: 'movie',
-    },
-  ];
-
-  const statisticsData: StatisticsDataItem[] = [
-    { name: 'Боевики', percentage: 25, color: '#4A90E2', legendFontColor: Colors.black },
-    { name: 'РПГ', percentage: 22, color: '#7B68EE', legendFontColor: Colors.black },
-    { name: 'Приколы', percentage: 18, color: '#50C878', legendFontColor: Colors.black },
-    { name: 'Страшилки', percentage: 15, color: '#FFB6C1', legendFontColor: Colors.black },
-    { name: 'Романтика', percentage: 12, color: '#FFA500', legendFontColor: Colors.black },
-    { name: 'Стратегии', percentage: 8, color: '#FF6B6B', legendFontColor: Colors.black },
-  ];
+  const [profileData, setProfileData] = useState(userData);
+  const [selectedTiles, setSelectedTiles] = useState<TileType[]>(userData.selectedTiles);
 
   const handleEditProfile = () => {
     setEditModalVisible(true);
@@ -142,6 +55,10 @@ const ProfilePage = () => {
     setTileModalVisible(true);
   };
 
+  const handleInviteToGroup = () => {
+    setInviteModalVisible(true);
+  };
+
   const handleProfileSave = (updatedProfile: any) => {
     setProfileData(prev => ({
       ...prev,
@@ -149,11 +66,36 @@ const ProfilePage = () => {
     }));
   };
 
+  const handleGroupSelect = (groupId: string) => {
+    console.log('Inviting user to group:', groupId);
+    setInviteModalVisible(false);
+  };
+
+  // Временная кнопка для тестирования
+  const handleTestOtherProfile = () => {
+    navigation.push('ProfilePage', { userId: '1' });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <PageHeader title="Ваш профиль" showWave />
+        <PageHeader 
+          title={isOwnProfile ? "Ваш профиль" : profileData.name} 
+          showWave 
+        />
+        
+        {/* ВРЕМЕННАЯ КНОПКА ДЛЯ ТЕСТА*/}
+        {isOwnProfile && (
+          <TouchableOpacity 
+            style={styles.testButton}
+            onPress={handleTestOtherProfile}
+          >
+            <Text style={styles.testButtonText}>
+              🧪 Посмотреть профиль другого пользователя (тест)
+            </Text>
+          </TouchableOpacity>
+        )}
         
         <ProfileHeader 
           avatar={profileData.avatar}
@@ -162,26 +104,28 @@ const ProfilePage = () => {
           description={profileData.description}
           registrationDate={profileData.registrationDate}
           telegramLink={profileData.telegramLink}
-          onEditProfile={handleEditProfile}
-          onChangeTiles={handleChangeTiles}
+          isOwnProfile={isOwnProfile}
+          onEditProfile={isOwnProfile ? handleEditProfile : undefined}
+          onChangeTiles={isOwnProfile ? handleChangeTiles : undefined}
+          onInviteToGroup={!isOwnProfile ? handleInviteToGroup : undefined}
         />
 
         <ProfileStats 
           selectedTiles={selectedTiles}
-          stats={allStats}
+          stats={profileData.stats}
         />
 
         <CategorySection title="Любимые жанры:" marginBottom={16}>
           <View style={styles.genresContainer}>
             <View style={styles.genresColumn}>
-              {favoriteGenres.slice(0, 3).map((genre, index) => (
+              {profileData.favoriteGenres.slice(0, 3).map((genre, index) => (
                 <Text key={index} style={styles.genreItem}>
                   {index + 1}. {genre.name} - {genre.count}
                 </Text>
               ))}
             </View>
             <View style={styles.genresColumn}>
-              {favoriteGenres.slice(3).map((genre, index) => (
+              {profileData.favoriteGenres.slice(3).map((genre, index) => (
                 <Text key={index} style={styles.genreItem}>
                   {index + 4}. {genre.name} - {genre.count}
                 </Text>
@@ -192,7 +136,7 @@ const ProfilePage = () => {
 
         <CategorySection title="Подписки:" marginBottom={16}>
           <View style={styles.subscriptionsContainer}>
-            {subscriptions.map((sub) => (
+            {profileData.subscriptions.map((sub) => (
               <Image key={sub.id} source={sub.image} style={styles.subscriptionImage} />
             ))}
           </View>
@@ -206,11 +150,11 @@ const ProfilePage = () => {
               : require('@/assets/images/profile/current.png'),
             onPress: () => setSessionFilter(sessionFilter === 'completed' ? 'upcoming' : 'completed'),
           }}
-          events={sessionFilter === 'completed' ? completedSessions : upcomingSessions}
+          events={sessionFilter === 'completed' ? profileData.completedSessions : profileData.upcomingSessions}
         />
 
         <StatisticsChart 
-          statisticsData={statisticsData}
+          statisticsData={profileData.statisticsData}
         />
 
         <StatisticsBottomBars
@@ -223,19 +167,31 @@ const ProfilePage = () => {
       </ScrollView>
       <BottomBar />
 
-      <TileSelectionModal
-        visible={tileModalVisible}
-        onClose={() => setTileModalVisible(false)}
-        selectedTiles={selectedTiles}
-        onTilesChange={setSelectedTiles}
-      />
+      {isOwnProfile && (
+        <>
+          <TileSelectionModal
+            visible={tileModalVisible}
+            onClose={() => setTileModalVisible(false)}
+            selectedTiles={selectedTiles}
+            onTilesChange={setSelectedTiles}
+          />
 
-      <EditProfileModal
-        visible={editModalVisible}
-        onClose={() => setEditModalVisible(false)}
-        currentProfile={profileData}
-        onSave={handleProfileSave}
-      />
+          <EditProfileModal
+            visible={editModalVisible}
+            onClose={() => setEditModalVisible(false)}
+            currentProfile={profileData}
+            onSave={handleProfileSave}
+          />
+        </>
+      )}
+
+      {!isOwnProfile && (
+        <InviteToGroupModal
+          visible={inviteModalVisible}
+          onClose={() => setInviteModalVisible(false)}
+          onGroupSelect={handleGroupSelect}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -247,6 +203,19 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  testButton: {
+    backgroundColor: '#FF6B6B',
+    marginHorizontal: 16,
+    marginVertical: 10,
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  testButtonText: {
+    fontFamily: Montserrat.bold,
+    fontSize: 14,
+    color: Colors.white,
   },
   genresContainer: {
     flexDirection: 'row',

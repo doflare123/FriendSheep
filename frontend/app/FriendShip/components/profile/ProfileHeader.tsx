@@ -20,8 +20,10 @@ interface ProfileHeaderProps {
   description: string;
   registrationDate: string;
   telegramLink?: string;
+  isOwnProfile: boolean;
   onEditProfile?: () => void;
   onChangeTiles?: () => void;
+  onInviteToGroup?: () => void;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -31,8 +33,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   description,
   registrationDate,
   telegramLink,
+  isOwnProfile,
   onEditProfile,
   onChangeTiles,
+  onInviteToGroup,
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -68,16 +72,31 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <Image source={avatar} style={styles.profileImage} />
-          <TouchableOpacity 
-            ref={settingsIconRef}
-            style={styles.settingsIcon}
-            onPress={handleSettingsPress}
-          >
-            <Image 
-              source={require('@/assets/images/profile/settings.png')} 
-              style={styles.settingsImage}
-            />
-          </TouchableOpacity>
+          
+          {isOwnProfile && (
+            <TouchableOpacity 
+              ref={settingsIconRef}
+              style={styles.settingsIcon}
+              onPress={handleSettingsPress}
+            >
+              <Image 
+                source={require('@/assets/images/profile/settings.png')} 
+                style={styles.settingsImage}
+              />
+            </TouchableOpacity>
+          )}
+
+          {!isOwnProfile && (
+            <TouchableOpacity 
+              style={styles.inviteIcon}
+              onPress={onInviteToGroup}
+            >
+              <Image 
+                source={require('@/assets/images/profile/group_add.png')} 
+                style={styles.inviteImage}
+              />
+            </TouchableOpacity>
+          )}
         </View>
         
         <View style={styles.headerInfo}>
@@ -98,41 +117,43 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </View>
       </View>
 
-      <Modal
-        visible={menuVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View 
-                style={[
-                  styles.menuContainer,
-                  { top: menuPosition.top, left: menuPosition.left }
-                ]}
-              >
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress('tiles')}
+      {isOwnProfile && (
+        <Modal
+          visible={menuVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setMenuVisible(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback>
+                <View 
+                  style={[
+                    styles.menuContainer,
+                    { top: menuPosition.top, left: menuPosition.left }
+                  ]}
                 >
-                  <Text style={styles.menuItemText}>Сменить плитки</Text>
-                </TouchableOpacity>
-                
-                <View style={styles.menuDivider} />
-                
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress('edit')}
-                >
-                  <Text style={styles.menuItemText} numberOfLines={2}>Редактировать профиль</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => handleMenuItemPress('tiles')}
+                  >
+                    <Text style={styles.menuItemText}>Сменить плитки</Text>
+                  </TouchableOpacity>
+                  
+                  <View style={styles.menuDivider} />
+                  
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => handleMenuItemPress('edit')}
+                  >
+                    <Text style={styles.menuItemText} numberOfLines={2}>Редактировать профиль</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      )}
     </>
   );
 };
@@ -161,6 +182,15 @@ const styles = StyleSheet.create({
   settingsImage: {
     width: 30,
     height: 30,
+  },
+  inviteIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+  },
+  inviteImage: {
+    width: 35,
+    height: 35,
   },
   headerInfo: {
     flex: 1,
