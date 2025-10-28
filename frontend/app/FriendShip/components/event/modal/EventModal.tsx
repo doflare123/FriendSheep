@@ -169,7 +169,11 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
 
                 {event.group && (
                   <Text style={[styles.label, {marginBottom: 4}]}>
-                    Организатор: <Text style={styles.value}>{event.group}</Text>
+                    Организатор: <Text
+                     style={[styles.value, { color: Colors.lightBlue3, marginTop: 0 }]}
+                     onPress={() => console.log("Pressed group")}>
+                      {event.group}
+                      </Text>
                   </Text>
                 )}
 

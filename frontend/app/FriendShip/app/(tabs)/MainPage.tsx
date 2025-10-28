@@ -127,7 +127,7 @@ const MainPage = () => {
                 onArrowPress={() =>
                   navigateToCategory(
                     'movie',
-                    'Фильмы',
+                    'Медиа',
                     require('../../assets/images/category/movies-pattern.png')
                   )
                 }
