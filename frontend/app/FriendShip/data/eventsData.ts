@@ -1,13 +1,14 @@
-import { Event } from '@/components/EventCard';
+import { Event } from '@/components/event/EventCard';
 
 export const eventsData: Event[] = [
   {
     id: '1',
     title: 'Крестный отец',
-    date: '12.02.2004 19:20',
+    date: '12.02.2004',
     imageUri: 'https://i.pinimg.com/1200x/cf/ea/47/cfea4764cd43ffe11a177a54b1e5f4b8.jpg',
     description: "ЭЩКЕРЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕЕ",
     genres: ['Драма', 'Криминал'],
+    group: 'Мега крутая группа',
     currentParticipants: 52,
     maxParticipants: 52,
     duration: '175 минут',
@@ -26,6 +27,7 @@ export const eventsData: Event[] = [
     imageUri: 'https://i.pinimg.com/1200x/cf/ea/47/cfea4764cd43ffe11a177a54b1e5f4b8.jpg',
     description: "мяу",
     genres: ['Фантастика'],
+    group: 'Мега крутая группа',
     currentParticipants: 48,
     maxParticipants: 50,
     duration: '136 минут',
@@ -44,6 +46,7 @@ export const eventsData: Event[] = [
     imageUri: 'https://i.pinimg.com/1200x/cf/ea/47/cfea4764cd43ffe11a177a54b1e5f4b8.jpg',
     description: "Киберспортивный турнир",
     genres: ['Шутер'],
+    group: 'Мега крутая группа',
     currentParticipants: 32,
     maxParticipants: 64,
     duration: '240 минут',
@@ -62,6 +65,7 @@ export const eventsData: Event[] = [
     imageUri: 'https://i.pinimg.com/1200x/cf/ea/47/cfea4764cd43ffe11a177a54b1e5f4b8.jpg',
     description: "Турнир по настольной игре Монополия",
     genres: ['Стратегия'],
+    group: 'Мега крутая группа',
     currentParticipants: 8,
     maxParticipants: 12,
     duration: '180 минут',
@@ -80,6 +84,7 @@ export const eventsData: Event[] = [
     imageUri: 'https://i.pinimg.com/1200x/cf/ea/47/cfea4764cd43ffe11a177a54b1e5f4b8.jpg',
     description: "Чемпионат по Dota 2",
     genres: ['MOBA'],
+    group: 'Мега крутая группа',
     currentParticipants: 16,
     maxParticipants: 32,
     duration: '300 минут',
@@ -98,6 +103,7 @@ export const eventsData: Event[] = [
     imageUri: 'https://images.chesscomfiles.com/uploads/v1/article/19416.a3243745.668x375o.958836205408@2x.jpeg',
     description: "Турнир по шахматам. Пройдёт в шахматном клубе города Чебаксары. Ждём всех желающих!",
     genres: ['Стратегия'],
+    group: 'Мега крутая группа',
     currentParticipants: 12,
     maxParticipants: 16,
     duration: '240 минут',
@@ -109,13 +115,14 @@ export const eventsData: Event[] = [
     ageRating: '6+',
     category: 'table_game',
   },
-    {
+  {
     id: '7',
     title: 'ЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖ',
     date: '30.06.2004',
     imageUri: 'https://i.pinimg.com/1200x/cf/ea/47/cfea4764cd43ffe11a177a54b1e5f4b8.jpg',
     description: "ВЫРОААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААВЫРОАААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААЫВВВВВВВВВВВВВВВВВЫААААААААААВЫААЫВАЫВАЫВАА",
     genres: ['Стратегия', "Фэнтези", "Комедия", "Драма", "Приключения", "Ужасы", "Мелодрама", "Фантастика", "Глубокое"],
+    group: 'Мега крутая группа',
     currentParticipants: 12,
     maxParticipants: 16,
     duration: '240 минут',

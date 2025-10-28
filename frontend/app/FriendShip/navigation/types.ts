@@ -9,4 +9,16 @@ export type RootStackParamList = {
     title: string;
     imageSource: any;
   };
+  GroupsPage: undefined;
+  GroupPage: {
+    groupId: string;
+    mode: 'manage' | 'view';
+  };
+  GroupManagePage: {
+    groupId: string;
+  };
+  GroupSearchPage: undefined;
+  ProfilePage: { userId?: string } | undefined;
+  UserSearchPage: undefined;
+  SettingsPage: undefined;
 };

@@ -17,4 +17,8 @@ export const inter = {
     ios: 'Inter-Medium',
     android: 'Inter-Medium',
   }),
+  bold_italic: Platform.select({
+    ios: 'Inter-BoldItalic',
+    android: 'Inter-BoldItalic',
+  }),
 };

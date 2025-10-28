@@ -2,8 +2,8 @@ import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { Image, Text, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import Button from '../../components/Button';
-import Logo from '../../components/Logo';
+import Button from '../../components/auth/Button';
+import Logo from '../../components/auth/Logo';
 import authorizeStyle from '../styles/authorizeStyle';
 
 const Done = () => {

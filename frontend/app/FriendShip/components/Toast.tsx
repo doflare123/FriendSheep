@@ -1,5 +1,5 @@
 import { Colors } from "@/constants/Colors";
-import { inter } from "@/constants/Inter";
+import { Montserrat } from "@/constants/Montserrat";
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Image, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
 
@@ -12,9 +12,9 @@ interface ToastProps {
 }
 
 const icons = {
-  success: require("../assets/images/toast/success.png"),
-  error: require("../assets/images/toast/error.png"),
-  warning: require("../assets/images/toast/warning.png"),
+  success: require("@/assets/images/toast/success.png"),
+  error: require("@/assets/images/toast/error.png"),
+  warning: require("@/assets/images/toast/warning.png"),
 };
 
 const borderColors = {
@@ -101,7 +101,7 @@ const Toast: React.FC<ToastProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    top: 40,
+    top: 100,
     right: 10,
     flexDirection: "row",
     alignItems: "center",
@@ -116,8 +116,8 @@ const styles = StyleSheet.create({
     maxWidth: "90%",
   },
   icon: { width: 24, height: 24, marginLeft: 4, resizeMode: "contain" },
-  title: { fontFamily: inter.bold, fontSize: 14, color: Colors.black },
-  message: { fontFamily: inter.regular, fontSize: 13, color: Colors.black },
+  title: { fontFamily: Montserrat.bold, fontSize: 14, color: Colors.black },
+  message: { fontFamily: Montserrat.regular, fontSize: 13, color: Colors.black },
 });
 
 export default Toast;

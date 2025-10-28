@@ -1,15 +1,21 @@
 export const Colors = {
   lightBlue: '#37A2E6',
+  lightBlue2: '#679FD2',
+  lightBlue3: '#408DD2',
   blue: '#316BC2',
+  blue2: '#26537C',
+  blue3: '#0C5DA5',
   red: '#E6374B',
   green: '#51A732',
   orange: '#FF6A00',
   grey: '#515151',
   lightGrey: '#808080',
   veryLightGrey: '#E2EAEF',
+  lightLightGrey: '#D9D9D9',
   white: '#ffffff',
+  white2: '#EDEDED',
   black: '#000000',
-  lightBlack: 'rgba(0,0,0,0.2)',
-  lightGreyBlue: '#5B6C77',
-  darkGrey: '#2D373D'
+  lightBlack: 'rgba(0,0,0,0.3)',
+  lightGreyBlue: '#687580',
+  darkGrey: '#1E1E1E'
 };

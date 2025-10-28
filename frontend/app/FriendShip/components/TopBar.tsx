@@ -1,10 +1,10 @@
 import barsStyle from '@/app/styles/barsStyle';
+import MainSearchBar from '@/components/search/MainSearchBar';
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
+import { SortingActions, SortingState } from '@/hooks/useSearchState';
 import React, { useRef, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SortingActions, SortingState } from '../hooks/useSearchState';
-import MainSearchBar from './MainSearchBar';
 
 interface TopBarProps {
   sortingState: SortingState;
@@ -39,7 +39,7 @@ const TopBar : React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
         onPress={openNotifications}
         activeOpacity={0.7}
       >
-        <Image style={barsStyle.notifications} source={require("../assets/images/top_bar/notifications.png")} />
+        <Image style={barsStyle.notifications} source={require("@/assets/images/top_bar/notifications.png")} />
       </TouchableOpacity>
 
       <Modal
@@ -117,16 +117,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 16,
-    borderWidth: 1,
     borderTopEndRadius: 0,
-    borderColor: Colors.blue,
     shadowColor: Colors.black,
     shadowRadius: 10,
     elevation: 10,
   },
   title: {
-    fontFamily: inter.regular,
-    fontSize: 14,
+    fontFamily: Montserrat.bold,
+    fontSize: 12,
     fontWeight: '600',
     marginBottom: 12,
   },
@@ -149,12 +147,12 @@ const styles = StyleSheet.create({
     height: 32,
   },
   notificationText: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     flex: 1,
-    fontSize: 12,
+    fontSize: 11,
   },
   notificationTime: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 10,
     color: Colors.lightGrey,
     marginLeft: 8,
@@ -174,13 +172,13 @@ const styles = StyleSheet.create({
   rejectButton: {
     backgroundColor: Colors.red,
     paddingVertical: 2,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     borderRadius: 12,
   },
   buttonText: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     color: Colors.white,
-    fontSize: 11,
+    fontSize: 10,
   },
 });
 

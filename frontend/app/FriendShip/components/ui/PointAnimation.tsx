@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     width: POINT_SIZE,
     height: POINT_SIZE,
     borderRadius: POINT_SIZE / 2,
-    backgroundColor: Colors.lightBlue,
+    backgroundColor: Colors.lightBlue3,
   },
 });
 
