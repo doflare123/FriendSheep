@@ -368,6 +368,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               source={require('@/assets/images/event_card/bottom_rectangle.png')}
               style={styles.bottomBackground}
               resizeMode="stretch"
+              tintColor={Colors.lightBlue3}
             >
               <View style={styles.bottomContent}>
                 <TouchableOpacity style={styles.createButton} onPress={handleSubmit}>
@@ -490,7 +491,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: Colors.lightBlue,
+    borderColor: Colors.lightBlue3,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -547,7 +548,7 @@ const styles = StyleSheet.create({
   createButtonText: {
     fontFamily: inter.bold,
     fontSize: 16,
-    color: Colors.blue,
+    color: Colors.blue3,
   },
 });
 

@@ -21,6 +21,16 @@ interface CategorySectionProps {
   };
   showBackButton?: boolean;
   onBackPress?: () => void;
+  customNavigationButtons?: {
+    leftButton: {
+      icon: ImageSourcePropType;
+      onPress: () => void;
+    };
+    rightButton: {
+      icon: ImageSourcePropType;
+      onPress: () => void;
+    };
+  };
 }
 
 const CategorySection: React.FC<CategorySectionProps> = ({
@@ -35,10 +45,47 @@ const CategorySection: React.FC<CategorySectionProps> = ({
   customActionButton,
   showBackButton = false,
   onBackPress,
+  customNavigationButtons,
 }) => {
   const lineImage = showLineVariant === 'line2' 
     ? require('../assets/images/line2.png')
     : require('../assets/images/line.png');
+
+  if (customNavigationButtons) {
+    return (
+      <>
+        <View style={[styles.resultsHeader, marginBottom ? { marginBottom } : null]}>
+          <View style={styles.navigationContainer}>
+            <TouchableOpacity onPress={customNavigationButtons.leftButton.onPress}>
+              <Image
+                source={customNavigationButtons.leftButton.icon}
+                style={styles.navigationIcon}
+              />
+            </TouchableOpacity>
+            
+            <View style={styles.titleWithLineContainer}>
+              <Text style={[styles.resultsText, centerTitle && { textAlign: 'center' }]}>
+                {title}
+              </Text>
+            </View>
+            
+            <TouchableOpacity onPress={customNavigationButtons.rightButton.onPress}>
+              <Image
+                source={customNavigationButtons.rightButton.icon}
+                style={styles.navigationIcon}
+              />
+            </TouchableOpacity>
+          </View>
+          <Image
+              source={lineImage}
+              style={styles.lineImage}
+          />
+        </View>
+        {events && events.length > 0 && <EventCarousel events={events} />}
+        {children}
+      </>
+    );
+  }
 
   return (
     <>
@@ -51,8 +98,8 @@ const CategorySection: React.FC<CategorySectionProps> = ({
           {showBackButton && onBackPress && (
             <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
               <Image
-                source={require('../assets/images/arrow.png')}
-                style={{ resizeMode: 'contain', width: 30, height: 30, transform: [{ rotate: '180deg' }] }}
+                source={require('../assets/images/arrowLeft.png')}
+                style={{ resizeMode: 'contain', width: 30, height: 30 }}
               />
             </TouchableOpacity>
           )}
@@ -100,6 +147,26 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 12,
+  },
+  navigationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  navigationIcon: {
+    width: 30,
+    height: 30,
+    resizeMode: 'contain',
+  },
+  titleWithLineContainer: {
+    flex: 1,
+    marginHorizontal: 12,
+  },
+  lineImage: {
+    width: '100%',
+    alignSelf: 'center',
+    resizeMode: 'none',
+    marginTop: 4,
   },
 });
 

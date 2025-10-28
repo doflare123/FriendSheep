@@ -22,6 +22,7 @@ export interface Event {
   publicationDate: string;
   ageRating: string;
   category: 'movie' | 'game' | 'table_game' | 'other';
+  group: string;
   onPress?: () => void;
   highlightedTitle?: {
     before: string;
@@ -72,8 +73,12 @@ const EventCard: React.FC<Event> = ({
   onPress,
   category,
   typePlace,
+  eventPlace,
+  group,
   highlightedTitle,
 }) => {
+  const [placeTextWidth, setPlaceTextWidth] = React.useState(0);
+
   const renderTitle = () => {
     if (highlightedTitle) {
       return (
@@ -100,9 +105,30 @@ const EventCard: React.FC<Event> = ({
       <TouchableOpacity onPress={onPress} style={styles.card}>
         <View style={styles.imageWrapper}>
           <Image source={{ uri: imageUri }} style={styles.image} />
-          <View style={styles.dateBadge}>
+
+          <View style={styles.dateBadgeContainer}>
+            <Image
+              source={require('@/assets/images/event_card/dateBadge.png')}
+              style={styles.dateBadge}
+            />
             <Text style={styles.dateText}>{date}</Text>
           </View>
+
+          {typePlace === 'offline' && (
+            <View style={styles.placeBadgeContainer}>
+              <Image
+                source={require('@/assets/images/event_card/placeBadge.png')}
+                style={[styles.placeBadge, { width: placeTextWidth + 28 }]}
+                resizeMode="stretch"
+              />
+              <Text 
+                style={styles.placeText}
+                onLayout={(e) => setPlaceTextWidth(e.nativeEvent.layout.width)}
+              >
+                {eventPlace}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.content}>
@@ -186,22 +212,48 @@ const styles = StyleSheet.create({
     minHeight: 120,
     padding: 12,
   },
-  dateBadge: {
+  dateBadgeContainer: {
     position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderWidth: 2,
-    borderColor: Colors.lightBlue3,
+    bottom: -69,
+    left: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   dateText: {
+    position: 'absolute',
+    bottom: 53,
+    left: 0,
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    margin: -4,
     color: Colors.black,
+    zIndex: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+  },
+  dateBadge: {
+    resizeMode: 'none',
+    width: 90,
+  },
+  placeBadgeContainer: {
+    position: 'absolute',
+    bottom: -10,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  placeText: {
+    position: 'absolute',
+    right: 0,
+    fontFamily: Montserrat.regular,
+    fontSize: 12,
+    color: Colors.black,
+    zIndex: 2,
+    paddingRight: 14,
+    paddingVertical: 4,
+  },
+  placeBadge: {
+    height: 22,
+    resizeMode: 'stretch',
   },
   iconOverlay: {
     width: 30,

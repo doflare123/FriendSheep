@@ -11,12 +11,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BottomBar from '@/components/BottomBar';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import CreateEventModal from '@/components/event/modal/CreateEventModal';
 import EventsTabContent from '@/components/groups/management/EventsTabContent';
 import GroupManageTabPanel from '@/components/groups/management/GroupManageTabPanel';
 import InfoTabContent from '@/components/groups/management/InfoTabContent';
 import RequestsTabContent from '@/components/groups/management/RequestsTabContent';
-import ConfirmationModal from '@/components/groups/modal/ConfirmationModal';
 import ContactsModal from '@/components/groups/modal/ContactsModal';
 import TopBar from '@/components/TopBar';
 

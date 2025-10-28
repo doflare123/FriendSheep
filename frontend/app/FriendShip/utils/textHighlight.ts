@@ -39,13 +39,25 @@ export const highlightEventTitle = <T extends { title: string }>(
 export const highlightGroupText = <T extends { name: string; description: string }>(
   item: T,
   query: string
-): T & { highlightedName?: HighlightedText; highlightedDescription?: HighlightedText } => {
+): T & { highlightedName?: HighlightedText } => {
   const highlightedName = createHighlightedText(item.name, query);
-  const highlightedDescription = createHighlightedText(item.description, query);
   
   return {
     ...item,
     ...(highlightedName && { highlightedName }),
-    ...(highlightedDescription && { highlightedDescription })
+  };
+};
+
+export const highlightUserText = <T extends { name: string; username: string; description: string }>(
+  item: T,
+  query: string
+): T & { 
+  highlightedUsername?: HighlightedText;
+} => {
+  const highlightedUsername = createHighlightedText(item.username, query);
+  
+  return {
+    ...item,
+    ...(highlightedUsername && { highlightedUsername }),
   };
 };

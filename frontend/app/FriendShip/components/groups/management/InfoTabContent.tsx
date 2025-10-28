@@ -205,6 +205,7 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
         source={require('@/assets/images/event_card/bottom_rectangle.png')}
         style={styles.bottomBackground}
         resizeMode="stretch"
+        tintColor={Colors.lightBlue3}
       >
         <View style={styles.bottomContent}>
           <TouchableOpacity
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   categoryButtonSelected: {
-    backgroundColor: Colors.lightBlue,
+    backgroundColor: Colors.lightBlue3,
   },
   categoryIcon: {
     width: 25,
@@ -345,9 +346,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   uploadPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 140,
+    height: 140,
+    borderRadius: 100,
     backgroundColor: Colors.lightLightGrey,
     justifyContent: 'center',
     alignItems: 'center',

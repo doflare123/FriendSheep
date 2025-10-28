@@ -7,7 +7,7 @@ import GroupCard, { Group } from '@/components/groups/GroupCard';
 import SearchResultsSection from '@/components/search/SearchResultsSection';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
-import { useGroupSearchState } from '@/hooks/useGroupSearchState';
+import { GroupCategory, useGroupSearchState } from '@/hooks/useGroupSearchState';
 import { useSearchState } from '@/hooks/useSearchState';
 import { highlightGroupText } from '@/utils/textHighlight';
 
@@ -18,35 +18,42 @@ const mockGroups: Group[] = [
     participantsCount: 52,
     description: 'Мы клуб фанатов соника. Присоединяйтесь к нам, если вы его любите!',
     imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
+    categories: ['movie', 'game'],
   },
   {
     id: '2',
-    name: 'Группа крутышек',
-    participantsCount: 52,
-    description: 'Мы клуб фанатов соника. Присоединяйтесь к нам, если вы его любите!',
+    name: 'Любители настолок',
+    participantsCount: 35,
+    description: 'Играем в настольные игры каждые выходные!',
     imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
+    categories: ['table_game'],
   },
   {
     id: '3',
-    name: 'Группа крутышек',
-    participantsCount: 52,
-    description: 'Мы клуб фанатов соника. Присоединяйтесь к нам, если вы его любите!',
+    name: 'Киноманы',
+    participantsCount: 128,
+    description: 'Обсуждаем фильмы, сериалы и всё, что связано с кино!',
     imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
+    categories: ['movie'],
   },
   {
     id: '4',
-    name: 'Группа крутышек',
-    participantsCount: 52,
-    description: 'Мы клуб фанатов соника. Присоединяйтесь к нам, если вы его любите!',
+    name: 'Универсалы',
+    participantsCount: 89,
+    description: 'Мы любим всё: кино, игры, настолки и многое другое!',
     imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
+    categories: ['movie', 'game', 'table_game', 'other'],
   },
 ];
 
-const filterGroupsByCategories = (groups: Group[], categories: string[]): Group[] => {
-  if (categories.includes('Все') || categories.length === 0) {
+const filterGroupsByCategories = (groups: Group[], categories: GroupCategory[]): Group[] => {
+  if (categories.length === 0) {
     return groups;
   }
-  return groups;
+
+  return groups.filter(group =>
+    categories.every(selectedCat => group.categories.includes(selectedCat))
+  );
 };
 
 const sortGroupsByParticipants = (groups: Group[], order: 'asc' | 'desc' | 'none') => {
@@ -79,11 +86,10 @@ const GroupSearchPage: React.FC = () => {
 
   const filteredAndSortedGroups = useMemo((): Group[] => {
     let groups = [...mockGroups];
-    
+
     if (searchState.searchQuery.trim()) {
       groups = groups.filter(group =>
-        group.name.toLowerCase().includes(searchState.searchQuery.toLowerCase()) ||
-        group.description.toLowerCase().includes(searchState.searchQuery.toLowerCase())
+        group.name.toLowerCase().includes(searchState.searchQuery.toLowerCase())
       );
       
       groups = groups.map(group => 

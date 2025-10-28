@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.lightGrey,
   },
   typeSelected: {
-    borderColor: Colors.lightBlue,
+    borderColor: Colors.lightBlue3,
   },
   typeIconContainer: {
     width: 30,

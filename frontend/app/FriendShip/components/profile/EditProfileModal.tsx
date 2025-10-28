@@ -1,0 +1,261 @@
+import { Colors } from '@/constants/Colors';
+import { Montserrat } from '@/constants/Montserrat';
+import React, { useEffect, useState } from 'react';
+import {
+    Dimensions,
+    Image,
+    ImageBackground,
+    ImageSourcePropType,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
+
+const screenHeight = Dimensions.get("window").height;
+
+interface EditProfileModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSave?: (profileData: ProfileData) => void;
+  currentProfile: {
+    avatar: ImageSourcePropType;
+    name: string;
+    username: string;
+    description: string;
+  };
+}
+
+interface ProfileData {
+  avatar: ImageSourcePropType;
+  name: string;
+  username: string;
+  description: string;
+}
+
+const EditProfileModal: React.FC<EditProfileModalProps> = ({ 
+  visible, 
+  onClose, 
+  onSave,
+  currentProfile 
+}) => {
+  const [avatar, setAvatar] = useState<ImageSourcePropType>(currentProfile.avatar);
+  const [name, setName] = useState(currentProfile.name);
+  const [username, setUsername] = useState(currentProfile.username);
+  const [description, setDescription] = useState(currentProfile.description);
+
+  useEffect(() => {
+    if (visible) {
+      setAvatar(currentProfile.avatar);
+      setName(currentProfile.name);
+      setUsername(currentProfile.username);
+      setDescription(currentProfile.description);
+    }
+  }, [visible, currentProfile]);
+
+  const handleSave = () => {
+    const profileData: ProfileData = {
+      avatar,
+      name,
+      username,
+      description,
+    };
+    
+    onSave?.(profileData);
+    onClose();
+  };
+
+  const handleClose = () => {
+    setAvatar(currentProfile.avatar);
+    setName(currentProfile.name);
+    setUsername(currentProfile.username);
+    setDescription(currentProfile.description);
+    onClose();
+  };
+
+  const handleAvatarPress = () => {
+    console.log('Open image picker');
+  };
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent>
+      <View style={styles.overlay}>
+        <View style={styles.modal}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            bounces={false}
+            alwaysBounceVertical={false}
+          >
+            <View style={styles.header}>
+              <Text style={styles.title}>Редактирование профиля</Text>
+              <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+                <Image
+                  tintColor={Colors.black}
+                  style={{ width: 35, height: 35, resizeMode: 'cover' }}
+                  source={require('@/assets/images/event_card/back.png')}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.content}>
+              <TouchableOpacity 
+                style={styles.avatarContainer}
+                onPress={handleAvatarPress}
+              >
+                <Image source={avatar} style={styles.avatar} />
+              </TouchableOpacity>
+
+              <TextInput
+                style={styles.input}
+                placeholder="Имя"
+                placeholderTextColor={Colors.grey}
+                value={name}
+                onChangeText={setName}
+                maxLength={50}
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Юзернейм"
+                placeholderTextColor={Colors.grey}
+                value={username}
+                onChangeText={(text) => {
+                  if (!text.startsWith('@')) {
+                    setUsername('@' + text.replace('@', ''));
+                  } else {
+                    setUsername(text);
+                  }
+                }}
+                maxLength={30}
+              />
+
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Описание"
+                placeholderTextColor={Colors.grey}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+                maxLength={200}
+              />
+            </View>
+
+            <ImageBackground
+              source={require('@/assets/images/event_card/bottom_rectangle.png')}
+              style={styles.bottomBackground}
+              resizeMode="stretch"
+              tintColor={Colors.lightBlue3}
+            >
+              <View style={styles.bottomContent}>
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={handleSave}
+                >
+                  <Text style={styles.saveButtonText}>Сохранить</Text>
+                </TouchableOpacity>
+              </View>
+            </ImageBackground>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+  },
+  modal: {
+    marginHorizontal: 12,
+    borderRadius: 25,
+    overflow: "hidden",
+    backgroundColor: Colors.white,
+    maxHeight: screenHeight * 0.85,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.white,
+    position: 'relative',
+  },
+  title: {
+    fontFamily: Montserrat.bold,
+    fontSize: 18,
+    color: Colors.black,
+    textAlign: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    right: 10,
+    zIndex: 1,
+  },
+  content: {
+    backgroundColor: Colors.white,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    marginBottom: 12,
+    position: 'relative',
+  },
+  avatar: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: Colors.lightGrey,
+  },
+  input: {
+    width: '100%',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.grey,
+    paddingVertical: 4,
+    paddingHorizontal: 0,
+    marginBottom: 16,
+    fontFamily: Montserrat.regular,
+    fontSize: 16,
+    color: Colors.black,
+  },
+  textArea: {
+    borderWidth: 1,
+    borderColor: Colors.grey,
+    borderRadius: 8,
+    padding: 16,
+    minHeight: 80,
+  },
+  bottomBackground: {
+    width: "100%",
+  },
+  bottomContent: {
+    padding: 16,
+  },
+  saveButton: {
+    backgroundColor: Colors.white,
+    marginHorizontal: 60,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontFamily: Montserrat.bold,
+    fontSize: 16,
+    color: Colors.blue3,
+  },
+});
+
+export default EditProfileModal;

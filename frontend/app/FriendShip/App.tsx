@@ -1,3 +1,5 @@
+import ProfilePage from '@/app/(tabs)/ProfilePage';
+import { ToastProvider } from '@/components/ToastContext';
 import { Montserrat_400Regular, Montserrat_700Bold, useFonts } from '@expo-google-fonts/montserrat';
 import { MontserratAlternates_500Medium } from '@expo-google-fonts/montserrat-alternates';
 import { NavigationContainer } from '@react-navigation/native';
@@ -15,6 +17,8 @@ import GroupsPage from './app/(tabs)/GroupsPage';
 import Login from './app/(tabs)/LoginPage';
 import MainPage from './app/(tabs)/MainPage';
 import Register from './app/(tabs)/RegisterPage';
+import SettingsPage from './app/(tabs)/SettingsPage';
+import UserSearchPage from './app/(tabs)/UserSearchPage';
 import { RootStackParamList } from './navigation/types';
 
 
@@ -38,39 +42,48 @@ export default function App() {
     return null;
   }
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <Stack.Navigator
-          screenOptions={{
-            gestureEnabled: false,
-            headerShown: false,
-            animation: 'scale_from_center'
-          }}
-        > 
-          <Stack.Screen name="Register" component={Register} />
-          <Stack.Screen name="Login" component={Login} />
-          <Stack.Screen name="Confirm" component={Confirm} />
-          <Stack.Screen name="Done" component={Done} />
-          <Stack.Screen name="MainPage" component={MainPage} />
-          <Stack.Screen 
-            name="CategoryPage" 
-            component={CategoryPage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen name="GroupsPage" component={GroupsPage} />
-          <Stack.Screen 
-            name="GroupPage" 
-            component={GroupPage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen 
-            name="GroupManagePage" 
-            component={GroupManagePage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen name="GroupSearchPage" component={GroupSearchPage} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <ToastProvider>
+      <SafeAreaProvider>
+          <NavigationContainer>
+            <Stack.Navigator
+              screenOptions={{
+                gestureEnabled: false,
+                headerShown: false,
+                animation: 'scale_from_center'
+              }}
+            > 
+              <Stack.Screen name="Register" component={Register} />
+              <Stack.Screen name="Login" component={Login} />
+              <Stack.Screen name="Confirm" component={Confirm} />
+              <Stack.Screen name="Done" component={Done} />
+              <Stack.Screen name="MainPage" component={MainPage} />
+              <Stack.Screen 
+                name="CategoryPage" 
+                component={CategoryPage}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="GroupsPage" component={GroupsPage} />
+              <Stack.Screen 
+                name="GroupPage" 
+                component={GroupPage}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen 
+                name="GroupManagePage" 
+                component={GroupManagePage}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="GroupSearchPage" component={GroupSearchPage} />
+              <Stack.Screen name="ProfilePage" component={ProfilePage} />
+              <Stack.Screen 
+                name="UserSearchPage" 
+                component={UserSearchPage}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="SettingsPage" component={SettingsPage} />
+            </Stack.Navigator>
+          </NavigationContainer>
+      </SafeAreaProvider>
+    </ToastProvider>   
   );
 }

@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categorySelected: {
-    backgroundColor: Colors.lightBlue,
+    backgroundColor: Colors.lightBlue3,
   },
   categoryIcon: {
     width: 30,

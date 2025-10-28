@@ -1,4 +1,4 @@
-import Toast from '@/components/Toast';
+import { useToast } from '@/components/ToastContext';
 import { Event } from '@/components/event/EventCard';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
@@ -39,45 +39,10 @@ interface EventModalProps {
 }
 
 const formatTitle = (title: string) => {
-  const maxLength = 40;
-  const firstLineLimit = 19;
-  const secondLineLimit = 21;
-
   if (!title || title.trim().length < 5) {
     return "Без названия";
   }
-
-  let trimmed = title.slice(0, maxLength);
-
-  let firstLine = trimmed.slice(0, firstLineLimit);
-  let secondLine = trimmed.slice(firstLineLimit, firstLineLimit + secondLineLimit);
-
-  return firstLine + (secondLine ? "\n" + secondLine : "");
-};
-
-const getFontSize = (title: string) => {
-  const formatted = formatTitle(title);
-  const isTwoLines = formatted.includes("\n");
-
-  const letters = title.replace(/[^a-zA-ZА-Яа-яЁё]/g, "");
-  const upperLetters = letters.replace(/[^A-ZА-ЯЁ]/g, "");
-
-  const upperRatio = letters.length > 0 ? upperLetters.length / letters.length : 0;
-  const wideLetters = title.match(/[ЖШЩМW]/g) || [];
-
-  if (wideLetters.length > title.length * 0.3) return 8.5;
-
-  if (upperRatio >= 0.4) {
-    return 11;
-  }
-
-  if (title === title.toUpperCase()) {
-    return 13;
-  }
-
-  if (title.length > 35) return 16;
-  if (title.length > 25) return 17;
-  return 19;
+  return title;
 };
 
 const formatDescription = (description?: string) => {
@@ -110,10 +75,16 @@ const formatPublisher = (publisher?: string) => {
 };
 
 const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
-  const [toastVisible, setToastVisible] = React.useState(false);
+  const { showToast } = useToast();
 
-  const isTwoLines = formatTitle(event.title).includes("\n");
-  const rectangleHeight = isTwoLines ? 75 : 55;
+  const handleJoin = () => {
+    onClose();
+    showToast({
+      type: 'success',
+      title: 'Успешно!',
+      message: `Вы зарегистрированы на событие "${event.title}" ${event.date}`,
+    });
+  };
 
   return (
     <Modal visible={visible} animationType="fade" transparent>
@@ -132,37 +103,40 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
           >
               <View style={styles.header}>
                 <Image source={{ uri: event.imageUri }} style={styles.image} />
-                <Image
-                  source={require('@/assets/images/event_card/rectangle.png')}
-                  style={[styles.rectangle, { height: rectangleHeight }]}
-                />
-                <Text
-                  style={[styles.title, { fontSize: getFontSize(event.title) }]}
-                  numberOfLines={2}
-                  ellipsizeMode="tail"
-                >
-                  {formatTitle(event.title)}
-                </Text>
-                <View style={styles.iconsRow}>
-                  <View style={styles.iconOverlay}>
-                    <Image
-                      source={categoryIcons[event.category]}
-                      style={{ resizeMode: 'contain', width: 20, height: 20 }}
-                    />
-                  </View>
-                  <View style={styles.iconOverlay}>
-                    <Image
-                      source={placeIcons[event.typePlace]}
-                      style={{ resizeMode: 'contain', width: 20, height: 20 }}
-                    />
-                  </View>
-                </View>
               </View>
 
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <Image
+                  tintColor={Colors.black}
+                  style={{ width: 35, height: 35, resizeMode: 'cover' }}
+                  source={require('@/assets/images/event_card/back.png')}
+                />
+              </TouchableOpacity>
+
               <View style={styles.content}>
-              <Text style={styles.description}>
-                {formatDescription(event.description)}
-              </Text>
+                <View style={styles.titleRow}>
+                  <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
+                    {formatTitle(event.title)}
+                  </Text>
+                  <View style={styles.iconsRow}>
+                    <View style={styles.iconOverlay}>
+                      <Image
+                        source={categoryIcons[event.category]}
+                        style={{ resizeMode: 'contain', width: 20, height: 20 }}
+                      />
+                    </View>
+                    <View style={styles.iconOverlay}>
+                      <Image
+                        source={placeIcons[event.typePlace]}
+                        style={{ resizeMode: 'contain', width: 20, height: 20 }}
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                <Text style={styles.description}>
+                  {formatDescription(event.description)}
+                </Text>
 
                 <View style={[styles.row, { marginBottom: 8 }]}>
                   <View style={{ flexDirection: 'row' }}>
@@ -193,9 +167,19 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
                   ))}
                 </View>
 
+                {event.group && (
+                  <Text style={[styles.label, {marginBottom: 4}]}>
+                    Организатор: <Text
+                     style={[styles.value, { color: Colors.lightBlue3, marginTop: 0 }]}
+                     onPress={() => console.log("Pressed group")}>
+                      {event.group}
+                      </Text>
+                  </Text>
+                )}
+
                 <Text style={[styles.label, {marginTop: 2}]}>Место проведения:</Text>
                 <Text
-                  style={[styles.value, { color: Colors.lightBlue, marginTop: 0 }]}
+                  style={[styles.value, { color: Colors.lightBlue3, marginTop: 0 }]}
                   onPress={() => Linking.openURL(event.eventPlace)}
                 >
                   {formatEventPlace(event.eventPlace)}
@@ -221,18 +205,11 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <Image
-                  tintColor={Colors.black}
-                  style={{ width: 35, height: 35, resizeMode: 'cover' }}
-                  source={require('@/assets/images/event_card/back.png')}
-                />
-              </TouchableOpacity>
-
               <ImageBackground
                 source={require('@/assets/images/event_card/bottom_rectangle.png')}
                 style={styles.bottomBackground}
                 resizeMode="stretch"
+                tintColor={Colors.lightBlue3}
               >
                 <View style={styles.bottomContent}>
                   {formatPublisher(event.publisher) && (
@@ -255,22 +232,12 @@ const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
 
                   <TouchableOpacity
                     style={styles.joinButton}
-                    onPress={() => setToastVisible(true)}
+                    onPress={handleJoin}
                   >
                     <Text style={styles.joinButtonText}>Присоединиться</Text>
                   </TouchableOpacity>
                 </View>
               </ImageBackground>
-
-              {toastVisible && (
-                <Toast
-                  visible={toastVisible}
-                  type="success"
-                  title="Успешно!"
-                  message={`Вы зарегистрированы на событие "${event.title}" ${event.date}`}
-                  onHide={() => setToastVisible(false)}
-                />
-              )}
           </ScrollView>
         </View>
       </View>
@@ -285,8 +252,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modal: {
-    marginHorizontal: 12,
-    borderRadius: 25,
+    marginHorizontal: 8,
+    borderRadius: 30,
     overflow: "hidden",
     backgroundColor: Colors.white,
     maxHeight: screenHeight * 0.85,
@@ -300,40 +267,29 @@ const styles = StyleSheet.create({
     height: 180,
     resizeMode: 'cover',
   },
-  rectangle: {
-    position: 'absolute',
-    left: 0,
-    bottom: -20,
-    width: 300,
-    height: 75,
-    resizeMode: 'stretch',
-  },
-  title: {
-    position: 'absolute',
-    maxWidth: 240,
-    overflow: "hidden",
-    left: 16,
-    right: 16,
-    bottom: 0,
-    fontFamily: Montserrat.bold,
-    color: Colors.black,
-    textAlign: 'left',
-    width: 240,
-    lineHeight: 22,
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   iconsRow: {
-    position: 'absolute',
-    top: 140,
-    right: 10,
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
+    marginLeft: 6,
   },
   iconOverlay: {
     backgroundColor: Colors.white,
     borderRadius: 20,
     padding: 6,
     borderWidth: 2,
-    borderColor: Colors.lightBlue,
+    borderColor: Colors.lightBlue3,
+  },
+  title: {
+    flex: 1,
+    fontFamily: Montserrat.bold,
+    fontSize: 20,
+    color: Colors.black,
+    lineHeight: 24,
   },
   content: {
     backgroundColor: Colors.white,
@@ -361,10 +317,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginVertical: 6,
+    marginBottom: 0
   },
   genreBadge: {
     marginRight: 6,
-    backgroundColor: Colors.lightBlue,
+    backgroundColor: Colors.lightBlue3,
     borderRadius: 20,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -383,14 +340,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 8,
   },
-  bottomWave: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    width: '100%',
-    height: 160,
-    resizeMode: 'stretch',
-  },
   bottomBackground: {
     width: "100%",
   },
@@ -408,9 +357,9 @@ const styles = StyleSheet.create({
   joinButtonText: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.blue,
+    color: Colors.blue3,
   },
-  closeButton: { position: 'absolute', top: 5, right: 10 },
+  closeButton: { position: 'absolute', top: 5, right: 10, zIndex: 10 },
 });
 
 export default EventModal;

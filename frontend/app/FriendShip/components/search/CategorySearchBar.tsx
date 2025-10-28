@@ -194,17 +194,16 @@ const styles = StyleSheet.create({
     borderTopEndRadius: 0,
     padding: 12,
     elevation: 5,
-    borderColor: Colors.blue,
-    borderWidth: 1,
   },
   dropdownTitle: {
     fontFamily: Montserrat.bold,
+    fontSize: 14,
     marginBottom: 8,
   },
   radioItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 6,
+    marginVertical: 4,
   },
   radioLabel: {
     fontFamily: Montserrat.regular,
@@ -215,17 +214,18 @@ const styles = StyleSheet.create({
     width: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: Colors.lightBlue,
+    borderColor: Colors.lightBlue2,
     backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 8,
   },
   radioInnerCircle: {
     width: 12,
     height: 12,
     borderRadius: 10,
-    backgroundColor: Colors.blue,
+    backgroundColor: Colors.blue2,
     alignSelf: 'center',
-    marginTop: 2,
   },
 });
 

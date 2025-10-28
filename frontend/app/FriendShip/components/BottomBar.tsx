@@ -12,8 +12,8 @@ const BottomBar = () => {
   
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('Register' as never)}>
-          <Image style={barsStyle.iconsMenu} source={require("@/assets/images/bottom_bar/settings.png")} />
+      <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('SettingsPage' as never)}>
+          <Image style={[barsStyle.iconsMenu, isActive('SettingsPage') && { tintColor: Colors.darkGrey }]} source={require("@/assets/images/bottom_bar/settings.png")} />
       </TouchableOpacity>
       <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('GroupsPage' as never)}>
           <Image 
@@ -26,11 +26,11 @@ const BottomBar = () => {
           source={require("@/assets/images/bottom_bar/main.png")}
         />
       </TouchableOpacity>
-      <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('Register' as never)}>
+      <TouchableOpacity style={barsStyle.menu}>
           <Image style={barsStyle.iconsMenu} source={require("@/assets/images/bottom_bar/news.png")} />
       </TouchableOpacity>
-      <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('Register' as never)}>
-          <Image style={[barsStyle.iconsMenu, {width: 25, height: 25}]} source={require("@/assets/images/bottom_bar/profile.png")} />
+      <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('ProfilePage' as never)}>
+          <Image style={[barsStyle.iconsMenu, {width: 25, height: 25}, (isActive('ProfilePage') || isActive('UserSearchPage')) && { tintColor: Colors.darkGrey }]} source={require("@/assets/images/bottom_bar/profile.png")} />
       </TouchableOpacity>
     </View>
   );

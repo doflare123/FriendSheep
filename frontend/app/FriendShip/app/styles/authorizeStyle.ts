@@ -52,7 +52,8 @@ const authorizeStyle = StyleSheet.create({
   account: {
     fontFamily: Montserrat.regular,
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: -8,
   },
   link: {
@@ -71,6 +72,10 @@ const authorizeStyle = StyleSheet.create({
     height: 60,
     marginBottom: 20,
     alignSelf: 'center'
+  },
+  password:{
+    color: Colors.lightBlue2,
+    fontSize: 12
   }
 });
 

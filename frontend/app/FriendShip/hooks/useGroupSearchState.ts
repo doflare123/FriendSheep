@@ -1,18 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+export type GroupCategory = 'movie' | 'game' | 'table_game' | 'other';
 
 export interface GroupSearchState {
   searchQuery: string;
   sortByParticipants: 'asc' | 'desc' | 'none';
   sortByRegistration: 'asc' | 'desc' | 'none';
-  checkedCategories: string[];
+  checkedCategories: GroupCategory[];
 }
 
 export interface GroupSearchActions {
   setSearchQuery: (query: string) => void;
   setSortByParticipants: (order: 'asc' | 'desc' | 'none') => void;
   setSortByRegistration: (order: 'asc' | 'desc' | 'none') => void;
-  setCheckedCategories: (categories: string[]) => void;
-  toggleCategoryCheckbox: (category: string) => void;
+  setCheckedCategories: (categories: GroupCategory[]) => void;
+  toggleCategoryCheckbox: (category: GroupCategory) => void;
   resetFilters: () => void;
 }
 
@@ -20,7 +22,7 @@ let globalGroupSearchState: GroupSearchState = {
   searchQuery: '',
   sortByParticipants: 'none',
   sortByRegistration: 'none',
-  checkedCategories: ['Все'],
+  checkedCategories: [],
 };
 
 const listeners: Set<() => void> = new Set();
@@ -32,15 +34,13 @@ const notifyListeners = () => {
 export const useGroupSearchState = () => {
   const [, forceUpdate] = useState({});
 
-  const subscribe = (listener: () => void) => {
+  useEffect(() => {
+    const listener = () => forceUpdate({});
     listeners.add(listener);
-    return () => listeners.delete(listener);
-  };
-
-  useState(() => {
-    const unsubscribe = subscribe(() => forceUpdate({}));
-    return unsubscribe;
-  });
+    return () => {
+      listeners.delete(listener);
+    };
+  }, []);
 
   const setSearchQuery = (query: string) => {
     globalGroupSearchState.searchQuery = query;
@@ -57,35 +57,22 @@ export const useGroupSearchState = () => {
     notifyListeners();
   };
 
-  const setCheckedCategories = (categories: string[]) => {
+  const setCheckedCategories = (categories: GroupCategory[]) => {
     globalGroupSearchState.checkedCategories = categories;
     notifyListeners();
   };
 
-  const toggleCategoryCheckbox = (category: string) => {
+  const toggleCategoryCheckbox = (category: GroupCategory) => {
     const currentCategories = [...globalGroupSearchState.checkedCategories];
+    const index = currentCategories.indexOf(category);
     
-    if (category === 'Все') {
-      globalGroupSearchState.checkedCategories = ['Все'];
+    if (index > -1) {
+      currentCategories.splice(index, 1);
     } else {
-      const index = currentCategories.indexOf(category);
-      if (index > -1) {
-        currentCategories.splice(index, 1);
-        const allIndex = currentCategories.indexOf('Все');
-        if (allIndex > -1) {
-          currentCategories.splice(allIndex, 1);
-        }
-      } else {
-        currentCategories.push(category);
-        const allIndex = currentCategories.indexOf('Все');
-        if (allIndex > -1) {
-          currentCategories.splice(allIndex, 1);
-        }
-      }
-      
-      globalGroupSearchState.checkedCategories = currentCategories.length > 0 ? currentCategories : ['Все'];
+      currentCategories.push(category);
     }
     
+    globalGroupSearchState.checkedCategories = currentCategories;
     notifyListeners();
   };
 
@@ -94,7 +81,7 @@ export const useGroupSearchState = () => {
       searchQuery: '',
       sortByParticipants: 'none',
       sortByRegistration: 'none',
-      checkedCategories: ['Все'],
+      checkedCategories: [],
     };
     notifyListeners();
   };

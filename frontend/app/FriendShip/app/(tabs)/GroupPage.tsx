@@ -9,7 +9,6 @@ import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
   Dimensions,
@@ -115,17 +114,11 @@ const GroupPage = () => {
                   console.log('Присоединиться');
                 }
               }}
+              style={styles.actionButton}
             >
-              <LinearGradient
-                colors={[Colors.lightBlue, Colors.blue]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.actionButton}
-              >
-                <Text style={styles.actionButtonText}>
-                  {mode === 'manage' ? 'Управлять' : 'Присоединиться'}
-                </Text>
-              </LinearGradient>
+              <Text style={styles.actionButtonText}>
+                {mode === 'manage' ? 'Управлять' : 'Присоединиться'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -255,6 +248,7 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   actionButton: {
+    backgroundColor: Colors.lightBlue3,
     paddingVertical: 4,
     marginTop: 20,
     borderRadius: 25,
@@ -308,7 +302,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 2,
+    marginBottom: 4,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
