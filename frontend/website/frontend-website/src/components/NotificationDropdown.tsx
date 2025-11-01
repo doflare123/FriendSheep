@@ -72,7 +72,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
               id: notif.id,
               type: 'news',
               notifType: notif.type,
-              text: `Событие начнётся через ${notif.type === '24_hours' ? '24 часа' : notif.type === '6_hours' ? '6 часов' : '1 час'}`,
+              text: notif.text || `Событие начнётся через ${notif.type === '24_hours' ? '24 часа' : notif.type === '6_hours' ? '6 часов' : '1 час'}`,
               image: getNotificationImage(notif.type),
               isRead: notif.viewed,
               timestamp: new Date(notif.sendAt),
