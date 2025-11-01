@@ -1,5 +1,5 @@
-/* NotificationDropdown.css */
-.notification-dropdown {
+/* NotificationDropdown.module.css */
+.notificationDropdown {
   position: absolute;
   top: calc(100% - 16px);
   right: 50%;
@@ -14,7 +14,7 @@
 }
 
 /* Треугольник, указывающий на иконку */
-.notification-dropdown::before {
+.notificationDropdown::before {
   content: '';
   position: absolute;
   top: -8px;
@@ -27,7 +27,7 @@
   z-index: 1001;
 }
 
-.notification-dropdown::after {
+.notificationDropdown::after {
   content: '';
   position: absolute;
   top: -10px;
@@ -40,7 +40,7 @@
   z-index: 1000;
 }
 
-.notification-header {
+.notificationHeader {
   padding: 12px 16px;
   background-color: #f8f9fa;
   border-bottom: 1px solid #e0e0e0;
@@ -50,14 +50,14 @@
   font-family: 'Inter', sans-serif;
 }
 
-.notification-list {
+.notificationList {
   max-height: 320px;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 8px 0;
 }
 
-.notification-item {
+.notificationItem {
   display: flex;
   align-items: flex-start;
   padding: 12px 16px;
@@ -66,34 +66,34 @@
   position: relative;
 }
 
-.notification-item:hover {
+.notificationItem:hover {
   background-color: #f8f9fa;
 }
 
-.notification-item:last-child {
+.notificationItem:last-child {
   border-bottom: none;
 }
 
-.notification-image {
+.notificationImage {
   flex-shrink: 0;
   margin-right: 12px;
 }
 
-.notification-image img {
+.notificationImage img {
   border-radius: 50%;
   object-fit: cover;
 }
 
-.notification-content {
+.notificationContent {
   flex-grow: 1;
   margin-right: 8px;
 }
 
-.news-wrapper {
+.newsWrapper {
   position: relative;
 }
 
-.news-text {
+.newsText {
   font-size: 14px;
   line-height: 1.4;
   color: #333;
@@ -102,39 +102,39 @@
   padding-bottom: 18px; /* Место для времени */
 }
 
-.news-text.read {
+.newsText.read {
   color: #888;
 }
 
-.news-text:hover {
+.newsText:hover {
   color: #666;
 }
 
-.invite-content {
+.inviteContent {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.invite-text {
+.inviteText {
   font-size: 14px;
   line-height: 1.4;
   color: #333;
 }
 
-.invite-buttons-wrapper {
+.inviteButtonsWrapper {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.invite-buttons {
+.inviteButtons {
   display: flex;
   gap: 8px;
 }
 
-.invite-accept,
-.invite-decline {
+.inviteAccept,
+.inviteDecline {
   border: none;
   border-radius: 4px;
   padding: 4px 12px;
@@ -144,88 +144,88 @@
   transition: all 0.2s ease;
 }
 
-.invite-accept {
+.inviteAccept {
   background-color: #37A2E6;
   color: white;
 }
 
-.invite-accept:hover {
+.inviteAccept:hover {
   background-color: #2891d4;
   transform: translateY(-1px);
 }
 
-.invite-decline {
+.inviteDecline {
   background-color: #E6374B;
   color: white;
 }
 
-.invite-decline:hover {
+.inviteDecline:hover {
   background-color: #d12639;
   transform: translateY(-1px);
 }
 
-.notification-time {
+.notificationTime {
   font-size: 12px;
   color: #888;
   font-style: italic;
 }
 
 /* Для новостей - время внизу справа */
-.news-wrapper .notification-time {
+.newsWrapper .notificationTime {
   position: absolute;
   bottom: 0;
   right: -8px;
 }
 
 /* Для приглашений - время на уровне кнопок */
-.invite-buttons-wrapper .notification-time {
+.inviteButtonsWrapper .notificationTime {
   flex-shrink: 0;
   margin-left: 12px;
 }
 
 /* Webkit скроллбар (Chrome, Safari, Edge) - с закруглением */
-.notification-list::-webkit-scrollbar {
+.notificationList::-webkit-scrollbar {
   width: 8px;
 }
 
-.notification-list::-webkit-scrollbar-track {
+.notificationList::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 10px;
 }
 
-.notification-list::-webkit-scrollbar-thumb {
+.notificationList::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 10px;
 }
 
-.notification-list::-webkit-scrollbar-thumb:hover {
+.notificationList::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
 
-.notification-list::-webkit-scrollbar-button {
+.notificationList::-webkit-scrollbar-button {
   display: none;
 }
 
-.notification-list::-webkit-scrollbar-corner {
+.notificationList::-webkit-scrollbar-corner {
   background: transparent;
 }
 
 /* Для Firefox - с закруглением */
 @-moz-document url-prefix() {
-  .notification-list {
+  .notificationList {
     scrollbar-width: thin;
     scrollbar-color: #c1c1c1 #f1f1f1;
   }
 }
 
 /* Современный способ для Firefox */
-.notification-list {
+.notificationList {
   scrollbar-width: thin;
   scrollbar-color: #c1c1c1 #f1f1f1;
 }
 
 /* Анимация появления */
-.notification-dropdown {
+.notificationDropdown {
   animation: fadeInUp 0.2s ease-out;
 }
 

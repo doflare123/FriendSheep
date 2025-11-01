@@ -8,7 +8,7 @@ export async function approveAll(accessToken: string, groupId : number): Promise
     await axios.post(`${API_URL}/api/admin/groups/requests/all/${groupId}/approveAll`, {},
       {headers: {'Authorization': `Bearer ${accessToken}`}});
   } catch (error: any) {
-    console.error('Ошибка при приглашении в группу:', error);
+    console.error('Ошибка при принятии всех приглашений в группу:', error);
     throw error;
   }
 }
