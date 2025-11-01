@@ -4679,6 +4679,9 @@ const docTemplate = `{
                 "sent": {
                     "type": "boolean"
                 },
+                "text": {
+                    "type": "string"
+                },
                 "type": {
                     "type": "string"
                 },
