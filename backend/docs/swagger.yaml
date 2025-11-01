@@ -791,6 +791,8 @@ definitions:
         items:
           type: string
         type: array
+      group_id:
+        type: integer
       group_name:
         type: string
       id:
@@ -855,6 +857,8 @@ definitions:
         type: integer
       image_url:
         type: string
+      is_sub:
+        type: boolean
       session_place:
         type: string
       session_type:
@@ -2788,6 +2792,33 @@ paths:
       security:
       - BearerAuth: []
       summary: Получить уведомления пользователя
+      tags:
+      - Users inf
+  /api/users/notify/inf:
+    get:
+      description: Возвращает true - есть, нет - false
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Есть ли уведомления
+          schema:
+            type: boolean
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Есть ли уведомления для пользователя или нет
       tags:
       - Users inf
   /api/users/password:

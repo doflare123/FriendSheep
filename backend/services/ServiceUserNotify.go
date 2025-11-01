@@ -82,6 +82,34 @@ func GetNotify(email string) (*GetNotifyResponse, error) {
 	}, nil
 }
 
+func GetNotifyInf(email string) (bool, error) {
+	database := db.GetDB()
+
+	var user models.User
+	if err := database.Where("email = ?", email).First(&user).Error; err != nil {
+		return false, errors.New("пользователь не найден")
+	}
+
+	var notifications []sessions.Notification
+	if err := database.
+		Preload("NotificationType").
+		Where("user_id = ? AND viewed = ?", user.ID, false).
+		Find(&notifications).Error; err != nil {
+		return false, err
+	}
+
+	var invites []groups.GroupJoinInvite
+	if err := database.
+		Preload("Group").
+		Where("user_id = ? AND status = ?", user.ID, "pending").
+		Find(&invites).Error; err != nil {
+		return false, err
+	}
+
+	hasNotifications := len(notifications) > 0 || len(invites) > 0
+	return hasNotifications, nil
+}
+
 func MarkNotificationViewed(notificationID uint, userID uint) error {
 	database := db.GetDB()
 
