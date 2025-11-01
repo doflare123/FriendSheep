@@ -14,6 +14,7 @@ type NotificationDTO struct {
 	Type   string    `json:"type"`
 	SendAt time.Time `json:"sendAt"`
 	Sent   bool      `json:"sent"`
+	Text   string    `json:"text"`
 	Viewed bool      `json:"viewed"`
 }
 
@@ -58,7 +59,8 @@ func GetNotify(email string) (*GetNotifyResponse, error) {
 	for _, n := range notifications {
 		notifDTOs = append(notifDTOs, NotificationDTO{
 			ID:     n.ID,
-			Type:   n.NotificationType.Label,
+			Type:   n.NotificationType.Name,
+			Text:   n.Text,
 			SendAt: n.SendAt,
 			Sent:   n.Sent,
 			Viewed: n.Viewed,
