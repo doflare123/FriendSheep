@@ -1,7 +1,9 @@
+import authService from '@/api/services/authService';
 import InputSmall from '@/components/auth/InputSmall';
-import { useNavigation } from '@react-navigation/native';
+import { useToast } from '@/components/ToastContext';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Button from '../../components/auth/Button';
 import Logo from '../../components/auth/Logo';
@@ -11,22 +13,149 @@ import authorizeStyle from '../styles/authorizeStyle';
 
 const RESEND_TIMEOUT_MINUTES = 15;
 
+type ConfirmRouteParams = {
+  sessionId: string;
+  email: string;
+  username?: string;
+  password?: string;
+};
+
 const Confirm = () => {
   const navigation = useNavigation();
+  const route = useRoute<RouteProp<{ Confirm: ConfirmRouteParams }, 'Confirm'>>();
+  const { showToast } = useToast();
+
+  const { sessionId, email, username, password } = route.params || {};
+
+  const [code, setCode] = useState('');
   const [remainingSeconds, setRemainingSeconds] = useState(RESEND_TIMEOUT_MINUTES * 60);
   const [resendAvailable, setResendAvailable] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+
   const appState = useRef(AppState.currentState);
   const endTimeRef = useRef(Date.now() + remainingSeconds * 1000);
 
-  const handleConfirm = () => {
-    navigation.navigate('Done' as never);
+  const handleConfirm = async () => {
+    const trimmedCode = code.trim().toUpperCase();
+
+    if (!trimmedCode || trimmedCode.length < 6) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Введите полный код подтверждения (6 символов)',
+      });
+      return;
+    }
+
+    if (!sessionId) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Отсутствует ID сессии',
+      });
+      return;
+    }
+
+    if (!username || !password) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Отсутствуют данные регистрации',
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await authService.verifySession(sessionId, trimmedCode, 'register');
+
+      await authService.createUser(email, username, password, sessionId);
+
+      showToast({
+        type: 'success',
+        title: 'Регистрация завершена!',
+        message: 'Пожалуйста, войдите в систему',
+      });
+
+      setTimeout(() => {
+        navigation.navigate('Login' as never);
+      }, 1500);
+
+    } catch (error: any) {
+      const errorMessage = error.message || 'Произошла ошибка';
+      
+      if (errorMessage.includes('Неверный код')) {
+        showToast({
+          type: 'error',
+          title: 'Неверный код',
+          message: 'Проверьте код из письма и попробуйте снова',
+        });
+      } else if (errorMessage.includes('Сессия не найдена')) {
+        showToast({
+          type: 'error',
+          title: 'Сессия истекла',
+          message: 'Запросите новый код подтверждения',
+        });
+      } else if (errorMessage.includes('уже существует') || errorMessage.includes('already exists')) {
+        showToast({
+          type: 'success',
+          title: 'Аккаунт существует',
+          message: 'Попробуйте войти',
+        });
+        
+        setTimeout(() => {
+          navigation.navigate('Login' as never);
+        }, 1000);
+      } else {
+        showToast({
+          type: 'error',
+          title: 'Ошибка регистрации',
+          message: errorMessage,
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleResend = () => {
-    const newEndTime = Date.now() + RESEND_TIMEOUT_MINUTES * 60 * 1000;
-    endTimeRef.current = newEndTime;
-    setRemainingSeconds(RESEND_TIMEOUT_MINUTES * 60);
-    setResendAvailable(false);
+  const handleResend = async () => {
+    if (!email) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Email не найден',
+      });
+      return;
+    }
+
+    setResending(true);
+
+    try {
+      await authService.resendCode(email);
+
+      showToast({
+        type: 'success',
+        title: 'Успешно!',
+        message: 'Код отправлен повторно',
+      });
+
+      const newEndTime = Date.now() + RESEND_TIMEOUT_MINUTES * 60 * 1000;
+      endTimeRef.current = newEndTime;
+      setRemainingSeconds(RESEND_TIMEOUT_MINUTES * 60);
+      setResendAvailable(false);
+      
+      setCode('');
+    } catch (error: any) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось отправить код',
+      });
+    } finally {
+      setResending(false);
+    }
   };
 
   useEffect(() => {
@@ -57,8 +186,9 @@ const Confirm = () => {
   const minutes = Math.floor(remainingSeconds / 60);
   const seconds = remainingSeconds % 60;
 
-  const user_email_name = 'pochta';
-  const user_email_domain = 'gmail.com';
+  const emailParts = email?.split('@') || ['', ''];
+  const user_email_name = emailParts[0] || 'unknown';
+  const user_email_domain = emailParts[1] || 'gmail.com';
 
   return (
     <View style={authorizeStyle.container}>
@@ -81,21 +211,41 @@ const Confirm = () => {
           Введите код подтверждения из письма, отправленного на почту {user_email_name}@{user_email_domain}
         </Text>
 
-        <InputSmall />
+        <InputSmall 
+          value={code}
+          onChangeText={setCode}
+          editable={!loading && !resending}
+          length={6}
+        />
 
         {!resendAvailable ? (
           <Text style={authorizeStyle.hintLabel}>
             Повторно код можно отправить через {minutes}:{seconds.toString().padStart(2, '0')}
           </Text>
         ) : (
-          <TouchableOpacity onPress={handleResend}>
+          <TouchableOpacity 
+            onPress={handleResend}
+            disabled={resending}
+          >
             <Text style={[authorizeStyle.hintLabel, { color: Colors.lightBlue }]}>
-              Отправить код повторно
+              {resending ? 'Отправка...' : 'Отправить код повторно'}
             </Text>
           </TouchableOpacity>
         )}
 
-        <Button title="Подтвердить" onPress={handleConfirm} />
+        <Button 
+          title={loading ? 'Регистрация...' : 'Подтвердить'} 
+          onPress={handleConfirm}
+          disabled={loading || resending || code.length < 6}
+        />
+
+        {(loading || resending) && (
+          <ActivityIndicator 
+            size="large" 
+            color="#0000ff" 
+            style={{ marginTop: 16 }} 
+          />
+        )}
       </KeyboardAwareScrollView>
 
       <Text style={authorizeStyle.footer}>©NecroDwarf</Text>

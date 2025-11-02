@@ -1,26 +1,62 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
 
-const Button = ({ title, onPress }: { title: string; onPress: () => void }) => (
-  <TouchableOpacity onPress={onPress} style={styles.button}>
-    <Text style={styles.text}>{title}</Text>
-  </TouchableOpacity>
-);
+interface ButtonProps {
+  title: string;
+  onPress: () => void;
+  disabled?: boolean;
+  style?: ViewStyle;
+}
+
+const Button: React.FC<ButtonProps> = ({ title, onPress, disabled = false, style }) => {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.button,
+        disabled && styles.buttonDisabled,
+        style
+      ]}
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.7}
+    >
+      <Text style={[
+        styles.buttonText,
+        disabled && styles.buttonTextDisabled
+      ]}>
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: Colors.lightBlue3,
-    borderRadius: 40,
-    paddingVertical: 8,
+    backgroundColor: Colors.blue3,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
     alignItems: 'center',
-    marginTop: 16,
+    marginVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  text: {
+  buttonDisabled: {
+    backgroundColor: Colors.grey,
+    opacity: 0.6,
+  },
+  buttonText: {
+    fontFamily: Montserrat.bold,
+    fontSize: 16,
     color: Colors.white,
-    fontSize: 20,
-    fontFamily: Montserrat.regular,
+  },
+  buttonTextDisabled: {
+    color: Colors.lightGrey,
   },
 });
 

@@ -1,6 +1,8 @@
+import authService from '@/api/services/authService';
+import { useToast } from '@/components/ToastContext';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Button from '../../components/auth/Button';
 import Input from '../../components/auth/Input';
@@ -9,11 +11,68 @@ import authorizeStyle from '../styles/authorizeStyle';
 
 const Login = () => {
   const navigation = useNavigation();
+  const { showToast } = useToast();
+  
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    navigation.navigate('MainPage' as never);
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleLogin = async () => {
+    if (!email.trim()) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Введите email',
+      });
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Введите корректный email',
+      });
+      return;
+    }
+
+    if (!password.trim()) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Введите пароль',
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await authService.login(email, password);
+
+      showToast({
+        type: 'success',
+        title: 'Успешно!',
+        message: 'Вы вошли в систему',
+      });
+
+      setTimeout(() => {
+        navigation.navigate('MainPage' as never);
+      }, 500);
+    } catch (error: any) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка входа',
+        message: error.message || 'Не удалось войти в систему',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -30,32 +89,53 @@ const Login = () => {
         extraScrollHeight={20}
         showsVerticalScrollIndicator={false}>
 
-          <Text style={authorizeStyle.label}>Почта</Text>
-          <Input
-            placeholder="user_email@gmail.com"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
+        <Text style={authorizeStyle.label}>Почта</Text>
+        <Input
+          placeholder="user_email@gmail.com"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          editable={!loading}
+        />
+
+        <Text style={authorizeStyle.label}>Пароль</Text>
+        <Input
+          placeholder="Пароль"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          editable={!loading}
+        />
+
+        <View style={authorizeStyle.account}>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Register' as never)}
+            disabled={loading}
+          >
+            <Text style={authorizeStyle.password}>Забыли пароль?</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Register' as never)}
+            disabled={loading}
+          >
+            <Text>Нет аккаунта?</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Button 
+          title={loading ? 'Вход...' : 'Войти'} 
+          onPress={handleLogin}
+          disabled={loading}
+        />
+
+        {loading && (
+          <ActivityIndicator 
+            size="large" 
+            color="#0000ff" 
+            style={{ marginTop: 16 }} 
           />
-
-          <Text style={authorizeStyle.label}>Пароль</Text>
-          <Input
-            placeholder="Пароль"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-
-          <View style={authorizeStyle.account}>
-            <TouchableOpacity onPress={() => navigation.navigate('Register' as never)}>
-              <Text style={authorizeStyle.password}>Забыли пароль?</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Register' as never)}>
-              <Text>Нет аккаунта?</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Button title="Войти" onPress={handleLogin} />
+        )}
       </KeyboardAwareScrollView>
 
       <Text style={authorizeStyle.footer}>©NecroDwarf</Text>

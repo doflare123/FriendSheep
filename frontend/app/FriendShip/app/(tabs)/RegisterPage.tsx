@@ -1,6 +1,8 @@
+import authService from '@/api/services/authService';
+import { useToast } from '@/components/ToastContext';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Linking, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Button from '../../components/auth/Button';
 import Input from '../../components/auth/Input';
@@ -9,14 +11,90 @@ import authorizeStyle from '../styles/authorizeStyle';
 
 const Register = () => {
   const navigation = useNavigation();
+  const { showToast } = useToast();
+  
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const openURL = (url: string) => {
     Linking.openURL(url).catch(err =>
       console.error('Не удалось открыть ссылку:', err),
     );
+  };
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleRegister = async () => {
+    // Валидация
+    if (!email.trim()) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Введите email',
+      });
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Введите корректный email',
+      });
+      return;
+    }
+
+    if (!username.trim()) {
+      showToast({
+        type: 'warning',
+        title: 'Внимание',
+        message: 'Введите имя пользователя',
+      });
+      return;
+    }
+
+    if (!password.trim() || password.length < 6) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Пароль должен содержать минимум 6 символов',
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Создаем сессию регистрации
+      const response = await authService.createRegistrationSession(email);
+
+      showToast({
+        type: 'success',
+        title: 'Успешно!',
+        message: 'Код подтверждения отправлен на почту',
+      });
+
+      // Переходим на страницу подтверждения с данными
+      (navigation.navigate as any)('Confirm', {
+        sessionId: response.session_id,
+        email,
+        username,
+        password,
+      });
+    } catch (error: any) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось создать аккаунт',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,6 +116,7 @@ const Register = () => {
           placeholder="Имя пользователя"
           value={username}
           onChangeText={setUsername}
+          editable={!loading}
         />
 
         <Text style={authorizeStyle.label}>Пароль</Text>
@@ -46,6 +125,7 @@ const Register = () => {
           secureTextEntry
           value={password}
           onChangeText={setPassword}
+          editable={!loading}
         />
 
         <Text style={authorizeStyle.label}>Почта</Text>
@@ -54,10 +134,15 @@ const Register = () => {
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
+          autoCapitalize="none"
+          editable={!loading}
         />
 
         <View style={[authorizeStyle.account, {justifyContent: 'flex-end'}]}>
-          <TouchableOpacity onPress={() => navigation.navigate('Login' as never)}>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Login' as never)}
+            disabled={loading}
+          >
             <Text>Есть аккаунт?</Text>
           </TouchableOpacity>
         </View>
@@ -86,9 +171,18 @@ const Register = () => {
         </Text>
 
         <Button
-          title="Зарегистрироваться"
-          onPress={() => navigation.navigate('Confirm' as never)}
+          title={loading ? 'Отправка...' : 'Зарегистрироваться'}
+          onPress={handleRegister}
+          disabled={loading}
         />
+
+        {loading && (
+          <ActivityIndicator 
+            size="large" 
+            color="#0000ff" 
+            style={{ marginTop: 16 }} 
+          />
+        )}
       </KeyboardAwareScrollView>
 
       <Text style={authorizeStyle.footer}>©NecroDwarf</Text>
