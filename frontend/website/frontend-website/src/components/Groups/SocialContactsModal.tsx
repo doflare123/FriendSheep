@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import styles from '../../styles/Groups/SocialContactsModal.module.css';
 import {getSocialIcon} from '../../Constants'
@@ -33,6 +34,12 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
 
   const [socialNetworks, setSocialNetworks] = useState<SocialNetwork[]>(baseSocialNetworks);
   const [contacts, setContacts] = useState<Record<string, { name: string; link: string }>>({});
+  const [mounted, setMounted] = useState(false);
+
+  // Монтируем компонент только на клиенте
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Инициализация контактов при открытии модального окна
   useEffect(() => {
@@ -52,6 +59,7 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
       });
 
       // Добавляем кастомные социальные сети из initialContacts
+      const customNetworks: SocialNetwork[] = [];
       contactsArray.forEach(contact => {
         if (contact && contact.name && contact.link) {
           const isBaseSocial = baseSocialNetworks.some(social => social.name === contact.name);
@@ -63,7 +71,7 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
               icon: '/default/soc_net.png',
               isCustom: true
             };
-            setSocialNetworks(prev => [...prev, customNetwork]);
+            customNetworks.push(customNetwork);
             contactsMap[customId] = {
               name: contact.name,
               link: contact.link
@@ -72,6 +80,7 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
         }
       });
 
+      setSocialNetworks([...baseSocialNetworks, ...customNetworks]);
       setContacts(contactsMap);
     }
   }, [isOpen, initialContacts]);
@@ -145,10 +154,24 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className={styles.modalOverlay} onClick={handleClose}>
+  const modalContent = (
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 9999
+      }}
+      onClick={handleClose}
+    >
       <div className={styles.socialModalContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.socialModalHeader}>
           <h3>Выберите и заполните контакты</h3>
@@ -214,6 +237,9 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
       </div>
     </div>
   );
+
+  // Рендерим через портал в body
+  return createPortal(modalContent, document.body);
 };
 
 export default SocialContactsModal;

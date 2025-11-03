@@ -1768,10 +1768,11 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
-                        "type": "file",
+                        "type": "string",
                         "description": "Изображение",
                         "name": "image",
-                        "in": "formData"
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -2745,6 +2746,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/users/notify/inf": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает true - есть, нет - false",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Есть ли уведомления для пользователя или нет",
+                "responses": {
+                    "200": {
+                        "description": "Есть ли уведомления",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users/password": {
             "patch": {
                 "security": [
@@ -3303,6 +3347,14 @@ const docTemplate = `{
                     "Users inf"
                 ],
                 "summary": "Получить подписки пользователя на группы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID пользователя (опционально)",
+                        "name": "id",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Список групп, на которые подписан пользователь",
@@ -3315,6 +3367,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Не передан jwt",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Нет прав",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -4618,6 +4679,9 @@ const docTemplate = `{
                 "sent": {
                     "type": "boolean"
                 },
+                "text": {
+                    "type": "string"
+                },
                 "type": {
                     "type": "string"
                 },
@@ -4746,6 +4810,9 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "group_id": {
+                    "type": "integer"
+                },
                 "group_name": {
                     "type": "string"
                 },
@@ -4772,20 +4839,50 @@ const docTemplate = `{
         "services.SessionUpdateInput": {
             "type": "object",
             "properties": {
+                "age_limit": {
+                    "type": "string"
+                },
                 "count_users_max": {
                     "type": "integer"
+                },
+                "country": {
+                    "type": "string"
                 },
                 "duration": {
                     "type": "integer"
                 },
+                "end_time": {
+                    "type": "string"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "image_url": {
                     "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "session_place_id": {
+                    "type": "integer"
+                },
+                "session_type_id": {
+                    "type": "integer"
                 },
                 "start_time": {
                     "type": "string"
                 },
                 "title": {
                     "type": "string"
+                },
+                "year": {
+                    "type": "integer"
                 }
             }
         },
@@ -4812,6 +4909,9 @@ const docTemplate = `{
                 },
                 "image_url": {
                     "type": "string"
+                },
+                "is_sub": {
+                    "type": "boolean"
                 },
                 "session_place": {
                     "type": "string"

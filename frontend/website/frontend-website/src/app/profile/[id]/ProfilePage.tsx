@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo  } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { notFound, useRouter } from 'next/navigation';
 import styles from '../../../styles/profile/ProfilePage.module.css';
 import section1Styles from '../../../styles/profile/ProfileSection1.module.css';
 import section2Styles from '../../../styles/profile/ProfileSection2.module.css';
@@ -11,390 +11,77 @@ import section4Styles from '../../../styles/profile/ProfileSection4.module.css';
 import StatisticsTile from '../../../components/profile/StatisticsTile';
 import SubscriptionItem from '../../../components/profile/SubscriptionItem';
 import CategorySection from '../../../components/Events/CategorySection';
-import {getSocialIcon} from '../../../Constants';
+import { getSocialIcon, getAccesToken } from '../../../Constants';
 import GenrePieChart from '../../../components/profile/GenrePieChart';
 import AddUserModal from '../../../components/search/AddUserModal';
+import { UserDataResponse } from '../../../types/UserData';
+import {SmallGroup} from '@/types/Groups';
+import {Counters, UpdateProfileRequest} from '@/types/apiTypes';
+import {editProfile} from '@/api/profile/editProfile';
+import {editTiles} from '@/api/profile/editTiles';
+import {getImage} from '@/api/getImage';
 
-// Тестовые данные на основе API
-const testProfileData = {
-  data_register: "21.01.2024",
-  enterprise: true,
-  image: "/default-avatar.png",
-  name: "Чебаксар",
-  username: "user",
-  status: "I'm feel so sigma!",
-  popular_genres: [
-    { count: 30, name: "Боевик" },
-    { count: 27, name: "Приколы" },
-    { count: 25, name: "Веселье" },
-    { count: 23, name: "Русские" },
-    { count: 1, name: "Анекдоты" }
-  ],
-  tiles: ["count_films", "spent_time", "count_games", "count_all"],
-  telegram_link: false,
-  user_stats: {
-    count_all: 20,
-    count_another: 240,
-    count_create_session: 322,
-    count_films: 20,
-    count_games: 20,
-    count_table_games: 5,
-    most_big_session: 8,
-    series_session_count: 6,
-    spent_time: 20,
-    most_popular_day: "Воскресенье" // добавлено для статистики
-  },
-  recent_sessions: [
-    {
-      id: '1',
-      type: 'games',
-      image: '/event_card.jpg',
-      date: '12 сен',
-      title: 'Мафия в центре',
-      genres: ['Настольные игры'],
-      participants: 8,
-      maxParticipants: 12,
-      duration: '2ч',
-      location: 'offline',
-    },
-    {
-      id: '2',
-      type: 'movies',
-      image: '/event_card.jpg',
-      date: '5 сен',
-      title: 'Киновечер: Интерстеллар',
-      genres: ['Фантастика'],
-      participants: 15,
-      maxParticipants: 20,
-      duration: '3ч',
-      location: 'offline',
-    },
-    {
-      id: '3',
-      type: 'board',
-      image: '/event_card.jpg',
-      date: '1 сен',
-      title: 'Монополия батл',
-      genres: ['Экономика'],
-      participants: 6,
-      maxParticipants: 6,
-      duration: '1ч 30м',
-      location: 'online',
-    },
-    {
-      id: '4',
-      type: 'games',
-      image: '/event_card.jpg',
-      date: '28 авг',
-      title: 'Квиз вечер',
-      genres: ['Викторина'],
-      participants: 10,
-      maxParticipants: 12,
-      duration: '2ч',
-      location: 'offline',
-    },
-    {
-      id: '5',
-      type: 'other',
-      image: '/event_card.jpg',
-      date: '20 авг',
-      title: 'Караоке-вечеринка',
-      genres: ['Музыка'],
-      participants: 12,
-      maxParticipants: 15,
-      duration: '3ч',
-      location: 'offline',
-    },
-    {
-      id: '6',
-      type: 'movies',
-      image: '/event_card.jpg',
-      date: '15 авг',
-      title: 'Фильм: Матрица',
-      genres: ['Фантастика'],
-      participants: 10,
-      maxParticipants: 15,
-      duration: '2ч 30м',
-      location: 'online',
-    },
-  ],
+import {useAuth} from '@/contexts/AuthContext'
 
-  upcoming_sessions: [
-    {
-      id: '7',
-      type: 'games',
-      image: '/event_card.jpg',
-      date: '20 сен',
-      title: 'Among Us Online',
-      genres: ['Кооператив'],
-      participants: 5,
-      maxParticipants: 10,
-      duration: '1ч',
-      location: 'online',
-    },
-    {
-      id: '8',
-      type: 'movies',
-      image: '/event_card.jpg',
-      date: '25 сен',
-      title: 'Показ фильма: Начало',
-      genres: ['Триллер'],
-      participants: 20,
-      maxParticipants: 30,
-      duration: '2ч 30м',
-      location: 'offline',
-    },
-    {
-      id: '9',
-      type: 'board',
-      image: '/event_card.jpg',
-      date: '28 сен',
-      title: 'Каркассон турнир',
-      genres: ['Настолки'],
-      participants: 8,
-      maxParticipants: 12,
-      duration: '2ч',
-      location: 'offline',
-    },
-    {
-      id: '10',
-      type: 'games',
-      image: '/event_card.jpg',
-      date: '30 сен',
-      title: 'CS:GO турнир',
-      genres: ['Шутер'],
-      participants: 10,
-      maxParticipants: 10,
-      duration: '3ч',
-      location: 'online',
-    },
-    {
-      id: '11',
-      type: 'other',
-      image: '/event_card.jpg',
-      date: '2 окт',
-      title: 'Кулинарный мастер-класс',
-      genres: ['Еда'],
-      participants: 6,
-      maxParticipants: 10,
-      duration: '2ч',
-      location: 'offline',
-    },
-    {
-      id: '12',
-      type: 'movies',
-      image: '/event_card.jpg',
-      date: '5 окт',
-      title: 'Вечер комедий',
-      genres: ['Комедия'],
-      participants: 12,
-      maxParticipants: 20,
-      duration: '2ч',
-      location: 'offline',
-    },
-    {
-      id: '13',
-      type: 'games',
-      image: '/event_card.jpg',
-      date: '10 окт',
-      title: 'PUBG Squad Night',
-      genres: ['Battle Royale'],
-      participants: 4,
-      maxParticipants: 4,
-      duration: '2ч',
-      location: 'online',
-    },
-  ],
-};
-
-const testSubscriptions = [
-  {
-    id: 1,
-    name: "Группа крутых пацанят",
-    small_description: "47 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["games"]
-  },
-  {
-    id: 2,
-    name: "Киноманы",
-    small_description: "128 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["movies"]
-  },
-  {
-    id: 3,
-    name: "Настольщики",
-    small_description: "63 участника",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["board"]
-  },
-  {
-    id: 4,
-    name: "Футбольный чат",
-    small_description: "212 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["sport"]
-  },
-  {
-    id: 5,
-    name: "Любители музыки",
-    small_description: "98 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["music"]
-  },
-  {
-    id: 6,
-    name: "Путешественники",
-    small_description: "76 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["travel"]
-  },
-  {
-    id: 7,
-    name: "Игроманы",
-    small_description: "301 участник",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["games"]
-  },
-  {
-    id: 8,
-    name: "Аниме клуб",
-    small_description: "145 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["anime"]
-  },
-  {
-    id: 9,
-    name: "IT тусовка",
-    small_description: "512 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["tech"]
-  },
-  {
-    id: 10,
-    name: "Книжный клуб",
-    small_description: "84 участника",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["books"]
-  },
-  {
-    id: 11,
-    name: "Фанаты Marvel",
-    small_description: "133 участника",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["movies"]
-  },
-  {
-    id: 12,
-    name: "Сериальщики",
-    small_description: "210 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["series"]
-  },
-  {
-    id: 13,
-    name: "Гурманы",
-    small_description: "59 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["food"]
-  },
-  {
-    id: 14,
-    name: "Беговой клуб",
-    small_description: "42 участника",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["sport"]
-  },
-  {
-    id: 15,
-    name: "Фотографы",
-    small_description: "77 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["photo"]
-  },
-  {
-    id: 16,
-    name: "Художники",
-    small_description: "64 участника",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["art"]
-  },
-  {
-    id: 17,
-    name: "Киберспорт",
-    small_description: "189 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["games"]
-  },
-  {
-    id: 18,
-    name: "Фанаты DC",
-    small_description: "101 участник",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["movies"]
-  },
-  {
-    id: 19,
-    name: "Мастера настолок",
-    small_description: "55 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["board"]
-  },
-  {
-    id: 20,
-    name: "Поклонники классики",
-    small_description: "39 участников",
-    image: "/default/group.jpg",
-    type: "group",
-    category: ["music"]
-  }
-];
-
+import {showNotification} from '@/utils';
 
 interface ProfilePageProps {
   params: {
     id: string;
+    data?: UserDataResponse;
+    isOwn?: boolean;
+    subs?: SmallGroup[];
   };
 }
 
 export default function ProfilePage({ params }: ProfilePageProps) {
+  // Проверка наличия данных
+  if (!params.data) {
+    notFound();
+  }
+
+  const { forceRefreshToken } = useAuth();
+  const profileData = params.data;
+  const subsData = params.subs;
+  const userId = parseInt(params.id);
+
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedData, setEditedData] = useState({
-    name: testProfileData.name,
-    username: testProfileData.username,
-    status: testProfileData.status,
-    image: testProfileData.image,
-    tiles: [...testProfileData.tiles]
+    name: profileData.name,
+    us: profileData.us,
+    status: profileData.status,
+    image: profileData.image,
+    tiles: [...profileData.tiles]
   });
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [animatedChart, setAnimatedChart] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
-  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [showUpArrow, setShowUpArrow] = useState(false);
   const [showDownArrow, setShowDownArrow] = useState(false);
   const [activeTab, setActiveTab] = useState<'recent' | 'upcoming'>('recent');
-  const [isOwnProfile, setOwnProfile] = useState(false);
+  const [isOwnProfile, setOwnProfile] = useState(params.isOwn || false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+
+  const [isSaving, setIsSaving] = useState(false);
+  const router = useRouter();
+
+  // Функция для расчета размера шрифта в зависимости от длины текста
+  const calculateFontSize = (text: string, maxSize: number, minSize: number, maxLength: number) => {
+    const length = text.length;
+    if (length === 0) return maxSize;
+    if (length <= maxLength / 2) return maxSize;
+    
+    const ratio = Math.min(length / maxLength, 1);
+    const fontSize = maxSize - (maxSize - minSize) * ratio;
+    return Math.max(fontSize, minSize);
+  };
+
+  const nameFontSize = calculateFontSize(editedData.name, 22, 14, 40);
+  const statusFontSize = calculateFontSize(editedData.status, 16, 12, 50);
+  const usFontSize = calculateFontSize(editedData.us, 16, 12, 40);
 
   // Анимация диаграммы при загрузке
   useEffect(() => {
@@ -427,7 +114,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   };
 
   const getTileValue = (tileType: string) => {
-    const stats = testProfileData.user_stats;
+    const stats = profileData.user_stats;
     const values: { [key: string]: number } = {
       count_all: stats.count_all,
       count_films: stats.count_films,
@@ -447,21 +134,74 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     }
   };
 
-  const handleSave = () => {
-    // Логика сохранения
-    setIsEditMode(false);
-    console.log('Сохранение данных:', editedData);
+  const handleSave = async () => {
+    const accessToken = getAccesToken();
+    if (!accessToken) {
+      console.error("❌ Нет accessToken");
+      showNotification(401, "Нет токена доступа");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      let imageUrl = editedData.image;
+
+      if (avatarFile) {
+        imageUrl = await getImage(accessToken, avatarFile);
+      }
+
+      const profileData: UpdateProfileRequest = {
+        name: editedData.name,
+        us: editedData.us,
+        status: editedData.status,
+        image: imageUrl,
+      };
+
+      await editProfile(accessToken, profileData);
+
+      const counters: Counters = {
+        count_all: editedData.tiles.includes("count_all"),
+        count_films: editedData.tiles.includes("count_films"),
+        count_games: editedData.tiles.includes("count_games"),
+        count_other: editedData.tiles.includes("count_other"),
+        count_table: editedData.tiles.includes("count_table"),
+        spent_time: editedData.tiles.includes("spent_time"),
+      };
+
+      await editTiles(accessToken, counters);
+      await forceRefreshToken();
+      router.replace('/profile/' + editedData.us);
+
+      // Выходим из режима редактирования перед навигацией
+      setIsEditMode(false);
+      setIsSaving(false);
+
+      showNotification(200, "Изменения успешно сохранены");
+      
+      // Используем replace для избежания записи в историю
+      
+
+    } catch (error: any) {
+      console.error("❌ Ошибка при сохранении профиля:", error);
+      showNotification(
+        error.response?.status || 500,
+        "Не удалось сохранить изменения",
+      );
+      setIsSaving(false);
+    }
   };
 
+
   const handleCancel = () => {
-    // Возврат к исходным данным
     setEditedData({
-      name: testProfileData.name,
-      username: testProfileData.username,
-      status: testProfileData.status,
-      image: testProfileData.image,
-      tiles: [...testProfileData.tiles]
+      name: profileData.name,
+      us: profileData.us,
+      status: profileData.status,
+      image: profileData.image,
+      tiles: [...profileData.tiles]
     });
+    setAvatarFile(null);
     setIsEditMode(false);
   };
 
@@ -473,6 +213,16 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
   const handleTileChange = (newTileType: string) => {
     if (selectedTileIndex !== null) {
+      // Проверяем, используется ли уже эта плитка
+      const isAlreadyUsed = editedData.tiles.some(
+        (tile, index) => tile === newTileType && index !== selectedTileIndex
+      );
+      
+      if (isAlreadyUsed) {
+        showNotification(400, "Эта плитка уже используется");
+        return;
+      }
+      
       const newTiles = [...editedData.tiles];
       newTiles[selectedTileIndex] = newTileType;
       setEditedData({...editedData, tiles: newTiles});
@@ -481,15 +231,26 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   };
 
   const handleTelegramClick = () => {
-    if (!testProfileData.telegram_link) {
+    if (!profileData.telegram_link) {
       window.open('https://t.me/FriendShipNotify_bot', '_blank');
     }
   };
 
-  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value.length <= 10) {
-      setEditedData({...editedData, username: value});
+  const handleAvatarClick = () => {
+    if (isEditMode && avatarInputRef.current) {
+      avatarInputRef.current.click();
+    }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditedData({...editedData, image: reader.result as string});
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -518,7 +279,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   }, []);
 
   const chartData = useMemo(() => {
-    const topGenres = testProfileData.popular_genres.slice(0, 5);
+    const topGenres = profileData.popular_genres.slice(0, 5);
     const totalTopCount = topGenres.reduce((sum, genre) => sum + genre.count, 0);
     const otherCount = Math.max(0, Math.floor(totalTopCount * 0.2));
 
@@ -533,7 +294,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     }
 
     return data;
-  }, [testProfileData.popular_genres]);
+  }, [profileData.popular_genres]);
 
   const handleAddUserClick = () => {
     setIsAddUserModalOpen(true);
@@ -561,10 +322,22 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               </button>
             ) : (
               <div className={section1Styles.editButtons}>
-                <button onClick={handleSave} className={section1Styles.editBtn}>
-                  <Image src="/profile/edit_save.png" alt="save" width={20} height={20} />
+                <button 
+                  onClick={handleSave} 
+                  className={section1Styles.editBtn} 
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <Image src="/loader.gif" alt="loading" width={20} height={20} />
+                  ) : (
+                    <Image src="/profile/edit_save.png" alt="save" width={20} height={20} />
+                  )}
                 </button>
-                <button onClick={handleCancel} className={section1Styles.editBtn}>
+                <button 
+                  onClick={handleCancel} 
+                  className={section1Styles.editBtn}
+                  disabled={isSaving}
+                >
                   <Image src="/profile/edit_cancel.png" alt="cancel" width={20} height={20} />
                 </button>
               </div>
@@ -579,11 +352,22 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                 width={120} 
                 height={120}
                 className={section1Styles.avatar}
+                style={{ cursor: isEditMode ? 'pointer' : 'default' }}
+                onClick={handleAvatarClick}
               />
               {isEditMode && (
-                <div className={section1Styles.editIcon}>
-                  <Image src="/profile/edit.png" alt="edit" width={16} height={16} />
-                </div>
+                <>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className={section1Styles.avatarInput}
+                  />
+                  <div className={section1Styles.avatarEditIcon} onClick={handleAvatarClick}>
+                    <Image src="/profile/edit.png" alt="edit" width={16} height={16} />
+                  </div>
+                </>
               )}
             </div>
 
@@ -591,83 +375,134 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               <div className={section1Styles.userNameContainer}>
                 <div className={section1Styles.nameWrapper}>
                   {isEditMode ? (
-                    <input 
-                      value={editedData.name}
-                      onChange={(e) => setEditedData({...editedData, name: e.target.value})}
-                      className={section1Styles.nameInput}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        value={editedData.name}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
+                          if (value.length <= 40) {
+                            setEditedData({...editedData, name: value});
+                          }
+                        }}
+                        className={section1Styles.nameInput}
+                        style={{ fontSize: `${nameFontSize}px` }}
+                        title={editedData.name}
+                      />
+                      <div className={section1Styles.nameEditIcon}>
+                        <Image src="/profile/edit.png" alt="edit" width={14} height={14} />
+                      </div>
+                    </div>
                   ) : (
-                    <h2 className={section1Styles.userName}>{editedData.name}</h2>
+                    <h2 
+                      className={section1Styles.userName}
+                      style={{ fontSize: `${nameFontSize}px` }}
+                      title={editedData.name}
+                    >
+                      {editedData.name}
+                    </h2>
                   )}
-                  {testProfileData.enterprise && !isEditMode && (
+                  {profileData.enterprise && !isEditMode && (
                     <Image src="/profile/mark.png" alt="verified" width={20} height={20} className={section1Styles.verifiedMark} />
-                  )}
-                  {isEditMode && (
-                    <Image src="/profile/edit.png" alt="edit" width={16} height={16} className={section1Styles.editIcon} />
                   )}
                 </div>
                 
-                {isOwnProfile && !isEditMode ? (
+                {isOwnProfile && !isEditMode && (
                   <div className={section1Styles.telegramContainer}>
                     <div 
-                      className={`${section1Styles.telegramIcon}`}
+                      className={section1Styles.telegramIcon}
                       onClick={handleTelegramClick}
                     >
                       <Image 
-                        src={!testProfileData.telegram_link ? "/social/tg_grey.png" : getSocialIcon("tg")} 
+                        src={!profileData.telegram_link ? "/social/tg_grey.png" : getSocialIcon("tg")} 
                         alt="telegram" 
                         width={24} 
                         height={24}
                       />
-                      {!testProfileData.telegram_link && (
+                      {!profileData.telegram_link && (
                         <div className={section1Styles.tooltip}>
                           У вас не привязан телеграм, чтобы получать напоминания о событиях, на которые вы записались. Но это можно исправить зайдя в этого бота в телеграме: <span className={section1Styles.botLink}>@FriendShipNotify_bot</span>
                         </div>
                       )}
                     </div>
                   </div>
-                ) : null}
+                )}
               </div>
-              
-              <div className={section1Styles.userContainer}>
-                <div className={section1Styles.usernameContainer}>
-                  {isEditMode ? (
-                    <div className={section1Styles.usernameEdit}>
-                      <input 
-                        value={editedData.username}
-                        onChange={handleUsernameChange}
-                        className={section1Styles.usernameInput}
-                        placeholder="username"
-                        maxLength={10}
+
+              <div className={section1Styles.userUsContainer}>
+                {isEditMode ? (
+                  <div className={section1Styles.usEditWrapper}>
+                    <input 
+                      value={editedData.us}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
+                        if (value.length <= 40) {
+                          setEditedData({...editedData, us: value});
+                        }
+                      }}
+                      className={section1Styles.usInput}
+                      style={{ fontSize: `${usFontSize}px` }}
+                      placeholder="username"
+                      title={editedData.us}
+                    />
+                    <div className={section1Styles.editIconUs}>
+                      <Image 
+                        src="/profile/edit.png" 
+                        alt="edit" 
+                        width={14} 
+                        height={14}
                       />
-                      <Image src="/profile/edit.png" alt="edit" width={16} height={16} className={section1Styles.editIcon} />
                     </div>
-                  ) : (
-                    <div className={section1Styles.userText}>@{editedData.username}</div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <p 
+                    className={section1Styles.userUs}
+                    style={{ fontSize: `${usFontSize}px` }}
+                    title={`@${editedData.us}`}
+                  >
+                    @{editedData.us}
+                  </p>
+                )}
               </div>
 
               <div className={section1Styles.userStatusContainer}>
                 {isEditMode ? (
-                  <textarea 
-                    value={editedData.status}
-                    onChange={(e) => setEditedData({...editedData, status: e.target.value})}
-                    className={section1Styles.statusInput}
-                    rows={2}
-                    placeholder="Введите статус"
-                  />
+                  <div className={section1Styles.statusEditWrapper}>
+                    <textarea 
+                      value={editedData.status}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
+                        if (value.length <= 50) {
+                          setEditedData({...editedData, status: value});
+                        }
+                      }}
+                      className={section1Styles.statusInput}
+                      style={{ fontSize: `${statusFontSize}px` }}
+                      rows={2}
+                      placeholder="Введите статус"
+                      title={editedData.status}
+                    />
+                    <div className={section1Styles.statusEditIcon}>
+                      <Image 
+                        src="/profile/edit.png" 
+                        alt="edit" 
+                        width={14} 
+                        height={14}
+                      />
+                    </div>
+                  </div>
                 ) : (
-                  <p className={section1Styles.userStatus}>{editedData.status}</p>
-                )}
-                {isEditMode && (
-                  <Image src="/profile/edit.png" alt="edit" width={16} height={16} className={section1Styles.editIcon} />
+                  <p 
+                    className={section1Styles.userStatus}
+                    style={{ fontSize: `${statusFontSize}px` }}
+                    title={editedData.status}
+                  >
+                    {editedData.status}
+                  </p>
                 )}
                 <div className={section1Styles.registerDate}>
-                  Участник с {testProfileData.data_register}
+                  Участник с {profileData.data_register}
                 </div>
               </div>
-              
             </div>
           </div>
 
@@ -679,14 +514,14 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   <Image 
                     src={getTileIcon(tileType)} 
                     alt={tileType} 
-                    width={24} 
-                    height={24}
+                    width={42} 
+                    height={42}
                   />
                 </div>
                 <div className={section1Styles.tileValue}>{getTileValue(tileType)}</div>
                 <div className={section1Styles.tileLabel}>{getTileLabel(tileType)}</div>
                 {isEditMode && (
-                  <div className={section1Styles.editIcon}>
+                  <div className={section1Styles.tileEditIcon}>
                     <Image src="/profile/edit.png" alt="edit" width={12} height={12} />
                   </div>
                 )}
@@ -719,18 +554,20 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           )}
 
           {/* Топ жанров */}
-          <div className={section1Styles.topGenres}>
-            <h4>Топ любимых жанров:</h4>
-            <div className={section1Styles.genresList}>
-              {testProfileData.popular_genres.map((genre, index) => (
-                <div key={index} className={section1Styles.genreItem}>
-                  <span className={section1Styles.genreNumber}>{index + 1}.</span>
-                  <span className={section1Styles.genreName}>{genre.name}</span>
-                  <span className={section1Styles.genreCount}>{genre.count}</span>
-                </div>
-              ))}
+          {profileData.popular_genres.length > 0 && (
+            <div className={section1Styles.topGenres}>
+              <h4>Топ любимых жанров:</h4>
+              <div className={section1Styles.genresList}>
+                {profileData.popular_genres.map((genre, index) => (
+                  <div key={index} className={section1Styles.genreItem}>
+                    <span className={section1Styles.genreNumber}>{index + 1}.</span>
+                    <span className={section1Styles.genreName}>{genre.name}</span>
+                    <span className={section1Styles.genreCount}>{genre.count}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Секция 2: Статистика */}
@@ -740,19 +577,24 @@ export default function ProfilePage({ params }: ProfilePageProps) {
             {/* Диаграмма жанров */}
             <div className={section2Styles.chartContainer}>
               <div className={section2Styles.chartWrapper}>
-                <div className={section2Styles.chartWithLegend}>
-                  <GenrePieChart data={chartData} animated={animatedChart} />
-                  {/* кастомная легенда остаётся как была */}
-                  <div className={section2Styles.customLegend}>
-                    <h4 className={section2Styles.genresTitle}>Жанры:</h4>
-                    {chartData.map((entry, index) => (
-                      <div key={index} className={section2Styles.legendItem}>
-                        <span className={section2Styles.legendNumber}>{index + 1}.</span>
-                        <span className={section2Styles.legendName}>{entry.name}</span>
-                      </div>
-                    ))}
+                {profileData.popular_genres.length > 0 ? (
+                  <div className={section2Styles.chartWithLegend}>
+                    <GenrePieChart data={chartData} animated={animatedChart} />
+                    <div className={section2Styles.customLegend}>
+                      <h4 className={section2Styles.genresTitle}>Жанры:</h4>
+                      {chartData.map((entry, index) => (
+                        <div key={index} className={section2Styles.legendItem}>
+                          <span className={section2Styles.legendNumber}>{index + 1}.</span>
+                          <span className={section2Styles.legendName}>{entry.name}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className={styles.emptyPlaceholder}>
+                    Здесь пока пусто
+                  </div>
+                )}
               </div>
             </div>
 
@@ -760,17 +602,17 @@ export default function ProfilePage({ params }: ProfilePageProps) {
             <div className={section2Styles.statisticsTiles}>
               <StatisticsTile
                 title="Самый популярный день"
-                value={testProfileData.user_stats.most_popular_day}
+                value={profileData.user_stats.most_pop_day}
                 icon="/profile/calendar.png"
               />
               <StatisticsTile
                 title="Создано сессий"
-                value={testProfileData.user_stats.count_create_session}
+                value={profileData.user_stats.count_create_session}
                 icon="/profile/create_session.png"
               />
               <StatisticsTile
                 title="Серия сессий"
-                value={`${testProfileData.user_stats.series_session_count} подряд`}
+                value={`${profileData.user_stats.series_session_count} подряд`}
                 icon="/profile/series.png"
               />
             </div>
@@ -798,15 +640,21 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               ref={scrollRef}
               onScroll={handleScroll}
             >
-              {testSubscriptions.map((group) => (
-                <SubscriptionItem
-                  key={group.id}
-                  id={group.id}
-                  name={group.name}
-                  small_description={group.small_description}
-                  image={group.image}
-                />
-              ))}
+              {subsData && subsData.length > 0 ? (
+                subsData.map((group) => (
+                  <SubscriptionItem
+                    key={group.id}
+                    id={group.id}
+                    name={group.name}
+                    small_description={group.small_description}
+                    image={group.image}
+                  />
+                ))
+              ) : (
+                <div className={styles.emptyPlaceholder}>
+                  Здесь пока пусто
+                </div>
+              )}
             </div>
 
             {showDownArrow && (
@@ -824,7 +672,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
         <div className={section4Styles.eventsSection}>
           <div className={section4Styles.header}>
             <h3>События</h3>
-            {/* Кнопки сразу справа от заголовка */}
             
             {isOwnProfile && (
               <div className={section4Styles.buttonsGroup}>
@@ -833,6 +680,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   className={`${section4Styles.tabButton} ${activeTab === 'recent' ? section4Styles.active : ''}`}
                   onClick={() => setActiveTab('recent')}
                   aria-pressed={activeTab === 'recent'}
+                  title = "Завершенные события"
                 >
                   <Image
                     src="/profile/recent_sessions.png"
@@ -847,6 +695,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   className={`${section4Styles.tabButton} ${activeTab === 'upcoming' ? section4Styles.active : ''}`}
                   onClick={() => setActiveTab('upcoming')}
                   aria-pressed={activeTab === 'upcoming'}
+                  title = "Наступающие события"
                 >
                   <Image
                     src="/profile/upcoming_sessions.png"
@@ -860,24 +709,33 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           </div>
 
           <div className={section4Styles.content}>
-            <CategorySection
-              section={
-                isOwnProfile 
-                  ? (activeTab === 'recent'
-                      ? {categories: testProfileData.recent_sessions}
-                      : {categories: testProfileData.upcoming_sessions})
-                  : {categories: testProfileData.recent_sessions}
-              }
-              title=""
-              showCategoryLabel={false}
-            />
+            {(() => {
+              const sessions = isOwnProfile 
+                ? (activeTab === 'recent' ? profileData.recent_sessions : profileData.upcoming_sessions)
+                : profileData.recent_sessions;
+              
+              const hasEvents = sessions && sessions.length > 0 && 
+                sessions.some(cat => cat.events && cat.events.length > 0);
+              
+              return hasEvents ? (
+                <CategorySection
+                  section={{categories: sessions}}
+                  title=""
+                  showCategoryLabel={false}
+                />
+              ) : (
+                <div className={styles.emptyPlaceholderEvents}>
+                  Здесь пока пусто
+                </div>
+              );
+            })()}
           </div>
         </div>
         
         <AddUserModal
           isOpen={isAddUserModalOpen}
           onClose={() => setIsAddUserModalOpen(false)}
-          userId={parseInt(params.id)}
+          userId={userId}
         />
       </div>
     </div>

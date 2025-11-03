@@ -1,9 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { refreshAccessToken, decodeJWT, isTokenValid, getCookie, setCookie, deleteCookie } from '../api/auth';
+import { refreshAccessToken, isTokenValid, getCookie, setCookie, deleteCookie } from '../api/auth';
+import {decodeJWT} from '@/Constants'
 
 interface UserData {
+  us: string;
   username: string;
   email: string;
   avatar?: string;
@@ -15,6 +17,7 @@ interface AuthContextType {
   login: (accessToken: string, refreshToken: string) => void;
   logout: () => void;
   isLoading: boolean;
+  forceRefreshToken: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,13 +35,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
+  
   // Обновление пользовательских данных из токена
   const updateUserData = (token: string) => {
     const decoded = decodeJWT(token);
     if (decoded) {
       setUserData({
-        username: decoded.Us || 'Пользователь',
+        us: decoded.Us,
+        username: decoded.Username || 'Пользователь',
         email: decoded.Email || '',
         avatar: decoded.Image
       });
@@ -149,12 +153,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const forceRefreshToken = async (): Promise<boolean> => {
+    try {
+      const refreshToken = getCookie("refresh_token");
+
+      if (!refreshToken) {
+        logout();
+        return false;
+      }
+
+      const tokens = await refreshAccessToken(refreshToken);
+      localStorage.setItem("access_token", tokens.access_token);
+      setCookie("refresh_token", tokens.refresh_token, 7); // 7 дней
+      updateUserData(tokens.access_token);
+
+      // обновляем расписание автообновления
+      setupTokenRefresh();
+
+      console.log("🔄 Токен обновлён принудительно");
+      return true;
+    } catch (error) {
+      console.error("❌ Ошибка при принудительном обновлении токена:", error);
+      logout();
+      return false;
+    }
+  };
+
+
   const value = {
     isLoggedIn,
     userData,
     login,
     logout,
     isLoading,
+    forceRefreshToken,
   };
 
   return (

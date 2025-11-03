@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"gorm.io/gorm"
 )
@@ -26,7 +27,7 @@ type SessionInput struct {
 	StartTime    time.Time `form:"start_time" time_format:"2006-01-02T15:04:05Z07:00" binding:"required"`
 	Duration     uint16    `form:"duration"`
 	CountUsers   uint16    `form:"count_users" binding:"required"`
-	Image        string    `form:"-"`
+	Image        string    `form:"image" binding:"required"`
 
 	GenresRaw string `form:"genres"`
 	FieldsRaw string `form:"fields"`
@@ -34,7 +35,7 @@ type SessionInput struct {
 	Year      *int   `form:"year"`
 	Country   string `form:"country"`
 	AgeLimit  string `form:"age_limit"`
-	Notes     string `form:"notes" binding:"min=5,max=300"`
+	Notes     string `form:"notes" binding:"min=0,max=300"`
 }
 
 type SearchSessionsRequest struct {
@@ -66,6 +67,7 @@ type SubSessionDetail struct {
 	CurrantUsers  uint16    `json:"current_users"`
 	CountUsersMax uint16    `json:"count_users_max"`
 	ImageURL      string    `json:"image_url"`
+	IsSub         bool      `json:"is_sub"`
 }
 
 type PaginatedSearchResponse struct {
@@ -265,7 +267,6 @@ func JoinToSession(email *string, input SessionJoinInput) error {
 		dbTx.Rollback()
 		return fmt.Errorf("сессия не найдена: %v", err)
 	}
-	fmt.Println(session.Group.IsPrivate, "dfkjsldkfjlsdkjflskdjflsdjflsdkjf")
 
 	if session.Group.IsPrivate == true {
 		var groupUser groups.GroupUsers
@@ -347,11 +348,20 @@ func LeaveSession(email string, sessionID uint) error {
 //admin функционал
 
 type SessionUpdateInput struct {
-	Title         *string    `json:"title"`
-	StartTime     *time.Time `json:"start_time"`
-	Duration      *uint16    `json:"duration"`
-	ImageURL      *string    `json:"image_url"`
-	CountUsersMax *uint16    `json:"count_users_max"`
+	Title          *string    `json:"title"`
+	StartTime      *time.Time `json:"start_time"`
+	EndTime        *time.Time `json:"end_time"`
+	Duration       *uint16    `json:"duration"`
+	ImageURL       *string    `json:"image_url"`
+	CountUsersMax  *uint16    `json:"count_users_max"`
+	Notes          *string    `json:"notes"`
+	Location       *string    `json:"location"`
+	Genres         *[]string  `json:"genres"`
+	Year           *int       `json:"year"`
+	Country        *string    `json:"country"`
+	AgeLimit       *string    `json:"age_limit"`
+	SessionTypeID  *uint      `json:"session_type_id"`
+	SessionPlaceID *uint      `json:"session_place_id"`
 }
 
 func DeleteSession(email string, sessionID uint) error {
@@ -420,38 +430,92 @@ func DeleteSession(email string, sessionID uint) error {
 }
 
 func UpdateSession(email string, sessionID uint, input SessionUpdateInput) error {
-	var session sessions.Session
-	if err := db.GetDB().Preload("Group").First(&session, sessionID).Error; err != nil {
-		return fmt.Errorf("сессия не найдена")
+	var ses sessions.Session
+	if err := db.GetDB().Preload("Group").First(&ses, sessionID).Error; err != nil {
+		return fmt.Errorf("сессия не найдена: %v", err)
 	}
 
 	var user models.User
 	if err := db.GetDB().Where("email = ?", email).First(&user).Error; err != nil {
-		return nil
+		return fmt.Errorf("пользователь не найден")
 	}
-	isAdmin, err := getUserRole(user.ID, session.GroupID)
-	if isAdmin != "admin" {
-		return err
+
+	role, err := getUserRole(user.ID, ses.GroupID)
+	if err != nil {
+		return fmt.Errorf("ошибка проверки роли: %v", err)
+	}
+	if role != "admin" {
+		return fmt.Errorf("доступ запрещён: только администратор может редактировать сессию")
 	}
 
 	if input.Title != nil {
-		session.Title = *input.Title
+		ses.Title = *input.Title
 	}
 	if input.StartTime != nil {
-		session.StartTime = *input.StartTime
+		ses.StartTime = *input.StartTime
+	}
+	if input.EndTime != nil {
+		ses.EndTime = *input.EndTime
 	}
 	if input.Duration != nil {
-		session.Duration = *input.Duration
+		ses.Duration = *input.Duration
 	}
 	if input.ImageURL != nil {
-		session.ImageURL = *input.ImageURL
+		ses.ImageURL = *input.ImageURL
 	}
 	if input.CountUsersMax != nil {
-		session.CountUsersMax = *input.CountUsersMax
+		ses.CountUsersMax = *input.CountUsersMax
+	}
+	if input.SessionTypeID != nil {
+		ses.SessionTypeID = *input.SessionTypeID
+	}
+	if input.SessionPlaceID != nil {
+		ses.SessionPlaceID = *input.SessionPlaceID
 	}
 
-	if err := db.GetDB().Save(&session).Error; err != nil {
+	if err := db.GetDB().Save(&ses).Error; err != nil {
 		return fmt.Errorf("не удалось обновить сессию: %v", err)
+	}
+
+	coll := db.GetMongoDB().Collection("session_metadata")
+
+	update := bson.M{}
+
+	if input.Notes != nil {
+		update["notes"] = *input.Notes
+	}
+	if input.Location != nil {
+		update["location"] = *input.Location
+	}
+	if input.Genres != nil {
+		update["genres"] = *input.Genres
+	}
+	if input.Year != nil {
+		update["year"] = *input.Year
+	}
+	if input.Country != nil {
+		update["country"] = *input.Country
+	}
+	if input.AgeLimit != nil {
+		update["age_limit"] = *input.AgeLimit
+	}
+
+	if len(update) > 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		filter := bson.M{"session_id": uint(sessionID)}
+
+		opts := options.Update().SetUpsert(false)
+
+		res, err := coll.UpdateOne(ctx, filter, bson.M{"$set": update}, opts)
+		if err != nil {
+			return fmt.Errorf("не удалось обновить метаданные в MongoDB: %v", err)
+		}
+
+		if res.MatchedCount == 0 {
+			return fmt.Errorf("метаданные для сессии %d не найдены", sessionID)
+		}
 	}
 
 	return nil
@@ -720,6 +784,11 @@ func GetInfoAboutSession(email *string, sessionID *uint) (*SessionDetailResponse
 		}
 		return nil, fmt.Errorf("ошибка при поиске сессии: %v", err)
 	}
+	var sessionUsers []sessions.SessionUser
+	if err := dbTx.Where("session_id = ? AND user_id = ?", session.ID, user.ID).Find(&sessionUsers).Error; err != nil {
+		dbTx.Rollback()
+		return nil, fmt.Errorf("ошибка при поиске сессии: %v", err)
+	}
 
 	var group struct {
 		IsPrivate bool `gorm:"column:is_private"`
@@ -759,6 +828,7 @@ func GetInfoAboutSession(email *string, sessionID *uint) (*SessionDetailResponse
 		CurrantUsers:  session.CurrentUsers,
 		CountUsersMax: session.CountUsersMax,
 		ImageURL:      session.ImageURL,
+		IsSub:         len(sessionUsers) > 0,
 	}
 
 	sessionInf.Session = subIng

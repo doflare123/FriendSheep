@@ -147,3 +147,17 @@
 .cardsScroll::-webkit-scrollbar {
     display: none;
 }
+
+.pageWrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.pageWrapper .bgPage {
+    flex: 1;
+}
+
+.footerWrapper {
+    margin-top: auto;
+}

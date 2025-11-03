@@ -1,5 +1,7 @@
 // src/types/Groups.ts
 
+import {EventCardProps} from './Events'
+
 // Интерфейсы для групп
 export interface Contact {
   link: string;
@@ -50,7 +52,7 @@ export interface GroupData {
   id: number;
   image: string;
   name: string;
-  sessions: SessionWithMetadata[];
+  sessions: EventCardProps[];
   users: User[];
   small_description?: string;
   private?: boolean;
@@ -58,4 +60,14 @@ export interface GroupData {
 
 export interface GroupProfileProps {
   groupData: GroupData;
+}
+
+export interface SmallGroup {
+  id: string;
+  name: string;
+  description: string;
+  memberCount: number;
+  image?: string;
+  categories: ('games' | 'movies' | 'board' | 'other')[];
+  city: string;
 }

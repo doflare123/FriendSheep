@@ -608,3 +608,21 @@
     -webkit-line-clamp: 2;
   }
 }
+
+.leaveButton {
+  background: #E6374B !important;
+  border-color: #C41E3A !important;
+}
+
+.leaveButton:hover {
+  background: #D32F43 !important;
+}
+
+.joinButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.joinButton:disabled:hover {
+  transform: none;
+}

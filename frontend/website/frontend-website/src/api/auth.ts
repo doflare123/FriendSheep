@@ -1,17 +1,7 @@
 import axios from 'axios';
+import {decodeJWT} from '@/Constants'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-export function decodeJWT(token: string) {
-  try {
-    const payload = token.split('.')[1];
-    const decoded = JSON.parse(atob(payload));
-    return decoded;
-  } catch (error) {
-    console.error('Ошибка декодирования JWT:', error);
-    return null;
-  }
-}
 
 export function isTokenValid(token: string): boolean {
   const decoded = decodeJWT(token);

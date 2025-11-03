@@ -1,8 +1,12 @@
 package sessions
 
+import "time"
+
 type NotificationType struct {
-	ID     uint   `gorm:"primaryKey"`
-	Code   string `gorm:"unique;not null"` // "1d", "6h", etc.
-	Label  string `gorm:"not null"`        // "За 1 день", "За 6 часов"
-	Offset int64  `gorm:"not null"`        // в секундах: -86400, -21600
+	ID          uint   `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name        string `json:"name" gorm:"unique;not null"` // "24_hours", "6_hours", "1_hour"
+	Description string `json:"description" gorm:"not null"` // "За 24 часа до начала"
+	HoursBefore int    `json:"hours_before" gorm:"not null"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }

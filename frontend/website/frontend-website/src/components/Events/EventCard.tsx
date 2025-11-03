@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {EventCardProps} from "../../types/Events";
 import '../../styles/EventCard.css';
 import Image from "next/image";
-import {getCategoryIcon} from '../../Constants';
+import {getCategoryIcon, convertMinutesToReadableTime} from '../../Constants';
 import EventDetailModal from './EventDetailModal';
 import { showNotification } from "@/utils";
 
@@ -77,7 +77,7 @@ const EventCard: React.FC<EventCardProps> = ({
                         </span>
                         {duration && (
                             <span className='cardDuration'>
-                                {duration}
+                                {convertMinutesToReadableTime(duration)}
                                 <Image src="/events/clock.png" alt="clock" width={16} height={16} className="clockIcon" />
                             </span>
                         )}

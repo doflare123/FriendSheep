@@ -21,7 +21,7 @@ const StatisticsTile: React.FC<StatisticsTileProps> = ({
         <div className={styles.tileTitle}>{title}</div>
       </div>
       <div className={styles.tileIcon}>
-        <Image src={icon} alt={title} width={128} height={128} />
+        <Image src={icon} alt={title} width={100} height={100} />
       </div>
       <div className={styles.tileValue}>{value}</div>
       {subtitle && (

@@ -1,59 +1,78 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import NewsCard from './NewsCard';
+import LoadingIndicator from '@/components/LoadingIndicator';
 import styles from '@/styles/news/RelatedNews.module.css';
 import { NewsItem } from '@/types/news';
+import { getNewsInfo } from '@/api/news/GetNewsInfo';
+import { showNotification } from '@/utils';
 
 interface RelatedNewsProps {
+  relatedNewsIds: number[];
   currentNewsId: number;
 }
 
-// Функция для генерации тестовых данных (копия из page.tsx)
-const generateTestNewsData = (): NewsItem[] => {
-  const TEST_DATES = [
-    "21.01.2008", "15.03.2009", "07.11.2010", "23.06.2011", "12.09.2012",
-    "04.02.2013", "18.07.2014", "25.12.2015", "09.05.2016", "31.08.2017"
-  ];
-
-  return Array.from({ length: 10 }, (_, i) => {
-    const id = i + 1;
-    return {
-      id,
-      title: "Нереальный апдейт, смотреть всем!!!!",
-      description: "Статья о том, что мы подготовили в новом обновлении для вас - любимых пользователь. Проделав огромную работу, готовы представить вам следующую статью по обновлению",
-      image: "/default/news.png",
-      created_time: TEST_DATES[id - 1] || "21.01.2008",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      comments: [],
-      content: [
-        {
-          id: id,
-          news_id: id,
-          text: "Содержание новости..."
-        }
-      ]
-    };
-  });
-};
-
-export default function RelatedNews({ currentNewsId }: RelatedNewsProps) {
+export default function RelatedNews({ relatedNewsIds, currentNewsId }: RelatedNewsProps) {
   const [relatedNews, setRelatedNews] = useState<NewsItem[]>([]);
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Получаем первые 3 новости, исключая текущую
-    const allNews = generateTestNewsData();
-    const filtered = allNews
-      .filter(news => news.id !== currentNewsId)
-      .slice(0, 3);
-    
-    setRelatedNews(filtered);
-  }, [currentNewsId]);
+    if (relatedNewsIds.length === 0) {
+      setRelatedNews([]);
+      return;
+    }
 
-  const handleNewsClick = (newsItem: NewsItem) => {
-    router.push(`/news/info/${newsItem.id}`);
+    loadRelatedNews();
+  }, [relatedNewsIds]);
+
+  const loadRelatedNews = async () => {
+    setIsLoading(true);
+    const newsPromises = relatedNewsIds.map(id => getNewsInfo(id));
+    
+    try {
+      const newsData = await Promise.all(newsPromises);
+      // Преобразуем NewsDetail в NewsItem для совместимости с NewsCard
+      const newsItems: NewsItem[] = newsData.map(detail => ({
+        ...detail,
+        createdAt: '',
+        updatedAt: '',
+        comments: detail.comments || [],
+      }));
+      setRelatedNews(newsItems);
+    } catch (error: any) {
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || 'Не удалось загрузить связанные новости';
+      showNotification(statusCode, errorMessage);
+      setRelatedNews([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const getNewRelatedIds = (clickedNewsId: number): number[] => {
+    // Создаем новый список: убираем ID нажатой новости и добавляем ID текущей новости
+    const newIds = relatedNewsIds.filter(id => id !== clickedNewsId);
+    
+    // Добавляем currentNewsId в начало списка, если его там еще нет
+    if (!newIds.includes(currentNewsId)) {
+      newIds.unshift(currentNewsId);
+    }
+    
+    // Ограничиваем до 3 новостей
+    return newIds.slice(0, 3);
+  };
+
+  if (isLoading) {
+    return (
+      <div className={styles.relatedNewsSection}>
+        <h3 className={styles.sectionTitle}>Другие новости:</h3>
+        <LoadingIndicator text="Загружаем другие новости..." />
+      </div>
+    );
+  }
+
+  if (relatedNews.length === 0) {
+    return null;
+  }
 
   return (
     <div className={styles.relatedNewsSection}>
@@ -63,7 +82,7 @@ export default function RelatedNews({ currentNewsId }: RelatedNewsProps) {
           <NewsCard
             key={newsItem.id}
             newsItem={newsItem}
-            onClick={() => handleNewsClick(newsItem)}
+            relatedNewsIds={getNewRelatedIds(newsItem.id)}
           />
         ))}
       </div>

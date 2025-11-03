@@ -151,6 +151,12 @@
   transform: scale(1.05);
 }
 
+.avatar-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer; /* Добавляем курсор-указатель */
+}
+
 /* Адаптивность */
 @media (max-width: 768px) {
   .header {

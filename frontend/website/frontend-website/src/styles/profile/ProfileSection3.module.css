@@ -18,7 +18,6 @@
   text-align: center;
 }
 
-
 .scrollWrapper {
   position: relative;
   width: 100%;
@@ -29,8 +28,8 @@
   width: 100%;
   overflow-y: auto;
   max-height: 275px;
-  padding-right: 12px; /* отодвигаем контент, чтобы скролл был чуть правее */
-  margin-right: -8px;  /* скролл уходит на 8px вправо */
+  padding-right: 12px;
+  margin-right: -8px;
   padding-top: 15px;
   padding-bottom: 15px;
   mask: linear-gradient(to bottom,
@@ -89,34 +88,49 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
 }
 
 .groupImageWrapper {
   flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .groupImage {
   border-radius: 50%;
   object-fit: cover;
+  width: 50px !important;
+  height: 50px !important;
 }
 
 .groupInfo {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
 .groupName {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .memberCount {
   font-size: 14px;
   color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* стрелки */
 .scrollArrow {
   position: absolute;
   left: 50%;
@@ -142,9 +156,9 @@
 }
 
 .topArrow {
-  top: -18px; /* половина кнопки выходит за край секции */
+  top: -18px;
 }
 
 .bottomArrow {
-  bottom: -18px; /* половина кнопки выходит за край секции */
+  bottom: -18px;
 }

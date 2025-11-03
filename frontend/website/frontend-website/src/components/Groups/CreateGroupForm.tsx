@@ -59,21 +59,35 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   // Обновляем форму при изменении initialData
   useEffect(() => {
     if (initialData) {
+      
+      const newCategories = Array.isArray(initialData.categories) ? [...initialData.categories] : [];
+      
       setFormData({
         name: initialData.name || '',
         shortDescription: initialData.shortDescription || initialData.small_description || '',
         description: initialData.description || '',
         city: initialData.city || '',
         isPrivate: initialData.isPrivate || initialData.private || false,
-        categories: initialData.categories || [],
-        socialContacts: initialData.socialContacts || []
+        categories: newCategories,
+        socialContacts: Array.isArray(initialData.socialContacts) ? [...initialData.socialContacts] : []
       });
       
       if (initialData.imagePreview) {
         setSelectedImage(initialData.imagePreview);
       }
     }
-  }, [initialData]);
+  }, [
+    initialData?.name,
+    initialData?.shortDescription,
+    initialData?.small_description,
+    initialData?.description,
+    initialData?.city,
+    initialData?.isPrivate,
+    initialData?.private,
+    initialData?.imagePreview,
+    JSON.stringify(initialData?.categories),
+    JSON.stringify(initialData?.socialContacts)
+  ]);
 
   const validateForm = () => {
     const newErrors = {
@@ -174,7 +188,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     e.preventDefault();
     
     if (!validateForm()) {
-      return; // Не отправляем форму, если есть ошибки валидации
+      return;
     }
 
     onSubmit({

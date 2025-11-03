@@ -45,6 +45,43 @@ func GetNotify(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// GetNotify godoc
+// @Summary      Есть ли уведомления для пользователя или нет
+// @Description  Возвращает true - есть, нет - false
+// @Tags         Users inf
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  bool "Есть ли уведомления"
+// @Failure      401  {object}  map[string]string "Пользователь не авторизован"
+// @Failure      500  {object}  map[string]string "Внутренняя ошибка сервера"
+// @Router       /api/users/notify/inf [get]
+func GetNotifyInf(c *gin.Context) {
+	emailValue, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не найден email в контексте"})
+		return
+	}
+
+	email, ok := emailValue.(string)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат email в контексте"})
+		return
+	}
+
+	if email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email не может быть пустым"})
+		return
+	}
+
+	res, err := services.GetNotifyInf(email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+}
+
 // MarkNotificationViewed godoc
 // @Summary      Отметить уведомление как просмотренное
 // @Description  Помечает указанное уведомление как просмотренное для текущего пользователя.

@@ -1,12 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import styles from '../../../styles/Groups/profile/GroupProfile.module.css';
 import CategorySection from '../../Events/CategorySection';
 import { SectionData, EventCardProps } from '../../../types/Events';
 import { GroupProfileProps, GroupData, Contact, SessionWithMetadata } from '../../../types/Groups';
-import {getCategoryIcon, getSocialIcon} from '../../../Constants'
+import {getCategoryIcon, getSocialIcon, getAccesToken} from '../../../Constants'
+import {joinGroup} from '@/api/groups/joinGroup';
+import {leaveGroup} from '@/api/groups/leaveGroup';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { showNotification } from '@/utils';
 
 // Функция для преобразования sessions в формат для CategorySection
 const transformSessionsToEvents = (sessions: SessionWithMetadata[]): SectionData => {
@@ -68,9 +72,57 @@ const formatDuration = (duration: number): string => {
 };
 
 const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
-  const handleJoinGroup = () => {
-    console.log(`Присоединение к группе с ID: ${groupData.id}`);
-    console.log('Данные группы:', groupData);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(groupData.subscription);
+
+  const handleJoinGroup = async () => {
+    const accessToken = getAccesToken();
+    
+    if (!accessToken) {
+      showNotification(401, 'Необходимо авторизоваться', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await joinGroup(accessToken, groupData.id);
+      showNotification(200, 'Вы успешно присоединились к группе');
+      
+      // Обновляем страницу после небольшой задержки для показа уведомления
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Ошибка при присоединении к группе';
+      showNotification(error.response?.status || 500, errorMessage);
+      setIsLoading(false);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    const accessToken = getAccesToken();
+    
+    if (!accessToken) {
+      showNotification(401, 'Необходимо авторизоваться', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await leaveGroup(accessToken, groupData.id);
+      showNotification(200, 'Вы успешно отписались от группы');
+      
+      // Обновляем страницу после небольшой задержки для показа уведомления
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Ошибка при отписке от группы';
+      showNotification(error.response?.status || 500, errorMessage);
+      setIsLoading(false);
+    }
   };
 
   const handleContactClick = (contact: Contact) => {
@@ -80,6 +132,14 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
 
   // Преобразуем sessions в формат для CategorySection
   const eventsData = transformSessionsToEvents(groupData.sessions);
+
+  if (isLoading) {
+    return (
+      <div className='bgPage' style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <LoadingIndicator text={isSubscribed ? "Отписка от группы..." : "Присоединение к группе..."} />
+      </div>
+    );
+  }
 
   return (
     <div className='bgPage' style={{ display: 'flex' }}>
@@ -97,34 +157,54 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
             />
           </div>
 
-          {/* Кнопка присоединиться */}
-          <button className={styles.joinButton} onClick={handleJoinGroup}>
-            Присоединиться
-          </button>
+          {/* Кнопка присоединиться/отписаться */}
+          {isSubscribed ? (
+            <button 
+              className={styles.leaveButton} 
+              onClick={handleLeaveGroup}
+              disabled={isLoading}
+            >
+              Отписаться
+            </button>
+          ) : (
+            <button 
+              className={styles.joinButton} 
+              onClick={handleJoinGroup}
+              disabled={isLoading}
+            >
+              Присоединиться
+            </button>
+          )}
 
           {/* Контакты */}
           <div className={styles.contactsSection}>
             <h3>Наши контакты:</h3>
             <div className={styles.contactsList}>
               {groupData.contacts && groupData.contacts.length > 0 ? (
-                groupData.contacts.map((contact, index) => (
-                  <div 
-                    key={index} 
-                    className={styles.contactItem}
-                    onClick={() => handleContactClick(contact)}
-                  >
-                    <div className={styles.contactIconWrapper}>
-                      <Image 
-                        src={`/${getSocialIcon(contact.link, contact.name)}`}
-                        alt={contact.name}
-                        width={52}
-                        height={52}
-                        className={styles.contactIcon}
-                      />
+                groupData.contacts.map((contact, index) => {
+                  const iconPath = getSocialIcon(contact.link, contact.name);
+                  // Убеждаемся, что путь начинается с одного слэша
+                  const normalizedPath = iconPath.startsWith('/') ? iconPath : `/${iconPath}`;
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className={styles.contactItem}
+                      onClick={() => handleContactClick(contact)}
+                    >
+                      <div className={styles.contactIconWrapper}>
+                        <Image 
+                          src={normalizedPath}
+                          alt={contact.name}
+                          width={52}
+                          height={52}
+                          className={styles.contactIcon}
+                        />
+                      </div>
+                      <span className={styles.contactName}>{contact.name}</span>
                     </div>
-                    <span className={styles.contactName}>{contact.name}</span>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <p className={styles.noContactsText}>Контакты не указаны</p>
               )}
@@ -142,16 +222,21 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
                 <h1 className={styles.groupName}>{groupData.name}</h1>
                 {groupData.categories && groupData.categories.length > 0 && (
                   <div className={styles.categoryIcons}>
-                    {groupData.categories.map((category, index) => (
-                      <Image
-                        key={index}
-                        src={`/${getCategoryIcon(category)}`}
-                        alt={category}
-                        width={32}
-                        height={32}
-                        className={styles.categoryIcon}
-                      />
-                    ))}
+                    {groupData.categories.map((category, index) => {
+                      const categoryIconPath = getCategoryIcon(category);
+                      const normalizedCategoryPath = categoryIconPath.startsWith('/') ? categoryIconPath : `/${categoryIconPath}`;
+                      
+                      return (
+                        <Image
+                          key={index}
+                          src={normalizedCategoryPath}
+                          alt={category}
+                          width={32}
+                          height={32}
+                          className={styles.categoryIcon}
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -186,7 +271,9 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
                           className={styles.subscriberAvatarImage}
                         />
                       </div>
-                      <span className={styles.subscriberName}>{user.name}</span>
+                      <span className={styles.subscriberName} title={user.name}>
+                        {user.name}
+                      </span>
                     </div>
                   ))}
                 </div>

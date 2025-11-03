@@ -15,8 +15,10 @@ import (
 // @Tags Users inf
 // @Security BearerAuth
 // @Produce json
+// @Param id query int false "ID пользователя (опционально)"
 // @Success 200 {array} services.GroupResponse "Список групп, на которые подписан пользователь"
 // @Failure 400 {object} map[string]string "Не передан jwt"
+// @Failure 403 {object} map[string]string "Нет прав"
 // @Failure 404 {object} map[string]string "Пользователь не найден"
 // @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Router /api/users/subscriptions [get]
@@ -28,7 +30,26 @@ func GetGroupsUserSub(c *gin.Context) {
 	}
 	email := emailValue.(string)
 
-	groups, err := services.GetGroupsUserSub(email)
+	userIDParam := c.Query("id")
+
+	var targetUserID uint
+	if userIDParam == "" {
+		user, err := services.FindUserByEmail(email)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "пользователь не найден"})
+			return
+		}
+		targetUserID = user.ID
+	} else {
+		idUint, err := strconv.ParseUint(userIDParam, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат id"})
+			return
+		}
+		targetUserID = uint(idUint)
+	}
+
+	groups, err := services.GetGroupsUserSubByID(targetUserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

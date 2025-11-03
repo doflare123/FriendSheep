@@ -5,16 +5,24 @@ import MapModal from './MapModal';
 import { EventCardProps } from '../../types/Events';
 import { GroupData } from '../../types/Groups';
 import { kinopoiskAPI, PlaceInfo } from '../../lib/api';
-import {getCategoryIcon, getAccesToken} from '../../Constants'
-import {getOwnGroups} from '../../api/get_owngroups'
+import { getCategoryIcon, getAccesToken, convertToRFC3339, parseDuration, convertCategEngToRu } from '../../Constants';
+import { getOwnGroups } from '../../api/get_owngroups';
+import { addEvent } from '@/api/events/addEvent';
+import { editEvent } from '@/api/events/editEvent';
+import { delEvent } from '@/api/events/delEvent';
+import { getImage } from '@/api/getImage';
+import { getGenres } from '@/api/events/getGenres';
+import { showNotification } from '@/utils';
+import LoadingIndicator from '@/components/LoadingIndicator';
 
 interface EventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (eventData: Partial<EventCardProps>) => void;
+  onSave: () => void;
   onDelete?: () => void;
   eventData?: Partial<EventCardProps>;
   mode?: 'create' | 'edit';
+  groupId?: number;
 }
 
 const CATEGORIES = [
@@ -24,13 +32,6 @@ const CATEGORIES = [
   { id: 'other', icon: getCategoryIcon("other") }
 ];
 
-const GENRES = [
-  'Экшн', 'Комедия', 'Драма', 'Ужасы', 'Фантастика', 'Триллер',
-  'Романтика', 'Приключения', 'Криминал', 'Детектив', 'Военный',
-  'Биография', 'История', 'Мюзикл', 'Семейный', 'Анимация'
-];
-
-// Интерфейс для групп из API
 interface ApiGroup {
   category: string[];
   id: number;
@@ -41,7 +42,6 @@ interface ApiGroup {
   type: string;
 }
 
-// Интерфейс для ошибок валидации
 interface ValidationErrors {
   title?: string;
   genres?: string;
@@ -49,6 +49,7 @@ interface ValidationErrors {
   selectedGroup?: string;
   image?: string;
   date?: string;
+  location?: string;
 }
 
 export default function EventModal({ 
@@ -57,12 +58,14 @@ export default function EventModal({
   onSave, 
   onDelete, 
   eventData, 
-  mode = 'create' 
+  mode = 'create',
+  groupId 
 }: EventModalProps) {
   const [formData, setFormData] = useState<Partial<EventCardProps>>({
     title: '',
     type: 'movies',
     date: '',
+    start_time: '',
     duration: '',
     location: 'offline',
     adress: '',
@@ -72,6 +75,8 @@ export default function EventModal({
     image: ''
   });
 
+  const [originalData, setOriginalData] = useState<Partial<EventCardProps>>({});
+
   const [isOnline, setIsOnline] = useState(false);
   const [showGenreSelector, setShowGenreSelector] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
@@ -79,21 +84,27 @@ export default function EventModal({
   const [year, setYear] = useState('');
   const [ageLimit, setAgeLimit] = useState('');
   const [description, setDescription] = useState('');
+  const [city, setCity] = useState('');
+  const [originalCity, setOriginalCity] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [kinopoiskImageUrl, setKinopoiskImageUrl] = useState<string | null>(null);
   
-  // Состояния для групп
   const [groups, setGroups] = useState<ApiGroup[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupsError, setGroupsError] = useState<string | null>(null);
-
-  // Состояние для ошибок валидации
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const [genres, setGenres] = useState<string[]>([]);
+  const [genresLoading, setGenresLoading] = useState(false);
+  const [genresError, setGenresError] = useState<string | null>(null);
 
-  // Загрузка групп при открытии модала
   useEffect(() => {
     if (isOpen) {
       loadGroups();
+      loadGenres();
     }
   }, [isOpen]);
 
@@ -102,32 +113,85 @@ export default function EventModal({
     setGroupsError(null);
     
     try {
-      const accessToken = getAccesToken() || ''; // Временное решение
+      const accessToken = getAccesToken() || '';
       const groupsData = await getOwnGroups(accessToken);
       setGroups(groupsData);
     } catch (error) {
       console.error('Ошибка загрузки групп:', error);
       setGroupsError('Не удалось загрузить группы');
-      setGroups([]); // Устанавливаем пустой массив при ошибке
+      setGroups([]);
     } finally {
       setGroupsLoading(false);
     }
   };
 
+  const loadGenres = async () => {
+    setGenresLoading(true);
+    setGenresError(null);
+    
+    try {
+      const accessToken = getAccesToken() || '';
+      const genresData = await getGenres(accessToken);
+      setGenres(genresData);
+    } catch (error) {
+      console.error('Ошибка загрузки жанров:', error);
+      setGenresError('Не удалось загрузить жанры');
+      setGenres([]);
+    } finally {
+      setGenresLoading(false);
+    }
+  };
+
+  const convertToDatetimeLocal = (date?: string, startTime?: string): string => {
+    if (!date) return '';
+    
+    try {
+      const [day, month, year] = date.split('.');
+      
+      if (!day || !month || !year) {
+        console.error('Неверный формат даты:', date);
+        return '';
+      }
+      
+      if (startTime && startTime.includes(':')) {
+        const [hours, minutes] = startTime.split(':');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+      }
+      
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00`;
+      
+    } catch (error) {
+      console.error('Ошибка конвертации даты/времени:', error);
+      return '';
+    }
+  };
+
   useEffect(() => {
     if (eventData) {
-      setFormData(eventData);
+      console.log('EventData получен:', eventData);
+      
+      const datetimeLocal = convertToDatetimeLocal(eventData.date, eventData.start_time);
+      
+      const initialFormData = {
+        ...eventData,
+        date: datetimeLocal
+      };
+      
+      setFormData(initialFormData);
+      setOriginalData(initialFormData);
+      
       setDescription(eventData.description || '');
       setPublisher(eventData.publisher || '');
       setYear(eventData.year?.toString() || '');
       setAgeLimit(eventData.ageLimit || '');
-      setSelectedGroup(eventData.groupId || null);
       
-      // Определяем режим онлайн/офлайн по location
+      // Используем groupId из props
+      setSelectedGroup(groupId || null);
+      console.log('selectedGroup установлен из props groupId:', groupId);
+      
       const isEventOnline = eventData.location === 'online';
       setIsOnline(isEventOnline);
       
-      // Если данные не содержат location в новом формате, определяем по старому
       if (eventData.location !== 'online' && eventData.location !== 'offline') {
         if (eventData.location?.includes('онлайн') || eventData.location?.includes('online')) {
           setIsOnline(true);
@@ -137,65 +201,121 @@ export default function EventModal({
           setFormData(prev => ({ ...prev, location: 'offline', adress: eventData.location || '' }));
         }
       }
+      
+      // Извлекаем город из fields
+      if (eventData.fields) {
+        const cityMatch = eventData.fields.match(/city:([^,]+)/);
+        if (cityMatch) {
+          setCity(cityMatch[1]);
+          setOriginalCity(cityMatch[1]);
+        }
+      }
     } else {
-      // Сброс всех полей при создании нового события
-      setFormData({
+      const defaultData = {
         title: '',
-        type: 'movies',
+        type: 'movies' as const,
         date: '',
+        start_time: '',
         duration: '',
-        location: 'offline',
+        location: 'offline' as const,
         adress: '',
         participants: 0,
         maxParticipants: 0,
         genres: [],
         image: ''
-      });
+      };
+      setFormData(defaultData);
+      setOriginalData(defaultData);
       setDescription('');
       setPublisher('');
       setYear('');
       setAgeLimit('');
+      setCity('');
+      setOriginalCity('');
       setIsOnline(false);
-      setSelectedGroup(null);
+      
+      // При создании используем groupId из props
+      setSelectedGroup(groupId || null);
+      console.log('selectedGroup установлен из props groupId при создании:', groupId);
+      
+      setImageFile(null);
+      setKinopoiskImageUrl(null);
     }
     setShowGenreSelector(false);
-    setValidationErrors({}); // Сбрасываем ошибки валидации
-  }, [eventData, isOpen]);
+    setValidationErrors({});
+  }, [eventData, isOpen, groupId]);
 
   if (!isOpen) return null;
 
-  // Функция валидации обязательных полей
   const validateForm = (): boolean => {
     const errors: ValidationErrors = {};
 
-    // Проверка названия
     if (!formData.title || formData.title.trim() === '') {
       errors.title = 'Название обязательно для заполнения';
+    } else if (formData.title.trim().length < 5) {
+      errors.title = 'Название должно содержать минимум 5 символов';
+    } else if (formData.title.trim().length > 40) {
+      errors.title = 'Название должно содержать максимум 40 символов';
     }
 
-    // Проверка жанров
-    if (!formData.genres || formData.genres.length === 0) {
-      errors.genres = 'Необходимо выбрать хотя бы один жанр';
-    }
+    if (mode === 'create') {
+      if (!formData.genres || formData.genres.length === 0) {
+        errors.genres = 'Необходимо выбрать хотя бы один жанр';
+      }
 
-    // Проверка количества участников
-    if (!formData.maxParticipants || formData.maxParticipants <= 0) {
-      errors.maxParticipants = 'Укажите количество участников (больше 0)';
-    }
+      if (!formData.maxParticipants || formData.maxParticipants <= 0) {
+        errors.maxParticipants = 'Укажите количество участников (больше 0)';
+      }
 
-    // Проверка группы
-    if (!selectedGroup) {
-      errors.selectedGroup = 'Необходимо выбрать группу';
-    }
+      if (!selectedGroup) {
+        errors.selectedGroup = 'Необходимо выбрать группу';
+      }
 
-    // Проверка картинки
-    if (!formData.image || formData.image === '') {
-      errors.image = 'Необходимо загрузить изображение';
-    }
+      if (!imageFile && !kinopoiskImageUrl && !formData.image) {
+        errors.image = 'Необходимо загрузить изображение';
+      }
 
-    // Проверка даты и времени
-    if (!formData.date || formData.date === '') {
-      errors.date = 'Необходимо указать дату и время события';
+      if (!formData.date || formData.date === '') {
+        errors.date = 'Необходимо указать дату и время события';
+      }
+
+      // Проверка адреса/ссылки в зависимости от типа события
+      if (isOnline) {
+        if (!formData.adress || formData.adress.trim() === '') {
+          errors.location = 'Необходимо указать ссылку на онлайн-событие';
+        }
+      } else {
+        if (!formData.adress || formData.adress.trim() === '' || !city) {
+          errors.location = 'Необходимо выбрать место на карте';
+        }
+      }
+    } else if (mode === 'edit') {
+      const hasChanges = 
+        formData.title !== originalData.title ||
+        formData.maxParticipants !== originalData.maxParticipants ||
+        formData.duration !== originalData.duration ||
+        formData.date !== originalData.date ||
+        formData.type !== originalData.type ||
+        JSON.stringify(formData.genres) !== JSON.stringify(originalData.genres) ||
+        year !== (originalData.year?.toString() || '') ||
+        ageLimit !== (originalData.ageLimit || '') ||
+        formData.location !== originalData.location ||
+        formData.adress !== originalData.adress ||
+        city !== originalCity ||
+        imageFile !== null ||
+        kinopoiskImageUrl !== null;
+
+      if (!hasChanges && formData.image === originalData.image) {
+        errors.title = 'Необходимо изменить хотя бы одно поле';
+      }
+
+      if (formData.maxParticipants && formData.maxParticipants <= 0) {
+        errors.maxParticipants = 'Количество участников должно быть больше 0';
+      }
+
+      if (formData.date && formData.date === '') {
+        errors.date = 'Необходимо указать дату и время события';
+      }
     }
 
     setValidationErrors(errors);
@@ -214,32 +334,222 @@ export default function EventModal({
         : [...(prev.genres || []), genre]
     }));
     
-    // Очищаем ошибку жанров при выборе
     if (validationErrors.genres) {
       setValidationErrors(prev => ({ ...prev, genres: undefined }));
     }
   };
 
-  const handleSave = () => {
-    // Проверяем валидность формы
+  const handleSave = async () => {
     if (!validateForm()) {
       return;
     }
 
-    const eventToSave = {
-      ...formData,
-      description,
-      publisher,
-      year: year ? parseInt(year) : undefined,
-      ageLimit,
-      groupId: selectedGroup
-    };
-    onSave(eventToSave);
+    if (mode === 'create') {
+      await handleCreateEvent();
+    } else {
+      await handleEditEvent();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!eventData?.id) {
+      showNotification(400, 'ID события не найден');
+      return;
+    }
+
+    const confirmed = window.confirm('Вы уверены, что хотите удалить это событие?');
+    if (!confirmed) return;
+
+    setIsSaving(true);
+    
+    try {
+      const accessToken = getAccesToken();
+      if (!accessToken) {
+        showNotification(401, 'Необходима авторизация');
+        return;
+      }
+
+      await delEvent(accessToken, eventData.id);
+
+      showNotification(200, 'Событие успешно удалено!');
+      
+      onClose();
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Ошибка удаления события:', error);
+      
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || 'Не удалось удалить событие';
+      
+      showNotification(statusCode, errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const buildFieldsString = (): string | undefined => {
+    const fields: string[] = [];
+    
+    if (publisher) {
+      fields.push(`publisher:${publisher}`);
+    }
+    
+    // Добавляем город только для оффлайн событий
+    if (!isOnline && city) {
+      fields.push(`city:${city}`);
+    }
+    
+    return fields.length > 0 ? fields.join(',') : undefined;
+  };
+
+  const handleCreateEvent = async () => {
+    setIsSaving(true);
+    
+    try {
+      const accessToken = getAccesToken();
+      if (!accessToken) {
+        showNotification(401, 'Необходима авторизация');
+        return;
+      }
+
+      const startTimeRFC3339 = convertToRFC3339(formData.date!);
+      const sessionPlace = isOnline ? 1 : 0;
+      const genresString = formData.genres!.join(',');
+      const durationMinutes = parseDuration(formData.duration);
+      
+      const sessionTypeRu = convertCategEngToRu([formData.type!])[0] || 'Другое';
+      
+      const fieldsString = buildFieldsString();
+
+      const imageToSend = imageFile || kinopoiskImageUrl || undefined;
+
+      await addEvent(
+        accessToken,
+        formData.title!,
+        sessionTypeRu,
+        sessionPlace,
+        selectedGroup!,
+        startTimeRFC3339,
+        formData.maxParticipants!,
+        durationMinutes,
+        genresString,
+        fieldsString,
+        formData.adress || undefined,
+        year ? parseInt(year) : undefined,
+        undefined,
+        ageLimit || undefined,
+        description || undefined,
+        imageToSend
+      );
+
+      showNotification(200, 'Событие успешно создано!');
+      onSave();
+      onClose();
+    } catch (error: any) {
+      console.error('Ошибка создания события:', error);
+      
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || 'Не удалось создать событие';
+      
+      showNotification(statusCode, errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditEvent = async () => {
+    setIsSaving(true);
+    
+    try {
+      const accessToken = getAccesToken();
+      if (!accessToken) {
+        showNotification(401, 'Необходима авторизация');
+        return;
+      }
+
+      if (!eventData?.id) {
+        showNotification(400, 'ID события не найден');
+        return;
+      }
+
+      let imageUrl: string | undefined = undefined;
+      if (imageFile) {
+        imageUrl = await getImage(accessToken, imageFile);
+      } else if (kinopoiskImageUrl && kinopoiskImageUrl !== originalData.image) {
+        imageUrl = kinopoiskImageUrl;
+      }
+
+      const updatedTitle = formData.title !== originalData.title ? formData.title : undefined;
+      const updatedMaxParticipants = formData.maxParticipants !== originalData.maxParticipants 
+        ? formData.maxParticipants 
+        : undefined;
+      const updatedDuration = formData.duration !== originalData.duration 
+        ? (formData.duration ? parseInt(formData.duration) : undefined)
+        : undefined;
+      const updatedStartTime = formData.date !== originalData.date 
+        ? convertToRFC3339(formData.date!)
+        : undefined;
+      
+      const updatedYear = year !== (originalData.year?.toString() || '') 
+        ? (year ? parseInt(year) : undefined)
+        : undefined;
+      const updatedAgeLimit = ageLimit !== (originalData.ageLimit || '') 
+        ? (ageLimit || undefined)
+        : undefined;
+      const updatedGenres = JSON.stringify(formData.genres) !== JSON.stringify(originalData.genres)
+        ? formData.genres
+        : undefined;
+      const updatedLocation = formData.adress !== originalData.adress 
+        ? formData.adress 
+        : undefined;
+      
+      let updatedSessionPlaceId: string | undefined = undefined;
+      if (formData.location !== originalData.location) {
+        updatedSessionPlaceId = formData.location === 'online' ? '1' : '0';
+      }
+      
+      let updatedSessionTypeId: string | undefined = undefined;
+      if (formData.type !== originalData.type) {
+        const sessionTypeRu = convertCategEngToRu([formData.type!])[0] || 'Другое';
+        updatedSessionTypeId = sessionTypeRu;
+      }
+
+      const finalYear = updatedYear !== undefined ? updatedYear : (eventData.year || 2025);
+
+      await editEvent(
+        accessToken,
+        eventData.id,
+        finalYear,
+        updatedMaxParticipants,
+        updatedDuration,
+        imageUrl,
+        updatedStartTime,
+        updatedTitle,
+        updatedAgeLimit,
+        updatedGenres,
+        updatedLocation,
+        updatedSessionPlaceId,
+        updatedSessionTypeId
+      );
+
+      showNotification(200, 'Событие успешно отредактировано!');
+      onSave();
+      onClose();
+    } catch (error: any) {
+      console.error('Ошибка редактирования события:', error);
+      
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || 'Не удалось отредактировать событие';
+      
+      showNotification(statusCode, errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleKinopoiskSearch = async () => {
     if (!formData.title) {
-      alert('Введите название фильма для поиска');
+      showNotification(400, 'Введите название фильма для поиска');
       return;
     }
     
@@ -248,44 +558,112 @@ export default function EventModal({
       const movies = await kinopoiskAPI.searchMovies(formData.title);
       
       if (movies.length > 0) {
-        const movie = movies[0]; // Берем первый результат
+        const movie = movies[0];
         
-        // Заполняем поля данными из Кинопоиска
-        setDescription(movie.description || movie.shortDescription || '');
+        console.log('Данные фильма из Кинопоиска:', movie);
+        console.log('Длительность фильма:', movie.filmLength);
+        
+        const movieDescription = movie.description || movie.shortDescription || '';
+        const truncatedDescription = movieDescription.length > 300 
+          ? movieDescription.substring(0, 300).trim() + '...'
+          : movieDescription;
+        
+        setDescription(truncatedDescription);
         setPublisher(movie.countries?.[0]?.country || '');
         setYear(movie.year?.toString() || '');
         setAgeLimit(movie.ratingAgeLimits || '');
         
         if (movie.filmLength) {
+          const timeParts = movie.filmLength.split(':');
+          let totalMinutes = 0;
+          
+          if (timeParts.length === 2) {
+            const hours = parseInt(timeParts[0]) || 0;
+            const minutes = parseInt(timeParts[1]) || 0;
+            totalMinutes = hours * 60 + minutes;
+          } else {
+            totalMinutes = parseInt(movie.filmLength) || 0;
+          }
+          
+          console.log('Длительность в минутах:', totalMinutes);
           setFormData(prev => ({ 
             ...prev, 
-            duration: `${movie.filmLength} мин` 
+            duration: `${totalMinutes}`
           }));
         }
         
         if (movie.genres) {
           const movieGenres = movie.genres.map(g => g.genre);
+          
+          const matchedGenres: string[] = [];
+          const unmatchedGenres: string[] = [];
+          
+          movieGenres.forEach(movieGenre => {
+            const exactMatch = genres.find(apiGenre => 
+              apiGenre.toLowerCase() === movieGenre.toLowerCase()
+            );
+            
+            if (exactMatch) {
+              matchedGenres.push(exactMatch);
+            } else {
+              const partialMatch = genres.find(apiGenre => 
+                apiGenre.toLowerCase().includes(movieGenre.toLowerCase()) ||
+                movieGenre.toLowerCase().includes(apiGenre.toLowerCase())
+              );
+              
+              if (partialMatch) {
+                matchedGenres.push(partialMatch);
+              } else {
+                unmatchedGenres.push(movieGenre);
+              }
+            }
+          });
+          
+          const finalGenres = [...matchedGenres, ...unmatchedGenres];
+          
+          if (unmatchedGenres.length > 0) {
+            setGenres(prev => [...prev, ...unmatchedGenres]);
+          }
+          
           setFormData(prev => ({ 
             ...prev, 
-            genres: movieGenres,
-            image: movie.posterUrl || movie.posterUrlPreview || prev.image
+            genres: finalGenres
           }));
           
-          // Очищаем ошибки жанров и изображения если данные загрузились
           setValidationErrors(prev => ({ 
             ...prev, 
-            genres: undefined,
-            image: movie.posterUrl || movie.posterUrlPreview ? undefined : prev.image
+            genres: undefined
           }));
         }
         
-        alert(`Данные фильма "${movie.nameRu || movie.nameEn || movie.nameOriginal}" загружены!`);
+        if (movie.posterUrl || movie.posterUrlPreview) {
+          const imageUrl = movie.posterUrl || movie.posterUrlPreview;
+          
+          console.log('URL постера:', imageUrl);
+          
+          setFormData(prev => ({ 
+            ...prev, 
+            image: imageUrl! 
+          }));
+          
+          setKinopoiskImageUrl(imageUrl!);
+          
+          setValidationErrors(prev => ({ 
+            ...prev, 
+            image: undefined 
+          }));
+          
+          setImageFile(null);
+        }
+        
+        const movieName = movie.nameRu || movie.nameEn || movie.nameOriginal;
+        showNotification(200, `Данные фильма "${movieName}" успешно загружены`);
       } else {
-        alert('Фильм не найден');
+        showNotification(404, 'Фильм не найден в Кинопоиске');
       }
     } catch (error) {
       console.error('Ошибка поиска:', error);
-      alert('Ошибка при поиске фильма. Проверьте настройки API.');
+      showNotification(500, 'Ошибка при поиске фильма. Проверьте настройки API');
     } finally {
       setIsLoading(false);
     }
@@ -296,20 +674,44 @@ export default function EventModal({
   };
 
   const handlePlaceSelected = (place: PlaceInfo) => {
+    console.log('Выбрано место:', place);
+    
+    // Устанавливаем адрес и город из API Яндекс Карты
     setFormData(prev => ({ 
       ...prev, 
       adress: place.address
     }));
+    
+    // Извлекаем город из PlaceInfo
+    if (place.city) {
+      setCity(place.city);
+    } else {
+      // Попытка извлечь город из адреса
+      // Формат: "Город, улица" - берём первую часть до запятой
+      const addressParts = place.address.split(',');
+      if (addressParts.length > 0) {
+        // Берём первую часть (город) и очищаем от лишних пробелов
+        const cityPart = addressParts[0].trim();
+        setCity(cityPart);
+      }
+    }
+    
+    if (validationErrors.location) {
+      setValidationErrors(prev => ({ ...prev, location: undefined }));
+    }
+    
     setShowMapModal(false);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setImageFile(file);
+      setKinopoiskImageUrl(null);
+      
       const reader = new FileReader();
       reader.onload = (e) => {
         setFormData(prev => ({ ...prev, image: e.target?.result as string }));
-        // Очищаем ошибку изображения
         if (validationErrors.image) {
           setValidationErrors(prev => ({ ...prev, image: undefined }));
         }
@@ -322,20 +724,31 @@ export default function EventModal({
     const newIsOnline = !isOnline;
     setIsOnline(newIsOnline);
     
+    // Очищаем адрес и город при переключении
     setFormData(prev => ({ 
       ...prev, 
       location: newIsOnline ? 'online' : 'offline',
       adress: ''
     }));
+    
+    if (newIsOnline) {
+      setCity('');
+    }
+    
+    if (validationErrors.location) {
+      setValidationErrors(prev => ({ ...prev, location: undefined }));
+    }
   };
 
-  const handleAdressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOnlineLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, adress: e.target.value }));
+    if (validationErrors.location) {
+      setValidationErrors(prev => ({ ...prev, location: undefined }));
+    }
   };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, title: e.target.value }));
-    // Очищаем ошибку названия при вводе
     if (validationErrors.title) {
       setValidationErrors(prev => ({ ...prev, title: undefined }));
     }
@@ -344,7 +757,6 @@ export default function EventModal({
   const handleMaxParticipantsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value) || 0;
     setFormData(prev => ({ ...prev, maxParticipants: value }));
-    // Очищаем ошибку количества участников при вводе
     if (validationErrors.maxParticipants && value > 0) {
       setValidationErrors(prev => ({ ...prev, maxParticipants: undefined }));
     }
@@ -353,7 +765,6 @@ export default function EventModal({
   const handleGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = Number(e.target.value) || null;
     setSelectedGroup(value);
-    // Очищаем ошибку группы при выборе
     if (validationErrors.selectedGroup && value) {
       setValidationErrors(prev => ({ ...prev, selectedGroup: undefined }));
     }
@@ -361,18 +772,28 @@ export default function EventModal({
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, date: e.target.value }));
-    // Очищаем ошибку даты при вводе
     if (validationErrors.date) {
       setValidationErrors(prev => ({ ...prev, date: undefined }));
     }
   };
 
-  // Закрытие селектора жанров при клике вне его
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       setShowGenreSelector(false);
     }
   };
+
+  const isFieldDisabled = false;
+
+  if (isSaving) {
+    return (
+      <div className={styles.modalOverlay}>
+        <div className={styles.modal}>
+          <LoadingIndicator text={mode === 'create' ? "Создаем событие..." : "Сохраняем изменения..."} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.modalOverlay} onClick={handleOverlayClick}>
@@ -392,18 +813,20 @@ export default function EventModal({
                     onChange={handleTitleChange}
                     placeholder="Название *"
                   />
-                  <button 
-                    className={styles.kinopoiskButton} 
-                    onClick={handleKinopoiskSearch}
-                    disabled={isLoading}
-                    title="Поиск в Кинопоиске"
-                  >
-                    {isLoading ? (
-                      <span>...</span>
-                    ) : (
-                      <Image src="/social/kp.png" alt="Кинопоиск" width={24} height={24} />
-                    )}
-                  </button>
+                  {mode === 'create' && (
+                    <button 
+                      className={styles.kinopoiskButton} 
+                      onClick={handleKinopoiskSearch}
+                      disabled={isLoading}
+                      title="Поиск в Кинопоиске"
+                    >
+                      {isLoading ? (
+                        <span>...</span>
+                      ) : (
+                        <Image src="/social/kp.png" alt="Кинопоиск" width={24} height={24} />
+                      )}
+                    </button>
+                  )}
                 </div>
                 {validationErrors.title && (
                   <span className="errorMessage">{validationErrors.title}</span>
@@ -415,9 +838,21 @@ export default function EventModal({
                 <textarea
                   className={styles.textarea}
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 300) {
+                      setDescription(value);
+                    } else {
+                      setDescription(value.substring(0, 300));
+                    }
+                  }}
                   placeholder="Описание события..."
+                  maxLength={300}
+                  disabled={isFieldDisabled}
                 />
+                <div className={styles.charCounter}>
+                  {description.length}/300
+                </div>
               </div>
 
               <div className={styles.fieldGroup}>
@@ -431,6 +866,7 @@ export default function EventModal({
                         formData.type === category.id ? styles.selected : ''
                       }`}
                       onClick={() => handleCategorySelect(category.id)}
+                      disabled={isFieldDisabled}
                     >
                       <Image src={category.icon} alt={category.id} width={24} height={24} />
                     </button>
@@ -443,23 +879,38 @@ export default function EventModal({
                   type="button"
                   className={`${styles.genreButton} ${validationErrors.genres ? 'error' : ''}`}
                   onClick={() => setShowGenreSelector(!showGenreSelector)}
+                  disabled={genresLoading || isFieldDisabled}
                 >
-                  {formData.genres && formData.genres.length > 0 
-                    ? `Выбрано жанров: ${formData.genres.length}` 
-                    : 'Выберите жанры... *'
+                  {genresLoading 
+                    ? 'Загрузка жанров...'
+                    : formData.genres && formData.genres.length > 0 
+                      ? `Выбрано жанров: ${formData.genres.length}` 
+                      : 'Выберите жанры... *'
                   }
                 </button>
                 {validationErrors.genres && (
                   <span className="errorMessage">{validationErrors.genres}</span>
                 )}
-                {showGenreSelector && (
+                {genresError && (
+                  <div className={styles.errorMessage}>
+                    {genresError}
+                    <button 
+                      onClick={loadGenres}
+                      className={styles.retryButton}
+                    >
+                      Повторить
+                    </button>
+                  </div>
+                )}
+                {showGenreSelector && !genresLoading && genres.length > 0 && (
                   <div className={styles.genreSelector}>
-                    {GENRES.map((genre) => (
+                    {genres.map((genre) => (
                       <label key={genre} className={styles.genreOption}>
                         <input
                           type="checkbox"
                           checked={formData.genres?.includes(genre) || false}
                           onChange={() => handleGenreToggle(genre)}
+                          disabled={isFieldDisabled}
                         />
                         {genre}
                       </label>
@@ -475,6 +926,7 @@ export default function EventModal({
                   value={publisher}
                   onChange={(e) => setPublisher(e.target.value)}
                   placeholder="Издатель"
+                  disabled={isFieldDisabled}
                 />
               </div>
 
@@ -489,6 +941,7 @@ export default function EventModal({
                       placeholder="Год"
                       min="1900"
                       max="2030"
+                      disabled={isFieldDisabled}
                     />
                   </div>
                   <div className={styles.fieldGroup}>
@@ -498,6 +951,7 @@ export default function EventModal({
                       value={ageLimit}
                       onChange={(e) => setAgeLimit(e.target.value)}
                       placeholder="Ограничение"
+                      disabled={isFieldDisabled}
                     />
                   </div>
                 </div>
@@ -508,6 +962,7 @@ export default function EventModal({
                     className={`${styles.onlineButton} ${isOnline ? styles.online : styles.offline}`}
                     onClick={handleOnlineToggle}
                     title={isOnline ? "Онлайн событие" : "Офлайн событие"}
+                    disabled={isFieldDisabled}
                   >
                     <Image 
                       src={isOnline ? "/events/online.png" : "/events/offline.png"} 
@@ -526,7 +981,7 @@ export default function EventModal({
                   className={`${styles.select} ${validationErrors.selectedGroup ? 'error' : ''}`}
                   value={selectedGroup || ''}
                   onChange={handleGroupChange}
-                  disabled={groupsLoading}
+                  disabled={groupsLoading || isFieldDisabled || mode === 'edit'}
                 >
                   <option value="">
                     {groupsLoading ? 'Загрузка групп...' : 'Выберите группу... *'}
@@ -572,31 +1027,52 @@ export default function EventModal({
                     className={styles.input}
                     value={formData.duration || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-                    placeholder="Длительность"
+                    placeholder="Длительность (мин)"
                   />
                 </div>
               </div>
 
               <div className={styles.fieldGroup}>
-                <div className={styles.locationRow}>
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={formData.adress || ''}
-                    onChange={handleAdressChange}
-                    placeholder={isOnline ? "Ссылка на онлайн-событие" : "Место проведения"}
-                  />
-                  {!isOnline && (
-                    <button 
-                      type="button"
-                      className={styles.mapButton} 
-                      onClick={handleMapSelect}
-                      title="Выбрать на карте"
-                    >
-                      <Image src="/events/offline.png" alt="Карта" width={16} height={16} />
-                    </button>
-                  )}
-                </div>
+                {isOnline ? (
+                  <>
+                    <input
+                      type="text"
+                      className={`${styles.input} ${validationErrors.location ? 'error' : ''}`}
+                      value={formData.adress || ''}
+                      onChange={handleOnlineLinkChange}
+                      placeholder="Ссылка на онлайн-событие *"
+                      disabled={isFieldDisabled}
+                    />
+                    {validationErrors.location && (
+                      <span className="errorMessage">{validationErrors.location}</span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className={styles.locationRow}>
+                      <input
+                        type="text"
+                        className={`${styles.input} ${validationErrors.location ? 'error' : ''}`}
+                        value={formData.adress || ''}
+                        placeholder="Место проведения *"
+                        disabled={true}
+                        readOnly
+                      />
+                      <button 
+                        type="button"
+                        className={styles.mapButton} 
+                        onClick={handleMapSelect}
+                        title="Выбрать на карте"
+                        disabled={isFieldDisabled}
+                      >
+                        <Image src="/events/offline.png" alt="Карта" width={16} height={16} />
+                      </button>
+                    </div>
+                    {validationErrors.location && (
+                      <span className="errorMessage">{validationErrors.location}</span>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className={styles.fieldGroup}>
@@ -651,7 +1127,7 @@ export default function EventModal({
 
           <div className={styles.modalFooter}>
             {onDelete && mode === 'edit' && (
-              <button className={styles.deleteButton} onClick={onDelete}>
+              <button className={styles.deleteButton} onClick={handleDelete}>
                 Удалить событие
               </button>
             )}
@@ -661,7 +1137,6 @@ export default function EventModal({
           </div>
         </div>
 
-        {/* Модальное окно карты как отдельный компонент */}
         <MapModal
             isOpen={showMapModal}
             onClose={() => setShowMapModal(false)}

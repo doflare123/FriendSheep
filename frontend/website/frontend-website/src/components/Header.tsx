@@ -2,14 +2,51 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import NotificationDropdown from './NotificationDropdown';
 import { useAuth } from '../contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { checkNotif } from '@/api/notification/checkNotif';
+import { getAccesToken } from '@/Constants';
 import '../styles/Header.css';
 
 export default function Header() {
     const { isLoggedIn, userData, logout, isLoading } = useAuth();
     const [showNotifications, setShowNotifications] = useState(false);
+    const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+    const router = useRouter();
+
+    // Проверка наличия непрочитанных уведомлений
+    const checkNotifications = async () => {
+        if (!isLoggedIn) return;
+
+        try {
+            const accessToken = getAccesToken();
+            const hasNotifications = await checkNotif(accessToken);
+            setHasUnreadNotifications(hasNotifications);
+        } catch (error) {
+            console.error('Ошибка проверки уведомлений:', error);
+        }
+    };
+
+    // Проверка уведомлений при монтировании и каждые 10 минут
+    useEffect(() => {
+        if (isLoggedIn) {
+            checkNotifications(); // Сразу при загрузке
+
+            // Интервал каждые 10 минут (600000 мс)
+            const interval = setInterval(checkNotifications, 60000);
+
+            return () => clearInterval(interval);
+        }
+    }, [isLoggedIn]);
+
+    // Обновление после открытия/закрытия дропдауна
+    useEffect(() => {
+        if (!showNotifications && isLoggedIn) {
+            checkNotifications();
+        }
+    }, [showNotifications]);
 
     // Показываем скелетон во время загрузки
     if (isLoading) {
@@ -30,6 +67,10 @@ export default function Header() {
             </header>
         );
     }
+
+    const handleAvatarClick = () => {
+        router.push('/profile/' + userData?.us);
+    };
 
     return (
         <header className="header">
@@ -55,12 +96,11 @@ export default function Header() {
                                 onClick={() => setShowNotifications(!showNotifications)}
                             >
                                 <Image 
-                                    src="/notification-icon.png" 
+                                    src={hasUnreadNotifications ? "/notification_icon_active.png" : "/notification_icon.png"}
                                     alt="Уведомления" 
                                     width={24} 
                                     height={24}
                                 />
-                                <span className="notification-badge"></span>
                             </button>
                             
                             {showNotifications && (
@@ -72,7 +112,17 @@ export default function Header() {
                         
                         <span className="username">{userData?.username}</span>
                         
-                        <div className="avatar-container">
+                        <div 
+                            className="avatar-container" 
+                            onClick={handleAvatarClick}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    handleAvatarClick();
+                                }
+                            }}
+                        >
                             <Image 
                                 src={userData?.avatar || '/default-avatar.png'} 
                                 alt="Аватар" 

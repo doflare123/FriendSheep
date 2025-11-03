@@ -38,6 +38,7 @@ func RouterUsersInfo(r *gin.Engine) {
 		UserInfGroup.GET("/inf", handlers.GetInfAboutUser)
 		UserInfGroup.GET("/inf/:id", handlers.GetInfAboutUserByID)
 		UserInfGroup.GET("/notify", handlers.GetNotify)
+		UserInfGroup.GET("/notify/inf", handlers.GetNotifyInf)
 		UserInfGroup.POST("/notifications/viewed", handlers.MarkNotificationViewed)
 		UserInfGroup.PUT("/invites/:id/approve", handlers.ApproveInvite)
 		UserInfGroup.PUT("/invites/:id/reject", handlers.RejectInvite)

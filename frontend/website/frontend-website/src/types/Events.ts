@@ -2,21 +2,25 @@
 
 export interface EventCardProps {
     id: number;
-    type: 'games' | 'movies' | 'board' | 'other';
+    type: 'games' | 'movies' | 'board' | 'other'; 
     image: string;
-    date: string;
+    date: string;                     // серверный start_time
+    start_time?: string;
+    end_time?: string;                // 🔥 добавлено (для будущих эвентов)
     title: string;
     genres: string[];
-    participants: number;
-    maxParticipants: number;
+    participants: number;             // серверный current_users
+    maxParticipants: number;          // серверный max_users
     duration?: string;
-    location: 'online' | 'offline'; // онлайн/оффлайн
-    adress: string; // фактический адрес или ссылка
-    city?: string;  // ✅ новое свойство
+    location: 'online' | 'offline';   // пока заглушка, сервер не даёт
+    adress: string;                   // серверный location
+    publisher?: string;
+    city?: string;
     scale?: number;
     isEditMode?: boolean;
     onEdit?: (id: number) => void;
     groupId?: number;
+    IsSub?: boolean;
 }
 
 export interface SectionData {

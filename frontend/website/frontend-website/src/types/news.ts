@@ -18,6 +18,7 @@ export interface Comment {
   text: string;
   user?: User;
   user_id: number;
+  created_time: string; // Добавлено
   // Поля от сервера для отдельной новости
   image?: string;
   name?: string;
@@ -50,7 +51,7 @@ export interface NewsResponse {
 
 // Отдельный интерфейс для детальной страницы новости
 export interface NewsDetail {
-  comments: NewsComment[];
+  comments: Comment[]; // Исправлено с NewsComment[] на Comment[]
   content: string;
   created_time: string;
   description: string;

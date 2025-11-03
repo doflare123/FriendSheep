@@ -9,6 +9,8 @@ import FormInput from '../../components/FormInput';
 import FormButton from '../../components/FormButton';
 import FormLink from '../../components/FormLink';
 import LinkNote from '../../components/LinkNote';
+import {updateUserData} from '@/Constants'
+import styles from '@/styles/resetPassword.module.css';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -21,7 +23,7 @@ export default function LoginPage() {
   });
   
   const router = useRouter();
-  const { login } = useAuth(); // Используем функцию login из контекста
+  const { login } = useAuth();
 
   const validateForm = () => {
     const newErrors = {
@@ -30,12 +32,10 @@ export default function LoginPage() {
       general: ''
     };
 
-    // Валидация email
     if (!email.trim()) {
       newErrors.email = true;
     }
 
-    // Валидация пароля
     if (!password.trim()) {
       newErrors.password = true;
     }
@@ -66,13 +66,16 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    router.push('/login/resetPasswordEmail/');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Очищаем предыдущие ошибки
     clearErrors();
     
-    // Валидируем форму
     if (!validateForm()) {
       return;
     }
@@ -83,10 +86,9 @@ export default function LoginPage() {
       const response = await loginAPI(email, password);
       
       if (response.access_token && response.refresh_token) {
-        // Используем функцию login из контекста вместо ручного сохранения
         login(response.access_token, response.refresh_token);
         
-        // Перенаправляем на главную страницу
+        updateUserData();
         router.push('/');
       } else {
         throw new Error('Токены не получены');
@@ -147,7 +149,11 @@ export default function LoginPage() {
         )}
       </div>
 
-      <LinkNote>
+      <LinkNote leftLink={
+        <FormLink onClick={handleForgotPassword}>
+          Забыли пароль?
+        </FormLink>
+      }>
         <FormLink href="/register" color="#000000">
           Нет аккаунта?
         </FormLink>
