@@ -25,7 +25,6 @@ func InitMongoDB() {
 		log.Fatalf("Mongo connection error: %v", err)
 	}
 
-	// Пинг для проверки
 	if err := client.Ping(ctx, nil); err != nil {
 		log.Fatalf("Mongo ping error: %v", err)
 	}
