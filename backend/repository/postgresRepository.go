@@ -39,7 +39,7 @@ type postRepository struct {
 	db *gorm.DB
 }
 
-func NewSheepRepository(logger logger.Logger, conf config.Config) PostgresRepository {
+func NewSheepRepository(logger logger.Logger, conf *config.Config) PostgresRepository {
 	logger.Info("Try database connection")
 	dsn := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
 		conf.Postgres.Host, conf.Postgres.Port, conf.Postgres.User,

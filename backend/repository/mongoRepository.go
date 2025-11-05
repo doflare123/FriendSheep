@@ -20,7 +20,7 @@ type mongoRepository struct {
 	mongo *mongo.Database
 }
 
-func NewMongoRepository(logger logger.Logger, conf config.Config) MongoRepository {
+func NewMongoRepository(logger logger.Logger, conf *config.Config) MongoRepository {
 	logger.Info("Try MongoDB connection")
 
 	db, err := initMongo(conf.Mongo.URI, conf.Mongo.DB, logger)

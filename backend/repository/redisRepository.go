@@ -21,7 +21,7 @@ type redisRepository struct {
 	client *redis.Client
 }
 
-func NewRedisRepository(logger logger.Logger, conf config.Config) RedisRepository {
+func NewRedisRepository(logger logger.Logger, conf *config.Config) RedisRepository {
 	logger.Info("Try Redis connection")
 
 	client, err := initRedis(conf.Redis.Addr, conf.Redis.Password, conf.Redis.DB, logger)
