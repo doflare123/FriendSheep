@@ -4,16 +4,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import NotificationDropdown from './NotificationDropdown';
+import EventModal from './Events/EventModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { checkNotif } from '@/api/notification/checkNotif';
 import { getAccesToken } from '@/Constants';
-import '../styles/Header.css';
+import styles from '../styles/Header.module.css';
 
 export default function Header() {
     const { isLoggedIn, userData, logout, isLoading } = useAuth();
     const [showNotifications, setShowNotifications] = useState(false);
     const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const router = useRouter();
 
     // Проверка наличия непрочитанных уведомлений
@@ -51,18 +53,17 @@ export default function Header() {
     // Показываем скелетон во время загрузки
     if (isLoading) {
         return (
-            <header className="header">
-                <div className="logo-section">
-                    <Image src="/logo.png" alt="Логотип" width={64} height={64} className="logo-image"/>
-                    <span className="logo-text">FriendShip</span>
-                </div>
-                <nav className="nav-section">
-                    <Link href="/" className="nav-link">Главная</Link>
-                    <Link href="/news" className="nav-link">Новости</Link>
-                    <Link href="/groups" className="nav-link">Группы</Link>
+            <header className={styles.header}>
+                <Link href="/" className={styles.logoSection}>
+                    <Image src="/logo.png" alt="Логотип" width={64} height={64} className={styles.logoImage}/>
+                    <span className={styles.logoText}>FriendShip</span>
+                </Link>
+                <nav className={styles.navSection}>
+                    <Link href="/news" className={styles.navLink}>Новости</Link>
+                    <Link href="/groups" className={styles.navLink}>Группы</Link>
                 </nav>
-                <div className="auth-section">
-                    <div className="loading-skeleton">Загрузка...</div>
+                <div className={styles.authSection}>
+                    <div className={styles.loadingSkeleton}>Загрузка...</div>
                 </div>
             </header>
         );
@@ -72,74 +73,97 @@ export default function Header() {
         router.push('/profile/' + userData?.us);
     };
 
+    const handleCreateClick = () => {
+        setIsCreateModalOpen(true);
+    };
+
+    const handleModalClose = () => {
+        setIsCreateModalOpen(false);
+    };
+
+    const handleEventSave = () => {
+        setIsCreateModalOpen(false);
+        // Перезагрузка происходит внутри EventModal
+    };
+
     return (
-        <header className="header">
-            <div className="logo-section">
-                <Image src="/logo.png" alt="Логотип" width={64} height={64} className="logo-image"/>
-                <span className="logo-text">FriendShip</span>
-            </div>
+        <>
+            <header className={styles.header}>
+                <Link href="/" className={styles.logoSection}>
+                    <Image src="/logo.png" alt="Логотип" width={64} height={64} className={styles.logoImage}/>
+                    <span className={styles.logoText}>FriendShip</span>
+                </Link>
 
-            <nav className="nav-section">
-                <Link href="/" className="nav-link">Главная</Link>
-                <Link href="/news" className="nav-link">Новости</Link>
-                <Link href="/groups" className="nav-link">Группы</Link>
-            </nav>
+                <nav className={styles.navSection}>
+                    <Link href="/news" className={styles.navLink}>Новости</Link>
+                    <Link href="/groups" className={styles.navLink}>Группы</Link>
+                </nav>
 
-            <div className="auth-section">
-                {isLoggedIn ? (
-                    <>
-                        <button className="create-button">Создать</button>
-                        
-                        <div className="notification-container">
-                            <button 
-                                className="notification-button"
-                                onClick={() => setShowNotifications(!showNotifications)}
-                            >
-                                <Image 
-                                    src={hasUnreadNotifications ? "/notification_icon_active.png" : "/notification_icon.png"}
-                                    alt="Уведомления" 
-                                    width={24} 
-                                    height={24}
-                                />
+                <div className={styles.authSection}>
+                    {isLoggedIn ? (
+                        <>
+                            <button className={styles.createButton} onClick={handleCreateClick}>
+                                Создать
                             </button>
                             
-                            {showNotifications && (
-                                <NotificationDropdown 
-                                    onClose={() => setShowNotifications(false)}
+                            <div className={styles.notificationContainer}>
+                                <button 
+                                    className={styles.notificationButton}
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                >
+                                    <Image 
+                                        src={hasUnreadNotifications ? "/notification_icon_active.png" : "/notification_icon.png"}
+                                        alt="Уведомления" 
+                                        width={24} 
+                                        height={24}
+                                    />
+                                </button>
+                                
+                                {showNotifications && (
+                                    <NotificationDropdown 
+                                        onClose={() => setShowNotifications(false)}
+                                    />
+                                )}
+                            </div>
+                            
+                            <span className={styles.username}>{userData?.username}</span>
+                            
+                            <div 
+                                className={styles.avatarContainer} 
+                                onClick={handleAvatarClick}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        handleAvatarClick();
+                                    }
+                                }}
+                            >
+                                <Image 
+                                    src={userData?.avatar || '/default-avatar.png'} 
+                                    alt="Аватар" 
+                                    width={60} 
+                                    height={60}
+                                    className={styles.avatar}
                                 />
-                            )}
-                        </div>
-                        
-                        <span className="username">{userData?.username}</span>
-                        
-                        <div 
-                            className="avatar-container" 
-                            onClick={handleAvatarClick}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    handleAvatarClick();
-                                }
-                            }}
-                        >
-                            <Image 
-                                src={userData?.avatar || '/default-avatar.png'} 
-                                alt="Аватар" 
-                                width={60} 
-                                height={60}
-                                className="avatar"
-                            />
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <Link href="/login" className="auth-link">Войти</Link>
-                        <span className="auth-separator">/</span>
-                        <Link href="/register" className="auth-link">Регистрация</Link>
-                    </>
-                )}
-            </div>
-        </header>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <Link href="/login" className={styles.authLink}>Войти</Link>
+                            <span className={styles.authSeparator}>/</span>
+                            <Link href="/register" className={styles.authLink}>Регистрация</Link>
+                        </>
+                    )}
+                </div>
+            </header>
+
+            <EventModal
+                isOpen={isCreateModalOpen}
+                onClose={handleModalClose}
+                onSave={handleEventSave}
+                mode="create"
+            />
+        </>
     );
 }

@@ -149,13 +149,24 @@
 }
 
 .pageWrapper {
-    min-height: 100vh;
+    min-height: 100%;
     display: flex;
     flex-direction: column;
+    background: /* твой фон */; /* если фон задан здесь */
 }
 
 .pageWrapper .bgPage {
     flex: 1;
+    min-height: 0; /* добавь эту строку */
+}
+
+.emptyMessage {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70vh; /* уменьши с 60vh до фиксированного значения */
+    padding: 40px 20px;
+    color: #515151;
 }
 
 .footerWrapper {

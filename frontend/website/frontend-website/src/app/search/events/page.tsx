@@ -13,15 +13,25 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 import { searchEvents } from '@/api/search/searchEvents';
 import { yandexMapsAPI } from '@/lib/api/index';
 
+// Маппинг категорий к паттернам фоновых изображений
+const categoryPatterns: Record<string, string> = {
+  'Фильмы': '/events/movie_bg.png',
+  'Игры': '/events/game_bg.png',
+  'Настольные игры': '/events/board_bg.png',
+  'Другое': '/events/other_bg.png'
+};
+
 export default function EventsSearchPage() {
   const searchParams = useSearchParams()
-  const category = searchParams?.get("category") || 'Популярные';
-  const pattern = searchParams?.get("pattern") || '/events/movie_bg.png';
+  const initialCategory = searchParams?.get("category") || '';
+  const initialPattern = searchParams?.get("pattern") || '';
   
   const [searchQuery, setSearchQuery] = useState('');
   const [events, setEvents] = useState<EventCardProps[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [selectedCategorySort, setSelectedCategorySort] = useState('Все');
+  const [selectedCategorySort, setSelectedCategorySort] = useState(initialCategory || 'Все');
+  const [currentCategory, setCurrentCategory] = useState(initialCategory);
+  const [currentPattern, setCurrentPattern] = useState(initialPattern);
   const [selectedDateSort, setSelectedDateSort] = useState('По возрастанию');
   const [selectedParticipantSort, setSelectedParticipantSort] = useState('По возрастанию');
   const [selectedLocation, setSelectedLocation] = useState('Все');
@@ -41,9 +51,6 @@ export default function EventsSearchPage() {
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
   const citySearchTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Проверяем, является ли категория специфическим типом контента
-  const isSpecificCategory = ['фильмы', 'игры', 'настольные игры', 'другое'].includes(category.toLowerCase());
-
   // Маппинг категорий для categoryID
   const getCategoryID = (categoryName: string): number | undefined => {
     const typeArray = convertCategRuToEng([categoryName]);
@@ -52,6 +59,19 @@ export default function EventsSearchPage() {
       return ids[0];
     }
     return undefined;
+  };
+
+  // Обработчик изменения категории
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategorySort(category);
+    
+    if (category !== 'Все') {
+      setCurrentCategory(category);
+      setCurrentPattern(categoryPatterns[category] || '');
+    } else {
+      setCurrentCategory('');
+      setCurrentPattern('');
+    }
   };
 
   // Проверка возможности прокрутки
@@ -104,41 +124,29 @@ export default function EventsSearchPage() {
     try {
       const accessToken = getAccesToken();
       
-      // Формируем параметры запроса
       const params: any = {};
 
-      // Поиск по названию
       if (searchQuery.trim()) {
         params.query = searchQuery.trim();
       }
 
       // Фильтр по категории через categoryID
-      if (isSpecificCategory) {
-        // Если мы на странице конкретной категории
-        const categoryID = getCategoryID(category);
-        if (categoryID) {
-          params.categoryID = categoryID;
-        }
-      } else if (selectedCategorySort !== 'Все') {
-        // Если выбрана категория в фильтре
+      if (selectedCategorySort !== 'Все') {
         const categoryID = getCategoryID(selectedCategorySort);
         if (categoryID) {
           params.categoryID = categoryID;
         }
       }
 
-      // Фильтр по местоположению (онлайн/оффлайн) через sessionType
       if (selectedLocation !== 'Все') {
         params.sessionType = selectedLocation === 'Онлайн' ? 'Онлайн' : 'Оффлайн';
       }
 
-      // Фильтр по городу
       if (selectedCity.trim()) {
         params.city = selectedCity.trim();
       }
 
-      // Сортировка
-      // Приоритет: участники > дата
+      // Сортировка: приоритет участники > дата
       if (selectedParticipantSort !== 'По возрастанию') {
         params.sort_by = 'users';
         params.order = selectedParticipantSort === 'По возрастанию' ? 'asc' : 'desc';
@@ -146,7 +154,6 @@ export default function EventsSearchPage() {
         params.sort_by = 'date';
         params.order = selectedDateSort === 'По возрастанию' ? 'asc' : 'desc';
       } else {
-        // По умолчанию сортируем по дате по возрастанию
         params.sort_by = 'date';
         params.order = 'asc';
       }
@@ -154,7 +161,6 @@ export default function EventsSearchPage() {
       const response = await searchEvents(accessToken, page, params);
 
       if (response && response.sessions) {
-        // Фильтруем события где могут быть проблемы с данными
         const validSessions = response.sessions.filter((session: any) => 
           session && session.id && session.title
         );
@@ -191,7 +197,7 @@ export default function EventsSearchPage() {
       setIsLoading(false);
       setIsInitialLoading(false);
     }
-  }, [searchQuery, selectedCategorySort, selectedDateSort, selectedParticipantSort, selectedLocation, selectedCity, category, isSpecificCategory, isLoading, hasMore]);
+  }, [searchQuery, selectedCategorySort, selectedDateSort, selectedParticipantSort, selectedLocation, selectedCity, isLoading, hasMore]);
 
   // Загрузка следующей страницы
   const loadMoreEvents = useCallback(() => {
@@ -205,7 +211,7 @@ export default function EventsSearchPage() {
     setCurrentPage(1);
     setHasMore(true);
     loadEvents(1, true);
-  }, [selectedCategorySort, selectedDateSort, selectedParticipantSort, selectedLocation, selectedCity, category]);
+  }, [selectedCategorySort, selectedDateSort, selectedParticipantSort, selectedLocation, selectedCity]);
 
   // Поиск с задержкой
   useEffect(() => {
@@ -297,13 +303,15 @@ export default function EventsSearchPage() {
     <div className="bgPage">
       <div className={styles.container}>
         <div className={styles.contentWrapper}>
-          <div className={styles.categoryHeader}>
-            <CategoryLabel 
-                title={category} 
-                patternUrl={pattern} 
-                clickable={false}
-            />
-          </div>
+          {selectedCategorySort !== 'Все' && (
+            <div className={styles.categoryHeader}>
+              <CategoryLabel 
+                  title={currentCategory} 
+                  patternUrl={currentPattern} 
+                  clickable={false}
+              />
+            </div>
+          )}
 
           <div className={styles.searchHeader}>
             <div className={styles.searchInputWrapper}>
@@ -328,56 +336,54 @@ export default function EventsSearchPage() {
                 </button>
                 {isFilterOpen && (
                   <div className={styles.filterMenu}>
-                    {!isSpecificCategory && (
-                      <div className={styles.filterSection}>
-                        <h4 className={styles.filterTitle}>Сортировка по категориям</h4>
-                        <label className={styles.filterOption}>
-                          <input
-                            type="radio"
-                            name="categories"
-                            checked={selectedCategorySort === 'Все'}
-                            onChange={() => setSelectedCategorySort('Все')}
-                          />
-                          <span>Все</span>
-                        </label>
-                        <label className={styles.filterOption}>
-                          <input
-                            type="radio"
-                            name="categories"
-                            checked={selectedCategorySort === 'Фильмы'}
-                            onChange={() => setSelectedCategorySort('Фильмы')}
-                          />
-                          <span>Кино</span>
-                        </label>
-                        <label className={styles.filterOption}>
-                          <input
-                            type="radio"
-                            name="categories"
-                            checked={selectedCategorySort === 'Игры'}
-                            onChange={() => setSelectedCategorySort('Игры')}
-                          />
-                          <span>Игры</span>
-                        </label>
-                        <label className={styles.filterOption}>
-                          <input
-                            type="radio"
-                            name="categories"
-                            checked={selectedCategorySort === 'Настольные игры'}
-                            onChange={() => setSelectedCategorySort('Настольные игры')}
-                          />
-                          <span>Настольные игры</span>
-                        </label>
-                        <label className={styles.filterOption}>
-                          <input
-                            type="radio"
-                            name="categories"
-                            checked={selectedCategorySort === 'Другое'}
-                            onChange={() => setSelectedCategorySort('Другое')}
-                          />
-                          <span>Другое</span>
-                        </label>
-                      </div>
-                    )}
+                    <div className={styles.filterSection}>
+                      <h4 className={styles.filterTitle}>Категория</h4>
+                      <label className={styles.filterOption}>
+                        <input
+                          type="radio"
+                          name="categories"
+                          checked={selectedCategorySort === 'Все'}
+                          onChange={() => handleCategoryChange('Все')}
+                        />
+                        <span>Все</span>
+                      </label>
+                      <label className={styles.filterOption}>
+                        <input
+                          type="radio"
+                          name="categories"
+                          checked={selectedCategorySort === 'Фильмы'}
+                          onChange={() => handleCategoryChange('Фильмы')}
+                        />
+                        <span>Фильмы</span>
+                      </label>
+                      <label className={styles.filterOption}>
+                        <input
+                          type="radio"
+                          name="categories"
+                          checked={selectedCategorySort === 'Игры'}
+                          onChange={() => handleCategoryChange('Игры')}
+                        />
+                        <span>Игры</span>
+                      </label>
+                      <label className={styles.filterOption}>
+                        <input
+                          type="radio"
+                          name="categories"
+                          checked={selectedCategorySort === 'Настольные игры'}
+                          onChange={() => handleCategoryChange('Настольные игры')}
+                        />
+                        <span>Настольные игры</span>
+                      </label>
+                      <label className={styles.filterOption}>
+                        <input
+                          type="radio"
+                          name="categories"
+                          checked={selectedCategorySort === 'Другое'}
+                          onChange={() => handleCategoryChange('Другое')}
+                        />
+                        <span>Другое</span>
+                      </label>
+                    </div>
                     
                     <div className={styles.filterSection}>
                       <h4 className={styles.filterTitle}>Тип проведения</h4>
@@ -530,7 +536,6 @@ export default function EventsSearchPage() {
                 )}
               </div>
 
-              {/* Кнопки прокрутки */}
               {canScrollUp && events.length > 0 && (
                 <button 
                   className={`${styles.scrollIndicator} ${styles.scrollUp}`}

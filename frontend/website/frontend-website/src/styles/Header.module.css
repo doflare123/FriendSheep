@@ -1,4 +1,4 @@
-/* Header.css */
+/* Header.module.css */
 .header {
   display: flex;
   justify-content: space-between;
@@ -13,17 +13,24 @@
 }
 
 /* Логотип */
-.logo-section {
+.logoSection {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
 }
 
-.logo-image {
+.logoSection:hover {
+  opacity: 0.8;
+}
+
+.logoImage {
   border-radius: 1rem;
 }
 
-.logo-text {
+.logoText {
   font-size: 1.875rem;
   font-family: 'Inter', sans-serif;
   color: #37A2E6;
@@ -31,7 +38,7 @@
 }
 
 /* Навигация */
-.nav-section {
+.navSection {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -42,18 +49,18 @@
   font-family: 'Inter', sans-serif;
 }
 
-.nav-link {
+.navLink {
   color: black;
   text-decoration: none;
   transition: all 0.2s ease;
 }
 
-.nav-link:hover {
+.navLink:hover {
   text-decoration: underline;
 }
 
 /* Правая секция */
-.auth-section {
+.authSection {
   font-size: 1.5rem;
   color: black;
   font-family: 'Inter', sans-serif;
@@ -63,23 +70,23 @@
 }
 
 /* Неавторизованный пользователь */
-.auth-link {
+.authLink {
   color: black;
   text-decoration: none;
   padding: 0 0.25rem;
   transition: all 0.2s ease;
 }
 
-.auth-link:hover {
+.authLink:hover {
   text-decoration: underline;
 }
 
-.auth-separator {
+.authSeparator {
   user-select: none;
 }
 
 /* Авторизованный пользователь */
-.create-button {
+.createButton {
   background-color: #316BC2;
   color: white;
   border: none;
@@ -91,16 +98,16 @@
   transition: all 0.2s ease;
 }
 
-.create-button:hover {
+.createButton:hover {
   background-color: #2859a8;
   transform: translateY(-1px);
 }
 
-.notification-container {
+.notificationContainer {
   position: relative;
 }
 
-.notification-button {
+.notificationButton {
   background: none;
   border: none;
   cursor: pointer;
@@ -113,11 +120,11 @@
   transition: background-color 0.2s ease;
 }
 
-.notification-button:hover {
+.notificationButton:hover {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-.notification-badge {
+.notificationBadge {
   position: absolute;
   top: 2px;
   right: 2px;
@@ -134,9 +141,10 @@
   color: #333;
 }
 
-.avatar-container {
+.avatarContainer {
   display: flex;
   align-items: center;
+  cursor: pointer;
 }
 
 .avatar {
@@ -151,10 +159,9 @@
   transform: scale(1.05);
 }
 
-.avatar-container {
-  display: flex;
-  align-items: center;
-  cursor: pointer; /* Добавляем курсор-указатель */
+.loadingSkeleton {
+  color: #999;
+  font-size: 1rem;
 }
 
 /* Адаптивность */
@@ -163,15 +170,15 @@
     padding: 0 1rem;
   }
   
-  .nav-section {
+  .navSection {
     display: none;
   }
   
-  .logo-text {
+  .logoText {
     font-size: 1.5rem;
   }
   
-  .auth-section {
+  .authSection {
     font-size: 1.25rem;
     gap: 0.5rem;
   }
