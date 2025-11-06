@@ -17,12 +17,14 @@ const PUBLIC_ENDPOINTS = [
   '/sessions/register',
   '/sessions/verify',
   '/users/login',
-  '/users',
 ];
 
 const isPublicEndpoint = (url?: string): boolean => {
   if (!url) return false;
-  return PUBLIC_ENDPOINTS.some(endpoint => url.includes(endpoint));
+  return PUBLIC_ENDPOINTS.some(endpoint => { if (endpoint === '/users') {
+      return url === '/users' || url.startsWith('/users?');
+    }
+    return url.includes(endpoint);});
 };
 
 apiClient.interceptors.request.use(
@@ -75,6 +77,32 @@ apiClient.interceptors.response.use(
       }
     }
 
+    return Promise.reject(error);
+  }
+);
+
+apiClient.interceptors.request.use(
+  async (config) => {
+    console.log(`[API] Запрос: ${config.method?.toUpperCase()} ${config.url}`);
+    
+    if (isPublicEndpoint(config.url)) {
+      console.log('[API] → Публичный endpoint (без токена)');
+      return config;
+    }
+
+    const tokens = await getTokens();
+    console.log('[API] → Токены:', tokens ? 'НАЙДЕНЫ' : '❌ НЕ НАЙДЕНЫ');
+    
+    if (tokens?.accessToken) {
+      config.headers.Authorization = `Bearer ${tokens.accessToken}`;
+      console.log('[API] → Authorization заголовок добавлен');
+    } else {
+      console.warn('[API] → ⚠️ Токены не найдены для защищённого endpoint!');
+    }
+    
+    return config;
+  },
+  (error) => {
     return Promise.reject(error);
   }
 );

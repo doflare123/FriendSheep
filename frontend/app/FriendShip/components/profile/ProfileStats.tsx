@@ -6,12 +6,12 @@ import { StyleSheet, View } from 'react-native';
 interface ProfileStatsProps {
   selectedTiles: TileType[];
   stats: {
-    media: number;
-    games: number;
-    table_games: number;
+    movies: number;
+    video_games: number;
+    board_games: number;
     other: number;
-    hours: number;
-    sessions: number;
+    time: number;
+    all: number;
   };
 }
 
@@ -22,24 +22,24 @@ interface TileConfig {
 }
 
 const tileConfigs: Record<TileType, TileConfig> = {
-  media: { type: 'media', title: 'Медиа', icon: 'movies' },
-  games: { type: 'games', title: 'Игры', icon: 'games' },
-  table_games: { type: 'table_games', title: 'Настолки', icon: 'table_games' },
+  movies: { type: 'movies', title: 'Медиа', icon: 'movies' },
+  video_games: { type: 'video_games', title: 'Игры', icon: 'games' },
+  board_games: { type: 'board_games', title: 'Настолки', icon: 'table_games' },
   other: { type: 'other', title: 'Другое', icon: 'other' },
-  hours: { type: 'hours', title: 'Часов', icon: 'hours' },
-  sessions: { type: 'sessions', title: 'Сессий', icon: 'sessions' },
+  time: { type: 'time', title: 'Часов', icon: 'hours' },
+  all: { type: 'all', title: 'Сессий', icon: 'sessions' },
 };
 
 const ProfileStats: React.FC<ProfileStatsProps> = ({ selectedTiles, stats }) => {
   const displayedTiles = selectedTiles.slice(0, 4);
   
-  const renderTile = (tileType: TileType) => {
+  const renderTile = (tileType: TileType, index: number) => {
     const config = tileConfigs[tileType];
     const count = stats[tileType];
     
     return (
       <StatisticsBar
-        key={tileType}
+        key={`${tileType}-${index}`}
         title={config.title}
         count={count}
         icon={config.icon}

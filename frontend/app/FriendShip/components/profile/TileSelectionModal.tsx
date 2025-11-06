@@ -1,6 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Image,
   Modal,
@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 
-export type TileType = 'media' | 'games' | 'table_games' | 'other' | 'sessions' | 'hours';
+export type TileType = 'movies' | 'video_games' | 'board_games' | 'other' | 'all' | 'time';
 
 interface TileOption {
   id: TileType;
@@ -24,24 +24,39 @@ interface TileSelectionModalProps {
   onClose: () => void;
   selectedTiles: TileType[];
   onTilesChange: (tiles: TileType[]) => void;
+  stats: {
+    all: number;
+    movies: number;
+    video_games: number;
+    board_games: number;
+    other: number;
+    time: number;
+  };
 }
-
-const tileOptions: TileOption[] = [
-  { id: 'media', title: 'Медиа - 20', icon: require('@/assets/images/profile/movies.png') },
-  { id: 'games', title: 'Игры - 20', icon: require('@/assets/images/profile/games.png') },
-  { id: 'table_games', title: 'Настолки - 20', icon: require('@/assets/images/profile/table_games.png') },
-  { id: 'other', title: 'Другое - 20', icon: require('@/assets/images/profile/others.png') },
-  { id: 'sessions', title: 'Сессий - 20', icon: require('@/assets/images/profile/sessions.png') },
-  { id: 'hours', title: 'Часов - 20', icon: require('@/assets/images/profile/hours.png') },
-];
 
 const TileSelectionModal: React.FC<TileSelectionModalProps> = ({
   visible,
   onClose,
   selectedTiles,
   onTilesChange,
+  stats,
 }) => {
   const [localSelectedTiles, setLocalSelectedTiles] = useState<TileType[]>(selectedTiles);
+
+  useEffect(() => {
+    if (visible) {
+      setLocalSelectedTiles(selectedTiles);
+    }
+  }, [visible, selectedTiles]);
+
+  const tileOptions: TileOption[] = [
+    { id: 'movies', title: `Медиа - ${stats.movies}`, icon: require('@/assets/images/profile/movies.png') },
+    { id: 'video_games', title: `Игры - ${stats.video_games}`, icon: require('@/assets/images/profile/games.png') },
+    { id: 'board_games', title: `Настолки - ${stats.board_games}`, icon: require('@/assets/images/profile/table_games.png') },
+    { id: 'other', title: `Другое - ${stats.other}`, icon: require('@/assets/images/profile/others.png') },
+    { id: 'all', title: `Сессий - ${stats.all}`, icon: require('@/assets/images/profile/sessions.png') },
+    { id: 'time', title: `Часов - ${stats.time}`, icon: require('@/assets/images/profile/hours.png') },
+  ];
 
   const handleTilePress = (tileId: TileType) => {
     setLocalSelectedTiles((prev) => {
@@ -59,8 +74,10 @@ const TileSelectionModal: React.FC<TileSelectionModalProps> = ({
   };
 
   const handleConfirm = () => {
-    onTilesChange(localSelectedTiles);
-    onClose();
+    if (localSelectedTiles.length === 4) {
+      onTilesChange(localSelectedTiles);
+      onClose();
+    }
   };
 
   const getTileSelectionNumber = (tileId: TileType): number | null => {

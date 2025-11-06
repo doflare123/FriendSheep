@@ -1,4 +1,4 @@
-import authService from '@/api/services/authService';
+import { getTokens } from '@/api/storage/tokenStorage';
 import { useToast } from '@/components/ToastContext';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
@@ -53,7 +53,8 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await authService.login(email, password);
+       const savedTokens = await getTokens();
+       console.log('[Login] Токены после логина:', savedTokens ? 'сохранены' : 'НЕ СОХРАНЕНЫ');
 
       showToast({
         type: 'success',

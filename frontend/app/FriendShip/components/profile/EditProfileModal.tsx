@@ -1,18 +1,21 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import {
-    Dimensions,
-    Image,
-    ImageBackground,
-    ImageSourcePropType,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  ImageBackground,
+  ImageSourcePropType,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 const screenHeight = Dimensions.get("window").height;
@@ -30,7 +33,7 @@ interface EditProfileModalProps {
 }
 
 interface ProfileData {
-  avatar: ImageSourcePropType;
+  avatar: string | ImageSourcePropType;
   name: string;
   username: string;
   description: string;
@@ -42,10 +45,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   onSave,
   currentProfile 
 }) => {
-  const [avatar, setAvatar] = useState<ImageSourcePropType>(currentProfile.avatar);
+  const [avatar, setAvatar] = useState<string | ImageSourcePropType>(currentProfile.avatar);
   const [name, setName] = useState(currentProfile.name);
   const [username, setUsername] = useState(currentProfile.username);
   const [description, setDescription] = useState(currentProfile.description);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -56,16 +60,34 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }
   }, [visible, currentProfile]);
 
-  const handleSave = () => {
-    const profileData: ProfileData = {
-      avatar,
-      name,
-      username,
-      description,
-    };
-    
-    onSave?.(profileData);
-    onClose();
+  const handleSave = async () => {
+    if (!name.trim()) {
+      Alert.alert('Ошибка', 'Введите имя');
+      return;
+    }
+
+    if (!username.trim() || username.length < 2) {
+      Alert.alert('Ошибка', 'Юзернейм должен содержать минимум 2 символа');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const profileData: ProfileData = {
+        avatar,
+        name: name.trim(),
+        username: username.trim(),
+        description: description.trim(),
+      };
+      
+      await onSave?.(profileData);
+      onClose();
+    } catch (error) {
+      console.error('[EditProfileModal] Ошибка сохранения:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -76,8 +98,39 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     onClose();
   };
 
-  const handleAvatarPress = () => {
-    console.log('Open image picker');
+  const handleAvatarPress = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Требуется разрешение',
+          'Для загрузки фото необходимо разрешение на доступ к галерее'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setAvatar({ uri: result.assets[0].uri });
+      }
+    } catch (error) {
+      console.error('[EditProfileModal] Ошибка выбора изображения:', error);
+      Alert.alert('Ошибка', 'Не удалось загрузить изображение');
+    }
+  };
+
+  const getAvatarSource = (): ImageSourcePropType => {
+    if (typeof avatar === 'string') {
+      return { uri: avatar };
+    }
+    return avatar;
   };
 
   return (
@@ -93,7 +146,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
           >
             <View style={styles.header}>
               <Text style={styles.title}>Редактирование профиля</Text>
-              <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+              <TouchableOpacity 
+                style={styles.closeButton} 
+                onPress={handleClose}
+                disabled={loading}
+              >
                 <Image
                   tintColor={Colors.black}
                   style={{ width: 35, height: 35, resizeMode: 'cover' }}
@@ -106,9 +163,18 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               <TouchableOpacity 
                 style={styles.avatarContainer}
                 onPress={handleAvatarPress}
+                disabled={loading}
               >
-                <Image source={avatar} style={styles.avatar} />
+                <Image source={getAvatarSource()} style={styles.avatar} />
+                <View style={styles.editAvatarBadge}>
+                  <Image
+                    source={require('@/assets/images/profile/settings.png')}
+                    style={styles.editIcon}
+                  />
+                </View>
               </TouchableOpacity>
+
+              <Text style={styles.hint}>Нажмите на аватар для изменения</Text>
 
               <TextInput
                 style={styles.input}
@@ -117,6 +183,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 value={name}
                 onChangeText={setName}
                 maxLength={50}
+                editable={!loading}
               />
 
               <TextInput
@@ -124,14 +191,10 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 placeholder="Юзернейм"
                 placeholderTextColor={Colors.grey}
                 value={username}
-                onChangeText={(text) => {
-                  if (!text.startsWith('@')) {
-                    setUsername('@' + text.replace('@', ''));
-                  } else {
-                    setUsername(text);
-                  }
-                }}
+                onChangeText={setUsername}
                 maxLength={30}
+                editable={!loading}
+                autoCapitalize="none"
               />
 
               <TextInput
@@ -144,6 +207,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 numberOfLines={6}
                 textAlignVertical="top"
                 maxLength={200}
+                editable={!loading}
               />
             </View>
 
@@ -155,10 +219,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             >
               <View style={styles.bottomContent}>
                 <TouchableOpacity
-                  style={styles.saveButton}
+                  style={[styles.saveButton, loading && styles.saveButtonDisabled]}
                   onPress={handleSave}
+                  disabled={loading}
                 >
-                  <Text style={styles.saveButtonText}>Сохранить</Text>
+                  {loading ? (
+                    <ActivityIndicator color={Colors.blue3} />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Сохранить</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </ImageBackground>
@@ -209,22 +278,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarContainer: {
-    marginBottom: 12,
+    marginBottom: 8,
     position: 'relative',
   },
   avatar: {
     width: 150,
     height: 150,
     borderRadius: 75,
+    borderWidth: 3,
+    borderColor: Colors.lightBlue3,
+  },
+  editAvatarBadge: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 8,
     borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: Colors.lightGrey,
+    borderColor: Colors.lightBlue3,
+  },
+  editIcon: {
+    width: 20,
+    height: 20,
+  },
+  hint: {
+    fontFamily: Montserrat.regular,
+    fontSize: 12,
+    color: Colors.grey,
+    marginBottom: 16,
+    fontStyle: 'italic',
   },
   input: {
     width: '100%',
     borderBottomWidth: 1,
     borderBottomColor: Colors.grey,
-    paddingVertical: 4,
+    paddingVertical: 8,
     paddingHorizontal: 0,
     marginBottom: 16,
     fontFamily: Montserrat.regular,
@@ -236,7 +325,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.grey,
     borderRadius: 8,
     padding: 16,
-    minHeight: 80,
+    minHeight: 120,
+    maxHeight: 150,
   },
   bottomBackground: {
     width: "100%",
@@ -247,9 +337,14 @@ const styles = StyleSheet.create({
   saveButton: {
     backgroundColor: Colors.white,
     marginHorizontal: 60,
-    paddingVertical: 6,
+    paddingVertical: 10,
     borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 40,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
   saveButtonText: {
     fontFamily: Montserrat.bold,
