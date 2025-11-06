@@ -10,6 +10,7 @@
   background-color: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: relative;
+  z-index: 100;
 }
 
 /* Логотип */
@@ -53,10 +54,60 @@
   color: black;
   text-decoration: none;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .navLink:hover {
   text-decoration: underline;
+}
+
+/* Выпадающее меню поиска */
+.searchMenuContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.searchDropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.5rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.5rem 0;
+  min-width: 150px;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.searchDropdownItem {
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.searchDropdownItem:hover {
+  background-color: #f5f5f5;
 }
 
 /* Правая секция */

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import styles from '../../styles/search/search.module.css';
 import { getCategoryIcon, getAccesToken, convertCategRuToEng } from '../../Constants';
@@ -26,18 +26,9 @@ interface Group {
   description: string;
   id: number;
   image: string;
+  name: string;
   isPrivate?: boolean;
   createdAt?: string;
-}
-
-interface OwnGroup {
-  id: number;
-  name: string;
-  image: string;
-  category: string[];
-  member_count: number;
-  small_description: string;
-  type: string;
 }
 
 interface UsersResponse {
@@ -58,7 +49,10 @@ const ITEMS_PER_PAGE = 5;
 
 export default function SearchPage() {
   const router = useRouter();
-  const [searchType, setSearchType] = useState<'groups' | 'users'>('groups');
+  const searchParams = useSearchParams();
+  const initialType = searchParams.get('type') as 'groups' | 'users' | null;
+  
+  const [searchType, setSearchType] = useState<'groups' | 'users'>(initialType === 'users' ? 'users' : 'groups');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,6 +85,14 @@ export default function SearchPage() {
       setHasAccess(true);
     }
   }, [router]);
+
+  // Обновление searchType при изменении URL параметра
+  useEffect(() => {
+    const typeFromUrl = searchParams.get('type') as 'groups' | 'users' | null;
+    if (typeFromUrl && (typeFromUrl === 'groups' || typeFromUrl === 'users')) {
+      setSearchType(typeFromUrl);
+    }
+  }, [searchParams]);
 
   // Debounce для поискового запроса
   useEffect(() => {
@@ -230,14 +232,12 @@ export default function SearchPage() {
   }, []);
 
   const handleJoinGroup = async (groupId: number, isPrivate: boolean) => {
-    // Добавляем в список загружающихся групп
     setLoadingGroups(prev => new Set([...prev, groupId]));
 
     try {
       const accessToken = getAccesToken();
       await joinGroup(accessToken, groupId);
 
-      // Успешное присоединение
       if (isPrivate) {
         setRequestedGroups(prev => new Set([...prev, groupId]));
         showNotification(200, 'Заявка на вступление отправлена');
@@ -248,7 +248,6 @@ export default function SearchPage() {
     } catch (error: any) {
       console.error('Ошибка при присоединении к группе:', error);
       
-      // Если ошибка 400, значит пользователь уже присоединен или отправил заявку
       if (error.response?.status === 400) {
         if (isPrivate) {
           setRequestedGroups(prev => new Set([...prev, groupId]));
@@ -264,7 +263,6 @@ export default function SearchPage() {
         );
       }
     } finally {
-      // Убираем из списка загружающихся групп
       setLoadingGroups(prev => {
         const newSet = new Set(prev);
         newSet.delete(groupId);
@@ -276,6 +274,12 @@ export default function SearchPage() {
   const handleAddUser = (userId: number) => {
     setSelectedUserId(userId);
     setIsModalOpen(true);
+  };
+
+  const handleToggleSearchType = () => {
+    const newType = searchType === 'groups' ? 'users' : 'groups';
+    setSearchType(newType);
+    router.push(`/search?type=${newType}`);
   };
 
   const renderPagination = () => {
@@ -445,14 +449,25 @@ export default function SearchPage() {
               
               <button
                 className={styles.toggleButton}
-                onClick={() => setSearchType(searchType === 'groups' ? 'users' : 'groups')}
+                onClick={handleToggleSearchType}
               >
-                <Image 
-                  src={searchType === 'groups' ? '/events/clock.png' : '/events/person.png'} 
-                  alt={searchType === 'groups' ? 'Groups' : 'Users'} 
-                  width={20} 
-                  height={20} 
-                />
+                <div className={`${styles.toggleSide} ${searchType === 'groups' ? styles.active : styles.inactive}`}>
+                  <Image 
+                    src='/icons/persons.png'
+                    alt='Groups' 
+                    width={20} 
+                    height={20} 
+                  />
+                </div>
+                <div className={styles.toggleDivider} />
+                <div className={`${styles.toggleSide} ${searchType === 'users' ? styles.active : styles.inactive}`}>
+                  <Image 
+                    src='/icons/groups.png'
+                    alt='Users' 
+                    width={30} 
+                    height={30} 
+                  />
+                </div>
               </button>
             </div>
 

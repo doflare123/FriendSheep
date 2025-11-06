@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import NotificationDropdown from './NotificationDropdown';
 import EventModal from './Events/EventModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,7 +16,10 @@ export default function Header() {
     const [showNotifications, setShowNotifications] = useState(false);
     const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [showSearchMenu, setShowSearchMenu] = useState(false);
     const router = useRouter();
+    const searchMenuRef = useRef<HTMLDivElement>(null);
+    const searchMenuTimeoutRef = useRef<NodeJS.Timeout>();
 
     // Проверка наличия непрочитанных уведомлений
     const checkNotifications = async () => {
@@ -34,11 +37,8 @@ export default function Header() {
     // Проверка уведомлений при монтировании и каждые 10 минут
     useEffect(() => {
         if (isLoggedIn) {
-            checkNotifications(); // Сразу при загрузке
-
-            // Интервал каждые 10 минут (600000 мс)
+            checkNotifications();
             const interval = setInterval(checkNotifications, 60000);
-
             return () => clearInterval(interval);
         }
     }, [isLoggedIn]);
@@ -49,6 +49,20 @@ export default function Header() {
             checkNotifications();
         }
     }, [showNotifications]);
+
+    // Закрытие выпадающего меню при клике вне его
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (searchMenuRef.current && !searchMenuRef.current.contains(event.target as Node)) {
+                setShowSearchMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     // Показываем скелетон во время загрузки
     if (isLoading) {
@@ -83,7 +97,31 @@ export default function Header() {
 
     const handleEventSave = () => {
         setIsCreateModalOpen(false);
-        // Перезагрузка происходит внутри EventModal
+    };
+
+    const handleSearchClick = (type: 'events' | 'groups' | 'users') => {
+        setShowSearchMenu(false);
+        
+        if (type === 'events') {
+            router.push('/search/events?category=Все');
+        } else if (type === 'groups') {
+            router.push('/search?type=groups');
+        } else {
+            router.push('/search?type=users');
+        }
+    };
+
+    const handleSearchMenuEnter = () => {
+        if (searchMenuTimeoutRef.current) {
+            clearTimeout(searchMenuTimeoutRef.current);
+        }
+        setShowSearchMenu(true);
+    };
+
+    const handleSearchMenuLeave = () => {
+        searchMenuTimeoutRef.current = setTimeout(() => {
+            setShowSearchMenu(false);
+        }, 200);
     };
 
     return (
@@ -95,8 +133,42 @@ export default function Header() {
                 </Link>
 
                 <nav className={styles.navSection}>
-                    <Link href="/news" className={styles.navLink}>Новости</Link>
                     <Link href="/groups" className={styles.navLink}>Группы</Link>
+                    <Link href="/news" className={styles.navLink}>Новости</Link>
+                    
+                    {isLoggedIn && (
+                        <div 
+                            className={styles.searchMenuContainer}
+                            ref={searchMenuRef}
+                            onMouseEnter={handleSearchMenuEnter}
+                            onMouseLeave={handleSearchMenuLeave}
+                        >
+                            <span className={styles.navLink}>Поиск</span>
+                            
+                            {showSearchMenu && (
+                                <div className={styles.searchDropdown}>
+                                    <button 
+                                        className={styles.searchDropdownItem}
+                                        onClick={() => handleSearchClick('events')}
+                                    >
+                                        События
+                                    </button>
+                                    <button 
+                                        className={styles.searchDropdownItem}
+                                        onClick={() => handleSearchClick('groups')}
+                                    >
+                                        Группы
+                                    </button>
+                                    <button 
+                                        className={styles.searchDropdownItem}
+                                        onClick={() => handleSearchClick('users')}
+                                    >
+                                        Люди
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </nav>
 
                 <div className={styles.authSection}>
