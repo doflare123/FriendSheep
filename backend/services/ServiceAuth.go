@@ -1,30 +1,43 @@
 package services
 
 import (
-	"friendship/db"
+	"friendship/config"
+	"friendship/logger"
 	"friendship/models"
+	"friendship/models/dto"
+	"friendship/repository"
+	"friendship/utils"
 )
 
-func FindUserByEmail(email string) (*models.User, error) {
-	var user models.User
-	if err := db.GetDB().Where("email = ?", email).First(&user).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
+type AuthService interface {
+	Login() (dto.AuthResponse, error)
+	RefreshTokens(refreshToken string) (dto.AuthResponse, error)
 }
 
-func FindUserByID(id uint) (*models.User, error) {
-	var user models.User
-	if err := db.GetDB().Where("id = ?", id).First(&user).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
+type authService struct {
+	logger logger.Logger
+	cfg    config.Config
+	rep    repository.PostgresRepository
 }
 
-func FindUserByUs(us string) (*uint, error) {
-	var user models.User
-	if err := db.GetDB().Where("us = ?", us).First(&user).Error; err != nil {
-		return nil, err
+func NewAuthService(logger logger.Logger, cfg config.Config, rep repository.PostgresRepository) AuthService {
+	return &authService{
+		logger: logger,
+		cfg:    cfg,
+		rep:    rep,
 	}
-	return &user.ID, nil
+}
+
+func (a *authService) Login() (tokenPair dto.AuthResponse, err error) {
+	return tokenPair, err
+}
+
+func (a *authService) RefreshTokens(refreshToken string) (tokenPair dto.AuthResponse, err error) {
+	userId, err := utils.ParseJWT(refreshToken)
+	if err != nil {
+		return tokenPair, err
+	}
+	user, err := new(models.User).FindUserByID(*userId, a.rep)
+	tokenPair, err = utils.RefreshTokens(refreshToken, user, a.rep, a.cfg.JWTSecretKey)
+	return tokenPair, err
 }

@@ -6,12 +6,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RoutesAuth(r *gin.Engine) {
-	AuthGroup := r.Group("api/users")
+// func RoutesAuth(r *gin.Engine) {
+// 	AuthGroup := r.Group("api/users")
+// 	{
+// 		AuthGroup.POST("/login", handlers.AuthUser)
+// 		AuthGroup.POST("/refresh", handlers.RefreshTokenHandler)
+// 		AuthGroup.POST("/request-reset", handlers.RequestPasswordReset)
+// 		AuthGroup.POST("/confirm-reset", handlers.ConfirmPasswordReset)
+// 	}
+// }
+
+func RegisterAuthRoutes(r *gin.Engine, authH handlers.AuthHandler) {
+	auth := r.Group("/api/v2")
 	{
-		AuthGroup.POST("/login", handlers.AuthUser)
-		AuthGroup.POST("/refresh", handlers.RefreshTokenHandler)
-		AuthGroup.POST("/request-reset", handlers.RequestPasswordReset)
-		AuthGroup.POST("/confirm-reset", handlers.ConfirmPasswordReset)
+		auth.GET("/refresh", authH.RefreshToken)
 	}
 }

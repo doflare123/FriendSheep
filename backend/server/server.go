@@ -17,6 +17,7 @@ type Server struct {
 	postgres repository.PostgresRepository
 	mongo    repository.MongoRepository
 	redis    repository.RedisRepository
+	cfg      config.Config
 }
 
 func InitServer() (*Server, error) {

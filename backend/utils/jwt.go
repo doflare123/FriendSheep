@@ -3,6 +3,8 @@ package utils
 import (
 	"fmt"
 	"friendship/models"
+	"friendship/models/dto"
+	"friendship/repository"
 	"os"
 	"time"
 
@@ -16,17 +18,17 @@ type TokenPair struct {
 
 type UserFinder func(email string) (*models.User, error)
 
-func GenerateTokenPair(email, name, us, image string) (TokenPair, error) {
+func GenerateTokenPair(id uint, name, us, image string) (dto.AuthResponse, error) {
 	secretKey := os.Getenv("SECRET_KEY_JWT")
 	if len(secretKey) == 0 {
-		return TokenPair{}, fmt.Errorf("пустой секретный ключ")
+		return dto.AuthResponse{}, fmt.Errorf("пустой секретный ключ")
 	}
 
 	now := time.Now()
 
 	// Access токен (20 минут жизни)
 	accessClaims := jwt.MapClaims{
-		"Email":    email,
+		"id":       id,
 		"Us":       us,
 		"Username": name,
 		"Image":    image,
@@ -37,12 +39,12 @@ func GenerateTokenPair(email, name, us, image string) (TokenPair, error) {
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	accessString, err := accessToken.SignedString([]byte(secretKey))
 	if err != nil {
-		return TokenPair{}, err
+		return dto.AuthResponse{}, err
 	}
 
 	// Refresh токен (30 дней жизни)
 	refreshClaims := jwt.MapClaims{
-		"Email":    email,
+		"id":       id,
 		"Us":       us,
 		"Username": name,
 		"Image":    image, // Добавляем Image и в refresh токен
@@ -54,19 +56,18 @@ func GenerateTokenPair(email, name, us, image string) (TokenPair, error) {
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshString, err := refreshToken.SignedString([]byte(secretKey))
 	if err != nil {
-		return TokenPair{}, err
+		return dto.AuthResponse{}, err
 	}
 
-	return TokenPair{
+	return dto.AuthResponse{
 		AccessToken:  accessString,
 		RefreshToken: refreshString,
 	}, nil
 }
 
-func RefreshTokens(refreshTokenString string, findUser UserFinder) (TokenPair, error) {
-	secretKey := os.Getenv("SECRET_KEY_JWT")
+func RefreshTokens(refreshTokenString string, findUser dto.UserDto, rep repository.PostgresRepository, secretKey string) (dto.AuthResponse, error) {
 	if len(secretKey) == 0 {
-		return TokenPair{}, fmt.Errorf("пустой секретный ключ")
+		return dto.AuthResponse{}, fmt.Errorf("пустой секретный ключ")
 	}
 
 	token, err := jwt.Parse(refreshTokenString, func(token *jwt.Token) (interface{}, error) {
@@ -78,37 +79,37 @@ func RefreshTokens(refreshTokenString string, findUser UserFinder) (TokenPair, e
 	})
 
 	if err != nil {
-		return TokenPair{}, fmt.Errorf("невалидный refresh токен: %w", err)
+		return dto.AuthResponse{}, fmt.Errorf("невалидный refresh токен: %w", err)
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return TokenPair{}, fmt.Errorf("невалидный refresh токен")
+		return dto.AuthResponse{}, fmt.Errorf("невалидный refresh токен")
 	}
 
 	// Правильное извлечение типа токена
 	if typ, ok := claims["typ"].(string); !ok || typ != "refresh" {
-		return TokenPair{}, fmt.Errorf("токен не является refresh токеном")
+		return dto.AuthResponse{}, fmt.Errorf("токен не является refresh токеном")
 	}
 
 	// Правильное извлечение значений из claims
-	email, okEmail := claims["Email"].(string)
+	id, okEmail := claims["id"].(uint)
 	if !okEmail {
-		return TokenPair{}, fmt.Errorf("неверный формат Email в claims")
+		return dto.AuthResponse{}, fmt.Errorf("неверный формат Email в claims")
 	}
 
-	user, err := findUser(email)
+	user, err := new(models.User).FindUserByID(id, rep)
 	if err != nil {
-		return TokenPair{}, err
+		return dto.AuthResponse{}, err
 	}
 
-	return GenerateTokenPair(email, user.Name, user.Us, user.Image)
+	return GenerateTokenPair(id, user.Username, user.Us, user.Image)
 }
 
-func ParseJWT(tokenString string) (string, error) {
+func ParseJWT(tokenString string) (*uint, error) {
 	secretKey := os.Getenv("SECRET_KEY_JWT")
 	if secretKey == "" {
-		return "", fmt.Errorf("секретный ключ JWT не найден в переменных окружения")
+		return nil, fmt.Errorf("секретный ключ JWT не найден в переменных окружения")
 	}
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -120,19 +121,19 @@ func ParseJWT(tokenString string) (string, error) {
 	})
 
 	if err != nil || !token.Valid {
-		return "", fmt.Errorf("некорректный токен: %v", err)
+		return nil, fmt.Errorf("некорректный токен: %v", err)
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return "", fmt.Errorf("некорректные claims")
+		return nil, fmt.Errorf("некорректные claims")
 	}
 
 	// Правильное извлечение email
-	email, ok := claims["Email"].(string)
+	id, ok := claims["id"].(uint)
 	if !ok {
-		return "", fmt.Errorf("email не найден в токене")
+		return nil, fmt.Errorf("email не найден в токене")
 	}
 
-	return email, nil
+	return &id, nil
 }
