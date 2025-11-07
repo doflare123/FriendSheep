@@ -34,10 +34,10 @@ const Button: React.FC<ButtonProps> = ({ title, onPress, disabled = false, style
 
 const styles = StyleSheet.create({
   button: {
+    marginTop: 16,
     backgroundColor: Colors.blue3,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    paddingVertical: 10,
+    borderRadius: 30,
     alignItems: 'center',
     marginVertical: 10,
     shadowColor: '#000',
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontFamily: Montserrat.bold,
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.white,
   },
   buttonTextDisabled: {

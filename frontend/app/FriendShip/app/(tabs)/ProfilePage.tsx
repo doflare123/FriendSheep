@@ -17,6 +17,7 @@ import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
 import { sessionsToEvents } from '@/utils/dataAdapters';
+import { formatDate } from '@/utils/dateUtils';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -61,16 +62,16 @@ const ProfilePage: React.FC = () => {
 
       setProfileData(profile);
 
-      const tiles = profile.tiles.map(tile => {
-        const tileMap: Record<string, TileType> = {
-          'count_all': 'all',
-          'count_films': 'movies',
-          'count_games': 'video_games',
-          'count_table_games': 'board_games',
-          'count_another': 'other',
-          'spent_time': 'time',
-        };
-        return tileMap[tile] || 'all';
+    const tiles = profile.tiles.map(tile => {
+      const tileMap: Record<string, TileType> = {
+        'count_all': 'all',
+        'count_films': 'movies',
+        'count_games': 'video_games',
+        'count_table': 'board_games',
+        'count_other': 'other',     
+        'spent_time': 'time',
+      };
+      return tileMap[tile] || 'all';
       });
       setSelectedTiles(tiles);
 
@@ -164,42 +165,34 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleTilesSave = async (newTiles: TileType[]) => {
-    try {
-      const tileMap: Record<TileType, string> = {
-        'all': 'count_all',
-        'movies': 'count_films',
-        'video_games': 'count_games',
-        'board_games': 'count_table_games',
-        'other': 'count_another',
-        'time': 'spent_time',
-      };
+const handleTilesSave = async (newTiles: TileType[]) => {
+  try {
+    const settings = {
+      count_all: newTiles.includes('all'),
+      count_films: newTiles.includes('movies'),
+      count_games: newTiles.includes('video_games'),
+      count_table: newTiles.includes('board_games'),
+      count_other: newTiles.includes('other'),
+      spent_time: newTiles.includes('time'),
+    };
 
-      const settings = {
-        count_all: newTiles.includes('all'),
-        count_films: newTiles.includes('movies'),
-        count_games: newTiles.includes('video_games'),
-        count_table: newTiles.includes('board_games'),
-        count_other: newTiles.includes('other'),
-        spent_time: newTiles.includes('time'),
-      };
+    await userService.updateTileSettings(settings);
+    setSelectedTiles(newTiles);
 
-      await userService.updateTileSettings(settings);
-      setSelectedTiles(newTiles);
+    showToast({
+      type: 'success',
+      title: 'Успешно',
+      message: 'Плитки обновлены',
+    });
+  } catch (error: any) {
+    showToast({
+      type: 'error',
+      title: 'Ошибка',
+      message: error.message || 'Не удалось обновить плитки',
+    });
+  }
+};
 
-      showToast({
-        type: 'success',
-        title: 'Успешно',
-        message: 'Плитки обновлены',
-      });
-    } catch (error: any) {
-      showToast({
-        type: 'error',
-        title: 'Ошибка',
-        message: error.message || 'Не удалось обновить плитки',
-      });
-    }
-  };
 
   const handleGroupSelect = (groupId: string) => {
     console.log('Inviting user to group:', groupId);
@@ -292,9 +285,9 @@ const ProfilePage: React.FC = () => {
         <ProfileHeader 
           avatar={{ uri: profileData.image }}
           name={profileData.name}
-          username={profileData.us}
+          username={'@' + profileData.us}
           description={profileData.status}
-          registrationDate={profileData.data_register}
+          registrationDate={formatDate(profileData.data_register)}
           telegramLink={profileData.telegram_link ? `https://t.me/${profileData.us}` : undefined}
           isOwnProfile={isOwnProfile}
           onEditProfile={isOwnProfile ? handleEditProfile : undefined}

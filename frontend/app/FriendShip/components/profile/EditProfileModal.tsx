@@ -166,15 +166,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 disabled={loading}
               >
                 <Image source={getAvatarSource()} style={styles.avatar} />
-                <View style={styles.editAvatarBadge}>
-                  <Image
-                    source={require('@/assets/images/profile/settings.png')}
-                    style={styles.editIcon}
-                  />
-                </View>
               </TouchableOpacity>
-
-              <Text style={styles.hint}>Нажмите на аватар для изменения</Text>
 
               <TextInput
                 style={styles.input}
@@ -204,9 +196,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 value={description}
                 onChangeText={setDescription}
                 multiline
-                numberOfLines={6}
+                numberOfLines={3}
                 textAlignVertical="top"
-                maxLength={200}
+                maxLength={40}
                 editable={!loading}
               />
             </View>
@@ -280,34 +272,19 @@ const styles = StyleSheet.create({
   avatarContainer: {
     marginBottom: 8,
     position: 'relative',
+    alignItems: 'center',
+    width: 156,
+    height: 156,
+    borderRadius: 78,
+    borderWidth: 3,
+    borderStyle: 'dashed',
+    borderColor: Colors.lightGrey
   },
   avatar: {
     width: 150,
     height: 150,
     borderRadius: 75,
-    borderWidth: 3,
-    borderColor: Colors.lightBlue3,
-  },
-  editAvatarBadge: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: 8,
-    borderWidth: 2,
-    borderColor: Colors.lightBlue3,
-  },
-  editIcon: {
-    width: 20,
-    height: 20,
-  },
-  hint: {
-    fontFamily: Montserrat.regular,
-    fontSize: 12,
-    color: Colors.grey,
-    marginBottom: 16,
-    fontStyle: 'italic',
+    borderColor: Colors.lightGrey,
   },
   input: {
     width: '100%',
@@ -325,11 +302,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.grey,
     borderRadius: 8,
     padding: 16,
-    minHeight: 120,
-    maxHeight: 150,
+    minHeight: 60,
+    maxHeight: 120,
   },
   bottomBackground: {
     width: "100%",
+    marginTop: -1
   },
   bottomContent: {
     padding: 16,

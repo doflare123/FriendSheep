@@ -39,7 +39,7 @@ const authorizeStyle = StyleSheet.create({
   },
   label: {
     fontFamily: Montserrat.regular,
-    fontSize: 18,
+    fontSize: 17,
     marginBottom: 4,
   },
   hintLabel: {

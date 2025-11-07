@@ -22,7 +22,13 @@
     },
     "plugins": [
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Приложению нужен доступ к вашим фото для загрузки аватара"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
