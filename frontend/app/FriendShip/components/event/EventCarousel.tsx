@@ -1,14 +1,15 @@
 import React from 'react';
 import { Dimensions, FlatList, StyleSheet, View } from 'react-native';
-import EventCard, { Event } from './EventCard';
+import EventCard, { Event as EventType } from './EventCard';
 
 interface EventCarouselProps {
-  events: Event[];
+  events: EventType[];
 }
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = 320;
 const CARD_SPACING = 16;
+
 const EventCarousel: React.FC<EventCarouselProps> = ({ events }) => {
   return (
     <FlatList

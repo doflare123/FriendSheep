@@ -1,18 +1,20 @@
+import groupService, { GroupDetailResponse } from '@/api/services/groupService';
 import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
+import { Event as EventType } from '@/components/event/EventCard';
 import EventCarousel from '@/components/event/EventCarousel';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
-import { Contact, getGroupData, Subscriber } from '@/data/groupsData';
 import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Dimensions,
-  FlatList,
   Image,
   Linking,
   Modal,
@@ -32,8 +34,6 @@ type GroupManagePageNavigationProp = StackNavigationProp<
 >;
 
 const { width } = Dimensions.get('window');
-const SUBSCRIBER_ITEM_WIDTH = 80;
-const SUBSCRIBER_SPACING = 16;
 
 const categoryIcons: Record<string, any> = {
   movie: require('../../assets/images/event_card/movie.png'),
@@ -42,62 +42,154 @@ const categoryIcons: Record<string, any> = {
   other: require('../../assets/images/event_card/other.png'),
 };
 
+const CATEGORY_MAPPING: { [key: string]: string } = {
+  'Фильмы': 'movie',
+  'Игры': 'game',
+  'Настольные игры': 'table_game',
+  'Другое': 'other',
+};
+
+const contactIcons: Record<string, any> = {
+  discord: require('@/assets/images/groups/contacts/discord.png'),
+  vk: require('@/assets/images/groups/contacts/vk.png'),
+  telegram: require('@/assets/images/groups/contacts/telegram.png'),
+  twitch: require('@/assets/images/groups/contacts/twitch.png'),
+  youtube: require('@/assets/images/groups/contacts/youtube.png'),
+  whatsapp: require('@/assets/images/groups/contacts/whatsapp.png'),
+  max: require('@/assets/images/groups/contacts/max.png'),
+};
+
 const GroupPage = () => {
   const route = useRoute<GroupPageRouteProp>();
   const { groupId, mode } = route.params;
   const [descriptionModalVisible, setDescriptionModalVisible] = useState(false);
+  const [groupData, setGroupData] = useState<GroupDetailResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { sortingState, sortingActions } = useSearchState();
   const navigation = useNavigation<GroupManagePageNavigationProp>();
-  
-  const groupData = getGroupData(groupId);
-  
-  if (!groupData) {
+
+  const loadGroupData = async () => {
+    try {
+      setIsLoading(true);
+      const data = await groupService.getGroupDetail(groupId);
+
+      if (data.image && data.image.includes('localhost')) {
+        data.image = data.image.replace('http://localhost:8080', 'http://192.168.0.209:8080');
+      }
+
+      if (data.sessions) {
+        data.sessions = data.sessions.map(session => ({
+          ...session,
+          image_url: session.image_url?.includes('localhost')
+            ? session.image_url.replace('http://localhost:8080', 'http://192.168.0.209:8080')
+            : session.image_url
+        }));
+      }
+      
+      setGroupData(data);
+    } catch (error: any) {
+      console.error('Ошибка загрузки группы:', error);
+      Alert.alert('Ошибка', error.message || 'Не удалось загрузить информацию о группе');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadGroupData();
+    }, [groupId])
+  );
+
+  const handleContactPress = (link: string) => {
+    if (link) {
+      Linking.openURL(link).catch(err => {
+        console.error('Не удалось открыть ссылку:', err);
+        Alert.alert('Ошибка', 'Не удалось открыть ссылку');
+      });
+    }
+  };
+
+  const getContactIcon = (contactName: string) => {
+    const lowerName = contactName.toLowerCase();
+    for (const key in contactIcons) {
+      if (lowerName.includes(key)) {
+        return contactIcons[key];
+      }
+    }
+    return contactIcons.max;
+  };
+
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Группа не найдена</Text>
+        <TopBar sortingState={sortingState} sortingActions={sortingActions} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.blue} />
+          <Text style={styles.loadingText}>Загрузка группы...</Text>
         </View>
+        <BottomBar />
       </SafeAreaView>
     );
   }
 
-  const handleContactPress = (contact: Contact) => {
-    if (contact.link) {
-      Linking.openURL(contact.link);
-    }
-  };
+  if (!groupData) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <TopBar sortingState={sortingState} sortingActions={sortingActions} />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Группа не найдена</Text>
+        </View>
+        <BottomBar />
+      </SafeAreaView>
+    );
+  }
 
-  const renderSubscriber = ({ item, index }: { item: Subscriber; index: number }) => (
-    <View
-      style={[
-        styles.subscriberItem,
-        {
-          marginLeft: index === 0 ? SUBSCRIBER_SPACING : 0,
-          marginRight: SUBSCRIBER_SPACING,
-        },
-      ]}
-    >
-      <Image source={{ uri: item.imageUri }} style={styles.subscriberImage} />
-      <Text style={styles.subscriberName} numberOfLines={1}>
-        {item.name}
-      </Text>
-    </View>
-  );
+  const mappedCategories = groupData.categories
+    .map(cat => CATEGORY_MAPPING[cat])
+    .filter(cat => cat !== undefined);
+
+  const formattedSessions: EventType[] = groupData.sessions?.map(session => ({
+    id: session.id.toString(),
+    title: session.title,
+    date: new Date(session.start_time).toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }),
+    genres: session.genres || [],
+    currentParticipants: session.current_users,
+    maxParticipants: session.count_users_max,
+    duration: `${session.duration} мин`,
+    imageUri: session.image_url,
+    description: '',
+    typeEvent: session.session_type,
+    typePlace: session.session_place === 'offline' || session.session_place === 'online' 
+      ? session.session_place as 'online' | 'offline'
+      : 'online',
+    eventPlace: session.city || '',
+    publisher: groupData.name,
+    publicationDate: session.start_time,
+    ageRating: '',
+    category: mappedCategories[0] as 'movie' | 'game' | 'table_game' | 'other' || 'other',
+    group: groupData.name,
+    onPress: () => {
+      console.log('Переход на сессию:', session.id);
+    }
+  })) || [];
 
   return (
     <SafeAreaView style={styles.container}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Image source={{ uri: groupData.imageUri }} style={styles.groupImage} />
-          <View style={{flexDirection: 'column'}}>
+          <Image source={{ uri: groupData.image }} style={styles.groupImage} />
+          <View style={{ flexDirection: 'column', flex: 1 }}>
             <View style={styles.headerInfo}>
               <Text style={styles.groupName}>{groupData.name}</Text>
-              <Text style={styles.location}>
-                {groupData.city}, {groupData.country}
-              </Text>
+              <Text style={styles.location}>{groupData.city}</Text>
               <View style={styles.categoriesContainer}>
-                {groupData.categories.map((category, index) => (
+                {mappedCategories.map((category, index) => (
                   <Image
                     key={index}
                     source={categoryIcons[category]}
@@ -126,43 +218,47 @@ const GroupPage = () => {
         <CategorySection title="Описание:">
           <TouchableOpacity onPress={() => setDescriptionModalVisible(true)}>
             <Text style={styles.descriptionText} numberOfLines={3}>
-              {groupData.description}
+              {groupData.description || 'Описание пока не добавлено'}
             </Text>
           </TouchableOpacity>
         </CategorySection>
 
-        <CategorySection title={`Подписчики: ${groupData.subscribersCount.toLocaleString()}`}>
-          <FlatList
-            horizontal
-            data={groupData.subscribers}
-            renderItem={renderSubscriber}
-            keyExtractor={(item) => item.id}
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={SUBSCRIBER_ITEM_WIDTH + SUBSCRIBER_SPACING}
-            decelerationRate="fast"
-            style={styles.subscribersList}
-          />
-        </CategorySection>
-
         <CategorySection title="Сессии:">
-          <EventCarousel events={groupData.sessions} />
+          {groupData.sessions && groupData.sessions.length > 0 ? (
+            <EventCarousel events={formattedSessions} />
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Пока нет активных сессий</Text>
+            </View>
+          )}
         </CategorySection>
 
         <CategorySection title="Контакты:">
-          <View style={styles.contactsContainer}>
-            {groupData.contacts.map((contact) => (
-              <TouchableOpacity
-                key={contact.id}
-                style={styles.contactItem}
-                onPress={() => handleContactPress(contact)}
-              >
-                <View style={styles.contactIconContainer}>
-                  <Image source={contact.icon} style={styles.contactIcon} />
-                </View>
-                <Text style={styles.contactDescription}>{contact.description}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {groupData.contacts && groupData.contacts.length > 0 ? (
+            <View style={styles.contactsContainer}>
+              {groupData.contacts.map((contact, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.contactItem}
+                  onPress={() => handleContactPress(contact.link)}
+                >
+                  <View style={styles.contactIconContainer}>
+                    <Image 
+                      source={getContactIcon(contact.name)} 
+                      style={styles.contactIcon} 
+                    />
+                  </View>
+                  <Text style={styles.contactDescription} numberOfLines={1}>
+                    {contact.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Контакты пока не добавлены</Text>
+            </View>
+          )}
         </CategorySection>
       </ScrollView>
       <BottomBar />
@@ -201,6 +297,17 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontFamily: Montserrat.regular,
+    fontSize: 16,
+    color: Colors.grey,
   },
   errorContainer: {
     flex: 1,
@@ -267,33 +374,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
-  subscribersList: {
-    paddingVertical: 16,
-  },
-  subscriberItem: {
-    alignItems: 'center',
-    width: SUBSCRIBER_ITEM_WIDTH,
-  },
-  subscriberImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 100,
-  },
-  subscriberName: {
-    fontFamily: Montserrat.regular,
-    fontSize: 14,
-    color: Colors.black,
-    textAlign: 'center',
-  },
   contactsContainer: {
     paddingHorizontal: 18,
     paddingVertical: 12,
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
   },
   contactItem: {
     alignItems: 'center',
-    flex: 1,
+    width: 80,
+    marginBottom: 16,
+    marginHorizontal: 8,
   },
   contactIconContainer: {
     width: 60,
@@ -316,9 +408,70 @@ const styles = StyleSheet.create({
   },
   contactDescription: {
     fontFamily: Montserrat.regular,
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.black,
     textAlign: 'center',
+  },
+  applicationsContainer: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  applicationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightGrey,
+  },
+  applicationImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  applicationInfo: {
+    flex: 1,
+  },
+  applicationName: {
+    fontFamily: Montserrat.bold,
+    fontSize: 14,
+    color: Colors.black,
+  },
+  applicationUsername: {
+    fontFamily: Montserrat.regular,
+    fontSize: 12,
+    color: Colors.grey,
+  },
+  applicationActions: {
+    flexDirection: 'row',
+  },
+  approveButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.lightBlue3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  approveButtonText: {
+    fontFamily: Montserrat.bold,
+    fontSize: 20,
+    color: Colors.white,
+  },
+  rejectButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.red,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  rejectButtonText: {
+    fontFamily: Montserrat.bold,
+    fontSize: 20,
+    color: Colors.white,
   },
   modalOverlay: {
     flex: 1,
@@ -367,6 +520,17 @@ const styles = StyleSheet.create({
     color: Colors.black,
     lineHeight: 20,
     padding: 20,
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 16,
+    color: Colors.black,
+    textAlign: 'center',
+    marginBottom: 8,
   },
 });
 

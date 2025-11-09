@@ -50,6 +50,13 @@ const GroupCard: React.FC<GroupCardProps> = ({
       return <Text style={style}>{normalText}</Text>;
     }
 
+    console.log('GroupCard получил:', {
+      name,
+      imageUri,
+      categories,
+      imageType: typeof imageUri,
+    });
+
     return (
       <Text style={style}>
         {highlighted.before}

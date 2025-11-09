@@ -1,7 +1,11 @@
+import groupService, { Contact } from '@/api/services/groupService';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
   ImageBackground,
@@ -23,6 +27,13 @@ interface CreateGroupModalProps {
   onCreate?: (groupData: any) => void;
 }
 
+const CATEGORY_IDS: { [key: string]: number } = {
+  movie: 1,
+  game: 2,
+  table_game: 3,
+  other: 4,
+};
+
 const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, onCreate }) => {
   const [groupName, setGroupName] = useState('');
   const [shortDescription, setShortDescription] = useState('');
@@ -30,18 +41,16 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
   const [city, setCity] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [contactsModalVisible, setContactsModalVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{ uri: string; name: string; type: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const categories = [
     { id: 'movie', icon: require('@/assets/images/event_card/movie.png') },
     { id: 'game', icon: require('@/assets/images/event_card/game.png') },
     { id: 'table_game', icon: require('@/assets/images/event_card/table_game.png') },
     { id: 'other', icon: require('@/assets/images/event_card/other.png') },
-  ];
-
-  const contacts = [
-    { id: 'add_contact', icon: require('@/assets/images/groups/contacts/add_contact.png') },
   ];
 
   const toggleCategory = (categoryId: string) => {
@@ -52,25 +61,83 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
     );
   };
 
-    const toggleContact = (contactId: string) => {
-    if (contactId === 'add_contact') {
-        setContactsModalVisible(true);
-    }
-    };
-
-  const handleCreate = () => {
-    const groupData = {
-      name: groupName,
-      shortDescription,
-      fullDescription,
-      city,
-      isPrivate,
-      categories: selectedCategories,
-      contacts: selectedContacts,
-    };
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
-    onCreate?.(groupData);
-    onClose();
+    if (status !== 'granted') {
+      Alert.alert('Ошибка', 'Необходимо разрешение на доступ к галерее');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const filename = asset.uri.split('/').pop() || 'group_image.jpg';
+      const fileType = filename.split('.').pop()?.toLowerCase();
+      
+      setSelectedImage({
+        uri: asset.uri,
+        name: filename,
+        type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+      });
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!groupName.trim()) {
+      Alert.alert('Ошибка', 'Введите название группы');
+      return;
+    }
+    if (!shortDescription.trim()) {
+      Alert.alert('Ошибка', 'Введите краткое описание');
+      return;
+    }
+    if (!fullDescription.trim()) {
+      Alert.alert('Ошибка', 'Введите полное описание');
+      return;
+    }
+    if (selectedCategories.length === 0) {
+      Alert.alert('Ошибка', 'Выберите хотя бы одну категорию');
+      return;
+    }
+    if (!selectedImage) {
+      Alert.alert('Ошибка', 'Загрузите изображение группы');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const categoryIds = selectedCategories.map(catId => CATEGORY_IDS[catId]);
+
+      const groupData = {
+        name: groupName.trim(),
+        description: fullDescription.trim(),
+        smallDescription: shortDescription.trim(),
+        city: city.trim() || undefined,
+        categories: categoryIds,
+        isPrivate,
+        image: selectedImage,
+        contacts: selectedContacts.filter(c => c.link.trim() !== ''),
+      };
+
+      const result = await groupService.createGroup(groupData);
+      
+      Alert.alert('Успех', 'Группа успешно создана!');
+      onCreate?.(result);
+      resetForm();
+      onClose();
+    } catch (error: any) {
+      Alert.alert('Ошибка', error.message || 'Не удалось создать группу');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetForm = () => {
@@ -81,161 +148,202 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
     setIsPrivate(false);
     setSelectedCategories([]);
     setSelectedContacts([]);
+    setSelectedImage(null);
   };
 
   const handleClose = () => {
-    resetForm();
-    onClose();
+    if (!isLoading) {
+      resetForm();
+      onClose();
+    }
   };
 
-  const handleContactsSave = (contacts: any[]) => {
-  setSelectedContacts(contacts);
-  setContactsModalVisible(false);
-};
+  const handleContactsSave = (contacts: Contact[]) => {
+    setSelectedContacts(contacts);
+    setContactsModalVisible(false);
+  };
 
   return (
     <>
-    <Modal visible={visible} animationType="fade" transparent>
-      <View style={styles.overlay}>
-        <View style={styles.modal}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled
-            bounces={false}
-            alwaysBounceVertical={false}
-          >
-            <View style={styles.header}>
-              <Text style={styles.title}>Основная информация</Text>
-                <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-                    <Image
+      <Modal visible={visible} animationType="fade" transparent>
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+              bounces={false}
+              alwaysBounceVertical={false}
+            >
+              <View style={styles.header}>
+                <Text style={styles.title}>Основная информация</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton} 
+                  onPress={handleClose}
+                  disabled={isLoading}
+                >
+                  <Image
                     tintColor={Colors.black}
                     style={{ width: 35, height: 35, resizeMode: 'cover' }}
                     source={require('@/assets/images/event_card/back.png')}
-                    />
+                  />
                 </TouchableOpacity>
-            </View>
+              </View>
 
-            <View style={styles.content}>
-              <TextInput
-                style={styles.input}
-                placeholder="Название"
-                placeholderTextColor={Colors.grey}
-                value={groupName}
-                onChangeText={setGroupName}
-                maxLength={50}
-              />
+              <View style={styles.content}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Название"
+                  placeholderTextColor={Colors.grey}
+                  value={groupName}
+                  onChangeText={setGroupName}
+                  maxLength={50}
+                  editable={!isLoading}
+                />
 
-              <TextInput
-                style={styles.input}
-                placeholder="Краткое описание"
-                placeholderTextColor={Colors.grey}
-                value={shortDescription}
-                onChangeText={setShortDescription}
-                maxLength={100}
-              />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Краткое описание"
+                  placeholderTextColor={Colors.grey}
+                  value={shortDescription}
+                  onChangeText={setShortDescription}
+                  maxLength={100}
+                  editable={!isLoading}
+                />
 
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Описание"
-                placeholderTextColor={Colors.grey}
-                value={fullDescription}
-                onChangeText={setFullDescription}
-                multiline
-                numberOfLines={6}
-                textAlignVertical="top"
-                maxLength={500}
-              />
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Описание"
+                  placeholderTextColor={Colors.grey}
+                  value={fullDescription}
+                  onChangeText={setFullDescription}
+                  multiline
+                  numberOfLines={6}
+                  textAlignVertical="top"
+                  maxLength={500}
+                  editable={!isLoading}
+                />
 
-              <TextInput
-                style={styles.input}
-                placeholder="Город"
-                placeholderTextColor={Colors.grey}
-                value={city}
-                onChangeText={setCity}
-                maxLength={50}
-              />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Город (необязательно)"
+                  placeholderTextColor={Colors.grey}
+                  value={city}
+                  onChangeText={setCity}
+                  maxLength={50}
+                  editable={!isLoading}
+                />
 
-              <View style={styles.checkboxContainer}>
-                <TouchableOpacity 
-                  style={styles.checkbox}
-                  onPress={() => setIsPrivate(!isPrivate)}
-                >
+                <View style={styles.checkboxContainer}>
+                  <TouchableOpacity 
+                    style={styles.checkbox}
+                    onPress={() => setIsPrivate(!isPrivate)}
+                    disabled={isLoading}
+                  >
                     <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                        <View style={[styles.checkboxCircle, isPrivate && styles.checkboxSelected]} />
-                        <Text style={styles.checkboxLabel}>Эта группа приватная?</Text>
+                      <View style={[styles.checkboxCircle, isPrivate && styles.checkboxSelected]} />
+                      <Text style={styles.checkboxLabel}>Эта группа приватная?</Text>
                     </View>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.categoriesAndImageSection}>
-                <View style={styles.leftSection}>
-                  <Text style={styles.sectionLabel}>Категории:</Text>
-                  <View style={styles.categoriesContainer}>
-                    {categories.map((category) => (
-                      <TouchableOpacity
-                        key={category.id}
-                        style={[
-                          styles.categoryButton,
-                          selectedCategories.includes(category.id) && styles.categoryButtonSelected
-                        ]}
-                        onPress={() => toggleCategory(category.id)}
-                      >
-                        <Image source={category.icon} style={styles.categoryIcon} />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  <Text style={styles.sectionLabel}>Контакты:</Text>
-                  <View style={styles.contactsContainer}>
-                    {contacts.map((contact) => (
-                      <TouchableOpacity
-                        key={contact.id}
-                        style={styles.contactButton}
-                        onPress={() => toggleContact(contact.id)}
-                      >
-                        <Image source={contact.icon} style={styles.contactIcon} />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  </TouchableOpacity>
                 </View>
-                            
-                <TouchableOpacity style={styles.imageUpload}>
-                  <View style={styles.uploadPlaceholder}>
-                    <Image 
-                      source={require('@/assets/images/groups/upload_image.png')} 
-                      style={styles.uploadIcon}
-                    />
-                  </View>          
-                </TouchableOpacity>
-              </View>
-            </View>
 
-            <ImageBackground
-              source={require('@/assets/images/event_card/bottom_rectangle.png')}
-              style={styles.bottomBackground}
-              resizeMode="stretch"
-              tintColor={Colors.lightBlue3}
-            >
-              <View style={styles.bottomContent}>
-                <TouchableOpacity
-                  style={styles.createButton}
-                  onPress={handleCreate}
-                >
-                  <Text style={styles.createButtonText}>Создать группу</Text>
-                </TouchableOpacity>
+                <View style={styles.categoriesAndImageSection}>
+                  <View style={styles.leftSection}>
+                    <Text style={styles.sectionLabel}>Категории:</Text>
+                    <View style={styles.categoriesContainer}>
+                      {categories.map((category) => (
+                        <TouchableOpacity
+                          key={category.id}
+                          style={[
+                            styles.categoryButton,
+                            selectedCategories.includes(category.id) && styles.categoryButtonSelected
+                          ]}
+                          onPress={() => toggleCategory(category.id)}
+                          disabled={isLoading}
+                        >
+                          <Image source={category.icon} style={styles.categoryIcon} />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    <Text style={styles.sectionLabel}>Контакты:</Text>
+                    <View style={styles.contactsContainer}>
+                      <TouchableOpacity
+                        style={styles.contactButton}
+                        onPress={() => setContactsModalVisible(true)}
+                        disabled={isLoading}
+                      >
+                        <Image 
+                          source={require('@/assets/images/groups/contacts/add_contact.png')} 
+                          style={styles.contactIcon} 
+                        />
+                      </TouchableOpacity>
+                      
+                      {selectedContacts
+                        .filter(c => c.link.trim() !== '')
+                        .map((contact) => (
+                          <View key={contact.id} style={styles.selectedContactItem}>
+                            <Image 
+                              source={contact.icon} 
+                              style={styles.contactIcon} 
+                            />
+                          </View>
+                        ))}
+                    </View>
+                  </View>
+                              
+                  <TouchableOpacity 
+                    style={styles.imageUpload}
+                    onPress={pickImage}
+                    disabled={isLoading}
+                  >
+                    {selectedImage ? (
+                      <Image 
+                        source={{ uri: selectedImage.uri }} 
+                        style={styles.selectedImage}
+                      />
+                    ) : (
+                      <View style={styles.uploadPlaceholder}>
+                        <Image 
+                          source={require('@/assets/images/groups/upload_image.png')} 
+                          style={styles.uploadIcon}
+                        />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
-            </ImageBackground>
-          </ScrollView>
+
+              <ImageBackground
+                source={require('@/assets/images/event_card/bottom_rectangle.png')}
+                style={styles.bottomBackground}
+                resizeMode="stretch"
+                tintColor={Colors.lightBlue3}
+              >
+                <View style={styles.bottomContent}>
+                  <TouchableOpacity
+                    style={[styles.createButton, isLoading && styles.createButtonDisabled]}
+                    onPress={handleCreate}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color={Colors.blue3} />
+                    ) : (
+                      <Text style={styles.createButtonText}>Создать группу</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </ImageBackground>
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
 
-        <ContactsModal
-            visible={contactsModalVisible}
-            onClose={() => setContactsModalVisible(false)}
-            onSave={handleContactsSave}
-        />
+      <ContactsModal
+        visible={contactsModalVisible}
+        onClose={() => setContactsModalVisible(false)}
+        onSave={handleContactsSave}
+      />
     </>
   );
 };
@@ -364,6 +472,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    alignItems: 'center',
   },
   contactButton: {
     width: 35,
@@ -378,6 +487,13 @@ const styles = StyleSheet.create({
     width: 35,
     height: 35,
     resizeMode: 'contain',
+  },
+  selectedContactItem: {
+    width: 35,
+    height: 35,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   imageUpload: {
     alignItems: 'center',
@@ -399,6 +515,12 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     tintColor: Colors.grey,
   },
+  selectedImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    resizeMode: 'cover',
+  },
   bottomBackground: {
     width: "100%",
   },
@@ -411,6 +533,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     alignItems: 'center',
+  },
+  createButtonDisabled: {
+    opacity: 0.6,
   },
   createButtonText: {
     fontFamily: Montserrat.bold,
