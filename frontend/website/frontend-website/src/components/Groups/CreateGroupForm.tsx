@@ -41,6 +41,13 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Константы для валидации
+  const VALIDATION_RULES = {
+    name: { min: 5, max: 40 },
+    shortDescription: { min: 5, max: 50 },
+    description: { min: 5, max: 300 }
+  };
+
   const categories = [
     { id: 'movies', name: 'Фильмы', icon: getCategoryIcon("movies") },
     { id: 'games', name: 'Игры', icon: getCategoryIcon("games") },
@@ -56,10 +63,8 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     { name: 'Snapchat', icon: getSocialIcon("snap") }
   ];
 
-  // Обновляем форму при изменении initialData
   useEffect(() => {
     if (initialData) {
-      
       const newCategories = Array.isArray(initialData.categories) ? [...initialData.categories] : [];
       
       setFormData({
@@ -97,18 +102,34 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
       categories: ''
     };
 
+    // Валидация названия
     if (!formData.name.trim()) {
       newErrors.name = 'Название группы обязательно';
+    } else if (formData.name.trim().length < VALIDATION_RULES.name.min) {
+      newErrors.name = `Название должно содержать минимум ${VALIDATION_RULES.name.min} символов`;
+    } else if (formData.name.trim().length > VALIDATION_RULES.name.max) {
+      newErrors.name = `Название не должно превышать ${VALIDATION_RULES.name.max} символов`;
     }
 
+    // Валидация краткого описания
     if (!formData.shortDescription.trim()) {
       newErrors.shortDescription = 'Краткое описание обязательно';
+    } else if (formData.shortDescription.trim().length < VALIDATION_RULES.shortDescription.min) {
+      newErrors.shortDescription = `Минимум ${VALIDATION_RULES.shortDescription.min} символов`;
+    } else if (formData.shortDescription.trim().length > VALIDATION_RULES.shortDescription.max) {
+      newErrors.shortDescription = `Максимум ${VALIDATION_RULES.shortDescription.max} символов`;
     }
 
+    // Валидация описания
     if (!formData.description.trim()) {
       newErrors.description = 'Описание группы обязательно';
+    } else if (formData.description.trim().length < VALIDATION_RULES.description.min) {
+      newErrors.description = `Описание должно содержать минимум ${VALIDATION_RULES.description.min} символов`;
+    } else if (formData.description.trim().length > VALIDATION_RULES.description.max) {
+      newErrors.description = `Описание не должно превышать ${VALIDATION_RULES.description.max} символов`;
     }
 
+    // Валидация категорий
     if (formData.categories.length === 0) {
       newErrors.categories = 'Выберите хотя бы одну категорию';
     }
@@ -118,9 +139,20 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   };
 
   const handleInputChange = (field: string, value: any) => {
+    // Применяем ограничения на максимальную длину
+    let processedValue = value;
+    
+    if (field === 'name' && typeof value === 'string') {
+      processedValue = value.slice(0, VALIDATION_RULES.name.max);
+    } else if (field === 'shortDescription' && typeof value === 'string') {
+      processedValue = value.slice(0, VALIDATION_RULES.shortDescription.max);
+    } else if (field === 'description' && typeof value === 'string') {
+      processedValue = value.slice(0, VALIDATION_RULES.description.max);
+    }
+
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: processedValue
     }));
 
     // Очищаем ошибку для поля при вводе
@@ -143,7 +175,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
         : [...prev.categories, categoryId]
     }));
 
-    // Очищаем ошибку категорий при выборе
     if (errors.categories) {
       setErrors(prev => ({ ...prev, categories: '' }));
     }
@@ -198,6 +229,13 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     });
   };
 
+  // Функция для получения счетчика символов
+  const getCharacterCount = (field: 'name' | 'shortDescription' | 'description') => {
+    const current = formData[field].length;
+    const max = VALIDATION_RULES[field].max;
+    return `${current}/${max}`;
+  };
+
   return (
     <>
       {showTitle && (
@@ -224,8 +262,19 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                 placeholder="Название *"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
+                maxLength={VALIDATION_RULES.name.max}
               />
-              {errors.name && <span className={styles.errorMessage}>{errors.name}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {errors.name && <span className={styles.errorMessage}>{errors.name}</span>}
+                <span style={{ 
+                  fontSize: '12px', 
+                  color: '#999',
+                  marginLeft: 'auto',
+                  marginTop: '4px'
+                }}>
+                  {getCharacterCount('name')}
+                </span>
+              </div>
             </div>
 
             {/* Краткое описание */}
@@ -236,8 +285,19 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                 className={`${styles.formInput} ${errors.shortDescription ? styles.error : ''}`}
                 value={formData.shortDescription}
                 onChange={(e) => handleInputChange('shortDescription', e.target.value)}
+                maxLength={VALIDATION_RULES.shortDescription.max}
               />
-              {errors.shortDescription && <span className={styles.errorMessage}>{errors.shortDescription}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {errors.shortDescription && <span className={styles.errorMessage}>{errors.shortDescription}</span>}
+                <span style={{ 
+                  fontSize: '12px', 
+                  color: '#999',
+                  marginLeft: 'auto',
+                  marginTop: '4px'
+                }}>
+                  {getCharacterCount('shortDescription')}
+                </span>
+              </div>
             </div>
 
             {/* Описание */}
@@ -248,8 +308,19 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={4}
+                maxLength={VALIDATION_RULES.description.max}
               />
-              {errors.description && <span className={styles.errorMessage}>{errors.description}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {errors.description && <span className={styles.errorMessage}>{errors.description}</span>}
+                <span style={{ 
+                  fontSize: '12px', 
+                  color: '#999',
+                  marginLeft: 'auto',
+                  marginTop: '4px'
+                }}>
+                  {getCharacterCount('description')}
+                </span>
+              </div>
             </div>
 
             {/* Контакты */}

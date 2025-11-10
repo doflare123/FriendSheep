@@ -58,6 +58,7 @@ export default function Page() {
           subs = await getGroups(accessToken, convertedUserId);
         }
 
+        console.log("DATA", data)
         setProfileData(data);
         setSubsData(subs);
       } catch (err: any) {

@@ -3,18 +3,18 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { notFound, useRouter } from 'next/navigation';
-import styles from '../../../styles/profile/ProfilePage.module.css';
-import section1Styles from '../../../styles/profile/ProfileSection1.module.css';
-import section2Styles from '../../../styles/profile/ProfileSection2.module.css';
-import section3Styles from '../../../styles/profile/ProfileSection3.module.css';
-import section4Styles from '../../../styles/profile/ProfileSection4.module.css';
-import StatisticsTile from '../../../components/profile/StatisticsTile';
-import SubscriptionItem from '../../../components/profile/SubscriptionItem';
-import CategorySection from '../../../components/Events/CategorySection';
-import { getSocialIcon, getAccesToken } from '../../../Constants';
-import GenrePieChart from '../../../components/profile/GenrePieChart';
-import AddUserModal from '../../../components/search/AddUserModal';
-import { UserDataResponse } from '../../../types/UserData';
+import styles from '@/styles/profile/ProfilePage.module.css';
+import section1Styles from '@/styles/profile/ProfileSection1.module.css';
+import section2Styles from '@/styles/profile/ProfileSection2.module.css';
+import section3Styles from '@/styles/profile/ProfileSection3.module.css';
+import section4Styles from '@/styles/profile/ProfileSection4.module.css';
+import StatisticsTile from '@/components/profile/StatisticsTile';
+import SubscriptionItem from '@/components/profile/SubscriptionItem';
+import CategorySection from '@/components/Events/CategorySection';
+import { getSocialIcon, getAccesToken } from '@/Constants';
+import GenrePieChart from '@/components/profile/GenrePieChart';
+import AddUserModal from '@/components/search/AddUserModal';
+import { UserDataResponse } from '@/types/UserData';
 import {SmallGroup} from '@/types/Groups';
 import {Counters, UpdateProfileRequest} from '@/types/apiTypes';
 import {editProfile} from '@/api/profile/editProfile';
@@ -57,6 +57,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const [animatedChart, setAnimatedChart] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
+  const [errors, setErrors] = useState({
+    name: '',
+    us: '',
+    status: ''
+  });
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [showUpArrow, setShowUpArrow] = useState(false);
@@ -67,6 +73,43 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
   const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
+
+  // Функция валидации
+  const validateFields = () => {
+    const newErrors = {
+      name: '',
+      us: '',
+      status: ''
+    };
+
+    // Валидация имени (мин. 5, макс. 40)
+    if (!editedData.name.trim()) {
+      newErrors.name = 'Имя обязательно для заполнения';
+    } else if (editedData.name.trim().length < 5) {
+      newErrors.name = 'Имя должно содержать минимум 5 символов';
+    } else if (editedData.name.trim().length > 40) {
+      newErrors.name = 'Имя должно содержать максимум 40 символов';
+    }
+
+    // Валидация username (мин. 5, макс. 40)
+    if (!editedData.us.trim()) {
+      newErrors.us = 'Username обязателен для заполнения';
+    } else if (editedData.us.trim().length < 5) {
+      newErrors.us = 'Username должен содержать минимум 5 символов';
+    } else if (editedData.us.trim().length > 40) {
+      newErrors.us = 'Username должен содержать максимум 40 символов';
+    }
+
+    // Валидация статуса (мин. 1 если есть, макс. 50)
+    if (editedData.status.trim() && editedData.status.trim().length < 1) {
+      newErrors.status = 'Статус должен содержать минимум 1 символ';
+    } else if (editedData.status.length > 50) {
+      newErrors.status = 'Статус должен содержать максимум 50 символов';
+    }
+
+    setErrors(newErrors);
+    return !newErrors.name && !newErrors.us && !newErrors.status;
+  };
 
   // Функция для расчета размера шрифта в зависимости от длины текста
   const calculateFontSize = (text: string, maxSize: number, minSize: number, maxLength: number) => {
@@ -135,6 +178,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   };
 
   const handleSave = async () => {
+    // Валидация перед сохранением
+    if (!validateFields()) {
+      showNotification(400, "Проверьте правильность заполнения полей");
+      return;
+    }
+
     const accessToken = getAccesToken();
     if (!accessToken) {
       console.error("❌ Нет accessToken");
@@ -202,6 +251,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       tiles: [...profileData.tiles]
     });
     setAvatarFile(null);
+    setErrors({ name: '', us: '', status: '' });
     setIsEditMode(false);
   };
 
@@ -382,15 +432,21 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                           const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
                           if (value.length <= 40) {
                             setEditedData({...editedData, name: value});
+                            if (errors.name) {
+                              setErrors({...errors, name: ''});
+                            }
                           }
                         }}
-                        className={section1Styles.nameInput}
+                        className={`${section1Styles.nameInput} ${errors.name ? section1Styles.inputError : ''}`}
                         style={{ fontSize: `${nameFontSize}px` }}
                         title={editedData.name}
                       />
                       <div className={section1Styles.nameEditIcon}>
                         <Image src="/profile/edit.png" alt="edit" width={14} height={14} />
                       </div>
+                      {errors.name && (
+                        <div className={section1Styles.errorMessage}>{errors.name}</div>
+                      )}
                     </div>
                   ) : (
                     <h2 
@@ -437,9 +493,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
                         if (value.length <= 40) {
                           setEditedData({...editedData, us: value});
+                          if (errors.us) {
+                            setErrors({...errors, us: ''});
+                          }
                         }
                       }}
-                      className={section1Styles.usInput}
+                      className={`${section1Styles.usInput} ${errors.us ? section1Styles.inputError : ''}`}
                       style={{ fontSize: `${usFontSize}px` }}
                       placeholder="username"
                       title={editedData.us}
@@ -452,6 +511,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         height={14}
                       />
                     </div>
+                    {errors.us && (
+                      <div className={section1Styles.errorMessage}>{errors.us}</div>
+                    )}
                   </div>
                 ) : (
                   <p 
@@ -473,9 +535,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
                         if (value.length <= 50) {
                           setEditedData({...editedData, status: value});
+                          if (errors.status) {
+                            setErrors({...errors, status: ''});
+                          }
                         }
                       }}
-                      className={section1Styles.statusInput}
+                      className={`${section1Styles.statusInput} ${errors.status ? section1Styles.inputError : ''}`}
                       style={{ fontSize: `${statusFontSize}px` }}
                       rows={2}
                       placeholder="Введите статус"
@@ -489,6 +554,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         height={14}
                       />
                     </div>
+                    {errors.status && (
+                      <div className={section1Styles.errorMessage}>{errors.status}</div>
+                    )}
                   </div>
                 ) : (
                   <p 
@@ -647,7 +715,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     id={group.id}
                     name={group.name}
                     small_description={group.small_description}
-                    image={group.image}
+                    image={group.image || "/default/group.jpg"}
                   />
                 ))
               ) : (
@@ -714,12 +782,14 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                 ? (activeTab === 'recent' ? profileData.recent_sessions : profileData.upcoming_sessions)
                 : profileData.recent_sessions;
               
-              const hasEvents = sessions && sessions.length > 0 && 
-                sessions.some(cat => cat.events && cat.events.length > 0);
+              const hasEvents = sessions && sessions.length > 0;
               
               return hasEvents ? (
                 <CategorySection
-                  section={{categories: sessions}}
+                  section={{
+                    categories: sessions,
+                    pattern: "" // или любой паттерн если нужен
+                  }}
                   title=""
                   showCategoryLabel={false}
                 />

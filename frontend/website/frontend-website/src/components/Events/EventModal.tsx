@@ -32,6 +32,12 @@ const CATEGORIES = [
   { id: 'other', icon: getCategoryIcon("other") }
 ];
 
+// Константы для валидации
+const VALIDATION_RULES = {
+  title: { min: 5, max: 40 },
+  description: { min: 5, max: 300 }
+};
+
 interface ApiGroup {
   category: string[];
   id: number;
@@ -44,6 +50,7 @@ interface ApiGroup {
 
 interface ValidationErrors {
   title?: string;
+  description?: string;
   genres?: string;
   maxParticipants?: string;
   selectedGroup?: string;
@@ -84,6 +91,7 @@ export default function EventModal({
   const [year, setYear] = useState('');
   const [ageLimit, setAgeLimit] = useState('');
   const [description, setDescription] = useState('');
+  const [originalDescription, setOriginalDescription] = useState('');
   const [city, setCity] = useState('');
   const [originalCity, setOriginalCity] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -180,12 +188,14 @@ export default function EventModal({
       setFormData(initialFormData);
       setOriginalData(initialFormData);
       
-      setDescription(eventData.description || '');
+      const eventDescription = eventData.description || '';
+      setDescription(eventDescription);
+      setOriginalDescription(eventDescription);
+      
       setPublisher(eventData.publisher || '');
       setYear(eventData.year?.toString() || '');
       setAgeLimit(eventData.ageLimit || '');
       
-      // Используем groupId из props
       setSelectedGroup(groupId || null);
       console.log('selectedGroup установлен из props groupId:', groupId);
       
@@ -202,7 +212,6 @@ export default function EventModal({
         }
       }
       
-      // Извлекаем город из fields
       if (eventData.fields) {
         const cityMatch = eventData.fields.match(/city:([^,]+)/);
         if (cityMatch) {
@@ -227,6 +236,7 @@ export default function EventModal({
       setFormData(defaultData);
       setOriginalData(defaultData);
       setDescription('');
+      setOriginalDescription('');
       setPublisher('');
       setYear('');
       setAgeLimit('');
@@ -234,7 +244,6 @@ export default function EventModal({
       setOriginalCity('');
       setIsOnline(false);
       
-      // При создании используем groupId из props
       setSelectedGroup(groupId || null);
       console.log('selectedGroup установлен из props groupId при создании:', groupId);
       
@@ -250,12 +259,22 @@ export default function EventModal({
   const validateForm = (): boolean => {
     const errors: ValidationErrors = {};
 
+    // Валидация названия
     if (!formData.title || formData.title.trim() === '') {
       errors.title = 'Название обязательно для заполнения';
-    } else if (formData.title.trim().length < 5) {
-      errors.title = 'Название должно содержать минимум 5 символов';
-    } else if (formData.title.trim().length > 40) {
-      errors.title = 'Название должно содержать максимум 40 символов';
+    } else if (formData.title.trim().length < VALIDATION_RULES.title.min) {
+      errors.title = `Название должно содержать минимум ${VALIDATION_RULES.title.min} символов`;
+    } else if (formData.title.trim().length > VALIDATION_RULES.title.max) {
+      errors.title = `Название не должно превышать ${VALIDATION_RULES.title.max} символов`;
+    }
+
+    // Валидация описания (если заполнено)
+    if (description && description.trim() !== '') {
+      if (description.trim().length < VALIDATION_RULES.description.min) {
+        errors.description = `Описание должно содержать минимум ${VALIDATION_RULES.description.min} символов`;
+      } else if (description.trim().length > VALIDATION_RULES.description.max) {
+        errors.description = `Описание не должно превышать ${VALIDATION_RULES.description.max} символов`;
+      }
     }
 
     if (mode === 'create') {
@@ -279,7 +298,6 @@ export default function EventModal({
         errors.date = 'Необходимо указать дату и время события';
       }
 
-      // Проверка адреса/ссылки в зависимости от типа события
       if (isOnline) {
         if (!formData.adress || formData.adress.trim() === '') {
           errors.location = 'Необходимо указать ссылку на онлайн-событие';
@@ -302,6 +320,7 @@ export default function EventModal({
         formData.location !== originalData.location ||
         formData.adress !== originalData.adress ||
         city !== originalCity ||
+        description !== originalDescription ||
         imageFile !== null ||
         kinopoiskImageUrl !== null;
 
@@ -394,7 +413,6 @@ export default function EventModal({
       fields.push(`publisher:${publisher}`);
     }
     
-    // Добавляем город только для оффлайн событий
     if (!isOnline && city) {
       fields.push(`city:${city}`);
     }
@@ -413,7 +431,7 @@ export default function EventModal({
       }
 
       const startTimeRFC3339 = convertToRFC3339(formData.date!);
-      const sessionPlace = isOnline ? 1 : 0;
+      const sessionPlace = isOnline ? '1' : '2';
       const genresString = formData.genres!.join(',');
       const durationMinutes = parseDuration(formData.duration);
       
@@ -505,7 +523,7 @@ export default function EventModal({
       
       let updatedSessionPlaceId: string | undefined = undefined;
       if (formData.location !== originalData.location) {
-        updatedSessionPlaceId = formData.location === 'online' ? '1' : '0';
+        updatedSessionPlaceId = formData.location === 'online' ? '1' : '2';
       }
       
       let updatedSessionTypeId: string | undefined = undefined;
@@ -564,8 +582,8 @@ export default function EventModal({
         console.log('Длительность фильма:', movie.filmLength);
         
         const movieDescription = movie.description || movie.shortDescription || '';
-        const truncatedDescription = movieDescription.length > 300 
-          ? movieDescription.substring(0, 300).trim() + '...'
+        const truncatedDescription = movieDescription.length > VALIDATION_RULES.description.max 
+          ? movieDescription.substring(0, VALIDATION_RULES.description.max - 3).trim() + '...'
           : movieDescription;
         
         setDescription(truncatedDescription);
@@ -676,21 +694,16 @@ export default function EventModal({
   const handlePlaceSelected = (place: PlaceInfo) => {
     console.log('Выбрано место:', place);
     
-    // Устанавливаем адрес и город из API Яндекс Карты
     setFormData(prev => ({ 
       ...prev, 
       adress: place.address
     }));
     
-    // Извлекаем город из PlaceInfo
     if (place.city) {
       setCity(place.city);
     } else {
-      // Попытка извлечь город из адреса
-      // Формат: "Город, улица" - берём первую часть до запятой
       const addressParts = place.address.split(',');
       if (addressParts.length > 0) {
-        // Берём первую часть (город) и очищаем от лишних пробелов
         const cityPart = addressParts[0].trim();
         setCity(cityPart);
       }
@@ -724,7 +737,6 @@ export default function EventModal({
     const newIsOnline = !isOnline;
     setIsOnline(newIsOnline);
     
-    // Очищаем адрес и город при переключении
     setFormData(prev => ({ 
       ...prev, 
       location: newIsOnline ? 'online' : 'offline',
@@ -748,9 +760,20 @@ export default function EventModal({
   };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, title: e.target.value }));
+    const value = e.target.value;
+    const limitedValue = value.slice(0, VALIDATION_RULES.title.max);
+    setFormData(prev => ({ ...prev, title: limitedValue }));
     if (validationErrors.title) {
       setValidationErrors(prev => ({ ...prev, title: undefined }));
+    }
+  };
+
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const limitedValue = value.slice(0, VALIDATION_RULES.description.max);
+    setDescription(limitedValue);
+    if (validationErrors.description) {
+      setValidationErrors(prev => ({ ...prev, description: undefined }));
     }
   };
 
@@ -812,6 +835,7 @@ export default function EventModal({
                     value={formData.title || ''}
                     onChange={handleTitleChange}
                     placeholder="Название *"
+                    maxLength={VALIDATION_RULES.title.max}
                   />
                   {mode === 'create' && (
                     <button 
@@ -828,30 +852,42 @@ export default function EventModal({
                     </button>
                   )}
                 </div>
-                {validationErrors.title && (
-                  <span className="errorMessage">{validationErrors.title}</span>
-                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {validationErrors.title && (
+                    <span className="errorMessage">{validationErrors.title}</span>
+                  )}
+                  <span style={{ 
+                    fontSize: '12px', 
+                    color: '#999',
+                    marginLeft: 'auto',
+                    marginTop: '4px'
+                  }}>
+                    {(formData.title || '').length}/{VALIDATION_RULES.title.max}
+                  </span>
+                </div>
               </div>
 
               <div className={styles.fieldGroup}>
                 <label className={styles.label}>Описание</label>
                 <textarea
-                  className={styles.textarea}
+                  className={`${styles.textarea} ${validationErrors.description ? 'error' : ''}`}
                   value={description}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value.length <= 300) {
-                      setDescription(value);
-                    } else {
-                      setDescription(value.substring(0, 300));
-                    }
-                  }}
+                  onChange={handleDescriptionChange}
                   placeholder="Описание события..."
-                  maxLength={300}
+                  maxLength={VALIDATION_RULES.description.max}
                   disabled={isFieldDisabled}
                 />
-                <div className={styles.charCounter}>
-                  {description.length}/300
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                  {validationErrors.description && (
+                    <span className="errorMessage">{validationErrors.description}</span>
+                  )}
+                  <span style={{ 
+                    fontSize: '12px', 
+                    color: '#999',
+                    marginLeft: 'auto'
+                  }}>
+                    {description.length}/{VALIDATION_RULES.description.max}
+                  </span>
                 </div>
               </div>
 

@@ -231,7 +231,8 @@ export default function SearchPage() {
     };
   }, []);
 
-  const handleJoinGroup = async (groupId: number, isPrivate: boolean) => {
+  const handleJoinGroup = async (groupId: number, isPrivate: boolean, e: React.MouseEvent) => {
+    e.stopPropagation(); // Предотвращаем переход на профиль при клике на кнопку
     setLoadingGroups(prev => new Set([...prev, groupId]));
 
     try {
@@ -271,9 +272,18 @@ export default function SearchPage() {
     }
   };
 
-  const handleAddUser = (userId: number) => {
+  const handleAddUser = (userId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Предотвращаем переход на профиль при клике на кнопку
     setSelectedUserId(userId);
     setIsModalOpen(true);
+  };
+
+  const handleGroupClick = (groupId: number) => {
+    router.push(`/groups/profile/${groupId}`);
+  };
+
+  const handleUserClick = (userUs: string) => {
+    router.push(`/profile/${userUs}`);
   };
 
   const handleToggleSearchType = () => {
@@ -484,7 +494,11 @@ export default function SearchPage() {
                         groups.map((group) => (
                           <div key={`group-${group.id}`} className={styles.groupItem}>
                             <div className={styles.groupContent}>
-                              <div className={styles.groupImageWrapper}>
+                              <div 
+                                className={styles.groupImageWrapper}
+                                onClick={() => handleGroupClick(group.id)}
+                                style={{ cursor: 'pointer' }}
+                              >
                                 <Image
                                   src={group.image || '/default/group.jpg'}
                                   alt={group.name}
@@ -496,7 +510,11 @@ export default function SearchPage() {
                               
                               <div className={styles.groupInfo}>
                                 <div className={styles.groupHeader}>
-                                  <h3 className={styles.groupName}>
+                                  <h3 
+                                    className={styles.groupName}
+                                    onClick={() => handleGroupClick(group.id)}
+                                    style={{ cursor: 'pointer' }}
+                                  >
                                     {group.name}
                                     <span className={styles.groupIcons}>
                                       {group.category.map((cat, index) => {
@@ -527,7 +545,7 @@ export default function SearchPage() {
                                   joinedGroups.has(group.id) ? styles.joinedButton :
                                   requestedGroups.has(group.id) ? styles.requestedButton : ''
                                 }`}
-                                onClick={() => handleJoinGroup(group.id, group.isPrivate || false)}
+                                onClick={(e) => handleJoinGroup(group.id, group.isPrivate || false, e)}
                                 disabled={
                                   joinedGroups.has(group.id) || 
                                   requestedGroups.has(group.id) || 
@@ -560,7 +578,11 @@ export default function SearchPage() {
                         users.map((user) => (
                           <div key={user.id} className={styles.userItem}>
                             <div className={styles.userContent}>
-                              <div className={styles.userImageWrapper}>
+                              <div 
+                                className={styles.userImageWrapper}
+                                onClick={() => handleUserClick(user.us)}
+                                style={{ cursor: 'pointer' }}
+                              >
                                 <Image
                                   src={user.image || '/default-avatar.png'}
                                   alt={user.name}
@@ -571,7 +593,13 @@ export default function SearchPage() {
                               </div>
                               
                               <div className={styles.userInfo}>
-                                <h3 className={styles.userName}>{user.name}</h3>
+                                <h3 
+                                  className={styles.userName}
+                                  onClick={() => handleUserClick(user.us)}
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  {user.name}
+                                </h3>
                                 <p className={styles.userStatus}>{user.status}</p>
                                 <p className={styles.userDescription}>{user.us}</p>
                               </div>
@@ -579,7 +607,7 @@ export default function SearchPage() {
                             
                             <button
                               className={styles.addButton}
-                              onClick={() => handleAddUser(user.id)}
+                              onClick={(e) => handleAddUser(user.id, e)}
                             >
                               Добавить
                             </button>

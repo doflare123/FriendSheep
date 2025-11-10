@@ -1,4 +1,3 @@
-
 .section {
     margin-bottom: 40px;
 }
@@ -118,7 +117,6 @@
     max-width: 95%;
     position: relative;
     
-    /* Создаем градиентную маску для плавного перехода в прозрачность */
     mask: linear-gradient(
         to right,
         transparent 0px,
@@ -135,7 +133,6 @@
     );
 }
 
-/* Добавляем отступы для первой и последней карточки */
 .cardsScroll > :first-child {
     margin-left: 30px;
 }
@@ -152,23 +149,310 @@
     min-height: 100%;
     display: flex;
     flex-direction: column;
-    background: /* твой фон */; /* если фон задан здесь */
 }
 
 .pageWrapper .bgPage {
     flex: 1;
-    min-height: 0; /* добавь эту строку */
+    min-height: 0;
 }
 
 .emptyMessage {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 70vh; /* уменьши с 60vh до фиксированного значения */
+    min-height: 70vh;
     padding: 40px 20px;
     color: #515151;
 }
 
 .footerWrapper {
     margin-top: auto;
+}
+
+/* Средние планшеты и небольшие ноутбуки (до 1024px) */
+@media (max-width: 1024px) {
+    .categoriesHeader h2 {
+        font-size: 34px;
+        padding: 14px 35px;
+        width: 80%;
+    }
+    
+    .categoryTitle {
+        font-size: 19px;
+        padding: 7px 15px;
+    }
+    
+    .scrollButton {
+        width: 38px;
+        height: 38px;
+        font-size: 19px;
+    }
+    
+    .scrollLeft {
+        left: calc(2.5% - 42px);
+    }
+    
+    .scrollRight {
+        right: calc(2.5% - 42px);
+    }
+}
+
+/* Планшеты (до 900px) */
+@media (max-width: 900px) {
+    .section {
+        margin-bottom: 35px;
+    }
+    
+    .sectionTitle {
+        font-size: 22px;
+        padding: 9px 18px;
+    }
+    
+    .categoriesHeader {
+        margin: 50px 0 35px 0;
+    }
+    
+    .categoriesHeader h2 {
+        font-size: 30px;
+        padding: 13px 32px;
+        border-radius: 32px;
+        width: 82%;
+        border-width: 2.5px;
+    }
+    
+    .categoryHeader {
+        margin-left: 3%;
+        width: auto;
+    }
+    
+    .categoryTitle {
+        font-size: 18px;
+    }
+    
+    .scrollButton {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+    
+    .scrollLeft {
+        left: calc(2.5% - 40px);
+    }
+    
+    .scrollRight {
+        right: calc(2.5% - 40px);
+    }
+    
+    .cardsScroll {
+        gap: 18px;
+    }
+}
+
+/* Планшеты (до 768px) */
+@media (max-width: 768px) {
+    .section {
+        margin-bottom: 30px;
+    }
+
+    .sectionTitle {
+        font-size: 20px;
+        padding: 8px 16px;
+        border-radius: 10px;
+    }
+
+    .categoriesHeader {
+        margin: 40px 0 30px 0;
+    }
+
+    .categoriesHeader h2 {
+        font-size: 28px;
+        padding: 12px 30px;
+        border-radius: 28px;
+        width: 85%;
+        border: 2px solid #316BC2;
+    }
+
+    .categoryHeader {
+        margin-left: 5%;
+        width: auto;
+        max-width: none;
+    }
+
+    .categoryTitle {
+        font-size: 18px;
+        padding: 7px 14px;
+    }
+
+    .scrollButton {
+        width: 35px;
+        height: 35px;
+        font-size: 18px;
+    }
+
+    .scrollLeft {
+        left: 5px;
+    }
+
+    .scrollRight {
+        right: 5px;
+    }
+
+    .cardsScroll {
+        width: 100%;
+        max-width: 100%;
+        gap: 15px;
+        padding: 0 10px;
+        
+        mask: linear-gradient(
+            to right,
+            transparent 0px,
+            black 40px,
+            black calc(100% - 40px),
+            transparent 100%
+        );
+        -webkit-mask: linear-gradient(
+            to right,
+            transparent 0px,
+            black 40px,
+            black calc(100% - 40px),
+            transparent 100%
+        );
+    }
+
+    .cardsScroll > :first-child {
+        margin-left: 20px;
+    }
+
+    .cardsScroll > :last-child {
+        margin-right: 20px;
+    }
+}
+
+/* Мобильные телефоны (до 480px) */
+@media (max-width: 480px) {
+    .section {
+        margin-bottom: 25px;
+    }
+
+    .sectionTitle {
+        font-size: 18px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1.5px solid #316BC2;
+    }
+
+    .categoriesHeader {
+        margin: 30px 0 20px 0;
+    }
+
+    .categoriesHeader h2 {
+        font-size: 22px;
+        padding: 10px 20px;
+        border-radius: 20px;
+        width: 90%;
+        border: 2px solid #316BC2;
+        box-shadow: 0 2px 8px rgba(49, 107, 194, 0.3);
+    }
+
+    .categorySection {
+        margin-bottom: 20px;
+    }
+
+    .categoryHeader {
+        margin-left: 10px;
+        margin-bottom: 12px;
+    }
+
+    .categoryTitle {
+        font-size: 16px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1.5px solid #316BC2;
+    }
+
+    .scrollButton {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+        border: 1.5px solid #316BC2;
+    }
+
+    .scrollButton:hover {
+        transform: translateY(-50%) scale(1.05);
+    }
+
+    .scrollLeft {
+        left: 2px;
+    }
+
+    .scrollRight {
+        right: 2px;
+    }
+
+    .cardsScroll {
+        gap: 12px;
+        padding: 0 5px;
+        
+        mask: linear-gradient(
+            to right,
+            transparent 0px,
+            black 30px,
+            black calc(100% - 30px),
+            transparent 100%
+        );
+        -webkit-mask: linear-gradient(
+            to right,
+            transparent 0px,
+            black 30px,
+            black calc(100% - 30px),
+            transparent 100%
+        );
+    }
+
+    .cardsScroll > :first-child {
+        margin-left: 15px;
+    }
+
+    .cardsScroll > :last-child {
+        margin-right: 15px;
+    }
+
+    .emptyMessage {
+        min-height: 60vh;
+        padding: 30px 15px;
+        font-size: 16px;
+    }
+
+    .emptyMessage p {
+        text-align: center;
+        max-width: 90%;
+    }
+}
+
+/* Очень маленькие экраны (до 360px) */
+@media (max-width: 360px) {
+    .categoriesHeader h2 {
+        font-size: 20px;
+        padding: 8px 16px;
+        width: 95%;
+    }
+
+    .categoryTitle {
+        font-size: 15px;
+        padding: 5px 10px;
+    }
+
+    .scrollButton {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+    }
+
+    .cardsScroll {
+        gap: 10px;
+    }
+
+    .emptyMessage {
+        font-size: 15px;
+    }
 }
