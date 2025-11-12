@@ -204,11 +204,11 @@ export default function RegisterPage() {
 
             <FormText>
                 При создании аккаунта вы соглашаетесь с условиями{" "}
-                <FormLink href="#">
+                <FormLink href="/info/agreement">
                     Пользовательского соглашения
                 </FormLink>{" "}
                 и{" "}
-                <FormLink href="#">
+                <FormLink href="/info/privacy">
                     Политики конфиденциальности
                 </FormLink>.
             </FormText>
