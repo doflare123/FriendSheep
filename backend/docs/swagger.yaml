@@ -43,17 +43,6 @@ definitions:
       name:
         type: string
     type: object
-  handlers.AuthResponse:
-    properties:
-      access_token:
-        type: string
-      admin_groups:
-        items:
-          $ref: '#/definitions/services.AdminGroupResponse'
-        type: array
-      refresh_token:
-        type: string
-    type: object
   handlers.CachedPopularSessionsDoc:
     properties:
       count:
@@ -64,13 +53,6 @@ definitions:
         type: array
       updated_at:
         type: string
-    type: object
-  handlers.ChangePasswordInput:
-    properties:
-      new_password:
-        type: string
-    required:
-    - new_password
     type: object
   handlers.GetJoinRequestsResponseDoc:
     properties:
@@ -157,19 +139,15 @@ definitions:
       title:
         type: string
     type: object
-  handlers.RefreshRequest:
-    properties:
-      refresh_token:
-        type: string
-    required:
-    - refresh_token
-    type: object
   handlers.SessionEmailInput:
     properties:
       email:
         type: string
+      type_ses:
+        type: string
     required:
     - email
+    - type_ses
     type: object
   handlers.SessionJoinInputDoc:
     properties:
@@ -196,16 +174,6 @@ definitions:
         example: Иван
         type: string
     type: object
-  handlers.UserRequest:
-    properties:
-      email:
-        type: string
-      password:
-        type: string
-    required:
-    - email
-    - password
-    type: object
   models.Category:
     properties:
       id:
@@ -222,8 +190,6 @@ definitions:
     properties:
       createdAt:
         type: string
-      data_register:
-        type: string
       email:
         type: string
       enterprise:
@@ -236,10 +202,19 @@ definitions:
         type: string
       password:
         type: string
+      role:
+        type: string
+      status:
+        type: string
+      telegramID:
+        type: string
       updatedAt:
         type: string
       us:
+        description: Salt         string `gorm:"not null" validate:"required"`
         type: string
+      verifiedUser:
+        type: boolean
     required:
     - email
     - name
@@ -302,6 +277,50 @@ definitions:
     - description
     - image
     - title
+    type: object
+  register.ChangePasswordInput:
+    properties:
+      email:
+        type: string
+      new_password:
+        type: string
+      session_id:
+        type: string
+    required:
+    - email
+    - new_password
+    - session_id
+    type: object
+  register.CreateUserInput:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 40
+        minLength: 5
+        type: string
+      password:
+        type: string
+      session_id:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - session_id
+    type: object
+  register.VerifySessionInput:
+    properties:
+      code:
+        type: string
+      session_id:
+        type: string
+      type:
+        type: string
+    required:
+    - code
+    - session_id
+    - type
     type: object
   services.AdminGroupInfResponse:
     properties:
@@ -427,24 +446,6 @@ definitions:
     - image
     - text
     - title
-    type: object
-  services.CreateUserInput:
-    properties:
-      email:
-        type: string
-      name:
-        maxLength: 40
-        minLength: 5
-        type: string
-      password:
-        type: string
-      session_id:
-        type: string
-    required:
-    - email
-    - name
-    - password
-    - session_id
     type: object
   services.GenreStats:
     properties:
@@ -916,19 +917,6 @@ definitions:
         type: string
       name:
         type: string
-    type: object
-  services.VerifySessionInput:
-    properties:
-      code:
-        type: string
-      session_id:
-        type: string
-      type:
-        type: string
-    required:
-    - code
-    - session_id
-    - type
     type: object
   sessions.SessionMetadata:
     properties:
@@ -2280,40 +2268,6 @@ paths:
       summary: Присоединение к сессии
       tags:
       - Сессии
-  /api/sessions/register:
-    post:
-      consumes:
-      - application/json
-      description: Создает сессию для подтверждения email пользователя при регистрации
-      parameters:
-      - description: Email пользователя
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.SessionEmailInput'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.SessionRegResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Создать сессию регистрации
-      tags:
-      - sessions
   /api/sessions/sessions/{id}:
     delete:
       description: Удаляет сессию, если пользователь является admin или operator в
@@ -2366,113 +2320,6 @@ paths:
       summary: Удаление сессии
       tags:
       - Сессии
-  /api/sessions/verify:
-    patch:
-      consumes:
-      - application/json
-      description: Проверяет код сессии, отправленный на email
-      parameters:
-      - description: Данные сессии для проверки
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/services.VerifySessionInput'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: boolean
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "429":
-          description: Too Many Requests
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Проверить сессию
-      tags:
-      - sessions
-  /api/users:
-    post:
-      consumes:
-      - application/json
-      description: Регистрирует нового пользователя по данным из запроса
-      parameters:
-      - description: Данные для создания пользователя
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/services.CreateUserInput'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Создать пользователя
-      tags:
-      - users
-  /api/users/{us}:
-    get:
-      consumes:
-      - application/json
-      description: Получение информации о пользователе по значению поля "us"
-      parameters:
-      - description: User us
-        in: path
-        name: us
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.User'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get user by us
-      tags:
-      - users
   /api/users/confirm-reset:
     post:
       consumes:
@@ -2681,52 +2528,6 @@ paths:
       summary: Отклонить приглашение в группу
       tags:
       - Users inf
-  /api/users/login:
-    post:
-      consumes:
-      - application/json
-      description: Проверяет email и пароль, возвращает access и refresh токены
-      parameters:
-      - description: Данные пользователя
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.UserRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Токены успешно созданы
-          schema:
-            $ref: '#/definitions/handlers.AuthResponse'
-        "400":
-          description: Некорректный JSON или параметры
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Неверный пароль
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Пользователь не найден
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Ошибка сервера
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Аутентификация пользователя
-      tags:
-      - auth
   /api/users/notifications/viewed:
     post:
       consumes:
@@ -2823,80 +2624,6 @@ paths:
       summary: Есть ли уведомления для пользователя или нет
       tags:
       - Users inf
-  /api/users/password:
-    patch:
-      consumes:
-      - application/json
-      description: Обновляет пароль для текущего авторизованного пользователя.
-      parameters:
-      - description: Новый пароль
-        in: body
-        name: password
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.ChangePasswordInput'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Пароль успешно изменен
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Некорректные данные
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Пользователь не авторизован
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Смена пароля пользователя
-      tags:
-      - Users inf
-  /api/users/refresh:
-    post:
-      consumes:
-      - application/json
-      description: По refresh токену выдает новые access и refresh токены
-      parameters:
-      - description: Refresh токен
-        in: body
-        name: refreshRequest
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.RefreshRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Новые токены успешно созданы
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Отсутствует или неверный refresh_token
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Невалидный или просроченный refresh token
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Обновление токенов
-      tags:
-      - auth
   /api/users/request-reset:
     post:
       consumes:
@@ -3320,6 +3047,172 @@ paths:
       summary: Обновить профиль пользователя
       tags:
       - Users inf
+  /api/v2/register/:
+    post:
+      consumes:
+      - application/json
+      description: Регистрирует нового пользователя по данным из запроса
+      parameters:
+      - description: Данные для создания пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/register.CreateUserInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать пользователя
+      tags:
+      - users
+  /api/v2/register/password/change:
+    post:
+      consumes:
+      - application/json
+      description: Изменяет пароль пользователя после подтверждения сессии восстановления
+      parameters:
+      - description: Данные для смены пароля
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/register.ChangePasswordInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Изменить пароль
+      tags:
+      - users
+  /api/v2/register/session/register:
+    post:
+      consumes:
+      - application/json
+      description: Создает сессию для подтверждения email пользователя при регистрации
+      parameters:
+      - description: Email пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SessionEmailInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SessionRegResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать сессию регистрации
+      tags:
+      - sessions
+  /api/v2/register/session/verify:
+    patch:
+      consumes:
+      - application/json
+      description: Проверяет код сессии, отправленный на email
+      parameters:
+      - description: Данные сессии для проверки
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/register.VerifySessionInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "429":
+          description: Too Many Requests
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Проверить сессию
+      tags:
+      - sessions
 securityDefinitions:
   BearerAuth:
     description: 'Введите токен в формате: Bearer <your_token>'

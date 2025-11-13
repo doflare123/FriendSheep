@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"friendship/db"
+	"friendship/models"
 	"friendship/models/groups"
 
 	"gorm.io/gorm"
@@ -70,13 +71,10 @@ func GetGroupsUserSub(email string) ([]GroupResponse, error) {
 		return nil, fmt.Errorf("не передан jwt")
 	}
 
-	user, err := FindUserByEmail(email)
-	if err != nil {
-		return nil, fmt.Errorf("пользователь не найден: %v", err)
-	}
+	user := models.User{}
 
 	var groupUsers []groups.GroupUsers
-	err = db.GetDB().Preload("Group").
+	err := db.GetDB().Preload("Group").
 		Preload("Group.Categories").
 		Where("user_id = ? AND role_in_group = 'member'", &user.ID).
 		Find(&groupUsers).Error

@@ -265,15 +265,15 @@ func GetGroupInf(groupID *uint64, email *string) (*GroupInf, error) {
 	if *groupID == 0 {
 		return nil, errors.New("некорректный ID группы")
 	}
-	user, err := FindUserByEmail(*email)
-	if err != nil {
-		return nil, fmt.Errorf("пользователь не найден: %v", err)
-	}
+	user := models.User{}
+	// if err != nil {
+	// 	return nil, fmt.Errorf("пользователь не найден: %v", err)
+	// }
 
 	var group groups.Group
 	var information GroupInf
 
-	err = db.GetDB().Preload("Categories").
+	err := db.GetDB().Preload("Categories").
 		Preload("Contacts").
 		Where("id = ?", groupID).
 		First(&group).Error

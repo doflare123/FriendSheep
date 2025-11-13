@@ -1939,58 +1939,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/sessions/register": {
-            "post": {
-                "description": "Создает сессию для подтверждения email пользователя при регистрации",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "sessions"
-                ],
-                "summary": "Создать сессию регистрации",
-                "parameters": [
-                    {
-                        "description": "Email пользователя",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.SessionEmailInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.SessionRegResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/sessions/sessions/{id}": {
             "delete": {
                 "security": [
@@ -2070,70 +2018,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/sessions/verify": {
-            "patch": {
-                "description": "Проверяет код сессии, отправленный на email",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "sessions"
-                ],
-                "summary": "Проверить сессию",
-                "parameters": [
-                    {
-                        "description": "Данные сессии для проверки",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.VerifySessionInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "boolean"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "429": {
-                        "description": "Too Many Requests",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/sessions/{sessionId}/leave": {
             "delete": {
                 "security": [
@@ -2197,52 +2081,6 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Внутренняя ошибка",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users": {
-            "post": {
-                "description": "Регистрирует нового пользователя по данным из запроса",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Создать пользователя",
-                "parameters": [
-                    {
-                        "description": "Данные для создания пользователя",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.CreateUserInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2568,76 +2406,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/login": {
-            "post": {
-                "description": "Проверяет email и пароль, возвращает access и refresh токены",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Аутентификация пользователя",
-                "parameters": [
-                    {
-                        "description": "Данные пользователя",
-                        "name": "user",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.UserRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Токены успешно созданы",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.AuthResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректный JSON или параметры",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Неверный пароль",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Пользователь не найден",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/users/notifications/viewed": {
             "post": {
                 "security": [
@@ -2779,121 +2547,6 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users/password": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Обновляет пароль для текущего авторизованного пользователя.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users inf"
-                ],
-                "summary": "Смена пароля пользователя",
-                "parameters": [
-                    {
-                        "description": "Новый пароль",
-                        "name": "password",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.ChangePasswordInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Пароль успешно изменен",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректные данные",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users/refresh": {
-            "post": {
-                "description": "По refresh токену выдает новые access и refresh токены",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Обновление токенов",
-                "parameters": [
-                    {
-                        "description": "Refresh токен",
-                        "name": "refreshRequest",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.RefreshRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Новые токены успешно созданы",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Отсутствует или неверный refresh_token",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Невалидный или просроченный refresh token",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -3552,14 +3205,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/{us}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получение информации о пользователе по значению поля \"us\"",
+        "/api/v2/register/": {
+            "post": {
+                "description": "Регистрирует нового пользователя по данным из запроса",
                 "consumes": [
                     "application/json"
                 ],
@@ -3569,21 +3217,26 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Get user by us",
+                "summary": "Создать пользователя",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "User us",
-                        "name": "us",
-                        "in": "path",
-                        "required": true
+                        "description": "Данные для создания пользователя",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/register.CreateUserInput"
+                        }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "400": {
@@ -3595,8 +3248,206 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/register/password/change": {
+            "post": {
+                "description": "Изменяет пароль пользователя после подтверждения сессии восстановления",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Изменить пароль",
+                "parameters": [
+                    {
+                        "description": "Данные для смены пароля",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/register.ChangePasswordInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/register/session/register": {
+            "post": {
+                "description": "Создает сессию для подтверждения email пользователя при регистрации",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Создать сессию регистрации",
+                "parameters": [
+                    {
+                        "description": "Email пользователя",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.SessionEmailInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SessionRegResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/register/session/verify": {
+            "patch": {
+                "description": "Проверяет код сессии, отправленный на email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Проверить сессию",
+                "parameters": [
+                    {
+                        "description": "Данные сессии для проверки",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/register.VerifySessionInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -3676,23 +3527,6 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.AuthResponse": {
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
-                },
-                "admin_groups": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/services.AdminGroupResponse"
-                    }
-                },
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
         "handlers.CachedPopularSessionsDoc": {
             "type": "object",
             "properties": {
@@ -3706,17 +3540,6 @@ const docTemplate = `{
                     }
                 },
                 "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.ChangePasswordInput": {
-            "type": "object",
-            "required": [
-                "new_password"
-            ],
-            "properties": {
-                "new_password": {
                     "type": "string"
                 }
             }
@@ -3847,24 +3670,17 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.RefreshRequest": {
-            "type": "object",
-            "required": [
-                "refresh_token"
-            ],
-            "properties": {
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
         "handlers.SessionEmailInput": {
             "type": "object",
             "required": [
-                "email"
+                "email",
+                "type_ses"
             ],
             "properties": {
                 "email": {
+                    "type": "string"
+                },
+                "type_ses": {
                     "type": "string"
                 }
             }
@@ -3905,21 +3721,6 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.UserRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
         "models.Category": {
             "type": "object",
             "properties": {
@@ -3951,9 +3752,6 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "string"
                 },
-                "data_register": {
-                    "type": "string"
-                },
                 "email": {
                     "type": "string"
                 },
@@ -3972,11 +3770,24 @@ const docTemplate = `{
                 "password": {
                     "type": "string"
                 },
+                "role": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "telegramID": {
+                    "type": "string"
+                },
                 "updatedAt": {
                     "type": "string"
                 },
                 "us": {
+                    "description": "Salt         string ` + "`" + `gorm:\"not null\" validate:\"required\"` + "`" + `",
                     "type": "string"
+                },
+                "verifiedUser": {
+                    "type": "boolean"
                 }
             }
         },
@@ -4062,6 +3873,69 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "register.ChangePasswordInput": {
+            "type": "object",
+            "required": [
+                "email",
+                "new_password",
+                "session_id"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "register.CreateUserInput": {
+            "type": "object",
+            "required": [
+                "email",
+                "name",
+                "password",
+                "session_id"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "minLength": 5
+                },
+                "password": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "register.VerifySessionInput": {
+            "type": "object",
+            "required": [
+                "code",
+                "session_id",
+                "type"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -4251,31 +4125,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "services.CreateUserInput": {
-            "type": "object",
-            "required": [
-                "email",
-                "name",
-                "password",
-                "session_id"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 40,
-                    "minLength": 5
-                },
-                "password": {
-                    "type": "string"
-                },
-                "session_id": {
                     "type": "string"
                 }
             }
@@ -4992,25 +4841,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "services.VerifySessionInput": {
-            "type": "object",
-            "required": [
-                "code",
-                "session_id",
-                "type"
-            ],
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "session_id": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 }
             }

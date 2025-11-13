@@ -5,7 +5,6 @@ import (
 	"friendship/db"
 	"friendship/models"
 	"friendship/utils"
-	"log"
 	"os"
 	"time"
 )
@@ -102,9 +101,10 @@ func CreateSessionReset(email string) (*models.SessionRegResponse, error) {
     </html>
     `, code, time.Now().Year())
 
-		if err := utils.SendEmail(email, subject, body); err != nil {
-			log.Printf("Ошибка отправки email: %v", err)
-		}
+		// if err := utils.SendEmail(email, subject, body); err != nil {
+		// 	log.Printf("Ошибка отправки email: %v", err)
+		// }
+		fmt.Println(body, subject)
 	}(email, code)
 
 	return &models.SessionRegResponse{SessionID: sessionID}, nil
@@ -131,9 +131,11 @@ func ResetPassword(input ConfirmResetPasswordInput) error {
 		return fmt.Errorf("пользователь не найден")
 	}
 
-	hashPass, salt := utils.HashPassword(input.Password)
+	hashPass, err := utils.HashPassword(input.Password)
+	if err != nil {
+		return fmt.Errorf("Ошибка")
+	}
 	user.Password = hashPass
-	user.Salt = salt
 
 	if err := db.GetDB().Save(&user).Error; err != nil {
 		return err

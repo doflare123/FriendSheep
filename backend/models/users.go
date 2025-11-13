@@ -9,10 +9,10 @@ import (
 )
 
 type User struct {
-	ID           uint   `gorm:"primaryKey;autoIncrement"`
-	Name         string `gorm:"not null" validate:"required"`
-	Password     string `gorm:"not null" validate:"required,password"`
-	Salt         string `gorm:"not null" validate:"required"`
+	ID       uint   `gorm:"primaryKey;autoIncrement"`
+	Name     string `gorm:"not null" validate:"required"`
+	Password string `gorm:"not null" validate:"required,password"`
+	// Salt         string `gorm:"not null" validate:"required"`
 	Us           string `gorm:"uniqueIndex;not null" validate:"required"`
 	Email        string `gorm:"uniqueIndex;not null" validate:"required,email"`
 	Image        string `gorm:"default:https://cdn-icons-png.flaticon.com/512/149/149071.png"`

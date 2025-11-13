@@ -3,6 +3,12 @@ package main
 import (
 	_ "friendship/docs"
 	"friendship/server"
+	"friendship/services"
+	"friendship/utils"
+	"log"
+
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
 // func init() {
@@ -17,12 +23,18 @@ import (
 // @name Authorization
 // @description Введите токен в формате: Bearer <your_token>
 func main() {
-	server.InitServer()
-	// if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-	// 	_ = v.RegisterValidation("password", utils.PasswordValidation)
-	// 	_ = v.RegisterValidation("username", utils.ValidateNameTag)
-	// 	services.InitValidator(v)
-	// }
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		_ = v.RegisterValidation("password", utils.PasswordValidation)
+		_ = v.RegisterValidation("username", utils.ValidateNameTag)
+		services.InitValidator(v)
+	}
+	s, err := server.InitServer()
+	if err != nil {
+		log.Fatalf("Ошибка инициализации сервера: %v", err)
+	}
+	if err := s.Run(":8080"); err != nil {
+		log.Fatalf("Ошибка запуска сервера: %v", err)
+	}
 
 	// utils.Init()
 	// r := gin.New()

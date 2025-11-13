@@ -2,9 +2,7 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"friendship/models"
-	"os"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -23,24 +21,6 @@ func NewSessionStore(addr string) *SessionStore {
 	return &SessionStore{redisClient: rdb}
 }
 
-func InitRedis() error {
-	redisAddr := os.Getenv("REDIS_URI")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379"
-	}
-
-	sessionStore := NewSessionStore(redisAddr)
-
-	ctx := context.Background()
-	_, err := sessionStore.redisClient.Ping(ctx).Result()
-	if err != nil {
-		return fmt.Errorf("не удалось подключиться к Redis: %v", err)
-	}
-
-	SetGlobalSessionStore(sessionStore)
-	return nil
-}
-
 func (s *SessionStore) CreateSession(sessionID, code string, sessionType models.SessionTypeReg, expiration time.Duration, extra ...map[string]string) error {
 	fields := map[string]interface{}{
 		"code":        code,
@@ -49,7 +29,6 @@ func (s *SessionStore) CreateSession(sessionID, code string, sessionType models.
 		"attempts":    "0",
 	}
 
-	// сохраняем дополнительные поля (например email)
 	if len(extra) > 0 {
 		for k, v := range extra[0] {
 			fields[k] = v

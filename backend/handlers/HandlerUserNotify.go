@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"friendship/models"
 	"friendship/services"
 	"net/http"
 	"strconv"
@@ -107,11 +108,7 @@ func MarkNotificationViewed(c *gin.Context) {
 		return
 	}
 
-	user, err := services.FindUserByEmail(email)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не найден"})
-		return
-	}
+	user := models.User{}
 
 	var req struct {
 		ID uint `json:"id"`

@@ -20,10 +20,10 @@ type Config struct {
 }
 
 type EmailConfig struct {
-	From     string `mapstructure:"SMTP_HOST"`
-	Password string `mapstructure:"SMTP_PORT"`
-	SmtpHost string `mapstructure:"SMTP_EMAIL"`
-	SmtpPort string `mapstructure:"SMTP_PASSWORD"`
+	From     string `mapstructure:"SMTP_EMAIL"`
+	Password string `mapstructure:"SMTP_PASSWORD"`
+	SmtpHost string `mapstructure:"SMTP_HOST"`
+	SmtpPort string `mapstructure:"SMTP_PORT"`
 }
 
 type PostgresConfig struct {

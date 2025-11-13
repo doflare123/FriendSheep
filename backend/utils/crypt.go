@@ -3,26 +3,39 @@ package utils
 import (
 	"crypto/rand"
 	"crypto/subtle"
-	"encoding/hex"
+	"encoding/base64"
+	"fmt"
+	"strings"
 
 	"golang.org/x/crypto/argon2"
 )
 
-func generateSaltRaw(length int) []byte {
-	salt := make([]byte, length)
-	rand.Read(salt)
-	return salt
+func HashPassword(password string) (string, error) {
+	salt := make([]byte, 16)
+	if _, err := rand.Read(salt); err != nil {
+		return "", err
+	}
+
+	hash := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
+	encoded := fmt.Sprintf("%s.%s",
+		base64.RawStdEncoding.EncodeToString(salt),
+		base64.RawStdEncoding.EncodeToString(hash),
+	)
+	return encoded, nil
 }
 
-func HashPassword(password string) (hashHex, saltHex string) {
-	salt := generateSaltRaw(16)
-	hash := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
-	return hex.EncodeToString(hash), hex.EncodeToString(salt)
-}
+func VerifyPassword(encodedHash, password string) bool {
+	parts := strings.SplitN(encodedHash, ".", 2)
+	if len(parts) != 2 {
+		return false
+	}
 
-func ComparePasswords(password, storedHash, saltHex string) bool {
-	salt, _ := hex.DecodeString(saltHex)
-	hash := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
-	hashHex := hex.EncodeToString(hash)
-	return subtle.ConstantTimeCompare([]byte(hashHex), []byte(storedHash)) == 1
+	salt, err1 := base64.RawStdEncoding.DecodeString(parts[0])
+	expectedHash, err2 := base64.RawStdEncoding.DecodeString(parts[1])
+	if err1 != nil || err2 != nil {
+		return false
+	}
+
+	newHash := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
+	return subtle.ConstantTimeCompare(newHash, expectedHash) == 1
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"friendship/models"
 	"friendship/services"
 	"net/http"
 	"strconv"
@@ -177,11 +178,11 @@ func DeleteComment(c *gin.Context) {
 		return
 	}
 
-	user, err := services.FindUserByEmail(email)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "пользователь не найден"})
-		return
-	}
+	user := models.User{}
+	// if err != nil {
+	// 	c.JSON(http.StatusNotFound, gin.H{"error": "пользователь не найден"})
+	// 	return
+	// }
 	if user.Role != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "недостаточно прав"})
 		return

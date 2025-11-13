@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"friendship/models"
 	"friendship/services"
 	"net/http"
 	"strconv"
@@ -29,16 +30,13 @@ func GetGroupsUserSub(c *gin.Context) {
 		return
 	}
 	email := emailValue.(string)
+	fmt.Println(email)
 
 	userIDParam := c.Query("id")
 
 	var targetUserID uint
 	if userIDParam == "" {
-		user, err := services.FindUserByEmail(email)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "пользователь не найден"})
-			return
-		}
+		user := models.User{}
 		targetUserID = user.ID
 	} else {
 		idUint, err := strconv.ParseUint(userIDParam, 10, 64)
@@ -166,11 +164,7 @@ func GetInfAboutUserByID(c *gin.Context) {
 	idMain, _ := strconv.ParseUint(id, 10, 32)
 	fmt.Println("idMain", idMain)
 	fmt.Println("idMain", uint(idMain))
-	user, err := services.FindUserByID(uint(idMain))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	user := models.User{}
 	if user.Email == email {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Нононо мистер фиш, ты не будешь здесь получать информацию о себе"})
 		return
@@ -235,48 +229,6 @@ func UpdateUserProfile(c *gin.Context) {
 			"staus": updatedUser.Status,
 		},
 	})
-}
-
-type ChangePasswordInput struct {
-	NewPassword string `json:"new_password" binding:"required,password"`
-}
-
-// ChangePassword godoc
-// @Summary      Смена пароля пользователя
-// @Description  Обновляет пароль для текущего авторизованного пользователя.
-// @Tags         Users inf
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        password body handlers.ChangePasswordInput true "Новый пароль"
-// @Success      200  {object}  map[string]string "Пароль успешно изменен"
-// @Failure      400  {object}  map[string]string "Некорректные данные"
-// @Failure      401  {object}  map[string]string "Пользователь не авторизован"
-// @Router       /api/users/password [patch]
-func ChangePassword(c *gin.Context) {
-	emailValue, exists := c.Get("email")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "не найден email в контексте"})
-		return
-	}
-
-	email, ok := emailValue.(string)
-	if !ok || email == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат email"})
-		return
-	}
-
-	var input ChangePasswordInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "неверные данные"})
-		return
-	}
-	res := services.ChangePassword(email, input.NewPassword)
-	if res != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": res.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Пароль успешно изменён"})
 }
 
 // ChangeTilesPattern godoc

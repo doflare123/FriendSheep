@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"friendship/models"
 	"friendship/services"
 	"net/http"
 	"strconv"
@@ -43,11 +44,7 @@ func SearchUsers(c *gin.Context) {
 	name := c.Query("name")
 	pageStr := c.DefaultQuery("page", "1")
 
-	user, err := services.FindUserByEmail(email)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка поиска исходного пользователя"})
-		return
-	}
+	user := models.User{}
 
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page < 1 {

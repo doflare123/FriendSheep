@@ -23,11 +23,7 @@ type AdminGroupResponse struct {
 
 func GetAdminGroups(email *string) ([]AdminGroupResponse, error) {
 	db := db.GetDB()
-	user, err := FindUserByEmail(*email)
-	if err != nil {
-		return nil, fmt.Errorf("пользователь не найден: %v", err)
-	}
-
+	user := models.User{}
 	var adminGroups []AdminGroupResponse
 
 	if err := db.Table("groups").

@@ -17,8 +17,18 @@ import (
 // }
 
 func RegisterAuthRoutes(r *gin.Engine, authH handlers.AuthHandler) {
-	auth := r.Group("/api/v2")
+	auth := r.Group("api/v2/auth")
 	{
 		auth.GET("/refresh", authH.RefreshToken)
+	}
+}
+
+func RegisterRegRoutes(r *gin.Engine, regH handlers.RegHandler) {
+	reg := r.Group("api/v2/register")
+	{
+		reg.POST("/session/register", regH.CreateSessionRegister)
+		reg.PATCH("/session/verify", regH.VerifySession)
+		reg.POST("/", regH.CreateUser)
+		reg.POST("/password/change", regH.ChangePassword)
 	}
 }
