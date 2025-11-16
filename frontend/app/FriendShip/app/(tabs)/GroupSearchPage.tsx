@@ -1,5 +1,11 @@
-import React, { useMemo } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BottomBar from '@/components/BottomBar';
@@ -7,109 +13,48 @@ import GroupCard, { Group } from '@/components/groups/GroupCard';
 import SearchResultsSection from '@/components/search/SearchResultsSection';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
-import { GroupCategory, useGroupSearchState } from '@/hooks/useGroupSearchState';
+import { Montserrat } from '@/constants/Montserrat';
+import { useGroupSearch } from '@/hooks/useGroupSearch';
+import { useGroupSearchState } from '@/hooks/useGroupSearchState';
 import { useSearchState } from '@/hooks/useSearchState';
-import { highlightGroupText } from '@/utils/textHighlight';
+import { RootStackParamList } from '@/navigation/types';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-const mockGroups: Group[] = [
-  {
-    id: '1',
-    name: 'Группа крутышек',
-    participantsCount: 52,
-    description: 'Мы клуб фанатов соника. Присоединяйтесь к нам, если вы его любите!',
-    imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-    categories: ['movie', 'game'],
-  },
-  {
-    id: '2',
-    name: 'Любители настолок',
-    participantsCount: 35,
-    description: 'Играем в настольные игры каждые выходные!',
-    imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-    categories: ['table_game'],
-  },
-  {
-    id: '3',
-    name: 'Киноманы',
-    participantsCount: 128,
-    description: 'Обсуждаем фильмы, сериалы и всё, что связано с кино!',
-    imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-    categories: ['movie'],
-  },
-  {
-    id: '4',
-    name: 'Универсалы',
-    participantsCount: 89,
-    description: 'Мы любим всё: кино, игры, настолки и многое другое!',
-    imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-    categories: ['movie', 'game', 'table_game', 'other'],
-  },
-];
-
-const filterGroupsByCategories = (groups: Group[], categories: GroupCategory[]): Group[] => {
-  if (categories.length === 0) {
-    return groups;
-  }
-
-  return groups.filter(group =>
-    categories.every(selectedCat => group.categories.includes(selectedCat))
-  );
-};
-
-const sortGroupsByParticipants = (groups: Group[], order: 'asc' | 'desc' | 'none') => {
-  if (order === 'none') return groups;
-  
-  return [...groups].sort((a, b) => {
-    if (order === 'asc') {
-      return a.participantsCount - b.participantsCount;
-    } else {
-      return b.participantsCount - a.participantsCount;
-    }
-  });
-};
-
-const sortGroupsByRegistration = (groups: Group[], order: 'asc' | 'desc' | 'none') => {
-  if (order === 'none') return groups;
-  
-  return [...groups].sort((a, b) => {
-    if (order === 'asc') {
-      return parseInt(a.id) - parseInt(b.id);
-    } else {
-      return parseInt(b.id) - parseInt(a.id);
-    }
-  });
+const CATEGORY_MAP: Record<string, string> = {
+  'Фильмы': 'movie',
+  'Игры': 'game',
+  'Настольные игры': 'table_game',
+  'Другое': 'other',
 };
 
 const GroupSearchPage: React.FC = () => {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { searchState, searchActions } = useGroupSearchState();
   const { sortingState: globalSortingState, sortingActions: globalSortingActions } = useSearchState();
+  
+  const {
+    groups,
+    isLoading,
+    isLoadingMore,
+    error,
+    hasMore,
+    totalGroups,
+    searchGroups,
+    loadMore,
+    resetSearch,
+  } = useGroupSearch();
 
-  const filteredAndSortedGroups = useMemo((): Group[] => {
-    let groups = [...mockGroups];
-
-    if (searchState.searchQuery.trim()) {
-      groups = groups.filter(group =>
-        group.name.toLowerCase().includes(searchState.searchQuery.toLowerCase())
-      );
-      
-      groups = groups.map(group => 
-        highlightGroupText(group, searchState.searchQuery)
-      );
-    }
-
-    if (searchState.checkedCategories && searchState.checkedCategories.length > 0) {
-      groups = filterGroupsByCategories(groups, searchState.checkedCategories);
-    }
-
-    if (searchState.sortByParticipants !== 'none') {
-      groups = sortGroupsByParticipants(groups, searchState.sortByParticipants);
-    }
-
-    if (searchState.sortByRegistration !== 'none') {
-      groups = sortGroupsByRegistration(groups, searchState.sortByRegistration);
-    }
-    
-    return groups;
+  useEffect(() => {
+    console.log('[GroupSearchPage] Параметры поиска изменились, выполняем поиск');
+    searchGroups(
+      searchState.searchQuery,
+      searchState.checkedCategories,
+      searchState.sortByParticipants,
+      searchState.sortByRegistration,
+      1,
+      false
+    );
   }, [
     searchState.searchQuery,
     searchState.checkedCategories,
@@ -117,39 +62,115 @@ const GroupSearchPage: React.FC = () => {
     searchState.sortByRegistration,
   ]);
 
+  const formattedGroups: Group[] = useMemo(() => {
+    return groups.map(group => ({
+      id: group.id.toString(),
+      name: group.name,
+      participantsCount: group.count,
+      description: group.description,
+      imageUri: group.image,
+      categories: group.category
+        .map(cat => CATEGORY_MAP[cat])
+        .filter(Boolean) as any[],
+      isPrivate: group.isPrivate,
+    }));
+  }, [groups]);
+
   const handleGroupPress = (groupId: string) => {
-    console.log('Group pressed:', groupId);
+    console.log('[GroupSearchPage] Переход к группе:', groupId);
+    navigation.navigate('GroupPage', { groupId });
+  };
+
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMore) {
+      console.log('[GroupSearchPage] Загружаем больше групп');
+      loadMore(
+        searchState.searchQuery,
+        searchState.checkedCategories,
+        searchState.sortByParticipants,
+        searchState.sortByRegistration
+      );
+    }
+  };
+
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={Colors.lightBlue} />
+        <Text style={styles.footerText}>Загрузка...</Text>
+      </View>
+    );
+  };
+
+  const renderEmpty = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.lightBlue} />
+          <Text style={styles.loadingText}>Поиск групп...</Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>Ошибка: {error}</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.emptyText}>Группы не найдены</Text>
+        <Text style={styles.emptySubtext}>
+          Попробуйте изменить параметры поиска
+        </Text>
+      </View>
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
 
-      <View style={{flex: 1}}>
+      <View style={{ flex: 1 }}>
         <SearchResultsSection
           title="Поиск по группам"
           searchQuery={searchState.searchQuery}
-          hasResults={filteredAndSortedGroups.length > 0}
+          hasResults={formattedGroups.length > 0}
           showWave
         >
-          {filteredAndSortedGroups.length > 0 && (
-            <View style={styles.contentContainer}>
-              <FlatList
-                data={filteredAndSortedGroups}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <View style={styles.cardWrapper}>
-                    <GroupCard
-                      {...item}
-                      onPress={() => handleGroupPress(item.id)}
-                    />
-                  </View>
-                )}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContent}
-              />
+          {totalGroups > 0 && (
+            <View style={styles.resultsHeader}>
+              <Text style={styles.resultsCount}>
+                Найдено: {totalGroups} {totalGroups === 1 ? 'группа' : 'групп'}
+              </Text>
             </View>
           )}
+
+          <View style={styles.contentContainer}>
+            <FlatList
+              data={formattedGroups}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <View style={styles.cardWrapper}>
+                  <GroupCard
+                    {...item}
+                    onPress={() => handleGroupPress(item.id)}
+                  />
+                </View>
+              )}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
+              ListEmptyComponent={renderEmpty}
+              ListFooterComponent={renderFooter}
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.5}
+            />
+          </View>
         </SearchResultsSection>
       </View>
 
@@ -169,9 +190,60 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 16,
+    flexGrow: 1,
   },
   cardWrapper: {
     marginBottom: 16,
+  },
+  resultsHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  resultsCount: {
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
+    color: Colors.grey,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontFamily: Montserrat.regular,
+    fontSize: 16,
+    color: Colors.grey,
+  },
+  errorText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 16,
+    color: Colors.red,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyText: {
+    fontFamily: Montserrat.bold,
+    fontSize: 18,
+    color: Colors.grey,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  footerText: {
+    marginTop: 8,
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
+    color: Colors.grey,
   },
 });
 

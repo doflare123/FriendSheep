@@ -27,6 +27,7 @@ interface RequestsTabContentProps {
   onRejectRequest: (userId: string) => void;
   onAcceptAll: () => void;
   onRejectAll: () => void;
+  isProcessing?: boolean;
 }
 
 const RequestsTabContent: React.FC<RequestsTabContentProps> = ({
@@ -37,6 +38,7 @@ const RequestsTabContent: React.FC<RequestsTabContentProps> = ({
   onRejectRequest,
   onAcceptAll,
   onRejectAll,
+  isProcessing = false,
 }) => {
   const filteredRequests = pendingRequests.filter(request =>
     request.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -55,60 +57,85 @@ const RequestsTabContent: React.FC<RequestsTabContentProps> = ({
             <Text style={styles.counterText}>нерассмотренных заявок</Text>
           </View>
           
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.acceptAllButton} onPress={onAcceptAll}>
-              <Text style={styles.acceptAllText}>Принять все</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.rejectAllButton} onPress={onRejectAll}>
-              <Text style={styles.rejectAllText}>Отклонить все</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Найти пользователя..."
-            placeholderTextColor={Colors.grey}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-
-        <View style={styles.requestsList}>
-          {filteredRequests.map((request) => (
-            <View key={request.id} style={styles.requestItem}>
-              <Image source={{ uri: request.imageUri }} style={styles.userAvatar} />
-              
-              <View style={styles.userInfo}>
-                <Text style={styles.userName}>{request.name}</Text>
-                <Text style={styles.userUsername}>{request.username}</Text>
-              </View>
-              
-              <View style={styles.requestActions}>
-                <TouchableOpacity 
-                  style={styles.acceptButton}
-                  onPress={() => onAcceptRequest(request.id)}
-                >
-                  <Image 
-                    source={require('@/assets/images/groups/check.png')} 
-                    style={styles.actionIcon}
-                  />
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.rejectButton}
-                  onPress={() => onRejectRequest(request.id)}
-                >
-                  <Image 
-                    source={require('@/assets/images/groups/close.png')} 
-                    style={styles.actionIcon}
-                  />
-                </TouchableOpacity>
-              </View>
+          {pendingRequests.length > 0 && (
+            <View style={styles.actionButtons}>
+              <TouchableOpacity 
+                style={[styles.acceptAllButton, isProcessing && styles.buttonDisabled]} 
+                onPress={onAcceptAll}
+                disabled={isProcessing}
+              >
+                <Text style={styles.acceptAllText}>Принять все</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.rejectAllButton, isProcessing && styles.buttonDisabled]} 
+                onPress={onRejectAll}
+                disabled={isProcessing}
+              >
+                <Text style={styles.rejectAllText}>Отклонить все</Text>
+              </TouchableOpacity>
             </View>
-          ))}
+          )}
         </View>
+
+        {pendingRequests.length > 0 && (
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Найти пользователя..."
+              placeholderTextColor={Colors.grey}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              editable={!isProcessing}
+            />
+          </View>
+        )}
+
+        {filteredRequests.length > 0 ? (
+          <View style={styles.requestsList}>
+            {filteredRequests.map((request) => (
+              <View key={request.id} style={styles.requestItem}>
+                <Image source={{ uri: request.imageUri }} style={styles.userAvatar} />
+                
+                <View style={styles.userInfo}>
+                  <Text style={styles.userName}>{request.name}</Text>
+                  <Text style={styles.userUsername}>@{request.username}</Text>
+                </View>
+                
+                <View style={styles.requestActions}>
+                  <TouchableOpacity 
+                    style={styles.acceptButton}
+                    onPress={() => onAcceptRequest(request.id)}
+                    disabled={isProcessing}
+                  >
+                    <Image 
+                      source={require('@/assets/images/groups/check.png')} 
+                      style={[styles.actionIcon, isProcessing && styles.iconDisabled]}
+                    />
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.rejectButton}
+                    onPress={() => onRejectRequest(request.id)}
+                    disabled={isProcessing}
+                  >
+                    <Image 
+                      source={require('@/assets/images/groups/close.png')} 
+                      style={[styles.actionIcon, isProcessing && styles.iconDisabled]}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : pendingRequests.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>Нет заявок на рассмотрение</Text>
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>Пользователи не найдены</Text>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -236,6 +263,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     resizeMode: 'contain',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  iconDisabled: {
+    opacity: 0.5,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 16,
+    color: Colors.grey,
   },
 });
 

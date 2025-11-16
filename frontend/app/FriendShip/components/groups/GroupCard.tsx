@@ -18,6 +18,7 @@ export interface Group {
     match: string;
     after: string;
   };
+  isPrivate?: boolean;
 }
 
 interface GroupCardProps extends Group {

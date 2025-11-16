@@ -1,6 +1,8 @@
-import groupService, { GroupDetailResponse } from '@/api/services/groupService';
+import groupService, { GroupDetailResponse, GroupRequest } from '@/api/services/groupService';
 import { TabType } from '@/components/groups/management/GroupManageTabPanel';
 import { Contact } from '@/components/groups/modal/ContactsModal';
+// eslint-disable-next-line import/no-unresolved
+import { LOCAL_IP } from '@env';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 
@@ -62,6 +64,10 @@ export const useGroupManage = (groupId: string) => {
   const [createEventModalVisible, setCreateEventModalVisible] = useState(false);
   const [editEventModalVisible, setEditEventModalVisible] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
+
+  const [isProcessingRequests, setIsProcessingRequests] = useState(false);
+  const [groupRequests, setGroupRequests] = useState<GroupRequest[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
 
   const loadGroupData = async () => {
     try {
@@ -134,52 +140,128 @@ export const useGroupManage = (groupId: string) => {
 
   useEffect(() => {
     loadGroupData();
+    loadGroupRequests();
   }, [groupId]);
 
-  const pendingRequests: RequestItem[] = groupData?.applications?.map(app => ({
-    id: app.id.toString(),
-    name: app.name,
-    username: app.us,
-    imageUri: app.image,
-  })) || [];
+  useEffect(() => {
+    if (activeTab === 'requests') {
+      loadGroupRequests();
+    }
+  }, [activeTab]);
 
-  const handleAcceptRequest = (userId: string) => {
-    console.log('Accepting request for user:', userId);
-    Alert.alert('Успешно', 'Заявка принята!');
+  const pendingRequests: RequestItem[] = useMemo(() => {
+    return groupRequests
+      .filter(req => req.status === 'pending')
+      .map(req => {
+        let imageUri = req.user.image;
+        if (imageUri && imageUri.includes('localhost')) {
+          imageUri = imageUri.replace('http://localhost:8080', 'http:/' + LOCAL_IP + ':8080');
+        }
+        
+        return {
+          id: req.id.toString(),
+          name: req.user.name,
+          username: req.user.email.split('@')[0],
+          imageUri: imageUri,
+        };
+      });
+  }, [groupRequests]);
+
+  const loadGroupRequests = async () => {
+    try {
+      setIsLoadingRequests(true);
+      console.log('[useGroupManage] Загружаем заявки для группы:', groupId);
+      
+      const requests = await groupService.getGroupRequests(parseInt(groupId));
+      
+      console.log('[useGroupManage] Заявки загружены:', requests.length);
+      setGroupRequests(requests);
+    } catch (error: any) {
+      console.error('[useGroupManage] Ошибка загрузки заявок:', error);
+      setGroupRequests([]);
+    } finally {
+      setIsLoadingRequests(false);
+    }
   };
 
-  const handleRejectRequest = (userId: string) => {
-    console.log('Rejecting request for user:', userId);
-    Alert.alert('Успешно', 'Заявка отклонена!');
+  const handleAcceptRequest = async (requestId: string) => {
+    try {
+      console.log('Принятие заявки:', requestId);
+      await groupService.approveRequest(parseInt(requestId));
+      
+      Alert.alert('Успешно', 'Заявка принята!');
+
+      await loadGroupRequests();
+    } catch (error: any) {
+      console.error('Ошибка принятия заявки:', error);
+      Alert.alert('Ошибка', error.message || 'Не удалось принять заявку');
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      console.log('Отклонение заявки:', requestId);
+      await groupService.rejectRequest(parseInt(requestId));
+      
+      Alert.alert('Успешно', 'Заявка отклонена!');
+
+      await loadGroupRequests();
+    } catch (error: any) {
+      console.error('Ошибка отклонения заявки:', error);
+      Alert.alert('Ошибка', error.message || 'Не удалось отклонить заявку');
+    }
   };
 
   const handleAcceptAll = () => {
+    if (pendingRequests.length === 0) {
+      Alert.alert('Внимание', 'Нет заявок для обработки');
+      return;
+    }
+
     setConfirmationModal({
       visible: true,
       action: 'acceptAll',
       title: 'Принять все заявки?',
-      message: 'Вы действительно хотите принять все заявки на вступление в группу?'
+      message: `Вы действительно хотите принять все заявки (${pendingRequests.length}) на вступление в группу?`
     });
   };
 
   const handleRejectAll = () => {
+    if (pendingRequests.length === 0) {
+      Alert.alert('Внимание', 'Нет заявок для обработки');
+      return;
+    }
+
     setConfirmationModal({
       visible: true,
       action: 'rejectAll',
       title: 'Отклонить все заявки?',
-      message: 'Вы действительно хотите отклонить все заявки на вступление в группу?'
+      message: `Вы действительно хотите отклонить все заявки (${pendingRequests.length}) на вступление в группу?`
     });
   };
 
-  const confirmAction = () => {
-    if (confirmationModal.action === 'acceptAll') {
-      console.log('Accepting all requests');
-      Alert.alert('Успешно', 'Все заявки приняты!');
-    } else if (confirmationModal.action === 'rejectAll') {
-      console.log('Rejecting all requests');
-      Alert.alert('Успешно', 'Все заявки отклонены!');
+  const confirmAction = async () => {
+    try {
+      if (confirmationModal.action === 'acceptAll') {
+        console.log('Принятие всех заявок');
+        await groupService.approveAllRequests(parseInt(groupId));
+        Alert.alert('Успешно', 'Все заявки приняты!');
+
+        await loadGroupRequests();
+        
+      } else if (confirmationModal.action === 'rejectAll') {
+        console.log('Отклонение всех заявок');
+        await groupService.rejectAllRequests(parseInt(groupId));
+        Alert.alert('Успешно', 'Все заявки отклонены!');
+
+        await loadGroupRequests();
+      }
+    } catch (error: any) {
+      console.error('Ошибка обработки заявок:', error);
+      Alert.alert('Ошибка', error.message || 'Не удалось обработать заявки');
+    } finally {
+      setConfirmationModal({ visible: false, action: '', title: '', message: '' });
     }
-    setConfirmationModal({ visible: false, action: '', title: '', message: '' });
   };
 
   const cancelConfirmation = () => {
@@ -375,5 +457,7 @@ export const useGroupManage = (groupId: string) => {
 
     getSectionTitle,
     formattedEvents,
+    isProcessingRequests,
+    isLoadingRequests,
   };
 };

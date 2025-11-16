@@ -27,6 +27,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -152,34 +153,38 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-const handleTilesSave = async (newTiles: TileType[]) => {
-  try {
-    const settings = {
-      count_all: newTiles.includes('all'),
-      count_films: newTiles.includes('movies'),
-      count_games: newTiles.includes('video_games'),
-      count_table: newTiles.includes('board_games'),
-      count_other: newTiles.includes('other'),
-      spent_time: newTiles.includes('time'),
-    };
+  const handleTilesSave = async (newTiles: TileType[]) => {
+    try {
+      const settings = {
+        count_all: newTiles.includes('all'),
+        count_films: newTiles.includes('movies'),
+        count_games: newTiles.includes('video_games'),
+        count_table: newTiles.includes('board_games'),
+        count_other: newTiles.includes('other'),
+        spent_time: newTiles.includes('time'),
+      };
 
-    await userService.updateTileSettings(settings);
-    setSelectedTiles(newTiles);
+      await userService.updateTileSettings(settings);
+      setSelectedTiles(newTiles);
 
-    showToast({
-      type: 'success',
-      title: 'Успешно',
-      message: 'Плитки обновлены',
-    });
-  } catch (error: any) {
-    showToast({
-      type: 'error',
-      title: 'Ошибка',
-      message: error.message || 'Не удалось обновить плитки',
-    });
-  }
-};
+      showToast({
+        type: 'success',
+        title: 'Успешно',
+        message: 'Плитки обновлены',
+      });
+    } catch (error: any) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось обновить плитки',
+      });
+    }
+  };
 
+  const handleGroupPress = (groupId: number) => {
+    console.log('[ProfilePage] Переход к группе:', groupId);
+    navigation.navigate('GroupPage', { groupId: groupId.toString() });
+  };
 
   const handleGroupSelect = (groupId: string) => {
     console.log('Inviting user to group:', groupId);
@@ -322,11 +327,16 @@ const handleTilesSave = async (newTiles: TileType[]) => {
           <CategorySection title="Подписки:" marginBottom={16}>
             <View style={styles.subscriptionsContainer}>
               {subscriptions.map((sub) => (
-                <Image 
-                  key={sub.id} 
-                  source={{ uri: sub.image }} 
-                  style={styles.subscriptionImage} 
-                />
+                <TouchableOpacity 
+                  key={sub.id}
+                  onPress={() => handleGroupPress(sub.id)}
+                  activeOpacity={0.7}
+                >
+                  <Image 
+                    source={{ uri: sub.image }} 
+                    style={styles.subscriptionImage} 
+                  />
+                </TouchableOpacity>
               ))}
             </View>
           </CategorySection>

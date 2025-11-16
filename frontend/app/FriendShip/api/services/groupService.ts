@@ -1,7 +1,7 @@
 import apiClient from '@/api/apiClient';
 import { getTokens } from '@/api/storage/tokenStorage';
 // eslint-disable-next-line import/no-unresolved
-import { API_BASE_URL } from '@env';
+import { API_BASE_URL, LOCAL_IP } from '@env';
 
 const BASE_URL = API_BASE_URL || 'http://localhost:8080/api';
 
@@ -129,6 +129,54 @@ export interface UpdateGroupData {
   is_private?: boolean;
   image?: string;
   contacts?: string;
+}
+
+export interface GroupRequest {
+  id: number;
+  userId: number;
+  groupId: number;
+  status: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    image: string;
+  };
+  group: {
+    id: number;
+    name: string;
+    image: string;
+  };
+}
+
+export interface GroupRequestsResponse {
+  requests: GroupRequest[];
+}
+
+export interface SearchGroupItem {
+  id: number;
+  name: string;
+  description: string;
+  image: string;
+  category: string[];
+  count: number;
+  isPrivate: boolean;
+  createdAt: string;
+}
+
+export interface SearchGroupsResponse {
+  groups: SearchGroupItem[];
+  page: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface SearchGroupsParams {
+  name?: string;
+  category?: string;
+  sort_by?: 'members' | 'date' | 'category';
+  order?: 'asc' | 'desc';
+  page?: number;
 }
 
 class GroupService {
@@ -337,6 +385,147 @@ class GroupService {
       console.error('Ошибка обновления группы:', error);
       console.error('Детали ошибки:', error.response?.data);
       throw new Error(error.response?.data?.message || 'Ошибка обновления группы');
+    }
+  }
+
+  async getGroupRequests(groupId: number): Promise<GroupRequest[]> {
+    try {
+      console.log(`Загрузка заявок для группы ${groupId}...`);
+      const response = await apiClient.get<GroupRequestsResponse>(`/groups/requests/${groupId}`);
+      
+      console.log('Заявки получены:', response.data);
+      
+      return response.data.requests || [];
+    } catch (error: any) {
+      console.error('Ошибка получения заявок:', error);
+      console.error('Детали ошибки:', error.response?.data);
+      throw new Error(error.response?.data?.message || 'Ошибка получения заявок');
+    }
+  }
+
+  async approveRequest(requestId: number): Promise<void> {
+  try {
+    console.log(`Одобрение заявки ${requestId}...`);
+    const response = await apiClient.post(`/admin/groups/requests/${requestId}/approve`);
+    console.log('Заявка одобрена:', response.data);
+  } catch (error: any) {
+    console.error('Ошибка одобрения заявки:', error);
+    console.error('Детали ошибки:', error.response?.data);
+    throw new Error(error.response?.data?.message || 'Ошибка одобрения заявки');
+  }
+}
+
+  async rejectRequest(requestId: number): Promise<void> {
+    try {
+      console.log(`Отклонение заявки ${requestId}...`);
+      const response = await apiClient.post(`/admin/groups/requests/${requestId}/reject`);
+      console.log('Заявка отклонена:', response.data);
+    } catch (error: any) {
+      console.error('Ошибка отклонения заявки:', error);
+      console.error('Детали ошибки:', error.response?.data);
+      throw new Error(error.response?.data?.message || 'Ошибка отклонения заявки');
+    }
+  }
+
+  async approveAllRequests(groupId: number): Promise<void> {
+    try {
+      console.log(`Одобрение всех заявок для группы ${groupId}...`);
+      const response = await apiClient.post(`/admin/groups/requests/all/${groupId}/approveAll`);
+      console.log('Все заявки одобрены:', response.data);
+    } catch (error: any) {
+      console.error('Ошибка одобрения всех заявок:', error);
+      console.error('Детали ошибки:', error.response?.data);
+      
+      if (error.response?.status === 400) {
+        throw new Error('Нет ожидающих заявок');
+      }
+      
+      throw new Error(error.response?.data?.message || 'Ошибка одобрения всех заявок');
+    }
+  }
+
+  async rejectAllRequests(groupId: number): Promise<void> {
+    try {
+      console.log(`Отклонение всех заявок для группы ${groupId}...`);
+      const response = await apiClient.post(`/admin/groups/requests/all/${groupId}/rejectAll`);
+      console.log('Все заявки отклонены:', response.data);
+    } catch (error: any) {
+      console.error('Ошибка отклонения всех заявок:', error);
+      console.error('Детали ошибки:', error.response?.data);
+
+      if (error.response?.status === 400) {
+        throw new Error('Нет ожидающих заявок');
+      }
+      
+      throw new Error(error.response?.data?.message || 'Ошибка отклонения всех заявок');
+    }
+  }
+
+  async searchGroups(params: SearchGroupsParams): Promise<SearchGroupsResponse> {
+    try {
+      console.log('[GroupService] Поиск групп с параметрами:', params);
+      
+      const response = await apiClient.get<SearchGroupsResponse>('/groups/search', {
+        params: {
+          name: params.name || undefined,
+          category: params.category || undefined,
+          sort_by: params.sort_by || undefined,
+          order: params.order || 'desc',
+          page: params.page || 1,
+        },
+      });
+      
+      console.log('[GroupService] Результаты поиска:', {
+        total: response.data.total,
+        page: response.data.page,
+        groupsCount: response.data.groups.length,
+        has_more: response.data.has_more,
+      });
+
+      const normalizedGroups = response.data.groups.map(group => ({
+        ...group,
+        image: group.image?.includes('localhost')
+          ? group.image.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
+          : group.image,
+      }));
+      
+      return {
+        ...response.data,
+        groups: normalizedGroups,
+      };
+    } catch (error: any) {
+      console.error('[GroupService] Ошибка поиска групп:', error);
+      console.error('Детали ошибки:', error.response?.data);
+      throw new Error(error.response?.data?.message || 'Ошибка поиска групп');
+    }
+  }
+
+  async joinGroup(groupId: number): Promise<{ joined: boolean; message: string }> {
+    try {
+      console.log(`[GroupService] Подача заявки в группу ${groupId}...`);
+      
+      const response = await apiClient.post('/groups/joinToGroup', {
+        groupId: groupId
+      });
+      
+      console.log('[GroupService] Ответ сервера:', response.data);
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('[GroupService] Ошибка вступления в группу:', error);
+      console.error('Детали ошибки:', error.response?.data);
+      throw new Error(error.response?.data?.message || 'Ошибка вступления в группу');
+    }
+  }
+
+  async leaveGroup(groupId: number): Promise<void> {
+    try {
+      console.log(`[GroupService] Выход из группы ${groupId}...`);
+      const response = await apiClient.post(`/groups/${groupId}/leave`);
+      console.log('[GroupService] Группа покинута:', response.data);
+    } catch (error: any) {
+      console.error('[GroupService] Ошибка выхода из группы:', error);
+      throw new Error(error.response?.data?.message || 'Ошибка выхода из группы');
     }
   }
 }

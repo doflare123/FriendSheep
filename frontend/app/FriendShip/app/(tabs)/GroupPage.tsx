@@ -1,4 +1,4 @@
-import groupService, { GroupDetailResponse } from '@/api/services/groupService';
+import groupService, { PublicGroupResponse } from '@/api/services/groupService';
 import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
 import { Event as EventType } from '@/components/event/EventCard';
@@ -8,8 +8,10 @@ import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
+// eslint-disable-next-line import/no-unresolved
+import { LOCAL_IP } from '@env';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -27,10 +29,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 type GroupPageRouteProp = RouteProp<RootStackParamList, 'GroupPage'>;
 
-type GroupManagePageNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  'GroupManagePage'
->;
+type GroupManagePageNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+type MembershipStatus = 'admin' | 'member' | 'pending' | 'not_member';
 
 const categoryIcons: Record<string, any> = {
   movie: require('../../assets/images/event_card/movie.png'),
@@ -59,34 +60,81 @@ const contactIcons: Record<string, any> = {
 
 const GroupPage = () => {
   const route = useRoute<GroupPageRouteProp>();
-  const { groupId, mode } = route.params;
+  const { groupId } = route.params;
   const [descriptionModalVisible, setDescriptionModalVisible] = useState(false);
-  const [groupData, setGroupData] = useState<GroupDetailResponse | null>(null);
+  const [groupData, setGroupData] = useState<PublicGroupResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [membershipStatus, setMembershipStatus] = useState<MembershipStatus>('not_member');
   const { sortingState, sortingActions } = useSearchState();
   const navigation = useNavigation<GroupManagePageNavigationProp>();
 
   const loadGroupData = async () => {
     try {
       setIsLoading(true);
-      const data = await groupService.getGroupDetail(groupId);
+      
+      console.log('[GroupPage] Загружаем данные группы...');
+
+      let isAdmin = false;
+      try {
+        console.log('[GroupPage] Проверяем права администратора...');
+        await groupService.getGroupDetail(groupId);
+        isAdmin = true;
+        console.log('[GroupPage] ✅ Пользователь является администратором группы');
+      } catch (adminCheckError: any) {
+        if (adminCheckError.response?.status === 403) {
+          console.log('[GroupPage] ❌ Пользователь не является администратором (403)');
+        } else {
+          console.warn('[GroupPage] Ошибка проверки прав админа:', adminCheckError.message);
+        }
+      }
+
+      const data = await groupService.getPublicGroupDetail(groupId);
 
       if (data.image && data.image.includes('localhost')) {
-        data.image = data.image.replace('http://localhost:8080', 'http://192.168.0.209:8080');
+        data.image = data.image.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080');
+      }
+
+      if (data.users) {
+        data.users = data.users.map(user => ({
+          ...user,
+          image: user.image?.includes('localhost')
+            ? user.image.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
+            : user.image
+        }));
       }
 
       if (data.sessions) {
         data.sessions = data.sessions.map(session => ({
           ...session,
-          image_url: session.image_url?.includes('localhost')
-            ? session.image_url.replace('http://localhost:8080', 'http://192.168.0.209:8080')
-            : session.image_url
+          session: {
+            ...session.session,
+            image_url: session.session.image_url?.includes('localhost')
+              ? session.session.image_url.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
+              : session.session.image_url
+          }
         }));
       }
       
       setGroupData(data);
+
+      console.log('[GroupPage] Определяем статус пользователя...');
+      console.log('[GroupPage] Является админом:', isAdmin);
+      console.log('[GroupPage] Подписка (subscription):', data.subscription);
+
+      if (isAdmin) {
+        console.log('[GroupPage] 🎯 Статус: АДМИНИСТРАТОР');
+        setMembershipStatus('admin');
+      } else if (data.subscription) {
+        console.log('[GroupPage] 👥 Статус: УЧАСТНИК');
+        setMembershipStatus('member');
+      } else {
+        console.log('[GroupPage] 🚪 Статус: НЕ УЧАСТНИК');
+        setMembershipStatus('not_member');
+      }
+
     } catch (error: any) {
-      console.error('Ошибка загрузки группы:', error);
+      console.error('[GroupPage] Ошибка загрузки группы:', error);
       Alert.alert('Ошибка', error.message || 'Не удалось загрузить информацию о группе');
     } finally {
       setIsLoading(false);
@@ -110,7 +158,7 @@ const GroupPage = () => {
 
   const getContactIcon = (contactName: string, contactLink?: string) => {
     if (!contactLink) {
-      return contactIcons.default; // Дефолтная иконка если нет ссылки
+      return contactIcons.default;
     }
     
     const lowerLink = contactLink.toLowerCase();
@@ -138,6 +186,94 @@ const GroupPage = () => {
     }
     
     return contactIcons.default;
+  };
+
+  const handleActionButton = async () => {
+    if (membershipStatus === 'admin') {
+      console.log('[GroupPage] Переход к управлению группой');
+      navigation.navigate('GroupManagePage', { groupId });
+    } else if (membershipStatus === 'member') {
+      Alert.alert(
+        'Покинуть группу?',
+        'Вы уверены, что хотите покинуть эту группу?',
+        [
+          { text: 'Отмена', style: 'cancel' },
+          {
+            text: 'Покинуть',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                setIsProcessing(true);
+                await groupService.leaveGroup(parseInt(groupId));
+                Alert.alert('Успешно', 'Вы покинули группу');
+                await loadGroupData();
+              } catch (error: any) {
+                console.error('[GroupPage] Ошибка выхода из группы:', error);
+                Alert.alert('Ошибка', error.message || 'Не удалось покинуть группу');
+              } finally {
+                setIsProcessing(false);
+              }
+            },
+          },
+        ]
+      );
+    } else if (membershipStatus === 'not_member') {
+      try {
+        setIsProcessing(true);
+        console.log('[GroupPage] Подача заявки на вступление');
+        
+        const result = await groupService.joinGroup(parseInt(groupId));
+        
+        console.log('[GroupPage] Результат вступления:', result);
+
+        Alert.alert('Успешно', result.message);
+ 
+        if (result.joined) {
+          setMembershipStatus('member');
+        } else {
+          setMembershipStatus('pending');
+        }
+        
+        await loadGroupData();
+      } catch (error: any) {
+        console.error('[GroupPage] Ошибка вступления в группу:', error);
+        Alert.alert('Ошибка', error.message || 'Не удалось подать заявку');
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+  };
+
+  const getActionButtonText = () => {
+    if (isProcessing) return 'Загрузка...';
+    
+    switch (membershipStatus) {
+      case 'admin':
+        return 'Управлять';
+      case 'member':
+        return 'Покинуть';
+      case 'pending':
+        return 'Заявка отправлена';
+      case 'not_member':
+        return 'Подать заявку';
+      default:
+        return 'Присоединиться';
+    }
+  };
+
+  const getActionButtonStyle = () => {
+    switch (membershipStatus) {
+      case 'admin':
+        return styles.actionButton;
+      case 'member':
+        return [styles.actionButton, styles.leaveButton];
+      case 'pending':
+        return [styles.actionButton, styles.pendingButton];
+      case 'not_member':
+        return [styles.actionButton, styles.joinButton];
+      default:
+        return styles.actionButton;
+    }
   };
 
   if (isLoading) {
@@ -169,32 +305,32 @@ const GroupPage = () => {
     .map(cat => CATEGORY_MAPPING[cat])
     .filter(cat => cat !== undefined);
 
-  const formattedSessions: EventType[] = groupData.sessions?.map(session => ({
-    id: session.id.toString(),
-    title: session.title,
-    date: new Date(session.start_time).toLocaleDateString('ru-RU', {
+  const formattedSessions: EventType[] = groupData.sessions?.map(item => ({
+    id: item.session.id.toString(),
+    title: item.session.title,
+    date: new Date(item.session.start_time).toLocaleDateString('ru-RU', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
     }),
-    genres: session.genres || [],
-    currentParticipants: session.current_users,
-    maxParticipants: session.count_users_max,
-    duration: `${session.duration} мин`,
-    imageUri: session.image_url,
+    genres: item.metadata?.genres || [],
+    currentParticipants: item.session.current_users,
+    maxParticipants: item.session.count_users_max,
+    duration: `${item.session.duration} мин`,
+    imageUri: item.session.image_url,
     description: '',
-    typeEvent: session.session_type,
-    typePlace: session.session_place === 'offline' || session.session_place === 'online' 
-      ? session.session_place as 'online' | 'offline'
+    typeEvent: item.session.session_type,
+    typePlace: item.session.session_place === 'offline' || item.session.session_place === 'online' 
+      ? item.session.session_place as 'online' | 'offline'
       : 'online',
-    eventPlace: session.city || '',
+    eventPlace: item.metadata?.location || '',
     publisher: groupData.name,
-    publicationDate: session.start_time,
+    publicationDate: item.session.start_time,
     ageRating: '',
     category: mappedCategories[0] as 'movie' | 'game' | 'table_game' | 'other' || 'other',
     group: groupData.name,
     onPress: () => {
-      console.log('Переход на сессию:', session.id);
+      console.log('Переход на сессию:', item.session.id);
     }
   })) || [];
 
@@ -219,18 +355,17 @@ const GroupPage = () => {
               </View>
             </View>
             <TouchableOpacity
-              onPress={() => {
-                if (mode === 'manage') {
-                  navigation.navigate('GroupManagePage', { groupId });
-                } else {
-                  console.log('Присоединиться');
-                }
-              }}
-              style={styles.actionButton}
+              onPress={handleActionButton}
+              style={getActionButtonStyle()}
+              disabled={isProcessing || membershipStatus === 'pending'}
             >
-              <Text style={styles.actionButtonText}>
-                {mode === 'manage' ? 'Управлять' : 'Присоединиться'}
-              </Text>
+              {isProcessing ? (
+                <ActivityIndicator color={Colors.white} size="small" />
+              ) : (
+                <Text style={styles.actionButtonText}>
+                  {getActionButtonText()}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -554,6 +689,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.grey,
     textAlign: 'center',
+  },
+  joinButton: {
+    backgroundColor: Colors.green,
+  },
+  leaveButton: {
+    backgroundColor: Colors.red,
+  },
+  pendingButton: {
+    backgroundColor: Colors.grey,
   },
 });
 

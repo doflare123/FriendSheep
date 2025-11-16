@@ -43,11 +43,19 @@ class UserService {
       const response = await apiClient.get<Subscription[]>('/users/subscriptions', {
         params,
       });
-      return response.data;
+      
+      const normalizedSubscriptions = response.data.map(sub => ({
+        ...sub,
+        image: normalizeImageUrl(sub.image),
+      }));
+      
+      console.log('[UserService] Подписки загружены:', normalizedSubscriptions.length);
+      
+      return normalizedSubscriptions;
     } catch (error: any) {
       throw this.handleError(error);
     }
-  }
+}
 
   async updateProfile(data: UpdateProfileRequest): Promise<UpdateProfileResponse> {
     try {

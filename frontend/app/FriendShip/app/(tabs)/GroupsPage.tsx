@@ -1,4 +1,5 @@
 import groupService from '@/api/services/groupService';
+import userService from '@/api/services/userService';
 import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
 import { type Group } from '@/components/groups/GroupCard';
@@ -18,7 +19,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 type GroupsPageNavigationProp = StackNavigationProp<RootStackParamList, 'GroupsPage'>;
 
-// Маппинг русских названий категорий на английские ключи
 const CATEGORY_MAPPING: { [key: string]: string } = {
   'Фильмы': 'movie',
   'Игры': 'game',
@@ -30,69 +30,74 @@ const GroupsPage = () => {
   const { sortingState, sortingActions } = useSearchState();
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [managedGroups, setManagedGroups] = useState<Group[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation<GroupsPageNavigationProp>();
 
-  // Моковые данные для подписок (пока не подключен API)
-  const mockSubscriptions: Group[] = [];
+  const transformSubscriptionToGroup = (sub: any): Group => {
+    const mappedCategories = (sub.category || [])
+      .map((cat: string) => CATEGORY_MAPPING[cat])
+      .filter((cat: string | undefined) => cat !== undefined);
+
+    return {
+      id: sub.id.toString(),
+      name: sub.name,
+      participantsCount: sub.member_count,
+      description: sub.small_description,
+      imageUri: sub.image,
+      categories: mappedCategories as any[],
+      onPress: () => navigation.navigate('GroupPage', { groupId: sub.id.toString() }),
+    };
+  };
 
   const loadManagedGroups = async () => {
     try {
       setIsLoading(true);
-      const groups = await groupService.getAdminGroups();
       
-      // Проверяем, что groups - это массив
+      const [groups, subs] = await Promise.all([
+        groupService.getAdminGroups(),
+        userService.getUserSubscriptions(),
+      ]);
+      
+      console.log('[GroupsPage] Загружено управляемых групп:', groups.length);
+      console.log('[GroupsPage] Загружено подписок:', subs.length);
+      
       if (!Array.isArray(groups)) {
         console.warn('Получен некорректный формат данных групп:', groups);
         setManagedGroups([]);
-        return;
-      }
-
-      console.log('=== Загруженные группы с бэка ===');
-      console.log('Количество:', groups.length);
-      if (groups.length > 0) {
-        console.log('Пример первой группы:', JSON.stringify(groups[0], null, 2));
-      }
-      
-      // Преобразуем данные с бэка в формат компонента
-      const transformedGroups: Group[] = groups.map(group => {
-        // ✅ Исправляем URL изображения (заменяем localhost на реальный IP)
-        let imageUri = group.image;
-        if (imageUri && imageUri.includes('localhost')) {
-          imageUri = imageUri.replace('http://localhost:8080', 'http://192.168.0.209:8080');
-        }
-        
-        // ✅ Преобразуем русские названия категорий в английские ключи
-        const mappedCategories = (group.category || [])
-          .map(cat => CATEGORY_MAPPING[cat])
-          .filter(cat => cat !== undefined); // Убираем неизвестные категории
-        
-        const transformed = {
-          id: group.id.toString(),
-          name: group.name,
-          participantsCount: group.member_count,
-          description: group.small_description,
-          imageUri: imageUri,
-          categories: mappedCategories as any[],
-          onPress: () => navigation.navigate('GroupPage', { groupId: group.id.toString(), mode: 'manage' }),
-        };
-        
-        console.log('✅ Трансформированная группа:', {
-          id: transformed.id,
-          name: transformed.name,
-          imageUri: transformed.imageUri,
-          originalCategories: group.category,
-          mappedCategories: transformed.categories,
+      } else {
+        const transformedGroups: Group[] = groups.map(group => {
+          const mappedCategories = (group.category || [])
+            .map(cat => CATEGORY_MAPPING[cat])
+            .filter(cat => cat !== undefined);
+          
+          return {
+            id: group.id.toString(),
+            name: group.name,
+            participantsCount: group.member_count,
+            description: group.small_description,
+            imageUri: group.image,
+            categories: mappedCategories as any[],
+            onPress: () => navigation.navigate('GroupPage', { groupId: group.id.toString() }),
+          };
         });
         
-        return transformed;
-      });
+        setManagedGroups(transformedGroups);
+      }
+
+      if (!Array.isArray(subs)) {
+        console.warn('Получен некорректный формат данных подписок:', subs);
+        setSubscriptions([]);
+      } else {
+        const transformedSubs = subs.map(transformSubscriptionToGroup);
+        setSubscriptions(transformedSubs);
+      }
       
-      setManagedGroups(transformedGroups);
     } catch (error: any) {
-      console.error('Ошибка загрузки групп:', error);
+      console.error('[GroupsPage] Ошибка загрузки данных:', error);
       setManagedGroups([]);
+      setSubscriptions([]);
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +109,6 @@ const GroupsPage = () => {
     setRefreshing(false);
   };
 
-  // Загружаем группы при фокусе на экране
   useFocusEffect(
     useCallback(() => {
       loadManagedGroups();
@@ -116,8 +120,7 @@ const GroupsPage = () => {
   };
 
   const handleCreateGroup = async (groupData: any) => {
-    console.log('Группа создана:', groupData);
-    // Перезагружаем список групп после создания
+    console.log('[GroupsPage] Группа создана:', groupData);
     await loadManagedGroups();
   };
 
@@ -168,10 +171,10 @@ const GroupsPage = () => {
             )}
           </CategorySection>
 
-          {mockSubscriptions.length > 0 && (
+          {subscriptions.length > 0 && (
             <CategorySection title="Подписки:">
               <GroupCarousel 
-                groups={mockSubscriptions} 
+                groups={subscriptions} 
                 actionText="Перейти"
                 actionColor={[Colors.lightBlue, Colors.blue]}
               />

@@ -12,7 +12,7 @@ export type RootStackParamList = {
   GroupsPage: undefined;
   GroupPage: {
     groupId: string;
-    mode: 'manage' | 'view';
+    mode?: 'manage' | 'view';
   };
   GroupManagePage: {
     groupId: string;
