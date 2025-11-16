@@ -21,7 +21,6 @@ import SettingsPage from './app/(tabs)/SettingsPage';
 import UserSearchPage from './app/(tabs)/UserSearchPage';
 import { RootStackParamList } from './navigation/types';
 
-
 const Stack = createStackNavigator<RootStackParamList>();
 
 SplashScreen.preventAutoHideAsync();
@@ -32,6 +31,7 @@ export default function App() {
     Montserrat_700Bold,
     MontserratAlternates_500Medium
   });
+  
   useEffect(() => {
     if (fontsLoaded) {
       SplashScreen.hideAsync();

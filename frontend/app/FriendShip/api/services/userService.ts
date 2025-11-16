@@ -1,17 +1,24 @@
+import { normalizeImageUrl } from '@/utils/imageUtils';
 import apiClient from '../apiClient';
 import {
-    Subscription,
-    TileSettings,
-    UpdateProfileRequest,
-    UpdateProfileResponse,
-    UserProfile,
+  Subscription,
+  TileSettings,
+  UpdateProfileRequest,
+  UpdateProfileResponse,
+  UserProfile,
 } from '../types/user';
 
 class UserService {
   async getCurrentUserProfile(): Promise<UserProfile> {
     try {
       const response = await apiClient.get<UserProfile>('/users/inf');
-      return response.data;
+      const profile = response.data;
+
+      profile.image = normalizeImageUrl(profile.image);
+      
+      console.log('[NORMALIZED PROFILE IMAGE]', profile.image);
+      
+      return profile;
     } catch (error: any) {
       throw this.handleError(error);
     }
@@ -20,7 +27,11 @@ class UserService {
   async getUserProfileById(userId: string): Promise<UserProfile> {
     try {
       const response = await apiClient.get<UserProfile>(`/users/inf/${userId}`);
-      return response.data;
+      const profile = response.data;
+
+      profile.image = normalizeImageUrl(profile.image);
+      
+      return profile;
     } catch (error: any) {
       throw this.handleError(error);
     }
@@ -86,6 +97,44 @@ class UserService {
       return new Error('Нет связи с сервером');
     } else {
       return new Error(error.message || 'Неизвестная ошибка');
+    }
+  }
+
+  async uploadImage(imageUri: string): Promise<string> {
+    try {
+      const formData = new FormData();
+      
+      const uriParts = imageUri.split('.');
+      const fileExtension = uriParts[uriParts.length - 1].toLowerCase();
+      
+      formData.append('image', {
+        uri: imageUri,
+        name: `upload_${Date.now()}.${fileExtension}`,
+        type: `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`,
+      } as any);
+
+      const response = await apiClient.post('/admin/groups/UploadPhoto', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('[UserService] Ответ сервера:', response.data);
+
+      const imageUrl = response.data.image || 
+                      response.data.url || 
+                      response.data.image_url ||
+                      response.data.path;
+
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        console.error('[UserService] Неожиданный ответ:', response.data);
+        throw new Error('Сервер не вернул URL изображения');
+      }
+
+      return imageUrl;
+    } catch (error: any) {
+      console.error('[UserService] Ошибка загрузки изображения:', error.response?.data);
+      throw this.handleError(error);
     }
   }
 }

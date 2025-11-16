@@ -17,6 +17,7 @@ export const saveTokens = async (
     console.error('Ошибка сохранения токенов:', error);
     throw error;
   }
+  console.log("SAVE TOKENS INPUT:", accessToken, refreshToken);
 };
 
 export const getTokens = async (): Promise<AuthTokens | null> => {

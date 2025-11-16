@@ -1,3 +1,4 @@
+import authService from '@/api/services/authService';
 import { getTokens } from '@/api/storage/tokenStorage';
 import { useToast } from '@/components/ToastContext';
 import { useNavigation } from '@react-navigation/native';
@@ -53,8 +54,14 @@ const Login = () => {
     setLoading(true);
 
     try {
-       const savedTokens = await getTokens();
-       console.log('[Login] Токены после логина:', savedTokens ? 'сохранены' : 'НЕ СОХРАНЕНЫ');
+      console.log("🔥 LOGIN STARTED");
+
+      const data = await authService.login(email, password);
+
+      console.log("🔥 LOGIN RESPONSE:", data);
+
+      const savedTokens = await getTokens();
+      console.log('[Login] Токены после логина:', savedTokens ? 'СОХРАНЕНЫ' : 'НЕ СОХРАНЕНЫ');
 
       showToast({
         type: 'success',
@@ -65,6 +72,7 @@ const Login = () => {
       setTimeout(() => {
         navigation.navigate('MainPage' as never);
       }, 500);
+
     } catch (error: any) {
       showToast({
         type: 'error',

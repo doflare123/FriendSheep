@@ -21,89 +21,114 @@ const PUBLIC_ENDPOINTS = [
 
 const isPublicEndpoint = (url?: string): boolean => {
   if (!url) return false;
-  return PUBLIC_ENDPOINTS.some(endpoint => { if (endpoint === '/users') {
+
+  return PUBLIC_ENDPOINTS.some(endpoint => {
+    if (endpoint === '/users') {
       return url === '/users' || url.startsWith('/users?');
     }
-    return url.includes(endpoint);});
+    return url.includes(endpoint);
+  });
 };
 
 apiClient.interceptors.request.use(
   async (config) => {
+    console.log(`\n[API] → ${config.method?.toUpperCase()} ${config.url}`);
+
     if (isPublicEndpoint(config.url)) {
+      console.log('[API] Публичный endpoint — токен не нужен');
       return config;
     }
 
     const tokens = await getTokens();
+    console.log('[API] Токены:', tokens ? 'НАЙДЕНЫ' : 'НЕ НАЙДЕНЫ');
+
     if (tokens?.accessToken) {
       config.headers.Authorization = `Bearer ${tokens.accessToken}`;
+      console.log('[API] → Authorization добавлен');
+    } else {
+      console.warn('[API] ⚠ Токен отсутствует — запрос будет 401');
     }
-    
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
+
+let isRefreshing = false;
+let refreshQueue: ((token: string | null) => void)[] = [];
+
+const processQueue = (token: string | null) => {
+  refreshQueue.forEach((resolve) => resolve(token));
+  refreshQueue = [];
+};
+
 
 apiClient.interceptors.response.use(
   (response) => response,
+
   async (error: AxiosError) => {
-    const originalRequest = error.config as any;
+    const originalRequest: any = error.config;
 
-    if (
-      error.response?.status === 401 && 
-      !originalRequest._retry && 
-      !isPublicEndpoint(originalRequest?.url)
-    ) {
-      originalRequest._retry = true;
-
-      try {
-        const tokens = await getTokens();
-        if (tokens?.refreshToken) {
-          const response = await axios.post(
-            `${BASE_URL}/users/refresh`,
-            { refresh_token: tokens.refreshToken }
-          );
-
-          const { access_token, refresh_token } = response.data;
-          await saveTokens(access_token, refresh_token);
-
-          originalRequest.headers.Authorization = `Bearer ${access_token}`;
-          return apiClient(originalRequest);
-        }
-      } catch (refreshError) {
-        await clearTokens();
-        return Promise.reject(refreshError);
-      }
+    if (error.response?.status !== 401 || isPublicEndpoint(originalRequest?.url)) {
+      return Promise.reject(error);
     }
 
-    return Promise.reject(error);
-  }
-);
-
-apiClient.interceptors.request.use(
-  async (config) => {
-    console.log(`[API] Запрос: ${config.method?.toUpperCase()} ${config.url}`);
-    
-    if (isPublicEndpoint(config.url)) {
-      console.log('[API] → Публичный endpoint (без токена)');
-      return config;
+    if (originalRequest._retry) {
+      console.log('[API] ❌ 401 после refresh — выходим из аккаунта');
+      await clearTokens();
+      return Promise.reject(error);
     }
+    originalRequest._retry = true;
 
     const tokens = await getTokens();
-    console.log('[API] → Токены:', tokens ? 'НАЙДЕНЫ' : '❌ НЕ НАЙДЕНЫ');
-    
-    if (tokens?.accessToken) {
-      config.headers.Authorization = `Bearer ${tokens.accessToken}`;
-      console.log('[API] → Authorization заголовок добавлен');
-    } else {
-      console.warn('[API] → ⚠️ Токены не найдены для защищённого endpoint!');
+    if (!tokens?.refreshToken) {
+      console.log('[API] ❌ Нет refresh токена — logout');
+      await clearTokens();
+      return Promise.reject(error);
     }
-    
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+
+    if (isRefreshing) {
+      console.log('[API] ⏳ Ждём завершения refresh...');
+      return new Promise(resolve => {
+        refreshQueue.push((newToken) => {
+          if (newToken) {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            resolve(apiClient(originalRequest));
+          } else {
+            resolve(Promise.reject(error));
+          }
+        });
+      });
+    }
+
+    isRefreshing = true;
+    console.log('[API] 🔄 Refresh token...');
+
+    try {
+      const response = await axios.post(`${BASE_URL}/users/refresh`, {
+        refresh_token: tokens.refreshToken,
+      });
+
+      const { access_token, refresh_token } = response.data;
+
+      await saveTokens(access_token, refresh_token);
+
+      await new Promise(res => setTimeout(res, 10));
+
+      processQueue(access_token);
+      console.log('[API] ✔ Refresh успешен');
+
+      originalRequest.headers.Authorization = `Bearer ${access_token}`;
+      return apiClient(originalRequest);
+
+    } catch (refreshError) {
+      console.log('[API] ❌ Refresh провалился — logout');
+      processQueue(null);
+      await clearTokens();
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
 

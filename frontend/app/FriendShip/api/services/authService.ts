@@ -2,7 +2,6 @@ import apiClient from '../apiClient';
 import { clearTokens, saveTokens } from '../storage/tokenStorage';
 import {
   ErrorResponse,
-  LoginRequest,
   LoginResponse,
   RefreshTokenRequest,
   RefreshTokenResponse,
@@ -78,7 +77,9 @@ class AuthService {
       const response = await apiClient.post<LoginResponse>('/users/login', {
         email,
         password,
-      } as LoginRequest);
+      });
+
+      console.log("=== LOGIN RESPONSE RAW ===", response.data);
 
       await saveTokens(
         response.data.access_token,
@@ -90,6 +91,7 @@ class AuthService {
       throw this.handleError(error);
     }
   }
+
 
   async refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
     try {

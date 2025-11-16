@@ -116,26 +116,11 @@ const ProfilePage: React.FC = () => {
       setLoading(true);
 
       let imageUrl = profileData?.image;
-      
-      if (updatedProfile.avatar && typeof updatedProfile.avatar === 'object' && updatedProfile.avatar.uri) {
-        console.log('[ProfilePage] Загрузка нового изображения:', updatedProfile.avatar.uri);
-        
-        try {
-          const formData = new FormData();
-          const uriParts = updatedProfile.avatar.uri.split('.');
-          const fileType = uriParts[uriParts.length - 1];
-          
-          formData.append('image', {
-            uri: updatedProfile.avatar.uri,
-            name: `avatar.${fileType}`,
-            type: `image/${fileType}`,
-          } as any);
 
-          imageUrl = updatedProfile.avatar.uri;
-        } catch (uploadError) {
-          console.error('[ProfilePage] Ошибка загрузки изображения:', uploadError);
-          throw new Error('Не удалось загрузить изображение');
-        }
+      if (updatedProfile.avatar?.uri && typeof updatedProfile.avatar === 'object') {
+        console.log('[ProfilePage] Загружаем аватар:', updatedProfile.avatar.uri);
+        imageUrl = await userService.uploadImage(updatedProfile.avatar.uri);
+        console.log('[ProfilePage] Загружен новый аватар:', imageUrl);
       }
 
       await userService.updateProfile({
@@ -152,8 +137,10 @@ const ProfilePage: React.FC = () => {
       });
 
       await loadProfileData();
+      setEditModalVisible(false);
+
     } catch (error: any) {
-      console.error('[ProfilePage] Ошибка обновления профиля:', error);
+      console.error('[ProfilePage] Ошибка:', error);
       
       showToast({
         type: 'error',
@@ -267,7 +254,6 @@ const handleTilesSave = async (newTiles: TileType[]) => {
         legendFontColor: '#000'
       });
     }
-    
     return data;
   };
 
