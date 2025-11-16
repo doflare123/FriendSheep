@@ -41,6 +41,8 @@ const GroupManagePage = () => {
     setActiveTab,
     
     groupData,
+    isLoading,
+    isSaving,
     groupName,
     setGroupName,
     shortDescription,
@@ -88,6 +90,8 @@ const GroupManagePage = () => {
     handleEditEvent,
     handleCreateEventSave,
     handleEditEventSave,
+    
+    formattedEvents,
   } = useGroupManage(groupId);
 
   const handleBackPress = () => {
@@ -117,6 +121,8 @@ const GroupManagePage = () => {
             setGroupImage={setGroupImage}
             onContactsPress={handleContactsPress}
             onSaveChanges={handleSaveChanges}
+            isSaving={isSaving}
+            selectedContacts={selectedContacts}
           />
         );
       
@@ -136,7 +142,7 @@ const GroupManagePage = () => {
       case 'events':
         return (
           <EventsTabContent
-            events={groupData?.sessions || []}
+            events={formattedEvents}
             onCreateEvent={handleCreateEvent}
             onEditEvent={handleEditEvent}
           />
@@ -183,6 +189,7 @@ const GroupManagePage = () => {
         visible={contactsModalVisible}
         onClose={() => setContactsModalVisible(false)}
         onSave={handleContactsSave}
+        initialContacts={selectedContacts}
       />
       
       <ConfirmationModal
@@ -207,9 +214,7 @@ const GroupManagePage = () => {
           onUpdate={handleEditEventSave}
           groupName={groupData.name}
           editMode={true}
-          initialData={
-            groupData.sessions?.find((event) => event.id === selectedEventId)
-          }
+          initialData={formattedEvents.find((event) => event.id === selectedEventId)}
         />
       )}
       

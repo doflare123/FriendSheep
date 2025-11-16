@@ -1,7 +1,9 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import * as ImagePicker from 'expo-image-picker';
 import React from 'react';
 import {
+  ActivityIndicator,
   Image,
   ImageBackground,
   ScrollView,
@@ -11,7 +13,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { MediaType, launchImageLibrary } from 'react-native-image-picker';
 
 interface InfoTabContentProps {
   groupName: string;
@@ -32,6 +33,8 @@ interface InfoTabContentProps {
   setGroupImage: (value: string) => void;
   onContactsPress: () => void;
   onSaveChanges: () => void;
+  isSaving?: boolean;
+  selectedContacts?: any[];
 }
 
 const InfoTabContent: React.FC<InfoTabContentProps> = ({
@@ -53,6 +56,8 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
   setGroupImage,
   onContactsPress,
   onSaveChanges,
+  isSaving = false,
+  selectedContacts = [],
 }) => {
   const categories = [
     { id: 'movie', icon: require('@/assets/images/event_card/movie.png') },
@@ -61,27 +66,24 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
     { id: 'other', icon: require('@/assets/images/event_card/other.png') },
   ];
 
-  const contacts = [
-    { id: 'add_contact', icon: require('@/assets/images/groups/contacts/add_contact.png') },
-  ];
+  const handleImagePicker = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      alert('Необходимо разрешение на доступ к галерее');
+      return;
+    }
 
-  const handleImagePicker = () => {
-    const options = {
-      mediaType: 'photo' as MediaType,
-      includeBase64: false,
-      maxHeight: 2000,
-      maxWidth: 2000,
-    };
-
-    launchImageLibrary(options, (response) => {
-      if (response.didCancel || response.errorMessage) {
-        return;
-      }
-
-      if (response.assets && response.assets[0]) {
-        setGroupImage(response.assets[0].uri || '');
-      }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
     });
+
+    if (!result.canceled && result.assets[0]) {
+      setGroupImage(result.assets[0].uri);
+    }
   };
 
   return (
@@ -98,6 +100,7 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
           value={groupName}
           onChangeText={setGroupName}
           maxLength={50}
+          editable={!isSaving}
         />
 
         <TextInput
@@ -107,6 +110,7 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
           value={shortDescription}
           onChangeText={setShortDescription}
           maxLength={100}
+          editable={!isSaving}
         />
 
         <TextInput
@@ -119,31 +123,24 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
           numberOfLines={6}
           textAlignVertical="top"
           maxLength={500}
+          editable={!isSaving}
         />
 
-        <View style={styles.locationRow}>
-          <TextInput
-            style={[styles.input, styles.locationInput]}
-            placeholder="Страна"
-            placeholderTextColor={Colors.grey}
-            value={country}
-            onChangeText={setCountry}
-            maxLength={50}
-          />
-          <TextInput
-            style={[styles.input, styles.locationInput]}
-            placeholder="Город"
-            placeholderTextColor={Colors.grey}
-            value={city}
-            onChangeText={setCity}
-            maxLength={50}
-          />
-        </View>
+        <TextInput
+          style={styles.input}
+          placeholder="Город"
+          placeholderTextColor={Colors.grey}
+          value={city}
+          onChangeText={setCity}
+          maxLength={50}
+          editable={!isSaving}
+        />
 
         <View style={styles.checkboxContainer}>
           <TouchableOpacity 
             style={styles.checkbox}
             onPress={() => setIsPrivate(!isPrivate)}
+            disabled={isSaving}
           >
             <View style={styles.checkboxRow}>
               <View style={[styles.checkboxCircle, isPrivate && styles.checkboxSelected]} />
@@ -164,6 +161,7 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
                     selectedCategories.includes(category.id) && styles.categoryButtonSelected
                   ]}
                   onPress={() => toggleCategory(category.id)}
+                  disabled={isSaving}
                 >
                   <Image source={category.icon} style={styles.categoryIcon} />
                 </TouchableOpacity>
@@ -171,21 +169,33 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
             </View>
 
             <Text style={styles.sectionLabel}>Контакты:</Text>
-            <View style={styles.contactsContainer}>
-              {contacts.map((contact) => (
+              <View style={styles.contactsContainer}>
                 <TouchableOpacity
-                  key={contact.id}
                   style={styles.contactButton}
                   onPress={onContactsPress}
+                  disabled={isSaving}
                 >
-                  <Image source={contact.icon} style={styles.contactIcon} />
+                  <Image 
+                    source={require('@/assets/images/groups/contacts/add_contact.png')} 
+                    style={styles.contactIcon} 
+                  />
                 </TouchableOpacity>
-              ))}
-            </View>
+                
+                {selectedContacts && selectedContacts.length > 0 && 
+                  selectedContacts.map((contact, index) => (
+                    <View key={`contact-${index}`} style={styles.contactButton}>
+                      <Image 
+                        source={contact.icon || require('@/assets/images/groups/contacts/default.png')} 
+                        style={styles.contactIcon} 
+                      />
+                    </View>
+                  ))
+                }
+              </View>
           </View>
           
           <View style={styles.imageUpload}>
-            <TouchableOpacity onPress={handleImagePicker}>
+            <TouchableOpacity onPress={handleImagePicker} disabled={isSaving}>
               <View style={styles.uploadPlaceholder}>
                 {groupImage ? (
                   <Image source={{ uri: groupImage }} style={styles.groupImage} />
@@ -209,10 +219,15 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
       >
         <View style={styles.bottomContent}>
           <TouchableOpacity
-            style={styles.saveButton}
+            style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
             onPress={onSaveChanges}
+            disabled={isSaving}
           >
-            <Text style={styles.saveButtonText}>Сохранить изменения</Text>
+            {isSaving ? (
+              <ActivityIndicator color={Colors.blue} />
+            ) : (
+              <Text style={styles.saveButtonText}>Сохранить изменения</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ImageBackground>
@@ -246,14 +261,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     minHeight: 120,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  locationInput: {
-    flex: 1,
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -382,6 +389,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     alignItems: 'center',
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
   saveButtonText: {
     fontFamily: Montserrat.bold,

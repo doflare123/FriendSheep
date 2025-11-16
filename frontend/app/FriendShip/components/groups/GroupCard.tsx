@@ -127,7 +127,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    width: 360,
+    width: 340,
     alignSelf: 'center',
     borderRadius: 20,
     backgroundColor: Colors.white,

@@ -5,11 +5,8 @@ import { API_BASE_URL } from '@env';
 
 const BASE_URL = API_BASE_URL || 'http://localhost:8080/api';
 
-export interface Contact {
-  id: string;
+export interface GroupContact {
   name: string;
-  icon: any;
-  description: string;
   link: string;
 }
 
@@ -25,7 +22,7 @@ export interface CreateGroupData {
     name: string;
     type: string;
   } | null;
-  contacts?: Contact[];
+  contacts?: GroupContact[];
 }
 
 export interface AdminGroup {
@@ -42,7 +39,7 @@ export interface GroupSession {
   id: number;
   title: string;
   session_type: string;
-  session_place: string;
+  session_place: string; 
   city: string;
   start_time: string;
   duration: number;
@@ -123,6 +120,17 @@ export interface PublicGroupResponse {
   }[];
 }
 
+export interface UpdateGroupData {
+  name?: string;
+  small_description?: string;
+  description?: string;
+  city?: string;
+  categories?: number[];
+  is_private?: boolean;
+  image?: string;
+  contacts?: string;
+}
+
 class GroupService {
   async createGroup(groupData: CreateGroupData): Promise<any> {
     const tokens = await getTokens();
@@ -171,9 +179,9 @@ class GroupService {
 
     if (groupData.contacts && groupData.contacts.length > 0) {
       const contactsString = groupData.contacts
-        .filter(contact => contact.link.trim() !== '')
+        .filter(contact => contact.link && contact.link.trim() !== '')
         .map(contact => {
-          const name = contact.description.trim() || contact.name.toLowerCase();
+          const name = contact.name.trim();
           return `${name}:${contact.link.trim()}`;
         })
         .join(', ');
@@ -252,6 +260,83 @@ class GroupService {
       console.error('Детали ошибки:', error.response?.data);
       
       throw new Error(error.response?.data?.message || 'Ошибка получения информации о группе');
+    }
+  }
+
+  async getPublicGroupDetail(groupId: string | number): Promise<PublicGroupResponse> {
+    try {
+      console.log(`Загрузка публичной информации о группе ${groupId}...`);
+      const response = await apiClient.get(`/groups/${groupId}`);
+      console.log('Публичная информация о группе:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('Ошибка получения публичной информации о группе:', error);
+      console.error('Детали ошибки:', error.response?.data);
+      throw new Error(error.response?.data?.message || 'Ошибка получения информации о группе');
+    }
+  }
+
+  async uploadGroupPhoto(imageUri: string): Promise<string> {
+    try {
+      const tokens = await getTokens();
+      if (!tokens?.accessToken) {
+        throw new Error('Пользователь не авторизован');
+      }
+
+      const filename = imageUri.split('/').pop() || 'group_image.jpg';
+      const fileType = filename.split('.').pop()?.toLowerCase();
+
+      const formData = new FormData();
+      formData.append('image', {
+        uri: imageUri,
+        name: filename,
+        type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+      } as any);
+
+      console.log('Загрузка изображения группы...');
+
+      const response = await fetch(`${BASE_URL}/admin/groups/UploadPhoto`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${tokens.accessToken}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Ошибка загрузки изображения:', errorText);
+        throw new Error('Ошибка загрузки изображения');
+      }
+
+      const result = await response.json();
+      console.log('Результат загрузки изображения:', result);
+
+      const imageUrl = result.url || result.image_url || result.image || Object.values(result)[0];
+      
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        console.error('Не удалось найти URL изображения в ответе:', result);
+        throw new Error('Не удалось получить URL изображения');
+      }
+      
+      console.log('URL загруженного изображения:', imageUrl);
+      return imageUrl;
+    } catch (error: any) {
+      console.error('Ошибка загрузки изображения группы:', error);
+      throw error;
+    }
+  }
+
+  async updateGroup(groupId: string | number, data: UpdateGroupData): Promise<any> {
+    try {
+      console.log('Обновление группы:', groupId, data);
+      const response = await apiClient.patch(`/admin/groups/${groupId}`, data);
+      console.log('Группа успешно обновлена:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('Ошибка обновления группы:', error);
+      console.error('Детали ошибки:', error.response?.data);
+      throw new Error(error.response?.data?.message || 'Ошибка обновления группы');
     }
   }
 }

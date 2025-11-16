@@ -1,7 +1,7 @@
 import groupService from '@/api/services/groupService';
 import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
-import { Group } from '@/components/groups/GroupCard';
+import { type Group } from '@/components/groups/GroupCard';
 import GroupCarousel from '@/components/groups/GroupCarousel';
 import CreateGroupModal from '@/components/groups/modal/CreateGroupModal';
 import PageHeader from '@/components/PageHeader';

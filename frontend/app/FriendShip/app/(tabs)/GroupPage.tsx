@@ -14,7 +14,6 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   Image,
   Linking,
   Modal,
@@ -32,8 +31,6 @@ type GroupManagePageNavigationProp = StackNavigationProp<
   RootStackParamList,
   'GroupManagePage'
 >;
-
-const { width } = Dimensions.get('window');
 
 const categoryIcons: Record<string, any> = {
   movie: require('../../assets/images/event_card/movie.png'),
@@ -57,6 +54,7 @@ const contactIcons: Record<string, any> = {
   youtube: require('@/assets/images/groups/contacts/youtube.png'),
   whatsapp: require('@/assets/images/groups/contacts/whatsapp.png'),
   max: require('@/assets/images/groups/contacts/max.png'),
+  default: require('@/assets/images/groups/contacts/default.png'),
 };
 
 const GroupPage = () => {
@@ -110,14 +108,36 @@ const GroupPage = () => {
     }
   };
 
-  const getContactIcon = (contactName: string) => {
-    const lowerName = contactName.toLowerCase();
-    for (const key in contactIcons) {
-      if (lowerName.includes(key)) {
-        return contactIcons[key];
-      }
+  const getContactIcon = (contactName: string, contactLink?: string) => {
+    if (!contactLink) {
+      return contactIcons.default; // Дефолтная иконка если нет ссылки
     }
-    return contactIcons.max;
+    
+    const lowerLink = contactLink.toLowerCase();
+
+    if (lowerLink.includes('discord.gg') || lowerLink.includes('discord.com')) {
+      return contactIcons.discord;
+    }
+    if (lowerLink.includes('vk.com') || lowerLink.includes('vk.ru')) {
+      return contactIcons.vk;
+    }
+    if (lowerLink.includes('t.me') || lowerLink.includes('telegram')) {
+      return contactIcons.telegram;
+    }
+    if (lowerLink.includes('twitch.tv')) {
+      return contactIcons.twitch;
+    }
+    if (lowerLink.includes('youtube.com') || lowerLink.includes('youtu.be')) {
+      return contactIcons.youtube;
+    }
+    if (lowerLink.includes('wa.me') || lowerLink.includes('whatsapp')) {
+      return contactIcons.whatsapp;
+    }
+    if (lowerLink.includes('max.ru')) {
+      return contactIcons.max;
+    }
+    
+    return contactIcons.default;
   };
 
   if (isLoading) {
@@ -236,23 +256,26 @@ const GroupPage = () => {
         <CategorySection title="Контакты:">
           {groupData.contacts && groupData.contacts.length > 0 ? (
             <View style={styles.contactsContainer}>
-              {groupData.contacts.map((contact, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.contactItem}
-                  onPress={() => handleContactPress(contact.link)}
-                >
-                  <View style={styles.contactIconContainer}>
-                    <Image 
-                      source={getContactIcon(contact.name)} 
-                      style={styles.contactIcon} 
-                    />
-                  </View>
-                  <Text style={styles.contactDescription} numberOfLines={1}>
-                    {contact.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {groupData.contacts.map((contact, index) => {
+                const icon = getContactIcon(contact.name, contact.link);
+                return (
+                  <TouchableOpacity
+                    key={`contact-${index}`}
+                    style={styles.contactItem}
+                    onPress={() => handleContactPress(contact.link)}
+                  >
+                    <View style={styles.contactIconContainer}>
+                      <Image 
+                        source={icon} 
+                        style={styles.contactIcon} 
+                      />
+                    </View>
+                    <Text style={styles.contactDescription} numberOfLines={2}>
+                      {contact.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           ) : (
             <View style={styles.emptyContainer}>
@@ -522,15 +545,15 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   emptyContainer: {
-    padding: 40,
+    paddingHorizontal: 18,
+    paddingVertical: 24,
     alignItems: 'center',
   },
   emptyText: {
     fontFamily: Montserrat.regular,
-    fontSize: 16,
-    color: Colors.black,
+    fontSize: 14,
+    color: Colors.grey,
     textAlign: 'center',
-    marginBottom: 8,
   },
 });
 

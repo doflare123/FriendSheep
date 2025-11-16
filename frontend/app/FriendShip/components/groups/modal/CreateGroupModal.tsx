@@ -1,4 +1,4 @@
-import groupService, { Contact } from '@/api/services/groupService';
+import groupService from '@/api/services/groupService';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,8 +17,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import ContactsModal from './ContactsModal';
-
+import ContactsModal, { Contact } from './ContactsModal';
 const screenHeight = Dimensions.get("window").height;
 
 interface CreateGroupModalProps {
@@ -113,7 +112,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
 
     setIsLoading(true);
 
-    try {
+  try {
       const categoryIds = selectedCategories.map(catId => CATEGORY_IDS[catId]);
 
       const groupData = {
@@ -124,7 +123,10 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
         categories: categoryIds,
         isPrivate,
         image: selectedImage,
-        contacts: selectedContacts.filter(c => c.link.trim() !== ''),
+        contacts: selectedContacts.map(contact => ({
+          name: contact.description || contact.id,
+          link: contact.link
+        })).filter(c => c.link.trim() !== ''),
       };
 
       const result = await groupService.createGroup(groupData);
@@ -266,31 +268,31 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                       ))}
                     </View>
 
-                    <Text style={styles.sectionLabel}>Контакты:</Text>
-                    <View style={styles.contactsContainer}>
-                      <TouchableOpacity
-                        style={styles.contactButton}
-                        onPress={() => setContactsModalVisible(true)}
-                        disabled={isLoading}
-                      >
-                        <Image 
-                          source={require('@/assets/images/groups/contacts/add_contact.png')} 
-                          style={styles.contactIcon} 
-                        />
-                      </TouchableOpacity>
-                      
-                      {selectedContacts
-                        .filter(c => c.link.trim() !== '')
-                        .map((contact) => (
-                          <View key={contact.id} style={styles.selectedContactItem}>
-                            <Image 
-                              source={contact.icon} 
-                              style={styles.contactIcon} 
-                            />
-                          </View>
-                        ))}
-                    </View>
+                  <Text style={styles.sectionLabel}>Контакты:</Text>
+                  <View style={styles.contactsContainer}>
+                    <TouchableOpacity
+                      style={styles.contactButton}
+                      onPress={() => setContactsModalVisible(true)}
+                      disabled={isLoading}
+                    >
+                      <Image 
+                        source={require('@/assets/images/groups/contacts/add_contact.png')} 
+                        style={styles.contactIcon} 
+                      />
+                    </TouchableOpacity>
+                    
+                    {selectedContacts
+                      .filter(c => c.link && c.link.trim() !== '')
+                      .map((contact, index) => (
+                        <View key={`${contact.id}-${index}`} style={styles.selectedContactItem}>
+                          <Image 
+                            source={contact.icon} 
+                            style={styles.contactIcon} 
+                          />
+                        </View>
+                      ))}
                   </View>
+                </View>
                               
                   <TouchableOpacity 
                     style={styles.imageUpload}
