@@ -3,6 +3,7 @@ import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
 import { Event as EventType } from '@/components/event/EventCard';
 import EventCarousel from '@/components/event/EventCarousel';
+import PrivateGroupPreview from '@/components/groups/PrivateGroupPreview';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
@@ -66,12 +67,15 @@ const GroupPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [membershipStatus, setMembershipStatus] = useState<MembershipStatus>('not_member');
+  const [isPrivateGroup, setIsPrivateGroup] = useState(false);
+  const [privateGroupName, setPrivateGroupName] = useState<string>('');
   const { sortingState, sortingActions } = useSearchState();
   const navigation = useNavigation<GroupManagePageNavigationProp>();
 
   const loadGroupData = async () => {
     try {
       setIsLoading(true);
+      setIsPrivateGroup(false);
       
       console.log('[GroupPage] Загружаем данные группы...');
 
@@ -89,52 +93,66 @@ const GroupPage = () => {
         }
       }
 
-      const data = await groupService.getPublicGroupDetail(groupId);
+      try {
+        const data = await groupService.getPublicGroupDetail(groupId);
 
-      if (data.image && data.image.includes('localhost')) {
-        data.image = data.image.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080');
-      }
+        if (data.image && data.image.includes('localhost')) {
+          data.image = data.image.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080');
+        }
 
-      if (data.users) {
-        data.users = data.users.map(user => ({
-          ...user,
-          image: user.image?.includes('localhost')
-            ? user.image.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
-            : user.image
-        }));
-      }
+        if (data.users) {
+          data.users = data.users.map(user => ({
+            ...user,
+            image: user.image?.includes('localhost')
+              ? user.image.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
+              : user.image
+          }));
+        }
 
-      if (data.sessions) {
-        data.sessions = data.sessions.map(session => ({
-          ...session,
-          session: {
-            ...session.session,
-            image_url: session.session.image_url?.includes('localhost')
-              ? session.session.image_url.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
-              : session.session.image_url
-          }
-        }));
-      }
-      
-      setGroupData(data);
+        if (data.sessions) {
+          data.sessions = data.sessions.map(session => ({
+            ...session,
+            session: {
+              ...session.session,
+              image_url: session.session.image_url?.includes('localhost')
+                ? session.session.image_url.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
+                : session.session.image_url
+            }
+          }));
+        }
+        
+        setGroupData(data);
 
-      console.log('[GroupPage] Определяем статус пользователя...');
-      console.log('[GroupPage] Является админом:', isAdmin);
-      console.log('[GroupPage] Подписка (subscription):', data.subscription);
+        console.log('[GroupPage] Определяем статус пользователя...');
+        console.log('[GroupPage] Является админом:', isAdmin);
+        console.log('[GroupPage] Подписка (subscription):', data.subscription);
 
-      if (isAdmin) {
-        console.log('[GroupPage] 🎯 Статус: АДМИНИСТРАТОР');
-        setMembershipStatus('admin');
-      } else if (data.subscription) {
-        console.log('[GroupPage] 👥 Статус: УЧАСТНИК');
-        setMembershipStatus('member');
-      } else {
-        console.log('[GroupPage] 🚪 Статус: НЕ УЧАСТНИК');
-        setMembershipStatus('not_member');
+        if (isAdmin) {
+          console.log('[GroupPage] 🎯 Статус: АДМИНИСТРАТОР');
+          setMembershipStatus('admin');
+        } else if (data.subscription) {
+          console.log('[GroupPage] 👥 Статус: УЧАСТНИК');
+          setMembershipStatus('member');
+        } else {
+          console.log('[GroupPage] 🚪 Статус: НЕ УЧАСТНИК');
+          setMembershipStatus('not_member');
+        }
+
+      } catch (publicError: any) {
+        console.error('[GroupPage] Ошибка загрузки публичных данных:', publicError);
+        
+        if (publicError.response?.status === 500 && 
+            publicError.response?.data?.error?.includes('приватной группе запрещен')) {
+          console.log('[GroupPage] 🔒 Это приватная группа, доступ запрещён');
+          setIsPrivateGroup(true);
+          setPrivateGroupName('');
+        } else {
+          throw publicError;
+        }
       }
 
     } catch (error: any) {
-      console.error('[GroupPage] Ошибка загрузки группы:', error);
+      console.error('[GroupPage] Критическая ошибка загрузки группы:', error);
       Alert.alert('Ошибка', error.message || 'Не удалось загрузить информацию о группе');
     } finally {
       setIsLoading(false);
@@ -146,6 +164,37 @@ const GroupPage = () => {
       loadGroupData();
     }, [groupId])
   );
+
+  const handlePrivateGroupRequestJoin = async () => {
+    try {
+      setIsProcessing(true);
+      console.log('[GroupPage] Подача заявки в приватную группу');
+      
+      const result = await groupService.joinGroup(parseInt(groupId));
+      
+      console.log('[GroupPage] Результат вступления:', result);
+      Alert.alert('Успешно', result.message);
+      
+      await loadGroupData();
+      
+    } catch (error: any) {
+      console.error('[GroupPage] Ошибка вступления в группу:', error);
+
+      const errorMessage = error.response?.data?.error || error.message || '';
+      
+      if (errorMessage.includes('заявка уже отправлена')) {
+        Alert.alert(
+          'Заявка уже отправлена',
+          'Ваша заявка на вступление уже находится на рассмотрении у администратора группы.'
+        );
+        await loadGroupData();
+      } else {
+        Alert.alert('Ошибка', errorMessage || 'Не удалось подать заявку');
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleContactPress = (link: string) => {
     if (link) {
@@ -284,6 +333,20 @@ const GroupPage = () => {
           <ActivityIndicator size="large" color={Colors.blue} />
           <Text style={styles.loadingText}>Загрузка группы...</Text>
         </View>
+        <BottomBar />
+      </SafeAreaView>
+    );
+  }
+  
+  if (isPrivateGroup) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <TopBar sortingState={sortingState} sortingActions={sortingActions} />
+        <PrivateGroupPreview
+          groupName={privateGroupName}
+          onRequestJoin={handlePrivateGroupRequestJoin}
+          isProcessing={isProcessing}
+        />
         <BottomBar />
       </SafeAreaView>
     );

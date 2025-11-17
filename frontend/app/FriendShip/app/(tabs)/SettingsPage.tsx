@@ -28,7 +28,7 @@ const GroupPage = () => {
 
   const handleConfirmLogout = () => {
     setShowLogoutModal(false);
-    navigation.navigate('Register' as never);
+    navigation.navigate('Login' as never);
   };
 
   const handleCancelLogout = () => {

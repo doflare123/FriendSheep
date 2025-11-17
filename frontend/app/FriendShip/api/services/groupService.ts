@@ -179,6 +179,18 @@ export interface SearchGroupsParams {
   page?: number;
 }
 
+export interface SimpleGroupRequest {
+  id: number;
+  userId: number;
+  name: string;
+  us: string;
+  image: string;
+}
+
+export interface SimpleGroupRequestsResponse {
+  requests: SimpleGroupRequest[] | null;
+}
+
 class GroupService {
   async createGroup(groupData: CreateGroupData): Promise<any> {
     const tokens = await getTokens();
@@ -320,7 +332,8 @@ class GroupService {
     } catch (error: any) {
       console.error('Ошибка получения публичной информации о группе:', error);
       console.error('Детали ошибки:', error.response?.data);
-      throw new Error(error.response?.data?.message || 'Ошибка получения информации о группе');
+
+      throw error;
     }
   }
 
@@ -388,17 +401,19 @@ class GroupService {
     }
   }
 
-  async getGroupRequests(groupId: number): Promise<GroupRequest[]> {
+  async getGroupRequests(groupId: number): Promise<SimpleGroupRequest[]> {
     try {
-      console.log(`Загрузка заявок для группы ${groupId}...`);
-      const response = await apiClient.get<GroupRequestsResponse>(`/groups/requests/${groupId}`);
+      console.log(`[GroupService] Загрузка заявок для группы ${groupId}...`);
       
-      console.log('Заявки получены:', response.data);
+      const response = await apiClient.get<SimpleGroupRequestsResponse>(`/groups/requests/${groupId}`);
+      
+      console.log('[GroupService] ✅ Сырой ответ от API:', JSON.stringify(response.data, null, 2));
+      console.log('[GroupService] ✅ Количество заявок:', response.data.requests?.length || 0);
       
       return response.data.requests || [];
     } catch (error: any) {
-      console.error('Ошибка получения заявок:', error);
-      console.error('Детали ошибки:', error.response?.data);
+      console.error('[GroupService] ❌ Ошибка получения заявок:', error);
+      console.error('[GroupService] ❌ Детали ошибки:', error.response?.data);
       throw new Error(error.response?.data?.message || 'Ошибка получения заявок');
     }
   }

@@ -1,8 +1,9 @@
-import groupService, { GroupDetailResponse, GroupRequest } from '@/api/services/groupService';
+import groupService, { GroupDetailResponse, SimpleGroupRequest } from '@/api/services/groupService';
 import { TabType } from '@/components/groups/management/GroupManageTabPanel';
 import { Contact } from '@/components/groups/modal/ContactsModal';
 // eslint-disable-next-line import/no-unresolved
 import { LOCAL_IP } from '@env';
+ 
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 
@@ -66,8 +67,9 @@ export const useGroupManage = (groupId: string) => {
   const [selectedEventId, setSelectedEventId] = useState<string>('');
 
   const [isProcessingRequests, setIsProcessingRequests] = useState(false);
-  const [groupRequests, setGroupRequests] = useState<GroupRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+
+  const [groupRequests, setGroupRequests] = useState<SimpleGroupRequest[]>([]);
 
   const loadGroupData = async () => {
     try {
@@ -75,7 +77,7 @@ export const useGroupManage = (groupId: string) => {
       const data = await groupService.getGroupDetail(groupId);
 
       if (data.image && data.image.includes('localhost')) {
-        data.image = data.image.replace('http://localhost:8080', 'http://192.168.0.209:8080');
+        data.image = data.image.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080');
       }
       
       setGroupData(data);
@@ -138,51 +140,74 @@ export const useGroupManage = (groupId: string) => {
     }
   };
 
-  useEffect(() => {
-    loadGroupData();
-    loadGroupRequests();
-  }, [groupId]);
-
-  useEffect(() => {
-    if (activeTab === 'requests') {
+    useEffect(() => {
+    if (groupId) {
+      console.log('[useGroupManage] Инициализация, groupId:', groupId);
+      loadGroupData();
       loadGroupRequests();
     }
-  }, [activeTab]);
-
-  const pendingRequests: RequestItem[] = useMemo(() => {
-    return groupRequests
-      .filter(req => req.status === 'pending')
-      .map(req => {
-        let imageUri = req.user.image;
-        if (imageUri && imageUri.includes('localhost')) {
-          imageUri = imageUri.replace('http://localhost:8080', 'http:/' + LOCAL_IP + ':8080');
-        }
-        
-        return {
-          id: req.id.toString(),
-          name: req.user.name,
-          username: req.user.email.split('@')[0],
-          imageUri: imageUri,
-        };
-      });
-  }, [groupRequests]);
+  }, [groupId]);
 
   const loadGroupRequests = async () => {
     try {
       setIsLoadingRequests(true);
-      console.log('[useGroupManage] Загружаем заявки для группы:', groupId);
+      console.log('[useGroupManage] 🔄 Начинаем загрузку заявок для группы:', groupId);
       
       const requests = await groupService.getGroupRequests(parseInt(groupId));
       
-      console.log('[useGroupManage] Заявки загружены:', requests.length);
+      console.log('[useGroupManage] 📦 Получены заявки (тип):', typeof requests);
+      console.log('[useGroupManage] 📦 Получены заявки (массив?):', Array.isArray(requests));
+      console.log('[useGroupManage] 📦 Получены заявки (длина):', requests?.length);
+      console.log('[useGroupManage] 📦 Получены заявки (данные):', JSON.stringify(requests, null, 2));
+      
       setGroupRequests(requests);
+      
+      console.log('[useGroupManage] ✅ Заявки сохранены в state');
     } catch (error: any) {
-      console.error('[useGroupManage] Ошибка загрузки заявок:', error);
+      console.error('[useGroupManage] ❌ Ошибка загрузки заявок:', error);
+      console.error('[useGroupManage] ❌ Детали:', error.response?.data);
       setGroupRequests([]);
     } finally {
       setIsLoadingRequests(false);
     }
   };
+
+  const pendingRequests: RequestItem[] = useMemo(() => {
+    console.log('[useGroupManage] 🎯 === ФОРМИРОВАНИЕ PENDING REQUESTS ===');
+    console.log('[useGroupManage] 🎯 groupRequests:', groupRequests);
+    console.log('[useGroupManage] 🎯 Тип groupRequests:', typeof groupRequests);
+    console.log('[useGroupManage] 🎯 Это массив?:', Array.isArray(groupRequests));
+    console.log('[useGroupManage] 🎯 Длина:', groupRequests?.length);
+    
+    if (!Array.isArray(groupRequests)) {
+      console.error('[useGroupManage] ❌ groupRequests не является массивом!');
+      return [];
+    }
+
+    const pending = groupRequests.map(req => {
+      let imageUri = req.image;
+      if (imageUri && imageUri.includes('localhost')) {
+        imageUri = imageUri.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080');
+      }
+      
+      const mapped = {
+        id: req.id.toString(),
+        name: req.name,
+        username: req.us,
+        imageUri: imageUri,
+      };
+      
+      console.log('[useGroupManage] ✅ Преобразованная заявка:', mapped);
+      
+      return mapped;
+    });
+    
+    console.log('[useGroupManage] 🎯 === РЕЗУЛЬТАТ ===');
+    console.log('[useGroupManage] 🎯 Количество pending заявок:', pending.length);
+    console.log('[useGroupManage] 🎯 Финальный список:', pending);
+    
+    return pending;
+  }, [groupRequests]);
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
@@ -385,7 +410,7 @@ export const useGroupManage = (groupId: string) => {
       maxParticipants: session.count_users_max,
       duration: `${session.duration} мин`,
       imageUri: session.image_url?.includes('localhost')
-        ? session.image_url.replace('http://localhost:8080', 'http://192.168.0.209:8080')
+        ? session.image_url.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
         : session.image_url,
       description: '',
       typeEvent: session.session_type,
