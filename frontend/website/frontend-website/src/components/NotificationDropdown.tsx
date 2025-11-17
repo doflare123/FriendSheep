@@ -10,6 +10,7 @@ import { rejectInvite } from '@/api/groups/rejectInvite';
 import { getAccesToken } from '@/Constants';
 import { showNotification } from '@/utils';
 import LoadingIndicator from '@/components/LoadingIndicator';
+import { useRouter } from 'next/navigation';
 
 interface NewsNotification {
   id: number;
@@ -40,6 +41,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
+  const router = useRouter();
 
   // Получение изображения в зависимости от типа уведомления
   const getNotificationImage = (notifType: string): string => {
@@ -60,7 +62,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
     const loadNotifications = async () => {
       setIsLoading(true);
       try {
-        const accessToken = getAccesToken();
+        const accessToken = getAccesToken(router);
         const data = await getNotif(accessToken);
 
         const allNotifications: Notification[] = [];
@@ -157,7 +159,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
     );
 
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       await viewNotif(accessToken, id);
     } catch (error) {
       console.error('Ошибка при отметке уведомления как прочитанного:', error);
@@ -179,7 +181,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
     setProcessingIds(prev => new Set(prev).add(id));
 
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
 
       if (action === 'accept') {
         await approveInvite(accessToken, id);

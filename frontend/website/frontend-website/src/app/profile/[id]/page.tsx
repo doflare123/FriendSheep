@@ -12,6 +12,7 @@ import { showNotification } from '@/utils';
 import {getAccesToken} from '@/Constants';
 import { getGroups } from '@/api/get_groups';
 import {SmallGroup} from '@/types/Groups';
+import { useRouter } from 'next/navigation';
 
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -19,6 +20,7 @@ export default function Page() {
   const params = useParams();
   const userUs = params.id as string;
   const { userData } = useAuth();
+  const router = useRouter();
 
   const [profileData, setProfileData] = useState<UserDataResponse | null>(null);
   const [subsData, setSubsData] = useState<SmallGroup[] | null>(null);
@@ -36,7 +38,7 @@ export default function Page() {
 
     const loadProfile = async () => {
       try {
-        const accessToken = getAccesToken();
+        const accessToken = getAccesToken(router);
         
         // Конвертируем Us в Id
         const convertedUserId = await convertUstoId(accessToken, userUs);

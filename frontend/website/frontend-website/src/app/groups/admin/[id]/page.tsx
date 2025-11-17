@@ -7,10 +7,12 @@ import GroupAdminComponent from '../../../../components/Groups/GroupAdminCompone
 import { GroupData } from '../../../../types/Groups';
 import { getGroupInfoAdmin } from '@/api/get_group_info_admin';
 import {getAccesToken} from '../../../../Constants'
+import { useRouter } from 'next/navigation';
 
 const GroupAdminPage: React.FC = () => {
     const params = useParams();
     const groupId = params.id as string;
+    const router = useRouter();
     
     const [groupData, setGroupData] = useState<GroupData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -19,7 +21,7 @@ const GroupAdminPage: React.FC = () => {
     useEffect(() => {
         const fetchGroupData = async () => {
         try {
-            const accessToken = getAccesToken();
+            const accessToken = getAccesToken(router);
             
             if (!accessToken) {
             setError('Токен доступа не найден');

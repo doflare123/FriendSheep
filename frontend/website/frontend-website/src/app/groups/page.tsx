@@ -9,7 +9,7 @@ import styles from '../../styles/Groups/GroupsPage.module.css';
 import { createGroup } from '../../api/add_group';
 import { getGroups } from '../../api/get_groups';
 import { getOwnGroups } from '../../api/get_owngroups';
-import { convertCategoriesToIds, convertSocialContactsToString } from '../../Constants';
+import { convertCategoriesToIds, convertSocialContactsToString, getAccesToken } from '../../Constants';
 import {SmallGroup} from '@/types/Groups';
 
 export default function GroupsPage() {
@@ -22,10 +22,10 @@ export default function GroupsPage() {
 
   // Проверка авторизации
   const checkAuth = () => {
-    const accessToken = localStorage.getItem('access_token');
+    const accessToken = getAccesToken(router);
     
     if (!accessToken) {
-      router.push('/login');
+      //router.push('/login');
       return false;
     }
     
@@ -37,10 +37,10 @@ export default function GroupsPage() {
   const loadUserGroups = async () => {
     try {
       setIsLoading(true);
-      const accessToken = localStorage.getItem('access_token');
+      const accessToken = getAccesToken(router);
       
       if (!accessToken) {
-        router.push('/login');
+        //router.push('/login');
         return;
       }
 
@@ -77,10 +77,9 @@ export default function GroupsPage() {
     setIsCreateModalOpen(false);
 
     try {
-      const accessToken = localStorage.getItem('access_token');
+      const accessToken = getAccesToken(router);
       if (!accessToken) {
-        console.error('Access token not found');
-        router.push('/register');
+        //router.push('/register');
         return;
       }
 

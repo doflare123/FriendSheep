@@ -122,7 +122,7 @@ export default function EventsSearchPage() {
     }
 
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       
       const params: any = {};
 

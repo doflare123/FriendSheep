@@ -13,6 +13,7 @@ import { editGroup } from '../../api/groups/edit_group';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import { showNotification } from '@/utils';
 import { getImage } from '@/api/getImage';
+import { useRouter } from 'next/navigation';
 
 // Компонент-заглушка для пустых разделов
 const EmptySection: React.FC<{ title: string }> = ({ title }) => (
@@ -30,6 +31,7 @@ const GroupInfoSection: React.FC<{
 }> = ({ groupData, groupId, onGroupDataUpdate }) => {
   const [isLoading, setIsLoading] = useState(false);
 
+  const router = useRouter();
   const handleFormSubmit = async (formData: any) => {
     if (!groupId) {
       showNotification(400, 'ID группы не найден');
@@ -39,7 +41,7 @@ const GroupInfoSection: React.FC<{
     setIsLoading(true);
 
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       
       // Формируем начальные данные для сравнения
       const initialData = {

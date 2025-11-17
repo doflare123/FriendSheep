@@ -14,11 +14,13 @@ import { getNewsInfo } from '@/api/news/GetNewsInfo';
 import { addNewsComment } from '@/api/news/addNewsComment';
 import { showNotification } from '@/utils';
 import { getAccesToken } from '@/Constants';
+import { useRouter } from 'next/navigation';
 
 export default function NewsInfoPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const id = params?.id as string;
+  const router = useRouter();
   
   const [newsDetail, setNewsDetail] = useState<NewsDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +60,7 @@ export default function NewsInfoPage() {
     if (!newsDetail || !commentText.trim()) return;
 
     // Проверка авторизации
-    const token = getAccesToken();
+    const token = getAccesToken(router);
     if (!token) {
       showNotification(401, 'Необходимо авторизоваться');
       setShowCommentForm(false);

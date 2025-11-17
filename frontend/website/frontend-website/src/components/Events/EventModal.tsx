@@ -14,6 +14,7 @@ import { getImage } from '@/api/getImage';
 import { getGenres } from '@/api/events/getGenres';
 import { showNotification } from '@/utils';
 import LoadingIndicator from '@/components/LoadingIndicator';
+import { useRouter } from 'next/navigation';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -83,6 +84,7 @@ export default function EventModal({
   });
 
   const [originalData, setOriginalData] = useState<Partial<EventCardProps>>({});
+  const router = useRouter();
 
   const [isOnline, setIsOnline] = useState(false);
   const [showGenreSelector, setShowGenreSelector] = useState(false);
@@ -121,7 +123,7 @@ export default function EventModal({
     setGroupsError(null);
     
     try {
-      const accessToken = getAccesToken() || '';
+      const accessToken = getAccesToken(router) || '';
       const groupsData = await getOwnGroups(accessToken);
       setGroups(groupsData);
     } catch (error) {
@@ -138,7 +140,7 @@ export default function EventModal({
     setGenresError(null);
     
     try {
-      const accessToken = getAccesToken() || '';
+      const accessToken = getAccesToken(router) || '';
       const genresData = await getGenres(accessToken);
       setGenres(genresData);
     } catch (error) {
@@ -382,7 +384,7 @@ export default function EventModal({
     setIsSaving(true);
     
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Необходима авторизация');
         return;
@@ -424,7 +426,7 @@ export default function EventModal({
     setIsSaving(true);
     
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Необходима авторизация');
         return;
@@ -479,7 +481,7 @@ export default function EventModal({
     setIsSaving(true);
     
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Необходима авторизация');
         return;

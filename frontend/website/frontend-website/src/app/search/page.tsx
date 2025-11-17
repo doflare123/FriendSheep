@@ -78,7 +78,7 @@ export default function SearchPage() {
 
   // Проверка токена при монтировании
   useEffect(() => {
-    const accessToken = getAccesToken();
+    const accessToken = getAccesToken(router);
     if (!accessToken) {
       router.push('/login');
     } else {
@@ -127,7 +127,7 @@ export default function SearchPage() {
       setIsLoading(true);
       
       try {
-        const accessToken = getAccesToken();
+        const accessToken = getAccesToken(router);
         
         if (searchType === 'groups') {
           const params: any = {};
@@ -236,7 +236,7 @@ export default function SearchPage() {
     setLoadingGroups(prev => new Set([...prev, groupId]));
 
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       await joinGroup(accessToken, groupId);
 
       if (isPrivate) {
