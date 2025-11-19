@@ -70,8 +70,8 @@ const GroupAdminPage: React.FC = () => {
     const handleGroupDataUpdate = (updatedData: Partial<GroupData>) => {
         if (groupData) {
             setGroupData({
-                ...groupData,
-                ...updatedData
+            ...groupData,
+            ...updatedData
             });
         }
     };

@@ -1,22 +1,31 @@
+// src/components/Groups/CreateGroupForm.tsx
+
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import SocialContactsModal from './SocialContactsModal';
+import DeleteConfirmModal from './DeleteConfirmModal';
 import { GroupData } from '../../types/Groups';
 import styles from '../../styles/Groups/CreateGroupModal.module.css';
-import {getCategoryIcon, getSocialIcon} from '../../Constants'
+import { getCategoryIcon, getSocialIcon } from '../../Constants';
 
 interface CreateGroupFormProps {
   onSubmit: (groupData: any) => void;
+  onDelete?: () => void; // Колбэк для удаления группы
   initialData?: Partial<GroupData & { shortDescription?: string; isPrivate?: boolean; imagePreview?: string; socialContacts?: { name: string; link: string }[] }>;
   showTitle?: boolean;
   isLoading?: boolean;
+  isEditMode?: boolean; // Флаг режима редактирования
+  groupName?: string; // Название группы для модального окна
 }
 
 const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ 
   onSubmit, 
+  onDelete,
   initialData,
   showTitle = true,
-  isLoading = false
+  isLoading = false,
+  isEditMode = false,
+  groupName = ''
 }) => {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
@@ -33,6 +42,8 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   );
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
   const [errors, setErrors] = useState({
     name: '',
     shortDescription: '',
@@ -102,7 +113,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
       categories: ''
     };
 
-    // Валидация названия
     if (!formData.name.trim()) {
       newErrors.name = 'Название группы обязательно';
     } else if (formData.name.trim().length < VALIDATION_RULES.name.min) {
@@ -111,7 +121,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
       newErrors.name = `Название не должно превышать ${VALIDATION_RULES.name.max} символов`;
     }
 
-    // Валидация краткого описания
     if (!formData.shortDescription.trim()) {
       newErrors.shortDescription = 'Краткое описание обязательно';
     } else if (formData.shortDescription.trim().length < VALIDATION_RULES.shortDescription.min) {
@@ -120,7 +129,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
       newErrors.shortDescription = `Максимум ${VALIDATION_RULES.shortDescription.max} символов`;
     }
 
-    // Валидация описания
     if (!formData.description.trim()) {
       newErrors.description = 'Описание группы обязательно';
     } else if (formData.description.trim().length < VALIDATION_RULES.description.min) {
@@ -129,7 +137,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
       newErrors.description = `Описание не должно превышать ${VALIDATION_RULES.description.max} символов`;
     }
 
-    // Валидация категорий
     if (formData.categories.length === 0) {
       newErrors.categories = 'Выберите хотя бы одну категорию';
     }
@@ -139,7 +146,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   };
 
   const handleInputChange = (field: string, value: any) => {
-    // Применяем ограничения на максимальную длину
     let processedValue = value;
     
     if (field === 'name' && typeof value === 'string') {
@@ -155,7 +161,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
       [field]: processedValue
     }));
 
-    // Очищаем ошибку для поля при вводе
     if (field === 'name' && errors.name) {
       setErrors(prev => ({ ...prev, name: '' }));
     }
@@ -229,7 +234,27 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     });
   };
 
-  // Функция для получения счетчика символов
+  const handleDeleteClick = () => {
+    setDeleteStep(1);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteStep === 1) {
+      setDeleteStep(2);
+    } else {
+      setIsDeleteModalOpen(false);
+      if (onDelete) {
+        onDelete();
+      }
+    }
+  };
+
+  const handleDeleteModalClose = () => {
+    setIsDeleteModalOpen(false);
+    setDeleteStep(1);
+  };
+
   const getCharacterCount = (field: 'name' | 'shortDescription' | 'description') => {
     const current = formData[field].length;
     const max = VALIDATION_RULES[field].max;
@@ -427,18 +452,31 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
           </div>
         </div>
 
-        {/* Кнопка создания */}
-        <button 
-          type="submit" 
-          className={styles.createButton}
-          disabled={isLoading}
-          style={{
-            opacity: isLoading ? 0.7 : 1,
-            cursor: isLoading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
-        </button>
+        {/* Кнопки действий */}
+        <div className={styles.actionButtons}>
+          <button 
+            type="submit" 
+            className={styles.createButton}
+            disabled={isLoading}
+            style={{
+              opacity: isLoading ? 0.7 : 1,
+              cursor: isLoading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
+          </button>
+          
+          {isEditMode && onDelete && (
+            <button 
+              type="button"
+              className={styles.deleteButton}
+              onClick={handleDeleteClick}
+              disabled={isLoading}
+            >
+              Удалить
+            </button>
+          )}
+        </div>
       </form>
 
       <SocialContactsModal
@@ -446,6 +484,14 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
         onClose={() => setIsSocialModalOpen(false)}
         onSave={handleSocialContactsSave}
         initialContacts={formData.socialContacts}
+      />
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleDeleteModalClose}
+        onConfirm={handleDeleteConfirm}
+        step={deleteStep}
+        groupName={groupName || formData.name}
       />
     </>
   );

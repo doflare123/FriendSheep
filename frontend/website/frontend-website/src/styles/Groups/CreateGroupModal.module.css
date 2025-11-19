@@ -306,23 +306,81 @@ div.modalOverlay .modalContent {
     background: #37A2E6;
 }
 
-.createButton {
-    width: 50%;
-    background: #37A2E6;
-    color: white;
-    border: 2px solid #316BC2;
-    border-radius: 12px;
-    padding: 16px;
-    font-size: 18px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    margin: 20px auto 0; /* auto для центрирования по горизонтали */
-    display: block; /* чтобы margin: auto работал */
+/* Контейнер для кнопок действий */
+.actionButtons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 10px; /* Поднимаем кнопки на 10px относительно обычного положения */
 }
 
-.createButton:hover {
-    background: #2d93d5;
+/* Обновленный стиль .createButton */
+.createButton {
+  background: #37A2E6;
+  color: white;
+  border: 2px solid #316BC2;
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 250px;
+}
+
+.createButton:hover:not(:disabled) {
+  background: #2d93d5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(55, 162, 230, 0.3);
+}
+
+.createButton:disabled {
+  background-color: #cccccc;
+  border-color: #999;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Кнопка удаления */
+.deleteButton {
+  background-color: #E6374B;
+  color: white;
+  border: 2px solid #d32636;
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 200px;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background-color: #d32636;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 55, 75, 0.3);
+}
+
+.deleteButton:disabled {
+  background-color: #cccccc;
+  border-color: #999;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Адаптивность для кнопок */
+@media (max-width: 768px) {
+  .actionButtons {
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .createButton,
+  .deleteButton {
+    width: 100%;
+    min-width: unset;
+  }
 }
 
 /* Стили для ошибок */

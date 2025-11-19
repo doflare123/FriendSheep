@@ -5,6 +5,7 @@ import AdminSidebar from './AdminSidebar';
 import CreateGroupForm from './CreateGroupForm';
 import RequestsManagementComponent from './RequestsManagementComponent';
 import EventsManagementComponent from './EventsManagementComponent';
+import MembersManagement from './MembersManagement';
 import { AdminMenuSection } from '../../types/AdminTypes';
 import { convertCategoriesToIds, convertIdsToCategories, convertSocialContactsToString, getAccesToken } from '../../Constants';
 import { GroupData } from '../../types/Groups';
@@ -14,6 +15,7 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 import { showNotification } from '@/utils';
 import { getImage } from '@/api/getImage';
 import { useRouter } from 'next/navigation';
+import { delGroup } from '@/api/groups/delGroup';
 
 // Компонент-заглушка для пустых разделов
 const EmptySection: React.FC<{ title: string }> = ({ title }) => (
@@ -30,8 +32,8 @@ const GroupInfoSection: React.FC<{
   onGroupDataUpdate?: (updatedData: Partial<GroupData>) => void;
 }> = ({ groupData, groupId, onGroupDataUpdate }) => {
   const [isLoading, setIsLoading] = useState(false);
-
   const router = useRouter();
+
   const handleFormSubmit = async (formData: any) => {
     if (!groupId) {
       showNotification(400, 'ID группы не найден');
@@ -168,6 +170,33 @@ const GroupInfoSection: React.FC<{
     }
   };
 
+  const handleDelete = async () => {
+    if (!groupId) {
+      showNotification(400, 'ID группы не найден');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const accessToken = getAccesToken(router);
+      
+      await delGroup(accessToken, parseInt(groupId));
+      
+      showNotification(200, 'Группа успешно удалена');
+      
+      // Перенаправляем на страницу групп или главную
+      router.push('/groups'); // Или куда нужно
+    } catch (error: any) {
+      console.error('Ошибка при удалении группы:', error);
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || 'Произошла ошибка при удалении группы';
+      showNotification(statusCode, errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Преобразуем данные группы в формат для формы
   const initialFormData = groupData ? {
     name: groupData.name,
@@ -187,13 +216,16 @@ const GroupInfoSection: React.FC<{
   return (
     <div>
       {isLoading ? (
-        <LoadingIndicator text="Сохранение данных группы..." />
+        <LoadingIndicator text="Обработка..." />
       ) : (
         <CreateGroupForm 
           onSubmit={handleFormSubmit}
+          onDelete={handleDelete} // Добавь этот проп
           initialData={initialFormData}
           showTitle={false}
           isLoading={isLoading}
+          isEditMode={true} // Добавь этот проп
+          groupName={groupData?.name} // Добавь этот проп
         />
       )}
     </div>
@@ -225,6 +257,11 @@ const GroupAdminComponent: React.FC<GroupAdminComponentProps> = ({
       component: RequestsManagementComponent
     },
     {
+      id: 'members',
+      title: 'Управление участниками',
+      component: MembersManagement
+    },
+    {
       id: 'events',
       title: 'Управление событиями',
       component: EventsManagementComponent
@@ -240,6 +277,8 @@ const GroupAdminComponent: React.FC<GroupAdminComponentProps> = ({
         return 'Основная информация';
       case 'requests':
         return 'Управление заявками';
+      case 'members':
+        return 'Управление участниками';
       case 'events':
         return 'Управление событиями';
       default:
@@ -268,6 +307,7 @@ const GroupAdminComponent: React.FC<GroupAdminComponentProps> = ({
                   groupData={groupData} 
                   groupId={groupId}
                   onGroupDataUpdate={onGroupDataUpdate}
+                  useMockData={false}
                 />
               ) : (
                 <EmptySection title={currentSection?.title || ''} />
