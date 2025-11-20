@@ -23,6 +23,12 @@
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Приложению нужен доступ к галерее для выбора изображений</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Приложению нужен доступ к камере</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Приложению нужен доступ для сохранения фото</string>
     <array>
       <dict>
         <key>CFBundleURLSchemes</key>

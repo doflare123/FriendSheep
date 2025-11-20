@@ -20,22 +20,32 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
   selected,
   onSelect,
 }) => {
+  console.log('[CategorySelector] 🎨 Текущий selected:', selected);
+  
   return (
     <View>
       <Text style={styles.sectionLabel}>Выберите категорию:</Text>
       <View style={styles.categoriesContainer}>
-        {categories.map((category) => (
-          <TouchableOpacity
-            key={category.id}
-            style={[
-              styles.categoryButton,
-              selected === category.id && styles.categorySelected
-            ]}
-            onPress={() => onSelect(category.id)}
-          >
-            <Image source={category.icon} style={styles.categoryIcon} />
-          </TouchableOpacity>
-        ))}
+        {categories.map((category) => {
+          const isSelected = selected === category.id;
+          console.log(`[CategorySelector] Категория ${category.id}: selected=${isSelected}`);
+          
+          return (
+            <TouchableOpacity
+              key={category.id}
+              style={[
+                styles.categoryButton,
+                isSelected && styles.categorySelected
+              ]}
+              onPress={() => {
+                console.log('[CategorySelector] 👆 Клик на категорию:', category.id);
+                onSelect(category.id);
+              }}
+            >
+              <Image source={category.icon} style={styles.categoryIcon} />
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );

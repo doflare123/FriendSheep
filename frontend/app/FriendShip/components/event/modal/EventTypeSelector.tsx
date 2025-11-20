@@ -14,7 +14,7 @@ const EventTypeSelector: React.FC<EventTypeSelectorProps> = ({
 }) => {
   return (
     <View>
-      <Text style={styles.sectionLabel}>Выберите тип события:</Text>
+      <Text style={styles.sectionLabel}>Выберите тип события *</Text>
       <View style={styles.typeContainer}>
         <View style={{ flexDirection: 'column', alignItems: 'center' }}>
           <TouchableOpacity

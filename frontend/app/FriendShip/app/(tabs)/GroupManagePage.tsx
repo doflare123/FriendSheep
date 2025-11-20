@@ -12,7 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BottomBar from '@/components/BottomBar';
 import ConfirmationModal from '@/components/ConfirmationModal';
-import CreateEventModal from '@/components/event/modal/CreateEventModal';
 import EventsTabContent from '@/components/groups/management/EventsTabContent';
 import GroupManageTabPanel from '@/components/groups/management/GroupManageTabPanel';
 import InfoTabContent from '@/components/groups/management/InfoTabContent';
@@ -20,6 +19,7 @@ import RequestsTabContent from '@/components/groups/management/RequestsTabConten
 import ContactsModal from '@/components/groups/modal/ContactsModal';
 import TopBar from '@/components/TopBar';
 
+import CreateEditEventModal from '@/components/event/modal/CreateEventModal';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
@@ -81,6 +81,9 @@ const GroupManagePage = () => {
     handleSaveChanges,
     getSectionTitle,
 
+    availableGenres,
+    isCreatingEvent,
+    isUpdatingEvent,
     createEventModalVisible,
     setCreateEventModalVisible,
     editEventModalVisible,
@@ -90,8 +93,7 @@ const GroupManagePage = () => {
     handleEditEvent,
     handleCreateEventSave,
     handleEditEventSave,
-    
-    formattedEvents,
+    formattedEvents,   
   } = useGroupManage(groupId);
 
   const handleBackPress = () => {
@@ -200,23 +202,26 @@ const GroupManagePage = () => {
         onCancel={cancelConfirmation}
       />
 
-      <CreateEventModal
+      <CreateEditEventModal
         visible={createEventModalVisible}
         onClose={() => setCreateEventModalVisible(false)}
         onCreate={handleCreateEventSave}
-        groupName={groupData?.name}
+        groupName={groupData?.name || 'Группа'}
+        availableGenres={availableGenres}
+        isLoading={isCreatingEvent}
+        editMode={false}
       />
 
-      {groupData && (
-        <CreateEventModal
-          visible={editEventModalVisible}
-          onClose={() => setEditEventModalVisible(false)}
-          onUpdate={handleEditEventSave}
-          groupName={groupData.name}
-          editMode={true}
-          initialData={formattedEvents.find((event) => event.id === selectedEventId)}
-        />
-      )}
+      <CreateEditEventModal
+        visible={editEventModalVisible}
+        onClose={() => setEditEventModalVisible(false)}
+        onUpdate={handleEditEventSave}
+        groupName={groupData?.name || 'Группа'}
+        editMode={true}
+        initialData={formattedEvents.find((event) => event.id === selectedEventId)}
+        availableGenres={availableGenres}
+        isLoading={isUpdatingEvent}
+      />
       
       <BottomBar />
     </SafeAreaView>

@@ -1,4 +1,5 @@
 import groupService, { GroupDetailResponse, SimpleGroupRequest } from '@/api/services/groupService';
+import sessionService, { CreateSessionData, UpdateSessionData } from '@/api/services/sessionService';
 import { TabType } from '@/components/groups/management/GroupManageTabPanel';
 import { Contact } from '@/components/groups/modal/ContactsModal';
 // eslint-disable-next-line import/no-unresolved
@@ -70,6 +71,11 @@ export const useGroupManage = (groupId: string) => {
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
 
   const [groupRequests, setGroupRequests] = useState<SimpleGroupRequest[]>([]);
+
+  const [availableGenres, setAvailableGenres] = useState<string[]>([]);
+
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [isUpdatingEvent, setIsUpdatingEvent] = useState(false);
 
   const loadGroupData = async () => {
     try {
@@ -359,6 +365,26 @@ export const useGroupManage = (groupId: string) => {
     }
   };
 
+  useEffect(() => {
+    if (groupId) {
+      console.log('[useGroupManage] Инициализация, groupId:', groupId);
+      loadGroupData();
+      loadGroupRequests();
+      loadGenres();
+    }
+  }, [groupId]);
+
+  const loadGenres = async () => {
+    try {
+      const genres = await sessionService.getGenres();
+      setAvailableGenres(genres);
+      console.log('[useGroupManage] Жанры загружены:', genres);
+    } catch (error: any) {
+      console.error('[useGroupManage] Ошибка загрузки жанров:', error);
+    }
+  };
+
+
   const handleCreateEvent = () => {
     setCreateEventModalVisible(true);
   };
@@ -368,17 +394,143 @@ export const useGroupManage = (groupId: string) => {
     setEditEventModalVisible(true);
   };
 
-  const handleCreateEventSave = (eventData: any) => {
-    console.log('Creating new event:', eventData);
-    setCreateEventModalVisible(false);
-    Alert.alert('Успешно', 'Событие создано!');
+  const handleCreateEventSave = async (eventData: any) => {
+    try {
+      setIsCreatingEvent(true);
+      console.log('[useGroupManage] Создание события:', eventData);
+
+      const convertToRFC3339 = (dateString: string): string => {
+        const [datePart, timePart] = dateString.split(' ');
+        const [day, month, year] = datePart.split('.');
+        const [hour, minute] = timePart.split(':');
+        
+        const date = new Date(
+          parseInt(year),
+          parseInt(month) - 1,
+          parseInt(day),
+          parseInt(hour),
+          parseInt(minute)
+        );
+        
+        return date.toISOString();
+      };
+
+      const categoryToSessionType: { [key: string]: string } = {
+        'movie': 'Фильмы',
+        'game': 'Игры',
+        'table_game': 'Настольная игры',
+        'other': 'Другое',
+      };
+
+      const sessionData: CreateSessionData = {
+        title: eventData.title,
+        session_type: categoryToSessionType[eventData.category] || 'Другое',
+        session_place: eventData.typePlace === 'online' ? 1 : 2,
+        group_id: parseInt(groupId),
+        start_time: convertToRFC3339(eventData.date),
+        duration: parseInt(eventData.duration),
+        count_users: eventData.maxParticipants,
+        genres: eventData.genres?.join(',') || '',
+        location: eventData.eventPlace || '',
+        year: eventData.year,
+        country: eventData.country || '',
+        age_limit: eventData.ageRating || '',
+        notes: eventData.description || '',
+        image: eventData.image,
+      };
+
+      console.log('[useGroupManage] Отправка данных на сервер:', {
+        ...sessionData,
+        image: 'FILE_OBJECT'
+      });
+
+      await sessionService.createSession(sessionData);
+      
+      setCreateEventModalVisible(false);
+      Alert.alert('Успешно', 'Событие создано!');
+  
+      await loadGroupData();
+    } catch (error: any) {
+      console.error('[useGroupManage] Ошибка создания события:', error);
+      Alert.alert('Ошибка', error.message || 'Не удалось создать событие');
+    } finally {
+      setIsCreatingEvent(false);
+    }
   };
 
-  const handleEditEventSave = (eventData: any) => {
-    console.log('Editing event:', selectedEventId, eventData);
-    setEditEventModalVisible(false);
-    setSelectedEventId('');
-    Alert.alert('Успешно', 'Событие обновлено!');
+  const handleEditEventSave = async (eventId: string, eventData: any) => {
+    try {
+      setIsUpdatingEvent(true);
+      console.log('[useGroupManage] Редактирование события:', eventId, eventData);
+
+      const categoryToSessionTypeId: { [key: string]: number } = {
+        'movie': 1,
+        'game': 2,
+        'table_game': 3,
+        'other': 4,
+      };
+
+      const sessionPlaceToId: { [key: string]: number } = {
+        'online': 1,
+        'offline': 2,
+      };
+      
+      const updateData: UpdateSessionData = {
+        title: eventData.title,
+        session_type_id: categoryToSessionTypeId[eventData.category],
+        session_place_id: sessionPlaceToId[eventData.typePlace],
+        duration: parseInt(eventData.duration),
+        count_users_max: eventData.maxParticipants,
+        genres: eventData.genres,
+        location: eventData.eventPlace || '',
+        year: eventData.year,
+        country: eventData.country || '',
+        age_limit: eventData.ageRating || '',
+        notes: eventData.description || '',
+      };
+
+      if (eventData.date) {
+        const convertToRFC3339 = (dateString: string): string => {
+          const [datePart, timePart] = dateString.split(' ');
+          const [day, month, year] = datePart.split('.');
+          const [hour, minute] = timePart.split(':');
+          
+          const date = new Date(
+            parseInt(year),
+            parseInt(month) - 1,
+            parseInt(day),
+            parseInt(hour),
+            parseInt(minute)
+          );
+          
+          return date.toISOString();
+        };
+        
+        updateData.start_time = convertToRFC3339(eventData.date);
+      }
+
+      if (eventData.image && eventData.image.uri && !eventData.imageUri.startsWith('http')) {
+        console.log('[useGroupManage] Загрузка нового изображения сессии...');
+        const imageUrl = await sessionService.uploadSessionImage(eventData.image.uri);
+        updateData.image_url = imageUrl;
+        console.log('[useGroupManage] Изображение загружено:', imageUrl);
+      }
+
+      console.log('[useGroupManage] 📦 Отправка updateData:', updateData);
+
+      await sessionService.updateSession(parseInt(eventId), updateData);
+      
+      setEditEventModalVisible(false);
+      setSelectedEventId('');
+      Alert.alert('Успешно', 'Событие обновлено!');
+      
+      await loadGroupData();
+    } catch (error: any) {
+      console.error('[useGroupManage] Ошибка обновления события:', error);
+      Alert.alert('Ошибка', error.message || 'Не удалось обновить событие');
+    } finally {
+      setIsUpdatingEvent(false);
+    }
   };
 
   const getSectionTitle = () => {
@@ -396,34 +548,46 @@ export const useGroupManage = (groupId: string) => {
 
   const formattedEvents = useMemo(() => {
     if (!groupData?.sessions) return [];
+
+    const sessionTypeToCategory: { [key: string]: 'movie' | 'game' | 'table_game' | 'other' } = {
+      'Фильм': 'movie',
+      'Фильмы': 'movie',
+      'Игра': 'game',
+      'Игры': 'game',
+      'Настольная игра': 'table_game',
+      'Настольные игры': 'table_game',
+      'Другое': 'other',
+    };
     
-    return groupData.sessions.map(session => ({
-      id: session.id.toString(),
-      title: session.title,
-      date: new Date(session.start_time).toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }),
-      genres: session.genres || [],
-      currentParticipants: session.current_users,
-      maxParticipants: session.count_users_max,
-      duration: `${session.duration} мин`,
-      imageUri: session.image_url?.includes('localhost')
-        ? session.image_url.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
-        : session.image_url,
-      description: '',
-      typeEvent: session.session_type,
-      typePlace: session.session_place === 'offline' || session.session_place === 'online' 
-        ? session.session_place as 'online' | 'offline'
-        : 'online',
-      eventPlace: session.city || '',
-      publisher: groupData.name,
-      publicationDate: session.start_time,
-      ageRating: '',
-      category: (selectedCategories[0] as any) || 'other',
-      group: groupData.name,
-    }));
+    return groupData.sessions.map(session => {
+      const startDate = new Date(session.start_time);
+      const formattedDate = `${String(startDate.getDate()).padStart(2, '0')}.${String(startDate.getMonth() + 1).padStart(2, '0')}.${startDate.getFullYear()}`;
+      const formattedTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`;
+      
+      return {
+        id: session.id.toString(),
+        title: session.title,
+        date: `${formattedDate} ${formattedTime}`,
+        genres: session.genres || [],
+        currentParticipants: session.current_users,
+        maxParticipants: session.count_users_max,
+        duration: `${session.duration} мин`,
+        imageUri: session.image_url?.includes('localhost')
+          ? session.image_url.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
+          : session.image_url,
+        description: '',
+        typeEvent: session.session_type,
+        typePlace: session.session_place === 'offline' || session.session_place === 'online' 
+          ? session.session_place as 'online' | 'offline'
+          : 'online',
+        eventPlace: session.city || '',
+        publisher: groupData.name,
+        publicationDate: session.start_time,
+        ageRating: '',
+        category: sessionTypeToCategory[session.session_type] || 'other',
+        group: groupData.name,
+      };
+    });
   }, [groupData]);
 
   return {
@@ -484,5 +648,9 @@ export const useGroupManage = (groupId: string) => {
     formattedEvents,
     isProcessingRequests,
     isLoadingRequests,
+
+    availableGenres,
+    isCreatingEvent,
+    isUpdatingEvent,
   };
 };
