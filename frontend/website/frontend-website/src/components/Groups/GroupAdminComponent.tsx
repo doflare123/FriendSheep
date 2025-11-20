@@ -204,14 +204,13 @@ const GroupInfoSection: React.FC<{
     description: groupData.description,
     city: groupData.city,
     isPrivate: groupData.private || false,
-    categories: convertIdsToCategories(groupData.categories || []),
+    categories: groupData.categories || [],
     socialContacts: groupData.contacts?.map(contact => ({
       name: contact.name,
       link: contact.link
     })) || [],
     imagePreview: groupData.image
   } : undefined;
-
 
   return (
     <div>

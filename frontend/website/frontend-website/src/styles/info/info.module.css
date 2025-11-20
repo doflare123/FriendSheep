@@ -1,7 +1,8 @@
 .pageContainer {
-  min-height: 100vh;
+  min-height: calc(100vh - 100px);
   display: flex;
   flex-direction: column;
+  padding-bottom: 2rem;
 }
 
 .contentWrapper {
@@ -10,6 +11,9 @@
   margin: 0 auto;
   padding: 2rem;
   width: 100%;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .markdownContent {
@@ -79,5 +83,8 @@
 }
 
 .footerWrapper {
-  margin-top: auto;
+  width: 100vw;
+  margin-left: -20px;
+  margin-right: -20px;
+  margin-bottom: -20px;
 }
