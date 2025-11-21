@@ -23,7 +23,7 @@ import CreateEditEventModal from '@/components/event/modal/CreateEventModal';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
-import { useGroupManage } from '@/hooks/useGroupManage';
+import { useGroupManage } from '@/hooks/groups/useGroupManage';
 import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
 
@@ -49,8 +49,6 @@ const GroupManagePage = () => {
     setShortDescription,
     fullDescription,
     setFullDescription,
-    country,
-    setCountry,
     city,
     setCity,
     isPrivate,
@@ -111,8 +109,6 @@ const GroupManagePage = () => {
             setShortDescription={setShortDescription}
             fullDescription={fullDescription}
             setFullDescription={setFullDescription}
-            country={country}
-            setCountry={setCountry}
             city={city}
             setCity={setCity}
             isPrivate={isPrivate}

@@ -100,6 +100,8 @@ const EventCard: React.FC<Event> = ({
     }
   };
 
+  const hasGenres = genres && genres.length > 0;
+
   return (
     <View style={styles.shadowWrapper}>
       <TouchableOpacity onPress={onPress} style={styles.card}>
@@ -149,16 +151,19 @@ const EventCard: React.FC<Event> = ({
               </View>
             </View>
           </View>
-          <View style={styles.genres}>
-            <Text style={[styles.metaText, { marginRight: 6, fontFamily: Montserrat.regular }]}>Жанры:</Text>
-            {getVisibleGenres(genres).map((genre, index) => (
-              <View key={index} style={styles.genreBadge}>
-                <Text style={styles.genreText}>{genre}</Text>
-              </View>
-            ))}
-          </View>
 
-          <View style={styles.metaContainer}>
+          {hasGenres && (
+            <View style={styles.genres}>
+              <Text style={[styles.metaText, { marginRight: 6, fontFamily: Montserrat.regular }]}>Жанры:</Text>
+              {getVisibleGenres(genres).map((genre, index) => (
+                <View key={index} style={styles.genreBadge}>
+                  <Text style={styles.genreText}>{genre}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <View style={[styles.metaContainer, {marginTop: 10}]}>
             <View style={styles.metaRow}>
               <Text style={styles.metaText}>
                 Участники: {currentParticipants}/{maxParticipants}
@@ -209,7 +214,6 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   content: {
-    minHeight: 120,
     padding: 12,
   },
   dateBadgeContainer: {

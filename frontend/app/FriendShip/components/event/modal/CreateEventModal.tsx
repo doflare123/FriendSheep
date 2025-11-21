@@ -440,16 +440,6 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                 />
               </View>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Страна"
-                placeholderTextColor={Colors.grey}
-                value={country}
-                onChangeText={setCountry}
-                maxLength={50}
-                editable={!isLoading}
-              />
-
               <View style={[styles.input, styles.disabledInput]}>
                 <Text style={styles.disabledText}>{groupName}</Text>
               </View>
@@ -490,7 +480,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               <View style={styles.placeContainer}>
                 <TextInput
                   style={[styles.input, styles.placeInput]}
-                  placeholder={eventType === 'offline' ? 'Место проведения (адрес)*' : 'Место проведения (ссылка)*'}
+                  placeholder={eventType === 'offline' ? 'Место проведения (адрес)' : 'Место проведения (ссылка)'}
                   placeholderTextColor={Colors.grey}
                   value={eventPlace}
                   onChangeText={setEventPlace}
@@ -726,6 +716,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: -16,
   },
   eventImage: {
     width: '100%',
@@ -747,6 +738,7 @@ const styles = StyleSheet.create({
   },
   bottomBackground: {
     width: "100%",
+    marginTop: -2
   },
   bottomContent: {
     padding: 16,

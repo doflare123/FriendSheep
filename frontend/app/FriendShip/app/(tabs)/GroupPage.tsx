@@ -368,34 +368,43 @@ const GroupPage = () => {
     .map(cat => CATEGORY_MAPPING[cat])
     .filter(cat => cat !== undefined);
 
-  const formattedSessions: EventType[] = groupData.sessions?.map(item => ({
-    id: item.session.id.toString(),
-    title: item.session.title,
-    date: new Date(item.session.start_time).toLocaleDateString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }),
-    genres: item.metadata?.genres || [],
-    currentParticipants: item.session.current_users,
-    maxParticipants: item.session.count_users_max,
-    duration: `${item.session.duration} мин`,
-    imageUri: item.session.image_url,
-    description: '',
-    typeEvent: item.session.session_type,
-    typePlace: item.session.session_place === 'offline' || item.session.session_place === 'online' 
-      ? item.session.session_place as 'online' | 'offline'
-      : 'online',
-    eventPlace: item.metadata?.location || '',
-    publisher: groupData.name,
-    publicationDate: item.session.start_time,
-    ageRating: '',
-    category: mappedCategories[0] as 'movie' | 'game' | 'table_game' | 'other' || 'other',
-    group: groupData.name,
-    onPress: () => {
-      console.log('Переход на сессию:', item.session.id);
-    }
-  })) || [];
+  const formattedSessions: EventType[] = groupData.sessions?.map(item => {
+    const sessionTypeToCategory: { [key: string]: 'movie' | 'game' | 'table_game' | 'other' } = {
+      'Фильмы': 'movie',
+      'Игры': 'game',
+      'Настольные игры': 'table_game',
+      'Другое': 'other',
+    };
+
+    return {
+      id: item.session.id.toString(),
+      title: item.session.title,
+      date: new Date(item.session.start_time).toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }),
+      genres: item.metadata?.genres || [],
+      currentParticipants: item.session.current_users,
+      maxParticipants: item.session.count_users_max,
+      duration: `${item.session.duration} мин`,
+      imageUri: item.session.image_url,
+      description: '',
+      typeEvent: item.session.session_type,
+      typePlace: item.session.session_place === 'offline' || item.session.session_place === 'online' 
+        ? item.session.session_place as 'online' | 'offline'
+        : 'online',
+      eventPlace: item.metadata?.location || '',
+      publisher: groupData.name,
+      publicationDate: item.session.start_time,
+      ageRating: '',
+      category: sessionTypeToCategory[item.session.session_type] || 'other',
+      group: groupData.name,
+      onPress: () => {
+        console.log('Переход на сессию:', item.session.id);
+      }
+    };
+  }) || [];
 
   return (
     <SafeAreaView style={styles.container}>

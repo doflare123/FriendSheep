@@ -21,8 +21,6 @@ interface InfoTabContentProps {
   setShortDescription: (value: string) => void;
   fullDescription: string;
   setFullDescription: (value: string) => void;
-  country: string;
-  setCountry: (value: string) => void;
   city: string;
   setCity: (value: string) => void;
   isPrivate: boolean;
@@ -44,8 +42,6 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
   setShortDescription,
   fullDescription,
   setFullDescription,
-  country,
-  setCountry,
   city,
   setCity,
   isPrivate,
