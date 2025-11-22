@@ -4,6 +4,7 @@ import { getTokens } from '@/api/storage/tokenStorage';
 import { API_BASE_URL } from '@env';
 import {
   buildSessionFormData,
+  downloadImage,
   logSessionData,
   uploadSessionImage
 } from './sessionHelpers';
@@ -30,13 +31,34 @@ class SessionService {
     try {
       console.log('[SessionService] 🚀 Создание сессии');
 
-      const imageUrl = await this.uploadSessionImage(sessionData.image.uri);
-
-      console.log('[SessionService] ✅ Изображение загружено');
+      let imageUrl: string;
+      
+      if (sessionData.image.uri.startsWith('http://') || 
+          sessionData.image.uri.startsWith('https://')) {
+        console.log('[SessionService] 🌐 Обнаружен внешний URL изображения');
+        
+        const localUri = await downloadImage(sessionData.image.uri);
+        imageUrl = await this.uploadSessionImage(localUri);
+        
+        console.log('[SessionService] ✅ Изображение с Кинопоиска загружено на сервер');
+      } else {
+        console.log('[SessionService] 📸 Загрузка локального изображения');
+        imageUrl = await this.uploadSessionImage(sessionData.image.uri);
+        console.log('[SessionService] ✅ Изображение загружено');
+      }
 
       logSessionData(sessionData, imageUrl);
-
       const formData = buildSessionFormData(sessionData, imageUrl);
+
+      console.log('[SessionService] 📋 Отправка FormData:');
+      //@ts-ignore
+      for (let [key, value] of formData.entries()) {
+        if (typeof value === 'string') {
+          console.log(`  ${key}: ${value.length > 100 ? value.substring(0, 100) + '...' : value}`);
+        } else {
+          console.log(`  ${key}: [object]`, value);
+        }
+      }
 
       const response = await fetch(`${BASE_URL}/sessions/createSession`, {
         method: 'POST',
@@ -48,8 +70,17 @@ class SessionService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        const errorData = JSON.parse(errorText);
-        throw new Error(errorData.message || errorData.error || 'Ошибка создания сессии');
+        console.error('[SessionService] ❌ Статус ответа:', response.status);
+        console.error('[SessionService] ❌ Тело ошибки:', errorText);
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          console.error('[SessionService] ❌ Распарсенная ошибка:', errorData);
+          throw new Error(errorData.message || errorData.error || 'Ошибка создания сессии');
+        } catch (parseError) {
+          console.error('[SessionService] ❌ Не удалось распарсить ошибку');
+          throw new Error(errorText || 'Ошибка создания сессии');
+        }
       }
 
       const result = await response.json();

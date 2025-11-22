@@ -1,9 +1,12 @@
+import kinopoiskService from '@/api/services/kinopoisk/kinopoiskService';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import { Event } from '@/components/event/EventCard';
+import KinopoiskButton from '@/components/event/KinopoiskButton';
 import CategorySelector from '@/components/event/modal/CategorySelector';
 import EventTypeSelector from '@/components/event/modal/EventTypeSelector';
 import GenreSelector from '@/components/event/modal/GenreSelector';
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import {
@@ -63,6 +66,9 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   const [eventImage, setEventImage] = useState<string>('');
   const [imageFile, setImageFile] = useState<any>(null);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+
+  const [kinopoiskModalVisible, setKinopoiskModalVisible] = useState(false);
+  const [isLoadingKinopoisk, setIsLoadingKinopoisk] = useState(false);
 
   useEffect(() => {
     if (editMode && initialData && visible) {
@@ -164,6 +170,66 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
     } catch (error) {
       console.error('[CreateEditEventModal] ❌ Ошибка выбора изображения:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить изображение');
+    }
+  };
+
+  const handleKinopoiskButtonPress = () => {
+    if (!eventName.trim()) {
+      Alert.alert('Ошибка', 'Сначала введите название фильма');
+      return;
+    }
+    setKinopoiskModalVisible(true);
+  };
+
+  const handleKinopoiskConfirm = async () => {
+    try {
+      setIsLoadingKinopoisk(true);
+      console.log('[CreateEditEventModal] 🎬 Загрузка данных с Кинопоиска для:', eventName);
+
+      const autoFillData = await kinopoiskService.getAutoFillData(eventName);
+
+      if (!autoFillData) {
+        Alert.alert(
+          'Не найдено',
+          'Фильм с таким названием не найден на Кинопоиске. Попробуйте изменить название.'
+        );
+        setKinopoiskModalVisible(false);
+        setIsLoadingKinopoisk(false);
+        return;
+      }
+
+      console.log('[CreateEditEventModal] ✅ Автозаполнение данными:', autoFillData);
+      
+      setDescription(autoFillData.description);
+      setSelectedGenres(autoFillData.genres);
+      setPublisher(autoFillData.publisher);
+      setPublishYear(autoFillData.year.toString());
+      setCountry(autoFillData.country);
+      setAgeRating(autoFillData.ageRating);
+      setDuration(autoFillData.duration);
+
+      if (autoFillData.imageUrl) {
+        setEventImage(autoFillData.imageUrl);
+
+        const filename = `kinopoisk_${Date.now()}.jpg`;
+        setImageFile({
+          uri: autoFillData.imageUrl,
+          name: filename,
+          type: 'image/jpeg',
+        });
+      }
+
+      setKinopoiskModalVisible(false);
+      Alert.alert('Успешно', 'Данные загружены с Кинопоиска!');
+    } catch (error: any) {
+      console.error('[CreateEditEventModal] ❌ Ошибка загрузки с Кинопоиска:', error);
+      Alert.alert(
+        'Ошибка',
+        error.message || 'Не удалось загрузить данные с Кинопоиска'
+      );
+    } finally {
+      setIsLoadingKinopoisk(false);
+      setKinopoiskModalVisible(false);
     }
   };
 
@@ -308,6 +374,8 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
     console.log('[CreateEditEventModal] ⚠️ selectedCategory изменился на:', selectedCategory);
   }, [selectedCategory]);
 
+  const showKinopoiskButton = selectedCategory === 'movie' && !editMode;
+
   return (
     <Modal visible={visible} animationType="fade" transparent>
       <View style={styles.overlay}>
@@ -336,25 +404,37 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            {isLoading && (
+            {(isLoading || isLoadingKinopoisk) && (
               <View style={styles.loadingOverlay}>
                 <ActivityIndicator size="large" color={Colors.lightBlue3} />
                 <Text style={styles.loadingText}>
-                  {editMode ? 'Сохранение изменений...' : 'Создание события...'}
+                  {isLoadingKinopoisk 
+                    ? 'Загрузка данных с Кинопоиска...' 
+                    : editMode ? 'Сохранение изменений...' : 'Создание события...'
+                  }
                 </Text>
               </View>
             )}
 
-            <View style={[styles.content, isLoading && styles.contentDisabled]}>
-              <TextInput
-                style={styles.input}
-                placeholder="Название *"
-                placeholderTextColor={Colors.grey}
-                value={eventName}
-                onChangeText={setEventName}
-                maxLength={100}
-                editable={!isLoading}
-              />
+            <View style={[styles.content, (isLoading || isLoadingKinopoisk) && styles.contentDisabled]}>
+              <View style={styles.nameInputContainer}>
+                {showKinopoiskButton && (
+                  <KinopoiskButton
+                    onPress={handleKinopoiskButtonPress}
+                    disabled={isLoading || !eventName.trim()}
+                    loading={isLoadingKinopoisk}
+                  />
+                )}
+                <TextInput
+                  style={[styles.input, showKinopoiskButton && styles.inputWithButton]}
+                  placeholder="Название *"
+                  placeholderTextColor={Colors.grey}
+                  value={eventName}
+                  onChangeText={setEventName}
+                  maxLength={100}
+                  editable={!isLoading}
+                />
+              </View>
 
               <TextInput
                 style={[styles.input, styles.textArea]}
@@ -559,6 +639,17 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
           </ScrollView>
         </View>
       </View>
+
+      <ConfirmationModal
+        visible={kinopoiskModalVisible}
+        title="Загрузить данные с Кинопоиска?"
+        message={eventName 
+          ? `Будет выполнен поиск фильма "${eventName}" и автоматическое заполнение полей формы.`
+          : 'Будет выполнен поиск по названию фильма и автоматическое заполнение полей формы.'
+        }
+        onConfirm={handleKinopoiskConfirm}
+        onCancel={() => setKinopoiskModalVisible(false)}
+      />
     </Modal>
   );
 };
@@ -586,7 +677,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   title: {
-    fontFamily: inter.black,
+    fontFamily: Montserrat.bold,
     fontSize: 18,
     color: Colors.black,
     textAlign: 'center',
@@ -619,9 +710,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    fontFamily: inter.medium,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     color: Colors.black,
+  },
+  nameInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   input: {
     borderBottomWidth: 1,
@@ -629,9 +725,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 0,
     marginBottom: 16,
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.black,
+  },
+  inputWithButton: {
+    flex: 1,
+    marginBottom: 0,
   },
   textArea: {
     borderWidth: 1,
@@ -641,7 +741,7 @@ const styles = StyleSheet.create({
     minHeight: 100,
   },
   sectionLabel: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.black,
     marginBottom: 10,
@@ -655,7 +755,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.lightGrey,
   },
   disabledText: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.grey,
   },
@@ -668,7 +768,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dateText: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.black,
     flex: 1,
@@ -731,7 +831,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   uploadText: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 14,
     color: Colors.grey,
     textAlign: 'center',
@@ -756,7 +856,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   createButtonText: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.blue3,
   },
@@ -767,7 +867,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   disabledFieldLabel: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.black,
     marginBottom: 8,

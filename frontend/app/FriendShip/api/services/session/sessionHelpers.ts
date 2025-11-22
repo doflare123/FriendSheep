@@ -1,9 +1,23 @@
 import { getTokens } from '@/api/storage/tokenStorage';
 // eslint-disable-next-line import/no-unresolved
 import { API_BASE_URL } from '@env';
+import * as FileSystem from 'expo-file-system';
 import { CreateSessionData } from './sessionTypes';
 
 const BASE_URL = API_BASE_URL || 'http://localhost:8080/api';
+
+export async function downloadImage(imageUrl: string): Promise<string> {
+  const filename = `kinopoisk_${Date.now()}.jpg`;
+  const localUri = `${FileSystem.cacheDirectory}${filename}`;
+  
+  const downloadResult = await FileSystem.downloadAsync(imageUrl, localUri);
+  
+  if (downloadResult.status !== 200) {
+    throw new Error(`Ошибка скачивания: ${downloadResult.status}`);
+  }
+  
+  return localUri;
+}
 
 export async function uploadSessionImage(imageUri: string): Promise<string> {
   try {
@@ -75,10 +89,6 @@ export function buildSessionFormData(
 
   if (sessionData.genres) {
     formData.append('genres', sessionData.genres);
-  }
-
-  if (sessionData.fields) {
-    formData.append('fields', sessionData.fields);
   }
 
   if (sessionData.location) {
