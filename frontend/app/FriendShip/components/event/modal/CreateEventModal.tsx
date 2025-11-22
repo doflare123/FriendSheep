@@ -24,6 +24,7 @@ import {
   View
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import YandexMapModal from './YandexMapModal';
 
 const screenHeight = Dimensions.get("window").height;
 
@@ -69,6 +70,8 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
 
   const [kinopoiskModalVisible, setKinopoiskModalVisible] = useState(false);
   const [isLoadingKinopoisk, setIsLoadingKinopoisk] = useState(false);
+
+  const [mapModalVisible, setMapModalVisible] = useState(false);
 
   useEffect(() => {
     if (editMode && initialData && visible) {
@@ -258,7 +261,14 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   };
 
   const handleMapPress = () => {
-    Alert.alert('Карта', 'Здесь будет открыта карта для выбора места');
+    if (eventType === 'offline') {
+      setMapModalVisible(true);
+    }
+  };
+
+  const handleSelectAddress = (address: string) => {
+    setEventPlace(address);
+    setMapModalVisible(false);
   };
 
   const handleDateConfirm = (date: Date) => {
@@ -546,7 +556,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                 />
 
                 <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                  style={[styles.input, { flex: 1, fontSize: 14 }]}
                   placeholder="Длительность (мин) *"
                   placeholderTextColor={Colors.grey}
                   value={duration}
@@ -650,6 +660,13 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
         onConfirm={handleKinopoiskConfirm}
         onCancel={() => setKinopoiskModalVisible(false)}
       />
+
+      <YandexMapModal
+        visible={mapModalVisible}
+        onClose={() => setMapModalVisible(false)}
+        onSelectAddress={handleSelectAddress}
+        initialAddress={eventPlace}
+      />
     </Modal>
   );
 };
@@ -720,11 +737,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   input: {
+    flex: 1,
     borderBottomWidth: 1,
     borderBottomColor: Colors.grey,
     paddingVertical: 8,
     paddingHorizontal: 0,
-    marginBottom: 16,
+    marginBottom: 12,
     fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.black,
@@ -749,6 +767,7 @@ const styles = StyleSheet.create({
   rowContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center'
   },
   disabledInput: {
     backgroundColor: Colors.lightLightGrey,
@@ -846,7 +865,7 @@ const styles = StyleSheet.create({
   createButton: {
     backgroundColor: Colors.white,
     marginHorizontal: 60,
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
