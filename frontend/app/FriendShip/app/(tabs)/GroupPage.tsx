@@ -165,6 +165,11 @@ const GroupPage = () => {
     }, [groupId])
   );
 
+  const handleSessionUpdate = useCallback(() => {
+    console.log('[GroupPage] 🔄 Обновление данных группы после изменения сессии');
+    loadGroupData();
+  }, [groupId]);
+
   const handlePrivateGroupRequestJoin = async () => {
     try {
       setIsProcessing(true);
@@ -389,20 +394,18 @@ const GroupPage = () => {
       maxParticipants: item.session.count_users_max,
       duration: `${item.session.duration} мин`,
       imageUri: item.session.image_url,
-      description: '',
+      description: item.metadata?.notes || '',
       typeEvent: item.session.session_type,
       typePlace: item.session.session_place === 'offline' || item.session.session_place === 'online' 
         ? item.session.session_place as 'online' | 'offline'
         : 'online',
       eventPlace: item.metadata?.location || '',
       publisher: groupData.name,
-      publicationDate: item.session.start_time,
-      ageRating: '',
+      publicationDate: item.metadata?.year?.toString() || '',
+      ageRating: item.metadata?.ageLimit || '',
       category: sessionTypeToCategory[item.session.session_type] || 'other',
       group: groupData.name,
-      onPress: () => {
-        console.log('Переход на сессию:', item.session.id);
-      }
+      onSessionUpdate: handleSessionUpdate,
     };
   }) || [];
 
@@ -641,67 +644,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.black,
     textAlign: 'center',
-  },
-  applicationsContainer: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-  },
-  applicationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGrey,
-  },
-  applicationImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-  },
-  applicationInfo: {
-    flex: 1,
-  },
-  applicationName: {
-    fontFamily: Montserrat.bold,
-    fontSize: 14,
-    color: Colors.black,
-  },
-  applicationUsername: {
-    fontFamily: Montserrat.regular,
-    fontSize: 12,
-    color: Colors.grey,
-  },
-  applicationActions: {
-    flexDirection: 'row',
-  },
-  approveButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.lightBlue3,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  approveButtonText: {
-    fontFamily: Montserrat.bold,
-    fontSize: 20,
-    color: Colors.white,
-  },
-  rejectButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.red,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  rejectButtonText: {
-    fontFamily: Montserrat.bold,
-    fontSize: 20,
-    color: Colors.white,
   },
   modalOverlay: {
     flex: 1,

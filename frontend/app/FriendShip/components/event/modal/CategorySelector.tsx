@@ -20,7 +20,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
   selected,
   onSelect,
 }) => {
-  console.log('[CategorySelector] 🎨 Текущий selected:', selected);
   
   return (
     <View>
@@ -28,7 +27,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
       <View style={styles.categoriesContainer}>
         {categories.map((category) => {
           const isSelected = selected === category.id;
-          console.log(`[CategorySelector] Категория ${category.id}: selected=${isSelected}`);
           
           return (
             <TouchableOpacity
@@ -38,7 +36,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
                 isSelected && styles.categorySelected
               ]}
               onPress={() => {
-                console.log('[CategorySelector] 👆 Клик на категорию:', category.id);
                 onSelect(category.id);
               }}
             >

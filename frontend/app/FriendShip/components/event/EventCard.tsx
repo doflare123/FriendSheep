@@ -1,8 +1,9 @@
+import EventModal from '@/components/event/modal/EventModal';
 import { Colors } from '@/constants/Colors';
 import { inter } from '@/constants/Inter';
 import { Montserrat } from '@/constants/Montserrat';
 import { formatTitle } from "@/utils/formatTitle";
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export interface Event {
@@ -24,6 +25,7 @@ export interface Event {
   category: 'movie' | 'game' | 'table_game' | 'other';
   group: string;
   onPress?: () => void;
+  onSessionUpdate?: () => void;
   highlightedTitle?: {
     before: string;
     match: string;
@@ -76,8 +78,23 @@ const EventCard: React.FC<Event> = ({
   eventPlace,
   group,
   highlightedTitle,
+  onSessionUpdate,
+  ...eventData
 }) => {
   const [placeTextWidth, setPlaceTextWidth] = React.useState(0);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const handleCardPress = () => {
+    if (onPress) {
+      onPress();
+    } else {
+      setModalVisible(true);
+    }
+  };
+
+  const handleModalClose = () => {
+    setModalVisible(false);
+  };
 
   const renderTitle = () => {
     if (highlightedTitle) {
@@ -102,89 +119,115 @@ const EventCard: React.FC<Event> = ({
 
   const hasGenres = genres && genres.length > 0;
 
+  const fullEvent: Event = {
+    title,
+    date,
+    genres,
+    currentParticipants,
+    maxParticipants,
+    duration,
+    imageUri,
+    category,
+    typePlace,
+    eventPlace,
+    group,
+    highlightedTitle,
+    onSessionUpdate,
+    ...eventData,
+  } as Event;
+
   return (
-    <View style={styles.shadowWrapper}>
-      <TouchableOpacity onPress={onPress} style={styles.card}>
-        <View style={styles.imageWrapper}>
-          <Image source={{ uri: imageUri }} style={styles.image} />
+    <>
+      <View style={styles.shadowWrapper}>
+        <TouchableOpacity onPress={handleCardPress} style={styles.card}>
+          <View style={styles.imageWrapper}>
+            <Image source={{ uri: imageUri }} style={styles.image} />
 
-          <View style={styles.dateBadgeContainer}>
-            <Image
-              source={require('@/assets/images/event_card/dateBadge.png')}
-              style={styles.dateBadge}
-            />
-            <Text style={styles.dateText}>{date}</Text>
+            <View style={styles.dateBadgeContainer}>
+              <Image
+                source={require('@/assets/images/event_card/dateBadge.png')}
+                style={styles.dateBadge}
+              />
+              <Text style={styles.dateText}>{date}</Text>
+            </View>
+
+            {typePlace === 'offline' && (
+              <View style={styles.placeBadgeContainer}>
+                <Image
+                  source={require('@/assets/images/event_card/placeBadge.png')}
+                  style={[styles.placeBadge, { width: placeTextWidth + 28 }]}
+                  resizeMode="stretch"
+                />
+                <Text 
+                  style={styles.placeText}
+                  onLayout={(e) => setPlaceTextWidth(e.nativeEvent.layout.width)}
+                >
+                  {eventPlace}
+                </Text>
+              </View>
+            )}
           </View>
 
-          {typePlace === 'offline' && (
-            <View style={styles.placeBadgeContainer}>
-              <Image
-                source={require('@/assets/images/event_card/placeBadge.png')}
-                style={[styles.placeBadge, { width: placeTextWidth + 28 }]}
-                resizeMode="stretch"
-              />
-              <Text 
-                style={styles.placeText}
-                onLayout={(e) => setPlaceTextWidth(e.nativeEvent.layout.width)}
-              >
-                {eventPlace}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.content}>
-          <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-            {renderTitle()}
+          <View style={styles.content}>
             <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-              <View style={styles.iconOverlay}>
-                  <Image
-                    source={categoryIcons[category]}
-                    style={{ resizeMode: 'contain', width: 16, height: 16 }}
-                  />
-              </View>
-              <View style={styles.iconOverlay}>
-                  <Image
-                    source={placeIcons[typePlace]}
-                    style={{ resizeMode: 'contain', width: 16, height: 16 }}
-                  />
-              </View>
-            </View>
-          </View>
-
-          {hasGenres && (
-            <View style={styles.genres}>
-              <Text style={[styles.metaText, { marginRight: 6, fontFamily: Montserrat.regular }]}>Жанры:</Text>
-              {getVisibleGenres(genres).map((genre, index) => (
-                <View key={index} style={styles.genreBadge}>
-                  <Text style={styles.genreText}>{genre}</Text>
+              {renderTitle()}
+              <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                <View style={styles.iconOverlay}>
+                    <Image
+                      source={categoryIcons[category]}
+                      style={{ resizeMode: 'contain', width: 16, height: 16 }}
+                    />
                 </View>
-              ))}
-            </View>
-          )}
-
-          <View style={[styles.metaContainer, {marginTop: 10}]}>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaText}>
-                Участники: {currentParticipants}/{maxParticipants}
-              </Text>
-              <Image
-                source={require("@/assets/images/event_card/person2.png")}
-                style={styles.metaIcon}
-              />
+                <View style={styles.iconOverlay}>
+                    <Image
+                      source={placeIcons[typePlace]}
+                      style={{ resizeMode: 'contain', width: 16, height: 16 }}
+                    />
+                </View>
+              </View>
             </View>
 
-            <View style={styles.metaRow}>
-              <Text style={styles.metaText}>{duration}</Text>
-              <Image
-                source={require("@/assets/images/event_card/duration.png")}
-                style={styles.metaIcon}
-              />
+            {hasGenres && (
+              <View style={styles.genres}>
+                <Text style={[styles.metaText, { marginRight: 6, fontFamily: Montserrat.regular }]}>Жанры:</Text>
+                {getVisibleGenres(genres).map((genre, index) => (
+                  <View key={index} style={styles.genreBadge}>
+                    <Text style={styles.genreText}>{genre}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <View style={[styles.metaContainer, {marginTop: 10}]}>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaText}>
+                  Участники: {currentParticipants}/{maxParticipants}
+                </Text>
+                <Image
+                  source={require("@/assets/images/event_card/person2.png")}
+                  style={styles.metaIcon}
+                />
+              </View>
+
+              <View style={styles.metaRow}>
+                <Text style={styles.metaText}>{duration}</Text>
+                <Image
+                  source={require("@/assets/images/event_card/duration.png")}
+                  style={styles.metaIcon}
+                />
+              </View>
             </View>
           </View>
-        </View>
-      </TouchableOpacity>
-    </View>
+        </TouchableOpacity>
+      </View>
+
+      <EventModal
+        visible={modalVisible}
+        onClose={handleModalClose}
+        event={fullEvent}
+        onSessionUpdate={onSessionUpdate}
+      />
+    </>
   );
 };
 

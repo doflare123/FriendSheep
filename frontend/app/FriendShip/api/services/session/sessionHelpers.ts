@@ -1,4 +1,4 @@
-import { getTokens } from '@/api/storage/tokenStorage';
+import { getTokens, refreshAccessToken } from '@/api/storage/tokenStorage';
 // eslint-disable-next-line import/no-unresolved
 import { API_BASE_URL } from '@env';
 import * as FileSystem from 'expo-file-system';
@@ -21,7 +21,7 @@ export async function downloadImage(imageUrl: string): Promise<string> {
 
 export async function uploadSessionImage(imageUri: string): Promise<string> {
   try {
-    const tokens = await getTokens();
+    let tokens = await getTokens();
     if (!tokens?.accessToken) {
       throw new Error('Пользователь не авторизован');
     }
@@ -39,7 +39,7 @@ export async function uploadSessionImage(imageUri: string): Promise<string> {
       type: `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`,
     } as any);
 
-    const response = await fetch(`${BASE_URL}/admin/groups/UploadPhoto`, {
+    let response = await fetch(`${BASE_URL}/admin/groups/UploadPhoto`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${tokens.accessToken}`,
@@ -49,10 +49,42 @@ export async function uploadSessionImage(imageUri: string): Promise<string> {
 
     console.log('[SessionHelpers] ✅ Статус загрузки:', response.status);
 
+    if (response.status === 401) {
+      console.log('[SessionHelpers] 🔄 Токен истёк, обновляем...');
+      
+      try {
+        const newAccessToken = await refreshAccessToken();
+        if (!newAccessToken) {
+          throw new Error('Не удалось обновить токен');
+        }
+
+        console.log('[SessionHelpers] ✅ Токен обновлён, повторная попытка...');
+
+        response = await fetch(`${BASE_URL}/admin/groups/UploadPhoto`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+          },
+          body: formData,
+        });
+
+        console.log('[SessionHelpers] ✅ Статус после обновления токена:', response.status);
+      } catch (refreshError) {
+        console.error('[SessionHelpers] ❌ Ошибка обновления токена:', refreshError);
+        throw new Error('Не удалось обновить токен. Пожалуйста, войдите снова.');
+      }
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[SessionHelpers] ❌ Ошибка загрузки:', errorText);
-      throw new Error('Ошибка загрузки изображения');
+      
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.error || errorData.message || 'Ошибка загрузки изображения');
+      } catch (parseError) {
+        throw new Error('Ошибка загрузки изображения');
+      }
     }
 
     const result = await response.json();
@@ -62,6 +94,7 @@ export async function uploadSessionImage(imageUri: string): Promise<string> {
       throw new Error('Не удалось получить URL изображения');
     }
     
+    console.log('[SessionHelpers] ✅ Изображение загружено:', imageUrl);
     return imageUrl as string;
   } catch (error: any) {
     console.error('[SessionHelpers] ❌ Ошибка:', error);
@@ -83,39 +116,45 @@ export function buildSessionFormData(
   formData.append('count_users', sessionData.count_users.toString());
   formData.append('image', imageUrl);
 
-  if (sessionData.duration !== undefined) {
+  if (sessionData.duration !== undefined && sessionData.duration !== null) {
     formData.append('duration', sessionData.duration.toString());
   }
 
-  if (sessionData.genres) {
+  if (sessionData.genres && sessionData.genres.trim()) {
     formData.append('genres', sessionData.genres);
   }
 
-  if (sessionData.location) {
+  if (sessionData.location && sessionData.location.trim()) {
     formData.append('location', sessionData.location);
   }
 
-  if (sessionData.year !== undefined) {
+  if (sessionData.year !== undefined && sessionData.year !== null && sessionData.year > 0) {
     formData.append('year', sessionData.year.toString());
   }
 
-  if (sessionData.country) {
+  if (sessionData.country && sessionData.country.trim()) {
     formData.append('country', sessionData.country);
+    console.log('[SessionHelpers] 📝 Издатель записан в country:', sessionData.country);
   }
 
-  if (sessionData.age_limit) {
+  if (sessionData.age_limit && sessionData.age_limit.trim()) {
     formData.append('age_limit', sessionData.age_limit);
   }
 
-  if (sessionData.notes) {
+  if (sessionData.notes && sessionData.notes.trim()) {
     formData.append('notes', sessionData.notes);
+    console.log('[SessionHelpers] 📝 Описание (notes) добавлено');
+  }
+
+  if (sessionData.fields && sessionData.fields.trim()) {
+    formData.append('fields', sessionData.fields);
   }
 
   return formData;
 }
 
 export function logSessionData(sessionData: CreateSessionData, imageUrl: string): void {
-  console.log('[SessionHelpers] 📦 Данные сессии:');
+  console.log('[SessionHelpers] 📦 Данные сессии для отправки:');
   console.log('  - title:', sessionData.title);
   console.log('  - session_type:', sessionData.session_type);
   console.log('  - session_place:', sessionData.session_place);
@@ -127,7 +166,8 @@ export function logSessionData(sessionData: CreateSessionData, imageUrl: string)
   console.log('  - genres:', sessionData.genres);
   console.log('  - location:', sessionData.location);
   console.log('  - year:', sessionData.year);
-  console.log('  - country:', sessionData.country);
+  console.log('  - country (издатель):', sessionData.country);
   console.log('  - age_limit:', sessionData.age_limit);
-  console.log('  - notes:', sessionData.notes);
+  console.log('  - notes (описание):', sessionData.notes);
+  console.log('  - fields:', sessionData.fields);
 }

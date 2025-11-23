@@ -79,8 +79,6 @@ class AuthService {
         password,
       });
 
-      console.log("=== LOGIN RESPONSE RAW ===", response.data);
-
       await saveTokens(
         response.data.access_token,
         response.data.refresh_token

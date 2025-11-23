@@ -1,3 +1,4 @@
+import authService from '@/api/services/authService';
 import BottomBar from '@/components/BottomBar';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import PageHeader from '@/components/PageHeader';
@@ -26,9 +27,18 @@ const GroupPage = () => {
     setShowLogoutModal(true);
   };
 
-  const handleConfirmLogout = () => {
-    setShowLogoutModal(false);
-    navigation.navigate('Login' as never);
+  const handleConfirmLogout = async () => {
+    try {
+      await authService.logout();
+      
+      console.log('[Settings] 🚪 Выход из аккаунта');
+      
+      setShowLogoutModal(false);
+
+      navigation.navigate('Login' as never);
+    } catch (error) {
+      console.error('[Settings] ❌ Ошибка выхода:', error);
+    }
   };
 
   const handleCancelLogout = () => {

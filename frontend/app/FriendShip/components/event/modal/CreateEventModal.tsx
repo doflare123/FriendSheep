@@ -75,47 +75,86 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
 
   useEffect(() => {
     if (editMode && initialData && visible) {
-      console.log('[CreateEditEventModal] Загрузка данных для редактирования:', initialData);
-      console.log('[CreateEditEventModal] 🎯 Устанавливаем категорию:', initialData.category);
-      
+      console.log('[CreateEditEventModal] 🔧 Загрузка данных для редактирования');
+      console.log('[CreateEditEventModal] 📦 initialData:', JSON.stringify(initialData, null, 2));
+
       setEventName(initialData.title);
-      setDescription(initialData.description);
+      console.log('[CreateEditEventModal] ✅ Название:', initialData.title);
+
+      setDescription(initialData.description || '');
+      console.log('[CreateEditEventModal] ✅ Описание:', initialData.description || '(пусто)');
+
       setSelectedCategory(initialData.category);
+      console.log('[CreateEditEventModal] ✅ Категория:', initialData.category);
+
       setEventType(initialData.typePlace);
-      setSelectedGenres(initialData.genres);
-      setPublisher(initialData.publisher);
-      
+      console.log('[CreateEditEventModal] ✅ Тип:', initialData.typePlace);
+
+      setSelectedGenres(initialData.genres || []);
+      console.log('[CreateEditEventModal] ✅ Жанры:', initialData.genres);
+
+      setPublisher(initialData.publisher || '');
+      console.log('[CreateEditEventModal] ✅ Издатель:', initialData.publisher || '(пусто)');
+ 
       if (initialData.publicationDate) {
-        const year = new Date(initialData.publicationDate).getFullYear();
-        if (!isNaN(year) && year !== new Date().getFullYear()) {
-          setPublishYear(year.toString());
+        const yearStr = initialData.publicationDate.toString();
+        if (yearStr.length === 4 && !isNaN(parseInt(yearStr))) {
+          setPublishYear(yearStr);
+          console.log('[CreateEditEventModal] ✅ Год (строка):', yearStr);
+        } else {
+          try {
+            const year = new Date(initialData.publicationDate).getFullYear();
+            if (!isNaN(year) && year > 1900) {
+              setPublishYear(year.toString());
+              console.log('[CreateEditEventModal] ✅ Год (дата):', year);
+            }
+          } catch (e) {
+            console.log('[CreateEditEventModal] ⚠️ Не удалось распарсить год:', initialData.publicationDate);
+          }
         }
       }
-      
-      setAgeRating(initialData.ageRating);
-      
+
+      setAgeRating(initialData.ageRating || '');
+      console.log('[CreateEditEventModal] ✅ Ограничение:', initialData.ageRating || '(пусто)');
+
       const durationMatch = initialData.duration.match(/\d+/);
       if (durationMatch) {
         setDuration(durationMatch[0]);
+        console.log('[CreateEditEventModal] ✅ Длительность:', durationMatch[0]);
+      }
+
+      setEventPlace(initialData.eventPlace || '');
+      console.log('[CreateEditEventModal] ✅ Место:', initialData.eventPlace || '(пусто)');
+
+      setMaxParticipants(initialData.maxParticipants.toString());
+      console.log('[CreateEditEventModal] ✅ Участников:', initialData.maxParticipants);
+
+      setEventImage(initialData.imageUri);
+      console.log('[CreateEditEventModal] ✅ Изображение установлено');
+
+      try {
+        const dateParts = initialData.date.split(' ');
+        if (dateParts.length >= 1) {
+          const [day, month, year] = dateParts[0].split('.');
+          const hours = dateParts.length > 1 ? dateParts[1].split(':')[0] : '0';
+          const minutes = dateParts.length > 1 ? dateParts[1].split(':')[1] : '0';
+          
+          const parsedDate = new Date(
+            parseInt(year),
+            parseInt(month) - 1,
+            parseInt(day),
+            parseInt(hours || '0'),
+            parseInt(minutes || '0')
+          );
+          
+          setEventDate(parsedDate);
+          console.log('[CreateEditEventModal] ✅ Дата:', parsedDate);
+        }
+      } catch (e) {
+        console.error('[CreateEditEventModal] ❌ Ошибка парсинга даты:', e);
       }
       
-      setEventPlace(initialData.eventPlace);
-      setMaxParticipants(initialData.maxParticipants.toString());
-      setEventImage(initialData.imageUri);
-
-      const dateParts = initialData.date.split(' ');
-      if (dateParts.length === 2) {
-        const [datePart, timePart] = dateParts;
-        const [day, month, year] = datePart.split('.');
-        const [hours, minutes] = timePart.split(':');
-        setEventDate(new Date(
-          parseInt(year),
-          parseInt(month) - 1,
-          parseInt(day),
-          parseInt(hours),
-          parseInt(minutes)
-        ));
-      }
+      console.log('[CreateEditEventModal] ✅ ВСЕ ДАННЫЕ ЗАГРУЖЕНЫ');
     } else if (!editMode && visible) {
       resetForm();
     }
@@ -340,7 +379,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
       date: formatDate(eventDate),
       start_time: formatDateToRFC3339(eventDate),
       duration: parseInt(duration),
-      eventPlace: eventType === 'offline' ? eventPlace.trim() : 'Онлайн',
+      eventPlace: eventPlace.trim(),
       maxParticipants: parseInt(maxParticipants),
       image: imageFile,
       imageUri: eventImage,

@@ -87,6 +87,7 @@ const GroupManagePage = () => {
     editEventModalVisible,
     setEditEventModalVisible,
     selectedEventId,
+    selectedEventData,
     handleCreateEvent,
     handleEditEvent,
     handleCreateEventSave,
@@ -214,7 +215,7 @@ const GroupManagePage = () => {
         onUpdate={handleEditEventSave}
         groupName={groupData?.name || 'Группа'}
         editMode={true}
-        initialData={formattedEvents.find((event) => event.id === selectedEventId)}
+        initialData={selectedEventData}
         availableGenres={availableGenres}
         isLoading={isUpdatingEvent}
       />

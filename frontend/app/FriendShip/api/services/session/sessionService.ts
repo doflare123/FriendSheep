@@ -1,5 +1,5 @@
 import apiClient from '@/api/apiClient';
-import { getTokens } from '@/api/storage/tokenStorage';
+import { getTokens, refreshAccessToken } from '@/api/storage/tokenStorage';
 // eslint-disable-next-line import/no-unresolved
 import { API_BASE_URL } from '@env';
 import {
@@ -23,7 +23,7 @@ class SessionService {
   }
 
   async createSession(sessionData: CreateSessionData): Promise<any> {
-    const tokens = await getTokens();
+    let tokens = await getTokens();
     if (!tokens?.accessToken) {
       throw new Error('Пользователь не авторизован');
     }
@@ -60,13 +60,42 @@ class SessionService {
         }
       }
 
-      const response = await fetch(`${BASE_URL}/sessions/createSession`, {
+      tokens = await getTokens();
+      if (!tokens?.accessToken) {
+        throw new Error('Токен отсутствует');
+      }
+
+      let response = await fetch(`${BASE_URL}/sessions/createSession`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${tokens.accessToken}`,
         },
         body: formData,
       });
+
+      if (response.status === 401) {
+        console.log('[SessionService] 🔄 Токен истёк, обновляем...');
+        
+        try {
+          const newAccessToken = await refreshAccessToken();
+          if (!newAccessToken) {
+            throw new Error('Не удалось обновить токен');
+          }
+
+          console.log('[SessionService] ✅ Токен обновлён, повторная попытка создания...');
+
+          response = await fetch(`${BASE_URL}/sessions/createSession`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${newAccessToken}`,
+            },
+            body: formData,
+          });
+        } catch (refreshError) {
+          console.error('[SessionService] ❌ Ошибка обновления токена:', refreshError);
+          throw new Error('Не удалось обновить токен. Пожалуйста, войдите снова.');
+        }
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -103,9 +132,12 @@ class SessionService {
 
   async joinSession(data: JoinSessionData): Promise<any> {
     try {
+      console.log('[SessionService] 🚪 Присоединение к сессии:', data);
       const response = await apiClient.post('/sessions/join', data);
+      console.log('[SessionService] ✅ Успешно присоединились к сессии');
       return response.data;
     } catch (error: any) {
+      console.error('[SessionService] ❌ Ошибка присоединения:', error);
       if (error.response?.status === 409) {
         throw new Error('Сессия заполнена или вы уже присоединились');
       }
@@ -115,8 +147,11 @@ class SessionService {
 
   async leaveSession(sessionId: number): Promise<void> {
     try {
+      console.log('[SessionService] 🚪 Выход из сессии:', sessionId);
       await apiClient.delete(`/sessions/${sessionId}/leave`);
+      console.log('[SessionService] ✅ Успешно покинули сессию');
     } catch (error: any) {
+      console.error('[SessionService] ❌ Ошибка выхода:', error);
       if (error.response?.status === 403) {
         throw new Error('Вы не состоите в этой сессии');
       }
@@ -144,6 +179,24 @@ class SessionService {
         throw new Error('Нет прав на редактирование сессии');
       }
       throw new Error(error.response?.data?.message || 'Ошибка обновления сессии');
+    }
+  }
+
+  async getSessionDetail(sessionId: number): Promise<any> {
+    try {
+      console.log('[SessionService] 📋 Загрузка детальной информации о сессии:', sessionId);
+      const response = await apiClient.get(`/users/sessions/${sessionId}`);
+      console.log('[SessionService] ✅ Данные сессии получены:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[SessionService] ❌ Ошибка загрузки сессии:', error);
+      if (error.response?.status === 404) {
+        throw new Error('Сессия не найдена');
+      }
+      if (error.response?.status === 403) {
+        throw new Error('Нет доступа к этой сессии');
+      }
+      throw new Error(error.response?.data?.message || 'Ошибка загрузки информации о сессии');
     }
   }
 }

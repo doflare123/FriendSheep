@@ -54,11 +54,8 @@ const Login = () => {
     setLoading(true);
 
     try {
-      console.log("🔥 LOGIN STARTED");
 
-      const data = await authService.login(email, password);
-
-      console.log("🔥 LOGIN RESPONSE:", data);
+      await authService.login(email, password);
 
       const savedTokens = await getTokens();
       console.log('[Login] Токены после логина:', savedTokens ? 'СОХРАНЕНЫ' : 'НЕ СОХРАНЕНЫ');
@@ -74,6 +71,8 @@ const Login = () => {
       }, 500);
 
     } catch (error: any) {
+      console.error('[Login] ❌ Ошибка:', error);
+      
       showToast({
         type: 'error',
         title: 'Ошибка входа',

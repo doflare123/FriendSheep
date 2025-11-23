@@ -1,9 +1,15 @@
+import sessionService from '@/api/services/session/sessionService';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import { useToast } from '@/components/ToastContext';
 import { Event } from '@/components/event/EventCard';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
-import React from 'react';
+// eslint-disable-next-line import/no-unresolved
+import { LOCAL_IP } from '@env';
+import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   ImageBackground,
@@ -35,7 +41,7 @@ interface EventModalProps {
   visible: boolean;
   onClose: () => void;
   event: Event;
-  onJoin?: () => void;
+  onSessionUpdate?: () => void;
 }
 
 const formatTitle = (title: string) => {
@@ -74,174 +80,410 @@ const formatPublisher = (publisher?: string) => {
   return publisher;
 };
 
-const EventModal: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
+const EventModal: React.FC<EventModalProps> = ({ 
+  visible, 
+  onClose, 
+  event,
+  onSessionUpdate 
+}) => {
   const { showToast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [sessionData, setSessionData] = useState<any>(null);
+  const [isParticipant, setIsParticipant] = useState(false);
+  const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
+  const [currentParticipants, setCurrentParticipants] = useState(event.currentParticipants);
+  const [maxParticipants, setMaxParticipants] = useState(event.maxParticipants);
+  
+  const [showLinkConfirmation, setShowLinkConfirmation] = useState(false);
+  const [pendingLink, setPendingLink] = useState<string>('');
 
-  const handleJoin = () => {
-    onClose();
-    showToast({
-      type: 'success',
-      title: 'Успешно!',
-      message: `Вы зарегистрированы на событие "${event.title}" ${event.date}`,
-    });
+  useEffect(() => {
+    if (visible) {
+      loadSessionDetail();
+    } else {
+      setSessionData(null);
+      setIsParticipant(false);
+      setShowLeaveConfirmation(false);
+    }
+  }, [visible, event.id]);
+
+  const loadSessionDetail = async () => {
+    try {
+      setIsLoading(true);
+      console.log('[EventModal] 📋 Загружаем детальные данные сессии:', event.id);
+
+      const data = await sessionService.getSessionDetail(parseInt(event.id));
+
+      if (data.session?.image_url && data.session.image_url.includes('localhost')) {
+        data.session.image_url = data.session.image_url.replace(
+          'http://localhost:8080', 
+          'http://' + LOCAL_IP + ':8080'
+        );
+      }
+
+      setSessionData(data);
+
+      setCurrentParticipants(data.session.current_users);
+      setMaxParticipants(data.session.count_users_max);
+      
+      console.log('[EventModal] ✅ Данные сессии загружены');
+    } catch (error: any) {
+      console.error('[EventModal] ❌ Ошибка загрузки сессии:', error);
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось загрузить информацию о сессии',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleJoinLeave = async () => {
+    if (isParticipant) {
+      setShowLeaveConfirmation(true);
+    } else {
+      await handleJoin();
+    }
+  };
+
+  const handleJoin = async () => {
+    try {
+      setIsProcessing(true);
+      console.log('[EventModal] 🚪 Присоединение к сессии');
+
+      await sessionService.joinSession({
+        group_id: sessionData.session.group_id,
+        session_id: parseInt(event.id),
+      });
+
+      setIsParticipant(true);
+      setCurrentParticipants(prev => prev + 1);
+
+      showToast({
+        type: 'success',
+        title: 'Успешно!',
+        message: `Вы зарегистрированы на событие "${event.title}"`,
+      });
+
+      onSessionUpdate?.();
+    } catch (error: any) {
+      console.error('[EventModal] ❌ Ошибка присоединения:', error);
+
+      if (error.message?.includes('уже присоединились')) {
+        setIsParticipant(true);
+      }
+      
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось присоединиться к сессии',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleLeave = async () => {
+    try {
+      setIsProcessing(true);
+      setShowLeaveConfirmation(false);
+      console.log('[EventModal] 🚪 Выход из сессии');
+
+      await sessionService.leaveSession(parseInt(event.id));
+
+      setIsParticipant(false);
+      setCurrentParticipants(prev => Math.max(0, prev - 1));
+
+      showToast({
+        type: 'success',
+        title: 'Успешно',
+        message: 'Вы покинули сессию',
+      });
+
+      onSessionUpdate?.();
+
+      onClose();
+    } catch (error: any) {
+      console.error('[EventModal] ❌ Ошибка выхода:', error);
+      
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось покинуть сессию',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getButtonText = () => {
+    if (isProcessing) return 'Загрузка...';
+    return isParticipant ? 'Покинуть' : 'Присоединиться';
+  };
+
+  const getButtonStyle = () => {
+    return isParticipant ? styles.leaveButton : styles.joinButton;
+  };
+
+
+  const formatDateTime = (isoDate?: string) => {
+    if (!isoDate) return 'Дата не указана';
+    
+    const date = new Date(isoDate);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${day}.${month}.${year} ${hours}:${minutes}`;
+  };
+
+  const navigation = useNavigation<any>();
+
+  const handleGroupPress = () => {
+    if (sessionData?.session?.group_id) {
+      onClose();
+      navigation.navigate('GroupPage', { 
+        groupId: sessionData.session.group_id 
+      });
+    }
+  }
+  
+  const handleLocationPress = () => {
+    const location = sessionData?.metadata?.Location || event.eventPlace;
+    
+    if (!location || location === 'Место не указано') {
+      return;
+    }
+
+    const isLink = location.startsWith('http://') || location.startsWith('https://');
+    
+    if (isLink) {
+      setPendingLink(location);
+      setShowLinkConfirmation(true);
+    } else {
+      const mapsUrl = `https://yandex.ru/maps/?text=${encodeURIComponent(location)}`;
+      Linking.openURL(mapsUrl);
+    }
+  };
+
+  const handleConfirmOpenLink = () => {
+    if (pendingLink) {
+      Linking.openURL(pendingLink);
+      setShowLinkConfirmation(false);
+      setPendingLink('');
+    }
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent>
-      <View style={styles.overlay}>
-        <TouchableWithoutFeedback onPress={onClose}>
-          <View style={StyleSheet.absoluteFill} />
-        </TouchableWithoutFeedback>
+    <>
+      <Modal visible={visible} animationType="fade" transparent>
+        <View style={styles.overlay}>
+          <TouchableWithoutFeedback onPress={onClose}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
 
-        <View style={styles.modal}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled
-            bounces={false}
-            alwaysBounceVertical={false}
-          >
-              <View style={styles.header}>
-                <Image source={{ uri: event.imageUri }} style={styles.image} />
+          <View style={styles.modal}>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={Colors.lightBlue3} />
+                <Text style={styles.loadingText}>Загрузка...</Text>
               </View>
-
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <Image
-                  tintColor={Colors.black}
-                  style={{ width: 35, height: 35, resizeMode: 'cover' }}
-                  source={require('@/assets/images/event_card/back.png')}
-                />
-              </TouchableOpacity>
-
-              <View style={styles.content}>
-                <View style={styles.titleRow}>
-                  <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
-                    {formatTitle(event.title)}
-                  </Text>
-                  <View style={styles.iconsRow}>
-                    <View style={styles.iconOverlay}>
-                      <Image
-                        source={categoryIcons[event.category]}
-                        style={{ resizeMode: 'contain', width: 20, height: 20 }}
-                      />
-                    </View>
-                    <View style={styles.iconOverlay}>
-                      <Image
-                        source={placeIcons[event.typePlace]}
-                        style={{ resizeMode: 'contain', width: 20, height: 20 }}
-                      />
-                    </View>
-                  </View>
-                </View>
-
-                <Text style={styles.description}>
-                  {formatDescription(event.description)}
-                </Text>
-
-                <View style={[styles.row, { marginBottom: 8 }]}>
-                  <View style={{ flexDirection: 'row' }}>
-                    <Text style={styles.label}>Дата:</Text>
-                    <Text style={styles.value}>{event.date}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row' }}>
-                    <Text style={styles.value}>{event.duration}</Text>
-                    <Image
-                      source={require('@/assets/images/event_card/duration.png')}
-                      style={{
-                        width: 20,
-                        height: 20,
-                        resizeMode: 'contain',
-                        marginStart: 2,
-                        marginTop: 6,
-                      }}
-                    />
-                  </View>
-                </View>
-
-                <Text style={styles.label}>Жанры:</Text>
-                <View style={styles.genres}>
-                  {formatGenres(event.genres).map((g) => (
-                    <View key={g} style={styles.genreBadge}>
-                      <Text style={styles.genreText}>{g}</Text>
-                    </View>
-                  ))}
-                </View>
-
-                {event.group && (
-                  <Text style={[styles.label, {marginBottom: 4}]}>
-                    Организатор: <Text
-                     style={[styles.value, { color: Colors.lightBlue3, marginTop: 0 }]}
-                     onPress={() => console.log("Pressed group")}>
-                      {event.group}
-                      </Text>
-                  </Text>
-                )}
-
-                <Text style={[styles.label, {marginTop: 2}]}>Место проведения:</Text>
-                <Text
-                  style={[styles.value, { color: Colors.lightBlue3, marginTop: 0 }]}
-                  onPress={() => Linking.openURL(event.eventPlace)}
-                >
-                  {formatEventPlace(event.eventPlace)}
-                </Text>
-
-                <View style={styles.row}>
-                  <View style={{ flexDirection: 'row' }}>
-                    <Text style={styles.label}>Участников:</Text>
-                    <Text style={styles.value}>
-                      {event.currentParticipants}/{event.maxParticipants}
-                    </Text>
-                    <Image
-                      source={require('@/assets/images/event_card/person.png')}
-                      style={{
-                        width: 20,
-                        height: 20,
-                        resizeMode: 'contain',
-                        marginStart: 2,
-                        marginTop: 6,
-                      }}
-                    />
-                  </View>
-                </View>
-              </View>
-
-              <ImageBackground
-                source={require('@/assets/images/event_card/bottom_rectangle.png')}
-                style={styles.bottomBackground}
-                resizeMode="stretch"
-                tintColor={Colors.lightBlue3}
+            ) : (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+                bounces={false}
+                alwaysBounceVertical={false}
               >
-                <View style={styles.bottomContent}>
-                  {formatPublisher(event.publisher) && (
-                    <Text style={styles.label}>
-                      Издатель: <Text style={styles.value}>{formatPublisher(event.publisher)}</Text>
-                    </Text>
-                  )}
-
-                  {event.publicationDate && (
-                    <Text style={styles.label}>
-                      Год издания: <Text style={styles.value}>{event.publicationDate}</Text>
-                    </Text>
-                  )}
-
-                  {event.ageRating && (
-                    <Text style={styles.label}>
-                      Возрастное ограничение: <Text style={styles.value}>{event.ageRating}</Text>
-                    </Text>
-                  )}
-
-                  <TouchableOpacity
-                    style={styles.joinButton}
-                    onPress={handleJoin}
-                  >
-                    <Text style={styles.joinButtonText}>Присоединиться</Text>
-                  </TouchableOpacity>
+                <View style={styles.header}>
+                  <Image 
+                    source={{ uri: sessionData?.session?.image_url || event.imageUri }} 
+                    style={styles.image} 
+                  />
                 </View>
-              </ImageBackground>
-          </ScrollView>
+
+                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                  <Image
+                    tintColor={Colors.black}
+                    style={{ width: 35, height: 35, resizeMode: 'cover' }}
+                    source={require('@/assets/images/event_card/back.png')}
+                  />
+                </TouchableOpacity>
+
+                <View style={styles.content}>
+                  <View style={styles.titleRow}>
+                    <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
+                      {formatTitle(sessionData?.session?.title || event.title)}
+                    </Text>
+                    <View style={styles.iconsRow}>
+                      <View style={styles.iconOverlay}>
+                        <Image
+                          source={categoryIcons[event.category]}
+                          style={{ resizeMode: 'contain', width: 20, height: 20 }}
+                        />
+                      </View>
+                      <View style={styles.iconOverlay}>
+                        <Image
+                          source={placeIcons[event.typePlace]}
+                          style={{ resizeMode: 'contain', width: 20, height: 20 }}
+                        />
+                      </View>
+                    </View>
+                  </View>
+
+                  <Text style={styles.description}>
+                    {formatDescription(sessionData?.metadata?.Notes || event.description)}
+                  </Text>
+
+                  <View style={[styles.row, { marginBottom: 8 }]}>
+                    <View style={{ flexDirection: 'row', flex: 1 }}>
+                      <Text style={styles.label}>Дата:</Text>
+                      <Text style={styles.value} numberOfLines={1}>
+                        {formatDateTime(sessionData?.session?.start_time) || event.date}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row' }}>
+                      <Text style={styles.value}>
+                        {sessionData?.session?.duration || event.duration.replace(' мин', '')} мин
+                      </Text>
+                      <Image
+                        source={require('@/assets/images/event_card/duration.png')}
+                        style={{
+                          width: 20,
+                          height: 20,
+                          resizeMode: 'contain',
+                          marginStart: 2,
+                          marginTop: 6,
+                        }}
+                      />
+                    </View>
+                  </View>
+
+                  <Text style={styles.label}>Жанры:</Text>
+                  <View style={styles.genres}>
+                    {formatGenres(sessionData?.metadata?.Genres || event.genres).map((g, index) => (
+                      <View key={`${g}-${index}`} style={styles.genreBadge}>
+                        <Text style={styles.genreText}>{g}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {event.group && (
+                    <View style={{ marginBottom: 4 }}>
+                      <Text style={styles.label}>
+                        Организатор:{' '}
+                        <Text
+                          style={[styles.value, styles.clickableText]}
+                          onPress={handleGroupPress}
+                        >
+                          {event.group}
+                        </Text>
+                      </Text>
+                    </View>
+                  )}
+
+                  <Text style={[styles.label, { marginTop: 2 }]}>Место проведения:</Text>
+                  <Text
+                    style={[styles.value, styles.clickableText, {marginTop: 2}]}
+                    onPress={handleLocationPress}
+                  >
+                    {formatEventPlace(sessionData?.metadata?.Location || event.eventPlace)}
+                  </Text>
+
+                  <View style={styles.row}>
+                    <View style={{ flexDirection: 'row' }}>
+                      <Text style={styles.label}>Участников:</Text>
+                      <Text style={styles.value}>
+                        {currentParticipants}/{maxParticipants}
+                      </Text>
+                      <Image
+                        source={require('@/assets/images/event_card/person.png')}
+                        style={{
+                          width: 20,
+                          height: 20,
+                          resizeMode: 'contain',
+                          marginStart: 2,
+                          marginTop: 6,
+                        }}
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                <ImageBackground
+                  source={require('@/assets/images/event_card/bottom_rectangle.png')}
+                  style={styles.bottomBackground}
+                  resizeMode="stretch"
+                  tintColor={Colors.lightBlue3}
+                >
+                  <View style={styles.bottomContent}>
+                    {formatPublisher(sessionData?.metadata?.Country || event.publisher) && (
+                      <Text style={styles.label}>
+                        Издатель: <Text style={styles.value}>
+                          {formatPublisher(sessionData?.metadata?.Country || event.publisher)}
+                        </Text>
+                      </Text>
+                    )}
+
+                    {(sessionData?.metadata?.Year || event.publicationDate) && (
+                      <Text style={styles.label}>
+                        Год издания: <Text style={styles.value}>
+                          {sessionData?.metadata?.Year || event.publicationDate}
+                        </Text>
+                      </Text>
+                    )}
+
+                    {(sessionData?.metadata?.AgeLimit || event.ageRating) && (
+                      <Text style={styles.label}>
+                        Возрастное ограничение: <Text style={styles.value}>
+                          {sessionData?.metadata?.AgeLimit || event.ageRating}
+                        </Text>
+                      </Text>
+                    )}
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, getButtonStyle()]}
+                      onPress={handleJoinLeave}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? (
+                        <ActivityIndicator color={Colors.white} size="small" />
+                      ) : (
+                        <Text style={styles.actionButtonText}>{getButtonText()}</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </ImageBackground>
+              </ScrollView>
+            )}
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      <ConfirmationModal
+        visible={showLeaveConfirmation}
+        title="Покинуть сессию?"
+        message="Вы уверены, что хотите покинуть эту сессию?"
+        onConfirm={handleLeave}
+        onCancel={() => setShowLeaveConfirmation(false)}
+      />
+
+      <ConfirmationModal
+        visible={showLinkConfirmation}
+        title="Открыть ссылку?"
+        message={`Вы будете перенаправлены на:\n${pendingLink}`}
+        onConfirm={handleConfirmOpenLink}
+        onCancel={() => {
+          setShowLinkConfirmation(false);
+          setPendingLink('');
+        }}
+      />
+    </>
   );
 };
 
@@ -257,6 +499,17 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: Colors.white,
     maxHeight: screenHeight * 0.85,
+  },
+  loadingContainer: {
+    padding: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontFamily: Montserrat.regular,
+    fontSize: 16,
+    color: Colors.grey,
   },
   header: {
     alignItems: 'center',
@@ -327,7 +580,11 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     marginBottom: 8,
   },
-  genreText: { fontFamily: Montserrat.regular, color: Colors.black, fontSize: 12 },
+  genreText: { 
+    fontFamily: Montserrat.regular, 
+    color: Colors.black, 
+    fontSize: 12 
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -335,31 +592,39 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
   bottomBackground: {
     width: "100%",
   },
   bottomContent: {
     padding: 16,
   },
-  joinButton: {
+  actionButton: {
     marginTop: 16,
-    backgroundColor: Colors.white,
     marginHorizontal: 60,
-    paddingVertical: 6,
+    paddingVertical: 10,
     borderRadius: 20,
     alignItems: 'center',
   },
-  joinButtonText: {
+  joinButton: {
+    backgroundColor: Colors.white,
+  },
+  leaveButton: {
+    backgroundColor: Colors.red,
+  },
+  actionButtonText: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.blue3,
   },
-  closeButton: { position: 'absolute', top: 5, right: 10, zIndex: 10 },
+  closeButton: { 
+    position: 'absolute', 
+    top: 5, 
+    right: 10, 
+    zIndex: 10 
+  },
+  clickableText: {
+    color: Colors.lightBlue3,
+  },
 });
 
 export default EventModal;
