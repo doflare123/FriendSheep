@@ -2,15 +2,22 @@
 import { LOCAL_IP } from "@env";
 
 export const normalizeImageUrl = (imageUrl: string | null | undefined): string => {
-  if (!imageUrl) return '';
-  
-  if (imageUrl.includes('localhost')) {
-    return imageUrl.replace('localhost', LOCAL_IP);
+  if (!imageUrl) {
+    console.warn('[imageUtils] ⚠️ Пустой URL изображения');
+    return '';
   }
-  
-  if (imageUrl.includes('127.0.0.1')) {
-    return imageUrl.replace('127.0.0.1', LOCAL_IP);
+
+  if (imageUrl.includes('localhost:8080')) {
+    const normalized = imageUrl.replace('http://localhost:8080', `http://${LOCAL_IP}:8080`);
+    console.log('[imageUtils] 🔄 Нормализован localhost URL:', normalized);
+    return normalized;
   }
-  
+
+  if (imageUrl.includes('127.0.0.1:8080')) {
+    const normalized = imageUrl.replace('http://127.0.0.1:8080', `http://${LOCAL_IP}:8080`);
+    console.log('[imageUtils] 🔄 Нормализован 127.0.0.1 URL:', normalized);
+    return normalized;
+  }
+
   return imageUrl;
 };

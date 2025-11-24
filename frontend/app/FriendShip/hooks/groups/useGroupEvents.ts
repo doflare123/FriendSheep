@@ -119,17 +119,15 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
         image: eventData.image,
       };
 
-      console.log('[useGroupEvents] 📝 Сформированные данные для API:');
-      console.log('  - notes (описание):', sessionData.notes);
-      console.log('  - country (издатель):', sessionData.country);
-      console.log('  - year:', sessionData.year);
-      console.log('  - age_limit:', sessionData.age_limit);
-      console.log('  - location:', sessionData.location);
-
-      await sessionService.createSession(sessionData);
+      const result = await sessionService.createSession(sessionData);
+      
+      console.log('[useGroupEvents] ✅ Событие создано, ID:', result.id || result.session_id);
       
       setCreateEventModalVisible(false);
-      Alert.alert('Успешно', 'Событие создано!');
+      Alert.alert('Успешно', 'Событие создано! Вы автоматически присоединились к нему.');
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       onSuccess();
     } catch (error: any) {
       console.error('[useGroupEvents] ❌ Ошибка создания:', error);

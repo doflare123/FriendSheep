@@ -1,4 +1,6 @@
+import { PublicGroupResponse } from '@/api/services/groupService';
 import { Session } from '@/api/types/user';
+import { normalizeImageUrl } from '@/utils/imageUtils';
 
 export interface Event {
   id: string;
@@ -19,6 +21,7 @@ export interface Event {
   category: 'movie' | 'game' | 'table_game' | 'other';
   group: string;
   onPress?: () => void;
+  onSessionUpdate?: () => void;
   highlightedTitle?: {
     before: string;
     match: string;
@@ -37,29 +40,49 @@ export const sessionToEvent = (session: Session): Event => {
   const startDate = new Date(session.start_time);
   const endDate = new Date(session.end_time);
 
-  const date = startDate.toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-  });
+  const day = String(startDate.getDate()).padStart(2, '0');
+  const month = String(startDate.getMonth() + 1).padStart(2, '0');
+  const year = startDate.getFullYear();
+  const date = `${day}.${month}.${year}`;
 
   const durationMs = endDate.getTime() - startDate.getTime();
-  const hours = Math.floor(durationMs / (1000 * 60 * 60));
-  const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-  const duration = hours > 0 ? `${hours}ч ${minutes}м` : `${minutes}м`;
+  const totalMinutes = Math.floor(durationMs / (1000 * 60));
+  const duration = `${totalMinutes} мин`;
   
   const categoryMap: Record<string, Event['category']> = {
     'movie': 'movie',
     'film': 'movie',
+    'фильмы': 'movie',
+    'фильм': 'movie',
     'game': 'game',
     'video_game': 'game',
+    'игры': 'game',
+    'игра': 'game',
     'table_game': 'table_game',
     'board_game': 'table_game',
+    'настольные игры': 'table_game',
+    'настольная игра': 'table_game',
     'other': 'other',
+    'другое': 'other',
   };
   
   const category = categoryMap[session.category_session?.toLowerCase()] || 
                    categoryMap[session.type_session?.toLowerCase()] || 
                    'other';
+
+  const typeSessionLower = session.type_session?.toLowerCase() || '';
+  const typePlace: 'online' | 'offline' = 
+    typeSessionLower === 'офлайн' || typeSessionLower === 'offline' ? 'offline' : 'online';
+
+  const eventPlace = typePlace === 'offline' 
+    ? (session.location || session.city || '') 
+    : '';
+
+  console.log('[sessionToEvent] 🔍', session.title);
+  console.log('  - type_session:', session.type_session);
+  console.log('  - location:', session.location);
+  console.log('  - typePlace:', typePlace);
+  console.log('  - eventPlace:', eventPlace);
   
   return {
     id: session.id.toString(),
@@ -69,13 +92,13 @@ export const sessionToEvent = (session: Session): Event => {
     currentParticipants: session.current_users,
     maxParticipants: session.max_users,
     duration,
-    imageUri: session.image_url,
+    imageUri: normalizeImageUrl(session.image_url),
     description: '',
     typeEvent: session.type_session,
-    typePlace: session.city ? 'offline' : 'online',
-    eventPlace: session.city || 'Онлайн',
+    typePlace,
+    eventPlace,
     publisher: '',
-    publicationDate: session.start_time,
+    publicationDate: year.toString(),
     ageRating: '',
     category,
     group: '',
@@ -87,6 +110,63 @@ export const sessionsToEvents = (sessions?: Session[] | null): Event[] => {
     return [];
   }
   return sessions.map(sessionToEvent);
+};
+
+export const groupSessionsToEvents = (
+  groupData: PublicGroupResponse,
+  onSessionUpdate?: () => void
+): Event[] => {
+  if (!groupData.sessions || groupData.sessions.length === 0) {
+    return [];
+  }
+
+  const sessionTypeToCategory: { [key: string]: Event['category'] } = {
+    'Фильмы': 'movie',
+    'Игры': 'game',
+    'Настольные игры': 'table_game',
+    'Другое': 'other',
+  };
+
+  return groupData.sessions.map(item => {
+    const sessionPlace = item.session.session_place.toLowerCase();
+    const typePlace: 'online' | 'offline' = 
+      sessionPlace === 'офлайн' || sessionPlace === 'offline' ? 'offline' : 'online';
+
+    const location = item.metadata?.Location || (item.metadata as any)?.location || '';
+
+    const eventPlace = typePlace === 'offline' ? location : '';
+
+    console.log('[groupSessionsToEvents] 🔍', item.session.title);
+    console.log('  - session_place:', item.session.session_place);
+    console.log('  - Location:', location);
+    console.log('  - typePlace:', typePlace);
+    console.log('  - eventPlace:', eventPlace);
+
+    return {
+      id: item.session.id.toString(),
+      title: item.session.title,
+      date: new Date(item.session.start_time).toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }),
+      genres: item.metadata?.Genres || (item.metadata as any)?.genres || [],
+      currentParticipants: item.session.current_users,
+      maxParticipants: item.session.count_users_max,
+      duration: `${item.session.duration} мин`,
+      imageUri: item.session.image_url,
+      description: item.metadata?.Notes || (item.metadata as any)?.notes || '',
+      typeEvent: item.session.session_type,
+      typePlace,
+      eventPlace,
+      publisher: groupData.name,
+      publicationDate: item.metadata?.Year?.toString() || (item.metadata as any)?.year?.toString() || '',
+      ageRating: item.metadata?.AgeLimit || (item.metadata as any)?.ageLimit || '',
+      category: sessionTypeToCategory[item.session.session_type] || 'other',
+      group: groupData.name,
+      onSessionUpdate,
+    };
+  });
 };
 
 export const generateStatisticsData = (): StatisticsDataItem[] => {

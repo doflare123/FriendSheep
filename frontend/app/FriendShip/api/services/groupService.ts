@@ -109,12 +109,12 @@ export interface PublicGroupResponse {
     };
     metadata: {
       sessionID: number;
-      genres: string[];
-      location: string;
-      year: number;
-      country: string;
-      ageLimit: string;
-      notes: string;
+      Genres: string[];
+      Location: string;
+      Year: number;
+      Country: string;
+      AgeLimit: string;
+      Notes: string;
       fields: Record<string, any>;
     };
   }[];

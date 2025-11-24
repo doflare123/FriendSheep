@@ -1,4 +1,5 @@
 import sessionService from '@/api/services/session/sessionService';
+import userService from '@/api/services/userService';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { useToast } from '@/components/ToastContext';
 import { Event } from '@/components/event/EventCard';
@@ -123,9 +124,41 @@ const EventModal: React.FC<EventModalProps> = ({
       }
 
       setSessionData(data);
-
       setCurrentParticipants(data.session.current_users);
       setMaxParticipants(data.session.count_users_max);
+
+      try {
+        const userProfile = await userService.getCurrentUserProfile();
+        
+        console.log('[EventModal] 🔍 Проверка участия для сессии:', event.id);
+        console.log('[EventModal] 📋 Upcoming sessions:', JSON.stringify(userProfile.upcoming_sessions, null, 2));
+        console.log('[EventModal] 📋 Recent sessions:', JSON.stringify(userProfile.recent_sessions, null, 2));
+        
+        const isInUpcoming = userProfile.upcoming_sessions?.some(
+          s => {
+            console.log(`[EventModal] Проверка upcoming: ${s.id} === ${parseInt(event.id)}, status: ${s.status}`);
+            return s.id === parseInt(event.id);
+          }
+        );
+        
+        const isInRecent = userProfile.recent_sessions?.some(
+          s => {
+            console.log(`[EventModal] Проверка recent: ${s.id} === ${parseInt(event.id)}, status: ${s.status}`);
+            return s.id === parseInt(event.id);
+          }
+        );
+        
+        const userIsParticipant = isInUpcoming || isInRecent;
+        setIsParticipant(userIsParticipant);
+        
+        console.log('[EventModal] 👤 Результат проверки участия:', {
+          isInUpcoming,
+          isInRecent,
+          userIsParticipant
+        });
+      } catch (profileError) {
+        console.warn('[EventModal] ⚠️ Не удалось проверить статус участия:', profileError);
+      }
       
       console.log('[EventModal] ✅ Данные сессии загружены');
     } catch (error: any) {
@@ -167,12 +200,14 @@ const EventModal: React.FC<EventModalProps> = ({
         message: `Вы зарегистрированы на событие "${event.title}"`,
       });
 
+      await loadSessionDetail();
       onSessionUpdate?.();
     } catch (error: any) {
       console.error('[EventModal] ❌ Ошибка присоединения:', error);
 
       if (error.message?.includes('уже присоединились')) {
         setIsParticipant(true);
+        await loadSessionDetail();
       }
       
       showToast({
@@ -202,6 +237,7 @@ const EventModal: React.FC<EventModalProps> = ({
         message: 'Вы покинули сессию',
       });
 
+      await loadSessionDetail();
       onSessionUpdate?.();
 
       onClose();
@@ -609,12 +645,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   leaveButton: {
-    backgroundColor: Colors.red,
+    backgroundColor: Colors.white,
   },
   actionButtonText: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.blue3,
+    color: Colors.red,
   },
   closeButton: { 
     position: 'absolute', 

@@ -20,6 +20,22 @@ export interface Session {
   genres: string[];
 }
 
+export interface SessionInfo {
+  id: number;
+  title: string;
+  category_session: string;
+  type_session: string;
+  city: string;
+  start_time: string;
+  end_time: string;
+  current_users: number;
+  max_users: number;
+  image_url: string;
+  genres: string[];
+  location: string;
+  status: string;
+}
+
 export interface UserStats {
   count_all: number;
   count_films: number;
@@ -41,10 +57,24 @@ export interface UserProfile {
   telegram_link: boolean;
   enterprise: boolean;
   tiles: string[];
-  popular_genres: Genre[];
-  recent_sessions: Session[];
-  upcoming_sessions: Session[];
-  user_stats: UserStats;
+  user_stats: {
+    count_all: number;
+    count_films: number;
+    count_games: number;
+    count_table_games: number;
+    count_another: number;
+    most_pop_day: string;
+    count_create_session: number;
+    series_session_count: number;
+    spent_time: number;
+    most_big_session: number;
+  };
+  popular_genres: {
+    name: string;
+    count: number;
+  }[];
+  recent_sessions: SessionInfo[];
+  upcoming_sessions: SessionInfo[];
 }
 
 export interface Subscription {
