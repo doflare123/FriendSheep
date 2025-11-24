@@ -24,10 +24,11 @@ export async function getGroupInfoAdmin(accessToken: string, groupId: number): P
       users: response.data.users || [],
       sessions: convertSessionsToEventCards(response.data.sessions) || [],
       small_description: response.data.small_description,
-      private: response.data.private
+      private: response.data.private,
+      subscribers: response.data.subscribers || null
     }
 
-    console.log("returnData", returnData);
+    //console.log("returnData", returnData);
     return returnData;
   } catch (error: any) {
     console.error('Ошибка при получении группы:', error);

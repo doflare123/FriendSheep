@@ -1,0 +1,403 @@
+/* Header.module.css */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1.5rem;
+  min-height: 5rem;
+  border-color: #316BC2;
+  border-width: 0px 0px 2px 0px;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 100;
+}
+
+/* Логотип */
+.logoSection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.logoSection:hover {
+  opacity: 0.8;
+}
+
+.logoImage {
+  border-radius: 1rem;
+}
+
+.logoText {
+  font-size: 1.875rem;
+  font-family: 'Inter', sans-serif;
+  color: #37A2E6;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Навигация */
+.navSection {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1.5rem;
+  font-size: 1.5rem;
+  color: black;
+  font-family: 'Inter', sans-serif;
+}
+
+.navLink {
+  color: black;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.navLink:hover {
+  text-decoration: underline;
+}
+
+/* Выпадающее меню поиска */
+.searchMenuContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.searchDropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.5rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.5rem 0;
+  min-width: 150px;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.searchDropdownItem {
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.searchDropdownItem:hover {
+  background-color: #f5f5f5;
+}
+
+/* Правая секция */
+.authSection {
+  font-size: 1.5rem;
+  color: black;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+/* Неавторизованный пользователь */
+.authLink {
+  color: black;
+  text-decoration: none;
+  padding: 0 0.25rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.authLink:hover {
+  text-decoration: underline;
+}
+
+.authSeparator {
+  user-select: none;
+}
+
+/* Авторизованный пользователь */
+.createButton {
+  background-color: #316BC2;
+  color: white;
+  border: none;
+  border-radius: 2rem;
+  padding: 0.5rem 1.5rem;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.createButton:hover {
+  background-color: #2859a8;
+  transform: translateY(-1px);
+}
+
+.notificationContainer {
+  position: relative;
+}
+
+.notificationButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.notificationButton:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.notificationBadge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background-color: #ff4444;
+  border-radius: 50%;
+  display: block;
+}
+
+.username {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.avatarContainer {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.avatar:hover {
+  border-color: #37A2E6;
+  transform: scale(1.05);
+}
+
+.loadingSkeleton {
+  color: #999;
+  font-size: 1rem;
+}
+
+/* Адаптивность для средних планшетов (до 1100px) */
+@media (max-width: 1100px) {
+  .username {
+    display: none;
+  }
+}
+
+/* Адаптивность для средних планшетов (до 900px) */
+@media (max-width: 900px) {
+  .navSection {
+    gap: 1rem;
+    font-size: 1.3rem;
+  }
+  
+  .authSection {
+    gap: 0.8rem;
+  }
+  
+  .createButton {
+    padding: 0.45rem 1.2rem;
+    font-size: 0.95rem;
+  }
+}
+
+/* Адаптивность для планшетов (до 768px) */
+@media (max-width: 768px) {
+  .header {
+    padding: 0 1rem;
+    min-height: 4.5rem;
+  }
+  
+  .logoSection {
+    gap: 0.4rem;
+  }
+  
+  .logoImage {
+    width: 42px;
+    height: 42px;
+  }
+  
+  .logoText {
+    font-size: 1.6rem;
+  }
+  
+  .navSection {
+    display: none;
+  }
+  
+  .authSection {
+    font-size: 1.25rem;
+    gap: 0.6rem;
+  }
+  
+  .createButton {
+    padding: 0.4rem 1.1rem;
+    font-size: 0.9rem;
+  }
+  
+  .notificationButton {
+    padding: 0.4rem;
+  }
+  
+  .avatar {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+/* Адаптивность для мобильных (до 480px) */
+@media (max-width: 480px) {
+  .header {
+    padding: 0 0.75rem;
+    min-height: 3.5rem;
+  }
+  
+  .logoSection {
+    gap: 0.3rem;
+  }
+  
+  .logoImage {
+    width: 35px;
+    height: 35px;
+    border-radius: 0.75rem;
+  }
+  
+  .logoText {
+    font-size: 1.25rem;
+  }
+  
+  .authSection {
+    font-size: 1rem;
+    gap: 0.4rem;
+  }
+  
+  .authLink {
+    font-size: 0.9rem;
+  }
+  
+  .createButton {
+    padding: 0.35rem 0.85rem;
+    font-size: 0.85rem;
+    border-radius: 1.5rem;
+  }
+  
+  .notificationButton {
+    padding: 0.3rem;
+  }
+  
+  .notificationBadge {
+    width: 7px;
+    height: 7px;
+    top: 1px;
+    right: 1px;
+  }
+  
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-width: 1.5px;
+  }
+  
+  .loadingSkeleton {
+    font-size: 0.85rem;
+  }
+  
+  .notificationButton svg,
+  .avatarContainer svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Адаптивность для очень маленьких экранов (до 360px) */
+@media (max-width: 360px) {
+  .header {
+    padding: 0 0.5rem;
+    min-height: 3.25rem;
+  }
+  
+  .logoImage {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .logoText {
+    font-size: 1.1rem;
+  }
+  
+  .authSection {
+    gap: 0.3rem;
+  }
+  
+  .authLink {
+    font-size: 0.85rem;
+  }
+  
+  .authSeparator {
+    font-size: 0.85rem;
+  }
+  
+  .createButton {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.8rem;
+  }
+  
+  .avatar {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .notificationButton {
+    padding: 0.25rem;
+  }
+  
+  .notificationButton svg,
+  .avatarContainer svg {
+    width: 18px;
+    height: 18px;
+  }
+}

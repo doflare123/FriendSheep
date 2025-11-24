@@ -20,17 +20,17 @@ const Footer: React.FC = () => {
                     </div>
                     
                     <div className="footer-links">
-                        <a href="/privacy" className="footer-link">Политика конфиденциальности</a>
+                        <a href="/info/privacy" className="footer-link">Политика конфиденциальности</a>
                         <span className="text-gray-400">·</span>
-                        <a href="/about" className="footer-link">О нас</a>
+                        <a href="/info/about" className="footer-link">О нас</a>
                         <span className="text-gray-400">·</span>
-                        <a href="/feedback" className="footer-link">Обратная связь</a>
+                        <a href="https://www.youtube.com/watch?v=eBGIQ7ZuuiU" className="footer-link">Обратная связь</a>
                         
                     </div>
 
                     <div className="footer-links">
                         <span className="text-gray-400">·</span>
-                        <a href="/complaints" className="footer-link">Подача заявки на подтверждение личности</a>
+                        <a href="https://www.youtube.com/watch?v=eBGIQ7ZuuiU" className="footer-link">Подача заявки на подтверждение личности</a>
                     </div>
                     
                     <div className="text-gray-500 mt-5">

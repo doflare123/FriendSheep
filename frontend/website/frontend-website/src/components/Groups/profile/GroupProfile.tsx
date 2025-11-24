@@ -11,6 +11,7 @@ import {joinGroup} from '@/api/groups/joinGroup';
 import {leaveGroup} from '@/api/groups/leaveGroup';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import { showNotification } from '@/utils';
+import { useRouter } from 'next/navigation';
 
 // Функция для преобразования sessions в формат для CategorySection
 const transformSessionsToEvents = (sessions: SessionWithMetadata[]): SectionData => {
@@ -74,9 +75,10 @@ const formatDuration = (duration: number): string => {
 const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(groupData.subscription);
+  const router = useRouter();
 
   const handleJoinGroup = async () => {
-    const accessToken = getAccesToken();
+    const accessToken = getAccesToken(router);
     
     if (!accessToken) {
       showNotification(401, 'Необходимо авторизоваться', 'error');
@@ -101,7 +103,7 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
   };
 
   const handleLeaveGroup = async () => {
-    const accessToken = getAccesToken();
+    const accessToken = getAccesToken(router);
     
     if (!accessToken) {
       showNotification(401, 'Необходимо авторизоваться', 'error');

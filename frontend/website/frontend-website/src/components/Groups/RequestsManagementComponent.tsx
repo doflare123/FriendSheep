@@ -10,6 +10,7 @@ import { getAccesToken } from '../../Constants';
 import { getGroupApplication, approve, approveAll, reject, rejectAll } from '../../api/group_requests';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import { showNotification } from '@/utils';
+import { useRouter } from 'next/navigation';
 
 interface RequestsManagementComponentProps {
   groupId: number;
@@ -23,6 +24,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // Загрузка заявок при монтировании компонента
   useEffect(() => {
@@ -32,7 +34,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
   const loadRequests = async () => {
     setIsLoading(true);
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Токен доступа не найден');
         return;
@@ -115,7 +117,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
   const acceptRequest = async (requestId: number) => {
     setIsProcessing(true);
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Токен доступа не найден');
         return;
@@ -138,7 +140,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
   const rejectRequest = async (requestId: number) => {
     setIsProcessing(true);
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Токен доступа не найден');
         return;
@@ -163,7 +165,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
     
     setIsProcessing(true);
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Токен доступа не найден');
         return;
@@ -192,7 +194,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
     
     setIsProcessing(true);
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Токен доступа не найден');
         return;

@@ -43,11 +43,13 @@ const EventCard: React.FC<EventCardProps> = ({
         // Здесь будет логика присоединения к событию
     };
 
+    console.log("Title", title);
+
     return (
         <>
             <div className='eventCard'>
                 <div className='cardImage'>
-                    <img src={image} alt={title} />
+                    <img src={image || "/default/event_card.jpg"} alt={title} />
                     <div className='typeIcon'>
                         <Image src={getCategoryIcon(type)} alt={type} width={20} height={20} />
                     </div>

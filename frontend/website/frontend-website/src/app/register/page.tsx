@@ -43,8 +43,10 @@ export default function RegisterPage() {
         // Валидация имени пользователя
         if (!userName.trim()) {
             newErrors.userName = 'Поле "Имя пользователя" обязательно для заполнения';
-        } else if (userName.trim().length < 2) {
-            newErrors.userName = 'Имя пользователя должно содержать минимум 2 символа';
+        } else if (userName.trim().length < 5) {
+            newErrors.userName = 'Имя пользователя должно содержать минимум 5 символов';
+        } else if (userName.trim().length > 40) {
+            newErrors.userName = 'Имя пользователя должно содержать максимум 40 символов';
         }
 
         // Валидация пароля
@@ -202,11 +204,11 @@ export default function RegisterPage() {
 
             <FormText>
                 При создании аккаунта вы соглашаетесь с условиями{" "}
-                <FormLink href="#">
+                <FormLink href="/info/agreement">
                     Пользовательского соглашения
                 </FormLink>{" "}
                 и{" "}
-                <FormLink href="#">
+                <FormLink href="/info/privacy">
                     Политики конфиденциальности
                 </FormLink>.
             </FormText>
