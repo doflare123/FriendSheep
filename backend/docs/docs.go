@@ -77,7 +77,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Загружает фотографию в хранилище и возвращает URL. Этот URL затем можно использовать для создания или обновления данных сущности (например, группы).",
+                "description": "Загружает фотографию в S3 хранилище и возвращает URL. Этот URL затем можно использовать для создания или обновления данных сущности (например, группы).",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -4113,6 +4113,12 @@ const docTemplate = `{
                 },
                 "small_description": {
                     "type": "string"
+                },
+                "subscribers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.GroupSubscriberRes"
+                    }
                 }
             }
         },
@@ -4499,6 +4505,23 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "services.GroupSubscriberRes": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "integer"
                 }
             }
         },
