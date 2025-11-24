@@ -9,6 +9,7 @@ import (
 	"friendship/utils"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -86,6 +87,13 @@ func main() {
 	defer func() {
 		services.StopPopularSessionsCache()
 	}()
+	s3AccessKey := os.Getenv("S3_ACCESS_KEY")
+	s3SecretKey := os.Getenv("S3_SECRET_KEY")
+
+	if err := middlewares.InitS3(s3AccessKey, s3SecretKey); err != nil {
+		utils.Log.Println("Не удалось инициализировать S3: ", err)
+	}
+	utils.Log.Println("S3 клиент успешно инициализирован")
 
 	routes.RoutesUsers(r)
 	routes.RoutesAuth(r)

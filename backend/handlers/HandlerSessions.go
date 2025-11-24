@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"friendship/middlewares"
 	"friendship/services"
 	"friendship/utils"
@@ -59,7 +58,7 @@ func CreateSession(c *gin.Context) {
 	ok, err := services.CreateSession(email, input)
 	if err != nil || !ok {
 		if input.Image != "" {
-			middlewares.DeleteImage(fmt.Sprintf("uploads/%s", input.Image))
+			middlewares.DeleteImageFromS3(input.Image)
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
