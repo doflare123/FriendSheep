@@ -8,7 +8,7 @@ export async function reject(accessToken: string, requestId : number): Promise<a
     await axios.post(`${API_URL}/api/admin/groups/requests/${requestId}/reject`, {},
       {headers: {'Authorization': `Bearer ${accessToken}`}});
   } catch (error: any) {
-    console.error('Ошибка при приглашении в группу:', error);
+    console.error('Ошибка при отказе присоединиться в группу:', error);
     throw error;
   }
 }

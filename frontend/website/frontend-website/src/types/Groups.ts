@@ -43,6 +43,13 @@ export interface SessionWithMetadata {
   session: Session;
 }
 
+export interface Subscriber {
+  userId: number;
+  name: string;
+  image: string;
+  role: string;
+}
+
 export interface GroupData {
   categories: string[];
   city: string;
@@ -56,6 +63,7 @@ export interface GroupData {
   users: User[];
   small_description?: string;
   private?: boolean;
+  subscribers?: Subscriber[];
 }
 
 export interface GroupProfileProps {

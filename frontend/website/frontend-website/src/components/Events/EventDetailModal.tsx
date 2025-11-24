@@ -9,6 +9,7 @@ import { getAccesToken, convertSingleCategRuToEng, convertSessionPlaceToLocation
 import { showNotification } from '@/utils';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import type { EventFullResponse } from '@/types/apiTypes'; // импортируй откуда у тебя интерфейсы
+import { useRouter } from 'next/navigation';
 
 interface EventDetailModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
   const [eventData, setEventData] = useState<EventFullResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (isOpen && eventId) {
@@ -43,7 +45,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
     setIsLoading(true);
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       const response = await getEventInfo(accessToken, eventId);
       setEventData(response as EventFullResponse);
     } catch (error: any) {
@@ -62,7 +64,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
     setIsActionLoading(true);
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       const { session } = eventData;
 
       if (session.is_sub) {

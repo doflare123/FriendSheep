@@ -12,23 +12,29 @@ import { getGroupEvents } from '@/api/mainEvents/getGroupEvents';
 import { getNewEvents } from '@/api/mainEvents/getNewEvents';
 import { getPopular } from '@/api/mainEvents/getPopular';
 import { getAccesToken, convertCategoriesToIds } from '@/Constants';
-import { showNotification } from '@/utils';
 
 export default function Home() {
   const [mainSections, setMainSections] = useState<SectionData[]>([]);
   const [additionalSections, setAdditionalSections] = useState<SectionData[]>([]);
   const [loadingStage, setLoadingStage] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Список категорий, которые должны быть кликабельными
+  const clickableCategories = ['Фильмы', 'Игры', 'Настольные игры', 'Другое'];
 
   useEffect(() => {
     const loadData = async () => {
       const token = getAccesToken();
       
+      // Если нет токена - просто не загружаем данные
       if (!token) {
-        showNotification(401, 'Необходима авторизация', 'error');
+        setIsAuthenticated(false);
         setIsLoading(false);
         return;
       }
+
+      setIsAuthenticated(true);
 
       const newMainSections: SectionData[] = [];
       const newAdditionalSections: SectionData[] = [];
@@ -52,7 +58,6 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Ошибка загрузки популярных событий:', error);
-        showNotification(500, 'Не удалось загрузить популярные события', 'error');
       }
 
       // 2. Загружаем новые события
@@ -69,7 +74,6 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Ошибка загрузки новых событий:', error);
-        showNotification(500, 'Не удалось загрузить новые события', 'error');
       }
 
       // 3. Загружаем новые события из подписанных групп
@@ -86,7 +90,6 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Ошибка загрузки событий из групп:', error);
-        showNotification(500, 'Не удалось загрузить события из подписок', 'error');
       }
 
       setMainSections(newMainSections);
@@ -116,7 +119,6 @@ export default function Home() {
           }
         } catch (error) {
           console.error(`Ошибка загрузки категории ${category.name}:`, error);
-          showNotification(500, `Не удалось загрузить категорию "${category.name}"`, 'error');
         }
       }
 
@@ -131,13 +133,20 @@ export default function Home() {
   return (
     <div className={styles.pageWrapper}>
       <div className='bgPage'>
+        {/* Сообщение для неавторизованных пользователей */}
+        {!isAuthenticated && !isLoading && (
+          <div className={styles.emptyMessage}>
+            <p>Для просмотра всех событий нужна авторизация</p>
+          </div>
+        )}
+
         {/* Главные категории */}
         {mainSections.map((section, sectionIndex) => (
           <div key={sectionIndex} className={styles.section}>
             <CategorySection 
               section={section} 
-              title={section.title} 
-              clickable={section.title !== "Новые события"}
+              title={section.title}
+              clickable={false}
             />
           </div>
         ))}
@@ -149,8 +158,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Заголовок "Категории" - показываем только если есть дополнительные секции или они загружаются */}
-        {(additionalSections.length > 0 || isLoading) && (
+        {/* Заголовок "Категории" - показываем только если есть дополнительные секции */}
+        {additionalSections.length > 0 && (
           <div className={styles.categoriesHeader}>
             <h2>Категории</h2>
           </div>
@@ -159,12 +168,16 @@ export default function Home() {
         {/* Дополнительные категории */}
         {additionalSections.map((section, sectionIndex) => (
           <div key={sectionIndex} className={styles.section}>
-            <CategorySection section={section} title={section.title} />
+            <CategorySection 
+              section={section} 
+              title={section.title}
+              clickable={clickableCategories.includes(section.title)}
+            />
           </div>
         ))}
 
-        {/* Индикатор загрузки для дополнительных секций */}
-        {isLoading && mainSections.length === 0 && (
+        {/* Индикатор загрузки в начале (когда еще нет главных секций) */}
+        {isLoading && mainSections.length === 0 && isAuthenticated && (
           <div className={styles.section}>
             <LoadingIndicator text={loadingStage} />
           </div>

@@ -25,7 +25,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ru" className="h-full">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}>
         <AuthProvider>
-          <StatusNotif />
           <Header />
           <main className="flex-1">{children}</main>
         </AuthProvider>

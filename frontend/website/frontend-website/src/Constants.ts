@@ -1,8 +1,11 @@
+"use client";
 import {RawSession, RawUserDataResponse} from './types/RawEvents';
 import {EventCardProps} from './types/Events'
 import {SessionData, EventFullResponse} from './types/apiTypes'
 import {UserDataResponse} from './types/UserData'
 import { getUserInfo } from './api/profile/getOwnProfile';
+import { isTokenValid } from '@/api/auth';
+import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 export const convertCategoriesToIds = (categories: string[]): number[] => {
     const categoryMap: { [key: string]: number } = {
@@ -59,8 +62,20 @@ export const convertSocialContactsToString = (socialContacts: { name: string; li
         .join(', '); // Объединяем через запятую и пробел
 };
 
-export const getAccesToken = (): string => {
-  return localStorage.getItem('access_token') || '';
+export const getAccesToken = (router?: AppRouterInstance): string => {
+  const token = localStorage.getItem('access_token') || '';
+  
+  if (!token) {
+    if (router) router.push('/login');
+    return '';
+  }
+  
+  if (!isTokenValid(token)) {
+    if (router) router.push('/login');
+    return '';
+  }
+  
+  return token;
 }
 
 export function decodeJWT(token: string) {

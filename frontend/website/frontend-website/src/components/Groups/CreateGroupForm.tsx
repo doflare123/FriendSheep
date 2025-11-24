@@ -1,22 +1,31 @@
+// src/components/Groups/CreateGroupForm.tsx
+
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import SocialContactsModal from './SocialContactsModal';
+import DeleteConfirmModal from './DeleteConfirmModal';
 import { GroupData } from '../../types/Groups';
 import styles from '../../styles/Groups/CreateGroupModal.module.css';
-import {getCategoryIcon, getSocialIcon} from '../../Constants'
+import { getCategoryIcon, getSocialIcon } from '../../Constants';
 
 interface CreateGroupFormProps {
   onSubmit: (groupData: any) => void;
+  onDelete?: () => void; // Колбэк для удаления группы
   initialData?: Partial<GroupData & { shortDescription?: string; isPrivate?: boolean; imagePreview?: string; socialContacts?: { name: string; link: string }[] }>;
   showTitle?: boolean;
   isLoading?: boolean;
+  isEditMode?: boolean; // Флаг режима редактирования
+  groupName?: string; // Название группы для модального окна
 }
 
 const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ 
   onSubmit, 
+  onDelete,
   initialData,
   showTitle = true,
-  isLoading = false
+  isLoading = false,
+  isEditMode = false,
+  groupName = ''
 }) => {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
@@ -33,6 +42,8 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   );
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
   const [errors, setErrors] = useState({
     name: '',
     shortDescription: '',
@@ -40,6 +51,13 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     categories: ''
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Константы для валидации
+  const VALIDATION_RULES = {
+    name: { min: 5, max: 40 },
+    shortDescription: { min: 5, max: 50 },
+    description: { min: 5, max: 300 }
+  };
 
   const categories = [
     { id: 'movies', name: 'Фильмы', icon: getCategoryIcon("movies") },
@@ -56,24 +74,36 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     { name: 'Snapchat', icon: getSocialIcon("snap") }
   ];
 
-  // Обновляем форму при изменении initialData
   useEffect(() => {
     if (initialData) {
+      const newCategories = Array.isArray(initialData.categories) ? [...initialData.categories] : [];
+      
       setFormData({
         name: initialData.name || '',
         shortDescription: initialData.shortDescription || initialData.small_description || '',
         description: initialData.description || '',
         city: initialData.city || '',
         isPrivate: initialData.isPrivate || initialData.private || false,
-        categories: initialData.categories || [],
-        socialContacts: initialData.socialContacts || []
+        categories: newCategories,
+        socialContacts: Array.isArray(initialData.socialContacts) ? [...initialData.socialContacts] : []
       });
       
       if (initialData.imagePreview) {
         setSelectedImage(initialData.imagePreview);
       }
     }
-  }, [initialData]);
+  }, [
+    initialData?.name,
+    initialData?.shortDescription,
+    initialData?.small_description,
+    initialData?.description,
+    initialData?.city,
+    initialData?.isPrivate,
+    initialData?.private,
+    initialData?.imagePreview,
+    JSON.stringify(initialData?.categories),
+    JSON.stringify(initialData?.socialContacts)
+  ]);
 
   const validateForm = () => {
     const newErrors = {
@@ -85,14 +115,26 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
 
     if (!formData.name.trim()) {
       newErrors.name = 'Название группы обязательно';
+    } else if (formData.name.trim().length < VALIDATION_RULES.name.min) {
+      newErrors.name = `Название должно содержать минимум ${VALIDATION_RULES.name.min} символов`;
+    } else if (formData.name.trim().length > VALIDATION_RULES.name.max) {
+      newErrors.name = `Название не должно превышать ${VALIDATION_RULES.name.max} символов`;
     }
 
     if (!formData.shortDescription.trim()) {
       newErrors.shortDescription = 'Краткое описание обязательно';
+    } else if (formData.shortDescription.trim().length < VALIDATION_RULES.shortDescription.min) {
+      newErrors.shortDescription = `Минимум ${VALIDATION_RULES.shortDescription.min} символов`;
+    } else if (formData.shortDescription.trim().length > VALIDATION_RULES.shortDescription.max) {
+      newErrors.shortDescription = `Максимум ${VALIDATION_RULES.shortDescription.max} символов`;
     }
 
     if (!formData.description.trim()) {
       newErrors.description = 'Описание группы обязательно';
+    } else if (formData.description.trim().length < VALIDATION_RULES.description.min) {
+      newErrors.description = `Описание должно содержать минимум ${VALIDATION_RULES.description.min} символов`;
+    } else if (formData.description.trim().length > VALIDATION_RULES.description.max) {
+      newErrors.description = `Описание не должно превышать ${VALIDATION_RULES.description.max} символов`;
     }
 
     if (formData.categories.length === 0) {
@@ -104,12 +146,21 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   };
 
   const handleInputChange = (field: string, value: any) => {
+    let processedValue = value;
+    
+    if (field === 'name' && typeof value === 'string') {
+      processedValue = value.slice(0, VALIDATION_RULES.name.max);
+    } else if (field === 'shortDescription' && typeof value === 'string') {
+      processedValue = value.slice(0, VALIDATION_RULES.shortDescription.max);
+    } else if (field === 'description' && typeof value === 'string') {
+      processedValue = value.slice(0, VALIDATION_RULES.description.max);
+    }
+
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: processedValue
     }));
 
-    // Очищаем ошибку для поля при вводе
     if (field === 'name' && errors.name) {
       setErrors(prev => ({ ...prev, name: '' }));
     }
@@ -129,7 +180,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
         : [...prev.categories, categoryId]
     }));
 
-    // Очищаем ошибку категорий при выборе
     if (errors.categories) {
       setErrors(prev => ({ ...prev, categories: '' }));
     }
@@ -174,7 +224,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     e.preventDefault();
     
     if (!validateForm()) {
-      return; // Не отправляем форму, если есть ошибки валидации
+      return;
     }
 
     onSubmit({
@@ -182,6 +232,33 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
       image: selectedImageFile,
       imagePreview: selectedImage
     });
+  };
+
+  const handleDeleteClick = () => {
+    setDeleteStep(1);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteStep === 1) {
+      setDeleteStep(2);
+    } else {
+      setIsDeleteModalOpen(false);
+      if (onDelete) {
+        onDelete();
+      }
+    }
+  };
+
+  const handleDeleteModalClose = () => {
+    setIsDeleteModalOpen(false);
+    setDeleteStep(1);
+  };
+
+  const getCharacterCount = (field: 'name' | 'shortDescription' | 'description') => {
+    const current = formData[field].length;
+    const max = VALIDATION_RULES[field].max;
+    return `${current}/${max}`;
   };
 
   return (
@@ -210,8 +287,19 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                 placeholder="Название *"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
+                maxLength={VALIDATION_RULES.name.max}
               />
-              {errors.name && <span className={styles.errorMessage}>{errors.name}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {errors.name && <span className={styles.errorMessage}>{errors.name}</span>}
+                <span style={{ 
+                  fontSize: '12px', 
+                  color: '#999',
+                  marginLeft: 'auto',
+                  marginTop: '4px'
+                }}>
+                  {getCharacterCount('name')}
+                </span>
+              </div>
             </div>
 
             {/* Краткое описание */}
@@ -222,8 +310,19 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                 className={`${styles.formInput} ${errors.shortDescription ? styles.error : ''}`}
                 value={formData.shortDescription}
                 onChange={(e) => handleInputChange('shortDescription', e.target.value)}
+                maxLength={VALIDATION_RULES.shortDescription.max}
               />
-              {errors.shortDescription && <span className={styles.errorMessage}>{errors.shortDescription}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {errors.shortDescription && <span className={styles.errorMessage}>{errors.shortDescription}</span>}
+                <span style={{ 
+                  fontSize: '12px', 
+                  color: '#999',
+                  marginLeft: 'auto',
+                  marginTop: '4px'
+                }}>
+                  {getCharacterCount('shortDescription')}
+                </span>
+              </div>
             </div>
 
             {/* Описание */}
@@ -234,8 +333,19 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={4}
+                maxLength={VALIDATION_RULES.description.max}
               />
-              {errors.description && <span className={styles.errorMessage}>{errors.description}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {errors.description && <span className={styles.errorMessage}>{errors.description}</span>}
+                <span style={{ 
+                  fontSize: '12px', 
+                  color: '#999',
+                  marginLeft: 'auto',
+                  marginTop: '4px'
+                }}>
+                  {getCharacterCount('description')}
+                </span>
+              </div>
             </div>
 
             {/* Контакты */}
@@ -342,18 +452,31 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
           </div>
         </div>
 
-        {/* Кнопка создания */}
-        <button 
-          type="submit" 
-          className={styles.createButton}
-          disabled={isLoading}
-          style={{
-            opacity: isLoading ? 0.7 : 1,
-            cursor: isLoading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
-        </button>
+        {/* Кнопки действий */}
+        <div className={styles.actionButtons}>
+          <button 
+            type="submit" 
+            className={styles.createButton}
+            disabled={isLoading}
+            style={{
+              opacity: isLoading ? 0.7 : 1,
+              cursor: isLoading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
+          </button>
+          
+          {isEditMode && onDelete && (
+            <button 
+              type="button"
+              className={styles.deleteButton}
+              onClick={handleDeleteClick}
+              disabled={isLoading}
+            >
+              Удалить
+            </button>
+          )}
+        </div>
       </form>
 
       <SocialContactsModal
@@ -361,6 +484,14 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
         onClose={() => setIsSocialModalOpen(false)}
         onSave={handleSocialContactsSave}
         initialContacts={formData.socialContacts}
+      />
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleDeleteModalClose}
+        onConfirm={handleDeleteConfirm}
+        step={deleteStep}
+        groupName={groupName || formData.name}
       />
     </>
   );

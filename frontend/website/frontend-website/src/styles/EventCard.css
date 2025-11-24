@@ -79,12 +79,15 @@
 }
 
 .cardContent {
+    position: relative;
+    z-index: 1;
     padding: 16px;
     height: calc(100% - 150px);
     display: flex;
     flex-direction: column;
-    border-top: 2px solid #316BC2; /* ✅ разделительная линия */
+    border-top: 2px solid #316BC2;
 }
+
 
 .cardTitle {
     color: #000000;
@@ -99,12 +102,15 @@
 }
 
 .cardGenres {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  max-height: 32px; /* примерно две строки */
+  overflow: hidden; /* обрезаем, если больше */
 }
+
 
 .genresLabel {
     color: black;

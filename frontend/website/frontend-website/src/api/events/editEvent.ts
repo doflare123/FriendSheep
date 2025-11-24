@@ -38,8 +38,6 @@ export async function editEvent(
       Object.entries(data).filter(([_, v]) => v !== undefined)
     );
 
-    console.log("Отправляемые данные:", filteredData);
-
     await axios.patch(`${API_URL}/api/admin/sessions/${sessionId}`, filteredData, {
       headers: {
         Authorization: `Bearer ${accessToken}`,

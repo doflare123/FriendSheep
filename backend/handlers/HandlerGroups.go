@@ -5,7 +5,6 @@ import (
 	"friendship/services"
 	"friendship/utils"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -82,7 +81,7 @@ func CreateGroup(c *gin.Context) {
 			return
 		}
 		defer file.Close()
-		imageURL, err = middlewares.UploadImage(file, header.Filename, "groups")
+		imageURL, err = middlewares.UploadImageToS3(file, header.Filename, "groups")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки изображения: " + err.Error()})
 			return
@@ -96,8 +95,7 @@ func CreateGroup(c *gin.Context) {
 		if imageURL != "" {
 			parts := strings.Split(imageURL, "/")
 			if len(parts) > 0 {
-				filename := parts[len(parts)-1]
-				middlewares.DeleteImage(filepath.Join("uploads", "groups", filename))
+				middlewares.DeleteImageFromS3(imageURL)
 			}
 		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

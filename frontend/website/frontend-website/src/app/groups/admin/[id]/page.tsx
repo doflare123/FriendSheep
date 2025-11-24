@@ -5,12 +5,14 @@ import { useParams } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import GroupAdminComponent from '../../../../components/Groups/GroupAdminComponent';
 import { GroupData } from '../../../../types/Groups';
-import { getGroupInfoAdmin } from '../../../../api/get_group_info_admin';
+import { getGroupInfoAdmin } from '@/api/get_group_info_admin';
 import {getAccesToken} from '../../../../Constants'
+import { useRouter } from 'next/navigation';
 
 const GroupAdminPage: React.FC = () => {
     const params = useParams();
     const groupId = params.id as string;
+    const router = useRouter();
     
     const [groupData, setGroupData] = useState<GroupData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -19,7 +21,7 @@ const GroupAdminPage: React.FC = () => {
     useEffect(() => {
         const fetchGroupData = async () => {
         try {
-            const accessToken = getAccesToken();
+            const accessToken = getAccesToken(router);
             
             if (!accessToken) {
             setError('Токен доступа не найден');
@@ -36,7 +38,6 @@ const GroupAdminPage: React.FC = () => {
             const data = await getGroupInfoAdmin(accessToken, parseInt(groupId));
             
             if (!data) {
-            // Если данных нет, показываем 404
             notFound();
             } else {
             setGroupData(data);
@@ -44,7 +45,6 @@ const GroupAdminPage: React.FC = () => {
         } catch (err: any) {
             console.error('Ошибка при загрузке группы:', err);
             
-            // Обработка различных типов ошибок согласно API документации
             if (err.response?.status === 400) {
             setError('Некорректный ID группы');
             } else if (err.response?.status === 401) {
@@ -52,7 +52,6 @@ const GroupAdminPage: React.FC = () => {
             } else if (err.response?.status === 403) {
             setError('Доступ к приватной группе запрещен');
             } else if (err.response?.status === 404) {
-            // Показываем стандартную 404 страницу Next.js
             notFound();
             } else if (err.response?.status === 500) {
             setError('Внутренняя ошибка сервера');
@@ -67,6 +66,16 @@ const GroupAdminPage: React.FC = () => {
         fetchGroupData();
     }, [groupId]);
 
+    // Функция для обновления данных группы после редактирования
+    const handleGroupDataUpdate = (updatedData: Partial<GroupData>) => {
+        if (groupData) {
+            setGroupData({
+            ...groupData,
+            ...updatedData
+            });
+        }
+    };
+
     if (loading) {
         return (
         <div className="flex justify-center items-center h-64">
@@ -80,7 +89,6 @@ const GroupAdminPage: React.FC = () => {
     }
 
     if (!groupData) {
-        // Если данных нет после загрузки, показываем 404
         notFound();
     }
 
@@ -88,6 +96,7 @@ const GroupAdminPage: React.FC = () => {
         <GroupAdminComponent 
             groupId={groupId}
             groupData={groupData}
+            onGroupDataUpdate={handleGroupDataUpdate}
         />
     );
 };

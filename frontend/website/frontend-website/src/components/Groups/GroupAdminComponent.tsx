@@ -5,11 +5,17 @@ import AdminSidebar from './AdminSidebar';
 import CreateGroupForm from './CreateGroupForm';
 import RequestsManagementComponent from './RequestsManagementComponent';
 import EventsManagementComponent from './EventsManagementComponent';
+import MembersManagement from './MembersManagement';
 import { AdminMenuSection } from '../../types/AdminTypes';
-import { convertCategoriesToIds, convertSocialContactsToString } from '../../Constants';
+import { convertCategoriesToIds, convertIdsToCategories, convertSocialContactsToString, getAccesToken } from '../../Constants';
 import { GroupData } from '../../types/Groups';
 import styles from '../../styles/Groups/admin/AdminPage.module.css';
-import {editGroup} from '../../api/edit_group';
+import { editGroup } from '../../api/groups/edit_group';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import { showNotification } from '@/utils';
+import { getImage } from '@/api/getImage';
+import { useRouter } from 'next/navigation';
+import { delGroup } from '@/api/groups/delGroup';
 
 // Компонент-заглушка для пустых разделов
 const EmptySection: React.FC<{ title: string }> = ({ title }) => (
@@ -20,49 +26,172 @@ const EmptySection: React.FC<{ title: string }> = ({ title }) => (
 );
 
 // Компонент для отображения основной информации группы
-const GroupInfoSection: React.FC<{ groupData?: GroupData; groupId?: string }> = ({ groupData, groupId }) => {
+const GroupInfoSection: React.FC<{ 
+  groupData?: GroupData; 
+  groupId?: string;
+  onGroupDataUpdate?: (updatedData: Partial<GroupData>) => void;
+}> = ({ groupData, groupId, onGroupDataUpdate }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const router = useRouter();
 
   const handleFormSubmit = async (formData: any) => {
     if (!groupId) {
-      setSaveMessage({ type: 'error', text: 'ID группы не найден' });
+      showNotification(400, 'ID группы не найден');
       return;
     }
 
     setIsLoading(true);
-    setSaveMessage(null);
 
     try {
-      // Получаем токен авторизации (здесь нужно заменить на реальный способ получения токена)
-      const accessToken = localStorage.getItem('access_token') || '';
+      const accessToken = getAccesToken(router);
       
-      // Преобразуем категории в числа
-      const categoriesNumbers = convertCategoriesToIds(formData.categories);
-      
-      // Преобразуем контакты в строку
-      const contactsString = convertSocialContactsToString(formData.socialContacts);
+      // Формируем начальные данные для сравнения
+      const initialData = {
+        name: groupData?.name,
+        description: groupData?.description,
+        small_description: groupData?.small_description || '',
+        city: groupData?.city,
+        categories: groupData?.categories,
+        isPrivate: groupData?.private || false,
+        image: groupData?.image,
+        contacts: groupData?.contacts?.map(contact => ({
+          name: contact.name,
+          link: contact.link
+        })) || [],
+      };
 
+      // Объект для хранения изменённых полей
+      const changedFields: any = {};
+
+      // Сравниваем name
+      if (formData.name !== initialData.name) {
+        changedFields.name = formData.name;
+      }
+
+      // Сравниваем description
+      if (formData.description !== initialData.description) {
+        changedFields.description = formData.description;
+      }
+
+      // Сравниваем shortDescription (переименовываем в small_description)
+      if (formData.shortDescription !== initialData.small_description) {
+        changedFields.small_description = formData.shortDescription;
+      }
+
+      // Сравниваем city
+      if (formData.city !== initialData.city) {
+        changedFields.city = formData.city;
+      }
+
+      // Сравниваем isPrivate
+      if (formData.isPrivate !== initialData.isPrivate) {
+        changedFields.isPrivate = formData.isPrivate;
+      }
+
+      // Сравниваем categories
+      const formCategories = convertCategoriesToIds(formData.categories);
+      const initialCategories = initialData.categories || [];
+      if (JSON.stringify(formCategories.sort()) !== JSON.stringify(initialCategories.sort())) {
+        changedFields.categories = formCategories;
+      }
+
+      // Сравниваем контакты
+      const formContactsString = convertSocialContactsToString(formData.socialContacts);
+      const initialContactsString = convertSocialContactsToString(initialData.contacts);
+      if (formContactsString !== initialContactsString) {
+        changedFields.contacts = formContactsString;
+      }
+
+      // Обрабатываем изображение
+      if (formData.image && formData.image instanceof File) {
+        // Загружен новый файл - загружаем его и получаем строку
+        const imageString = await getImage(accessToken, formData.image);
+        changedFields.image = imageString;
+      } else if (formData.image === null && initialData.image) {
+        // Изображение удалено
+        changedFields.image = null;
+      }
+
+      // Проверяем, есть ли хоть одно изменённое поле
+      if (Object.keys(changedFields).length === 0) {
+        showNotification(200, 'Нет изменений для сохранения');
+        setIsLoading(false);
+        return;
+      }
+
+      // Отправляем только изменённые поля
       await editGroup(
-        formData.name,
-        formData.description,
-        formData.shortDescription,
-        formData.city,
-        categoriesNumbers,
-        formData.isPrivate,
-        formData.image,
-        contactsString,
         accessToken,
-        parseInt(groupId)
+        parseInt(groupId),
+        changedFields.name,
+        changedFields.description,
+        changedFields.small_description,
+        changedFields.city,
+        changedFields.categories,
+        changedFields.isPrivate,
+        changedFields.image,
+        changedFields.contacts
       );
 
-      setSaveMessage({ type: 'success', text: 'Данные группы успешно сохранены!' });
+      // Обновляем локальные данные группы
+      if (onGroupDataUpdate) {
+        const updatedData: Partial<GroupData> = {};
+        
+        if (changedFields.name !== undefined) updatedData.name = changedFields.name;
+        if (changedFields.description !== undefined) updatedData.description = changedFields.description;
+        if (changedFields.small_description !== undefined) updatedData.small_description = changedFields.small_description;
+        if (changedFields.city !== undefined) updatedData.city = changedFields.city;
+        if (changedFields.isPrivate !== undefined) updatedData.private = changedFields.isPrivate;
+        if (changedFields.categories !== undefined) updatedData.categories = changedFields.categories;
+        if (changedFields.image !== undefined) updatedData.image = changedFields.image;
+        if (changedFields.contacts !== undefined) {
+          // Парсим строку контактов обратно в массив объектов
+          if (changedFields.contacts.trim()) {
+            updatedData.contacts = changedFields.contacts.split(', ').map((contact: string) => {
+              const [name, link] = contact.split(':');
+              return { name: name.trim(), link: link.trim() };
+            });
+          } else {
+            updatedData.contacts = [];
+          }
+        }
+        
+        onGroupDataUpdate(updatedData);
+      }
+
+      showNotification(200, 'Данные группы успешно сохранены!');
     } catch (error: any) {
       console.error('Ошибка при сохранении:', error);
-      setSaveMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Произошла ошибка при сохранении' 
-      });
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || 'Произошла ошибка при сохранении';
+      showNotification(statusCode, errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!groupId) {
+      showNotification(400, 'ID группы не найден');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const accessToken = getAccesToken(router);
+      
+      await delGroup(accessToken, parseInt(groupId));
+      
+      showNotification(200, 'Группа успешно удалена');
+      
+      // Перенаправляем на страницу групп или главную
+      router.push('/groups'); // Или куда нужно
+    } catch (error: any) {
+      console.error('Ошибка при удалении группы:', error);
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || 'Произошла ошибка при удалении группы';
+      showNotification(statusCode, errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +204,7 @@ const GroupInfoSection: React.FC<{ groupData?: GroupData; groupId?: string }> = 
     description: groupData.description,
     city: groupData.city,
     isPrivate: groupData.private || false,
-    categories: groupData.categories,
+    categories: groupData.categories || [],
     socialContacts: groupData.contacts?.map(contact => ({
       name: contact.name,
       link: contact.link
@@ -85,25 +214,19 @@ const GroupInfoSection: React.FC<{ groupData?: GroupData; groupId?: string }> = 
 
   return (
     <div>
-      {saveMessage && (
-        <div style={{
-          padding: '12px 16px',
-          marginBottom: '20px',
-          borderRadius: '8px',
-          backgroundColor: saveMessage.type === 'success' ? '#d4edda' : '#f8d7da',
-          border: `1px solid ${saveMessage.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`,
-          color: saveMessage.type === 'success' ? '#155724' : '#721c24'
-        }}>
-          {saveMessage.text}
-        </div>
+      {isLoading ? (
+        <LoadingIndicator text="Обработка..." />
+      ) : (
+        <CreateGroupForm 
+          onSubmit={handleFormSubmit}
+          onDelete={handleDelete} // Добавь этот проп
+          initialData={initialFormData}
+          showTitle={false}
+          isLoading={isLoading}
+          isEditMode={true} // Добавь этот проп
+          groupName={groupData?.name} // Добавь этот проп
+        />
       )}
-      
-      <CreateGroupForm 
-        onSubmit={handleFormSubmit}
-        initialData={initialFormData}
-        showTitle={false}
-        isLoading={isLoading}
-      />
     </div>
   );
 };
@@ -111,9 +234,14 @@ const GroupInfoSection: React.FC<{ groupData?: GroupData; groupId?: string }> = 
 interface GroupAdminComponentProps {
   groupId?: string;
   groupData?: GroupData;
+  onGroupDataUpdate?: (updatedData: Partial<GroupData>) => void;
 }
 
-const GroupAdminComponent: React.FC<GroupAdminComponentProps> = ({ groupId, groupData }) => {
+const GroupAdminComponent: React.FC<GroupAdminComponentProps> = ({ 
+  groupId, 
+  groupData,
+  onGroupDataUpdate 
+}) => {
   const [activeSection, setActiveSection] = useState('info');
   
   const menuSections: AdminMenuSection[] = [
@@ -126,6 +254,11 @@ const GroupAdminComponent: React.FC<GroupAdminComponentProps> = ({ groupId, grou
       id: 'requests',
       title: 'Управление заявками',
       component: RequestsManagementComponent
+    },
+    {
+      id: 'members',
+      title: 'Управление участниками',
+      component: MembersManagement
     },
     {
       id: 'events',
@@ -143,6 +276,8 @@ const GroupAdminComponent: React.FC<GroupAdminComponentProps> = ({ groupId, grou
         return 'Основная информация';
       case 'requests':
         return 'Управление заявками';
+      case 'members':
+        return 'Управление участниками';
       case 'events':
         return 'Управление событиями';
       default:
@@ -167,7 +302,12 @@ const GroupAdminComponent: React.FC<GroupAdminComponentProps> = ({ groupId, grou
             
             <div className={styles.contentBody}>
               {CurrentComponent ? (
-                <CurrentComponent groupData={groupData} groupId={groupId} />
+                <CurrentComponent 
+                  groupData={groupData} 
+                  groupId={groupId}
+                  onGroupDataUpdate={onGroupDataUpdate}
+                  useMockData={false}
+                />
               ) : (
                 <EmptySection title={currentSection?.title || ''} />
               )}

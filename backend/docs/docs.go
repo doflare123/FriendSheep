@@ -2746,6 +2746,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/users/notify/inf": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает true - есть, нет - false",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users inf"
+                ],
+                "summary": "Есть ли уведомления для пользователя или нет",
+                "responses": {
+                    "200": {
+                        "description": "Есть ли уведомления",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users/password": {
             "patch": {
                 "security": [
@@ -4636,6 +4679,9 @@ const docTemplate = `{
                 "sent": {
                     "type": "boolean"
                 },
+                "text": {
+                    "type": "string"
+                },
                 "type": {
                     "type": "string"
                 },
@@ -4764,6 +4810,9 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "group_id": {
+                    "type": "integer"
+                },
                 "group_name": {
                     "type": "string"
                 },
@@ -4860,6 +4909,9 @@ const docTemplate = `{
                 },
                 "image_url": {
                     "type": "string"
+                },
+                "is_sub": {
+                    "type": "boolean"
                 },
                 "session_place": {
                     "type": "string"

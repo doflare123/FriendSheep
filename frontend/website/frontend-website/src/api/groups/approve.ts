@@ -8,7 +8,7 @@ export async function approve(accessToken: string, requestId : number): Promise<
     await axios.post(`${API_URL}/api/admin/groups/requests/${requestId}/approve`, {},
       {headers: {'Authorization': `Bearer ${accessToken}`}});
   } catch (error: any) {
-    console.error('Ошибка при приглашении в группу:', error);
+    console.error('Ошибка при принятии заявки в группу:', error);
     throw error;
   }
 }

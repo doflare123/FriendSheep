@@ -5,7 +5,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export async function addEvent(accessToken: string, 
     title: string,
     session_type: string,
-    session_place: number,
+    session_place: string,
     group_id: number,
     start_time: string,
     count_users: number,
@@ -22,9 +22,12 @@ export async function addEvent(accessToken: string,
   try {
     const data = new FormData();
 
+    console.log("session_place", session_place)
+    console.log("data", data)
+
     data.append('title', title);
     data.append('session_type', session_type);
-    data.append('session_place', session_place.toString());
+    data.append('session_place', session_place);
     data.append('group_id', group_id.toString());
     data.append('start_time', start_time);
     data.append('count_users', count_users.toString());

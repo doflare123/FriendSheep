@@ -8,6 +8,7 @@ import { inviteGroup } from '@/api/groups/inviteGroup';
 import { getOwnGroups } from '@/api/get_owngroups';
 import { showNotification } from '@/utils';
 import LoadingIndicator from '@/components/LoadingIndicator';
+import { useRouter } from 'next/navigation';
 
 interface OwnGroup {
   id: number;
@@ -31,6 +32,7 @@ export default function AddUserModal({ isOpen, onClose, userId }: AddUserModalPr
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // Загрузка групп пользователя при открытии модалки
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function AddUserModal({ isOpen, onClose, userId }: AddUserModalPr
   const loadUserGroups = async () => {
     setIsLoading(true);
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       const groups = await getOwnGroups(accessToken);
       
       if (Array.isArray(groups)) {
@@ -100,7 +102,7 @@ export default function AddUserModal({ isOpen, onClose, userId }: AddUserModalPr
 
     setIsSubmitting(true);
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
 
       await Promise.all(
         Array.from(selectedGroups).map(groupId =>

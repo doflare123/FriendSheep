@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import styles from '../../styles/search/search.module.css';
 import { getCategoryIcon, getAccesToken, convertCategRuToEng } from '../../Constants';
@@ -26,18 +26,9 @@ interface Group {
   description: string;
   id: number;
   image: string;
+  name: string;
   isPrivate?: boolean;
   createdAt?: string;
-}
-
-interface OwnGroup {
-  id: number;
-  name: string;
-  image: string;
-  category: string[];
-  member_count: number;
-  small_description: string;
-  type: string;
 }
 
 interface UsersResponse {
@@ -58,7 +49,10 @@ const ITEMS_PER_PAGE = 5;
 
 export default function SearchPage() {
   const router = useRouter();
-  const [searchType, setSearchType] = useState<'groups' | 'users'>('groups');
+  const searchParams = useSearchParams();
+  const initialType = searchParams.get('type') as 'groups' | 'users' | null;
+  
+  const [searchType, setSearchType] = useState<'groups' | 'users'>(initialType === 'users' ? 'users' : 'groups');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -84,13 +78,21 @@ export default function SearchPage() {
 
   // Проверка токена при монтировании
   useEffect(() => {
-    const accessToken = getAccesToken();
+    const accessToken = getAccesToken(router);
     if (!accessToken) {
       router.push('/login');
     } else {
       setHasAccess(true);
     }
   }, [router]);
+
+  // Обновление searchType при изменении URL параметра
+  useEffect(() => {
+    const typeFromUrl = searchParams.get('type') as 'groups' | 'users' | null;
+    if (typeFromUrl && (typeFromUrl === 'groups' || typeFromUrl === 'users')) {
+      setSearchType(typeFromUrl);
+    }
+  }, [searchParams]);
 
   // Debounce для поискового запроса
   useEffect(() => {
@@ -125,7 +127,7 @@ export default function SearchPage() {
       setIsLoading(true);
       
       try {
-        const accessToken = getAccesToken();
+        const accessToken = getAccesToken(router);
         
         if (searchType === 'groups') {
           const params: any = {};
@@ -229,15 +231,14 @@ export default function SearchPage() {
     };
   }, []);
 
-  const handleJoinGroup = async (groupId: number, isPrivate: boolean) => {
-    // Добавляем в список загружающихся групп
+  const handleJoinGroup = async (groupId: number, isPrivate: boolean, e: React.MouseEvent) => {
+    e.stopPropagation(); // Предотвращаем переход на профиль при клике на кнопку
     setLoadingGroups(prev => new Set([...prev, groupId]));
 
     try {
-      const accessToken = getAccesToken();
+      const accessToken = getAccesToken(router);
       await joinGroup(accessToken, groupId);
 
-      // Успешное присоединение
       if (isPrivate) {
         setRequestedGroups(prev => new Set([...prev, groupId]));
         showNotification(200, 'Заявка на вступление отправлена');
@@ -248,7 +249,6 @@ export default function SearchPage() {
     } catch (error: any) {
       console.error('Ошибка при присоединении к группе:', error);
       
-      // Если ошибка 400, значит пользователь уже присоединен или отправил заявку
       if (error.response?.status === 400) {
         if (isPrivate) {
           setRequestedGroups(prev => new Set([...prev, groupId]));
@@ -264,7 +264,6 @@ export default function SearchPage() {
         );
       }
     } finally {
-      // Убираем из списка загружающихся групп
       setLoadingGroups(prev => {
         const newSet = new Set(prev);
         newSet.delete(groupId);
@@ -273,9 +272,24 @@ export default function SearchPage() {
     }
   };
 
-  const handleAddUser = (userId: number) => {
+  const handleAddUser = (userId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Предотвращаем переход на профиль при клике на кнопку
     setSelectedUserId(userId);
     setIsModalOpen(true);
+  };
+
+  const handleGroupClick = (groupId: number) => {
+    router.push(`/groups/profile/${groupId}`);
+  };
+
+  const handleUserClick = (userUs: string) => {
+    router.push(`/profile/${userUs}`);
+  };
+
+  const handleToggleSearchType = () => {
+    const newType = searchType === 'groups' ? 'users' : 'groups';
+    setSearchType(newType);
+    router.push(`/search?type=${newType}`);
   };
 
   const renderPagination = () => {
@@ -445,14 +459,25 @@ export default function SearchPage() {
               
               <button
                 className={styles.toggleButton}
-                onClick={() => setSearchType(searchType === 'groups' ? 'users' : 'groups')}
+                onClick={handleToggleSearchType}
               >
-                <Image 
-                  src={searchType === 'groups' ? '/events/clock.png' : '/events/person.png'} 
-                  alt={searchType === 'groups' ? 'Groups' : 'Users'} 
-                  width={20} 
-                  height={20} 
-                />
+                <div className={`${styles.toggleSide} ${searchType === 'groups' ? styles.active : styles.inactive}`}>
+                  <Image 
+                    src='/icons/persons.png'
+                    alt='Groups' 
+                    width={20} 
+                    height={20} 
+                  />
+                </div>
+                <div className={styles.toggleDivider} />
+                <div className={`${styles.toggleSide} ${searchType === 'users' ? styles.active : styles.inactive}`}>
+                  <Image 
+                    src='/icons/groups.png'
+                    alt='Users' 
+                    width={30} 
+                    height={30} 
+                  />
+                </div>
               </button>
             </div>
 
@@ -469,7 +494,11 @@ export default function SearchPage() {
                         groups.map((group) => (
                           <div key={`group-${group.id}`} className={styles.groupItem}>
                             <div className={styles.groupContent}>
-                              <div className={styles.groupImageWrapper}>
+                              <div 
+                                className={styles.groupImageWrapper}
+                                onClick={() => handleGroupClick(group.id)}
+                                style={{ cursor: 'pointer' }}
+                              >
                                 <Image
                                   src={group.image || '/default/group.jpg'}
                                   alt={group.name}
@@ -481,7 +510,11 @@ export default function SearchPage() {
                               
                               <div className={styles.groupInfo}>
                                 <div className={styles.groupHeader}>
-                                  <h3 className={styles.groupName}>
+                                  <h3 
+                                    className={styles.groupName}
+                                    onClick={() => handleGroupClick(group.id)}
+                                    style={{ cursor: 'pointer' }}
+                                  >
                                     {group.name}
                                     <span className={styles.groupIcons}>
                                       {group.category.map((cat, index) => {
@@ -512,7 +545,7 @@ export default function SearchPage() {
                                   joinedGroups.has(group.id) ? styles.joinedButton :
                                   requestedGroups.has(group.id) ? styles.requestedButton : ''
                                 }`}
-                                onClick={() => handleJoinGroup(group.id, group.isPrivate || false)}
+                                onClick={(e) => handleJoinGroup(group.id, group.isPrivate || false, e)}
                                 disabled={
                                   joinedGroups.has(group.id) || 
                                   requestedGroups.has(group.id) || 
@@ -545,7 +578,11 @@ export default function SearchPage() {
                         users.map((user) => (
                           <div key={user.id} className={styles.userItem}>
                             <div className={styles.userContent}>
-                              <div className={styles.userImageWrapper}>
+                              <div 
+                                className={styles.userImageWrapper}
+                                onClick={() => handleUserClick(user.us)}
+                                style={{ cursor: 'pointer' }}
+                              >
                                 <Image
                                   src={user.image || '/default-avatar.png'}
                                   alt={user.name}
@@ -556,7 +593,13 @@ export default function SearchPage() {
                               </div>
                               
                               <div className={styles.userInfo}>
-                                <h3 className={styles.userName}>{user.name}</h3>
+                                <h3 
+                                  className={styles.userName}
+                                  onClick={() => handleUserClick(user.us)}
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  {user.name}
+                                </h3>
                                 <p className={styles.userStatus}>{user.status}</p>
                                 <p className={styles.userDescription}>{user.us}</p>
                               </div>
@@ -564,7 +607,7 @@ export default function SearchPage() {
                             
                             <button
                               className={styles.addButton}
-                              onClick={() => handleAddUser(user.id)}
+                              onClick={(e) => handleAddUser(user.id, e)}
                             >
                               Добавить
                             </button>

@@ -31,9 +31,10 @@ func GetAdminGroups(email *string) ([]AdminGroupResponse, error) {
 	var adminGroups []AdminGroupResponse
 
 	if err := db.Table("groups").
-		Select("groups.id, groups.name, groups.image, groups.small_description, CASE WHEN groups.is_private THEN 'приватная группа' ELSE 'открытая группа' END as type, COUNT(group_users.user_id) as member_count").
-		Joins("LEFT JOIN group_users ON group_users.group_id = groups.id").
-		Where("groups.creater_id = ?", user.ID).
+		Select("groups.id, groups.name, groups.image, groups.small_description, CASE WHEN groups.is_private THEN 'приватная группа' ELSE 'открытая группа' END as type, COUNT(DISTINCT gu2.user_id) as member_count").
+		Joins("JOIN group_users gu ON gu.group_id = groups.id").
+		Joins("LEFT JOIN group_users gu2 ON gu2.group_id = groups.id").
+		Where("gu.user_id = ? AND gu.role_in_group = ?", user.ID, "admin"). // или другая роль
 		Group("groups.id, groups.name, groups.image, groups.small_description, groups.is_private").
 		Order("groups.id DESC").
 		Scan(&adminGroups).Error; err != nil {
@@ -73,6 +74,7 @@ type AdminGroupInfResponse struct {
 	Categories       []string              `json:"categories"`
 	Sessions         []SessionResponse     `json:"sessions"`
 	Applications     []GroupJoinRequestRes `json:"applications"`
+	Subscribers      []GroupSubscriberRes  `json:"subscribers"`
 }
 
 type GroupJoinRequestRes struct {
@@ -81,6 +83,13 @@ type GroupJoinRequestRes struct {
 	Name   string `json:"name"`
 	Us     string `json:"us"`
 	Image  string `json:"image"`
+}
+
+type GroupSubscriberRes struct {
+	UserID      uint   `json:"userId"`
+	Name        string `json:"name"`
+	Image       string `json:"image"`
+	RoleInGroup string `json:"role"`
 }
 
 func GetAdminGroupInfo(email string, groupID *uint) (*AdminGroupInfResponse, error) {
@@ -123,6 +132,14 @@ func GetAdminGroupInfo(email string, groupID *uint) (*AdminGroupInfResponse, err
 		applications, err := GetPendingJoinRequestsForAdmin(email, *groupID)
 		appChan <- applicationResult{applications: applications, err: err}
 	}()
+
+	var groupUsers []groups.GroupUsers
+	err = db.GetDB().Preload("User").
+		Where("group_id = ? AND user_id != ?", groupID, group.CreaterID).
+		Find(&groupUsers).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get group subscribers: %w", err)
+	}
 
 	var Gsessions []sessions.Session
 	var recruitmentStatusID *uint
@@ -192,6 +209,19 @@ func GetAdminGroupInfo(email string, groupID *uint) (*AdminGroupInfResponse, err
 		}
 	}
 	response.Categories = categories
+
+	var subscribers []GroupSubscriberRes
+	for _, gu := range groupUsers {
+		if gu.User.ID != 0 {
+			subscribers = append(subscribers, GroupSubscriberRes{
+				UserID:      gu.User.ID,
+				Name:        gu.User.Name,
+				Image:       gu.User.Image,
+				RoleInGroup: gu.RoleInGroup,
+			})
+		}
+	}
+	response.Subscribers = subscribers
 
 	var sessionResponses []SessionResponse
 	for _, session := range Gsessions {
