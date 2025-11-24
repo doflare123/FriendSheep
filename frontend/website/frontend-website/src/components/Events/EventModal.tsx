@@ -441,7 +441,19 @@ export default function EventModal({
       
       const fieldsString = buildFieldsString();
 
-      const imageToSend = imageFile || kinopoiskImageUrl || undefined;
+      // ИЗМЕНЕНИЕ: Определяем URL изображения для передачи
+      let imageToSend: string | undefined;
+      
+      if (imageFile) {
+        // Если загружен локальный файл - сначала загружаем на сервер и получаем URL
+        imageToSend = await getImage(accessToken, imageFile);
+      } else if (kinopoiskImageUrl) {
+        // Если получена ссылка с Кинопоиска - передаем URL напрямую
+        imageToSend = kinopoiskImageUrl;
+      } else if (formData.image) {
+        // Если есть существующее изображение
+        imageToSend = formData.image;
+      }
 
       await addEvent(
         accessToken,
@@ -459,7 +471,7 @@ export default function EventModal({
         undefined,
         ageLimit || undefined,
         description || undefined,
-        imageToSend
+        imageToSend // Передаем URL строку
       );
 
       showNotification(200, 'Событие успешно создано!');
@@ -492,12 +504,17 @@ export default function EventModal({
         return;
       }
 
+      // ИЗМЕНЕНИЕ: Определяем URL изображения
       let imageUrl: string | undefined = undefined;
+      
       if (imageFile) {
+        // Загружаем локальный файл и получаем URL
         imageUrl = await getImage(accessToken, imageFile);
       } else if (kinopoiskImageUrl && kinopoiskImageUrl !== originalData.image) {
+        // Используем URL с Кинопоиска напрямую
         imageUrl = kinopoiskImageUrl;
       }
+      // Если ничего не изменилось - imageUrl останется undefined
 
       const updatedTitle = formData.title !== originalData.title ? formData.title : undefined;
       const updatedMaxParticipants = formData.maxParticipants !== originalData.maxParticipants 
@@ -542,7 +559,7 @@ export default function EventModal({
         finalYear,
         updatedMaxParticipants,
         updatedDuration,
-        imageUrl,
+        imageUrl, // Передаем URL строку (или undefined)
         updatedStartTime,
         updatedTitle,
         updatedAgeLimit,
