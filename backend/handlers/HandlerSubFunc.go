@@ -33,6 +33,7 @@ func ChangePhoto(c *gin.Context) {
 		return
 	}
 
+	// Валидация MIME типа
 	if err := middlewares.ValidateImageMIME(header); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неподдерживаемый тип файла", "details": err.Error()})
 		return
@@ -44,6 +45,7 @@ func ChangePhoto(c *gin.Context) {
 		return
 	}
 
+	// Открываем файл заново после валидации
 	file, err := header.Open()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "не удалось открыть изображение"})

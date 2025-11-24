@@ -335,6 +335,10 @@ definitions:
         type: array
       small_description:
         type: string
+      subscribers:
+        items:
+          $ref: '#/definitions/services.GroupSubscriberRes'
+        type: array
     type: object
   services.AdminGroupResponse:
     properties:
@@ -590,6 +594,17 @@ definitions:
         type: string
       type:
         type: string
+    type: object
+  services.GroupSubscriberRes:
+    properties:
+      image:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      userId:
+        type: integer
     type: object
   services.GroupUpdateInput:
     properties:
@@ -1200,8 +1215,8 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: Загружает фотографию в хранилище и возвращает URL. Этот URL затем
-        можно использовать для создания или обновления данных сущности (например,
+      description: Загружает фотографию в S3 хранилище и возвращает URL. Этот URL
+        затем можно использовать для создания или обновления данных сущности (например,
         группы).
       parameters:
       - description: Изображение для загрузки (JPG, PNG, максимум 10MB)

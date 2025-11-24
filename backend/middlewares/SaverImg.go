@@ -10,6 +10,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -26,22 +27,27 @@ var (
 	bucketName string
 	s3Endpoint string
 	region     string
+	// Добавляем ID контейнера для формирования правильного URL
+	containerID string
 )
 
+// InitS3 инициализирует соединение с S3
 func InitS3(accessKey, secretKey string) error {
-	return InitS3WithConfig(accessKey, secretKey, "https://s3.ru-3.storage.selcloud.ru", "ru-3", "friendsheep")
+	return InitS3WithConfig(accessKey, secretKey, os.Getenv("S3_ENDPOINT"), os.Getenv("S3_REGION"), os.Getenv("S3_BUCKET"), os.Getenv("S3_CONTID"))
 }
 
 // InitS3WithConfig инициализирует соединение с S3 с полной конфигурацией
-func InitS3WithConfig(accessKey, secretKey, endpoint, reg, bucket string) error {
+func InitS3WithConfig(accessKey, secretKey, endpoint, reg, bucket, contID string) error {
 	s3Endpoint = endpoint
 	region = reg
 	bucketName = bucket
+	containerID = contID
 
 	fmt.Printf("Инициализация S3 с параметрами:\n")
 	fmt.Printf("  Endpoint: %s\n", s3Endpoint)
 	fmt.Printf("  Region: %s\n", region)
 	fmt.Printf("  Bucket: %s\n", bucketName)
+	fmt.Printf("  Container ID: %s\n", containerID)
 	fmt.Printf("  AccessKey: %s...\n", accessKey[:10])
 
 	awsConfig := &aws.Config{
@@ -75,16 +81,19 @@ func UploadImageToS3(file io.Reader, originalFilename, subfolder string) (string
 
 	ext := filepath.Ext(originalFilename)
 
+	// Валидируем тип изображения
 	if !isValidImageType(ext) {
 		return "", fmt.Errorf("неподдерживаемый формат изображения: %s", ext)
 	}
 
+	// Декодируем изображение
 	img, format, err := image.Decode(file)
 	if err != nil {
 		return "", fmt.Errorf("не удалось декодировать изображение: %v", err)
 	}
 	fmt.Printf("Изображение декодировано, формат: %s\n", format)
 
+	// Конвертируем в JPEG
 	var buf bytes.Buffer
 	err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 85})
 	if err != nil {
@@ -92,6 +101,7 @@ func UploadImageToS3(file io.Reader, originalFilename, subfolder string) (string
 	}
 	fmt.Printf("Изображение сконвертировано в JPEG, размер: %d байт\n", buf.Len())
 
+	// Генерируем уникальное имя файла
 	filename := fmt.Sprintf("%s_%d.jpg", uuid.New().String(), time.Now().Unix())
 	key := fmt.Sprintf("%s/%s", subfolder, filename)
 
@@ -103,7 +113,7 @@ func UploadImageToS3(file io.Reader, originalFilename, subfolder string) (string
 		Key:         aws.String(key),
 		Body:        bytes.NewReader(buf.Bytes()),
 		ContentType: aws.String("image/jpeg"),
-		ACL:         aws.String("public-read"), // Делаем файл публично доступным
+		ACL:         aws.String("public-read"),
 	}
 
 	result, err := s3Client.PutObject(putInput)
@@ -113,7 +123,8 @@ func UploadImageToS3(file io.Reader, originalFilename, subfolder string) (string
 
 	fmt.Printf("Файл успешно загружен в S3, ETag: %s\n", aws.StringValue(result.ETag))
 
-	imageURL := fmt.Sprintf("%s/%s/%s", s3Endpoint, bucketName, key)
+	imageURL := fmt.Sprintf("https://%s.selstorage.ru/%s", containerID, key)
+
 	fmt.Printf("Публичный URL: %s\n", imageURL)
 
 	return imageURL, nil
@@ -143,10 +154,20 @@ func DeleteImageFromS3(imageURL string) error {
 
 // extractKeyFromURL извлекает ключ файла из полного URL
 func extractKeyFromURL(imageURL string) string {
-	prefix := fmt.Sprintf("%s/%s/", s3Endpoint, bucketName)
-	if strings.HasPrefix(imageURL, prefix) {
-		return strings.TrimPrefix(imageURL, prefix)
+	// Поддерживаем оба формата URL:
+	// 1. Path-style: https://s3.ru-3.storage.selcloud.ru/friendsheep/subfolder/filename.jpg
+	// 2. Virtual-hosted-style: https://{container_id}.selstorage.ru/subfolder/filename.jpg
+
+	pathStylePrefix := fmt.Sprintf("%s/%s/", s3Endpoint, bucketName)
+	if strings.HasPrefix(imageURL, pathStylePrefix) {
+		return strings.TrimPrefix(imageURL, pathStylePrefix)
 	}
+
+	virtualHostedPrefix := fmt.Sprintf("https://%s.selstorage.ru/", containerID)
+	if strings.HasPrefix(imageURL, virtualHostedPrefix) {
+		return strings.TrimPrefix(imageURL, virtualHostedPrefix)
+	}
+
 	return ""
 }
 
@@ -190,6 +211,11 @@ func ValidateImageMIME(header *multipart.FileHeader) error {
 
 	if !validMIMEs[mimeType] {
 		return fmt.Errorf("неподдерживаемый MIME тип: %s", mimeType)
+	}
+
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		return fmt.Errorf("не удалось вернуть указатель файла: %v", err)
 	}
 
 	return nil
