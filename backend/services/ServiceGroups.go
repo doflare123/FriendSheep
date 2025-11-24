@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"friendship/db"
+	"friendship/middlewares"
 	"friendship/models"
 	"friendship/models/groups"
 	"friendship/models/sessions"
@@ -391,6 +392,9 @@ func UpdateGroup(groupID uint, input GroupUpdateInput) (err error) {
 		return fmt.Errorf("группа не найдена")
 	}
 
+	// Сохраняем старый URL изображения для последующего удаления
+	oldImageURL := group.Image
+
 	updates := make(map[string]interface{})
 	if input.Name != nil {
 		updates["name"] = *input.Name
@@ -440,7 +444,22 @@ func UpdateGroup(groupID uint, input GroupUpdateInput) (err error) {
 		}
 	}
 
-	return tx.Commit().Error
+	// Коммитим транзакцию
+	if err = tx.Commit().Error; err != nil {
+		return err
+	}
+
+	// После успешного коммита удаляем старое изображение из S3
+	// Удаляем только если изображение было изменено и старое изображение существует
+	if input.Image != nil && oldImageURL != "" && oldImageURL != *input.Image {
+		go func(url string) {
+			if err := middlewares.DeleteImageFromS3(url); err != nil {
+				fmt.Printf("Предупреждение: не удалось удалить старое изображение из S3: %v\n", err)
+			}
+		}(oldImageURL)
+	}
+
+	return nil
 }
 
 func updateContactsInTx(tx *gorm.DB, groupID *uint, newContacts map[string]string) error {

@@ -16,7 +16,7 @@ type TokenPair struct {
 
 type UserFinder func(email string) (*models.User, error)
 
-func GenerateTokenPair(email, name, us, image string) (TokenPair, error) {
+func GenerateTokenPair(id int, email, name, us, image string) (TokenPair, error) {
 	secretKey := os.Getenv("SECRET_KEY_JWT")
 	if len(secretKey) == 0 {
 		return TokenPair{}, fmt.Errorf("пустой секретный ключ")
@@ -26,6 +26,7 @@ func GenerateTokenPair(email, name, us, image string) (TokenPair, error) {
 
 	// Access токен (20 минут жизни)
 	accessClaims := jwt.MapClaims{
+		"Id":       id,
 		"Email":    email,
 		"Us":       us,
 		"Username": name,
@@ -42,6 +43,7 @@ func GenerateTokenPair(email, name, us, image string) (TokenPair, error) {
 
 	// Refresh токен (30 дней жизни)
 	refreshClaims := jwt.MapClaims{
+		"Id":       id,
 		"Email":    email,
 		"Us":       us,
 		"Username": name,
@@ -97,12 +99,17 @@ func RefreshTokens(refreshTokenString string, findUser UserFinder) (TokenPair, e
 		return TokenPair{}, fmt.Errorf("неверный формат Email в claims")
 	}
 
+	id, okEmail := claims["Id"].(int)
+	if !okEmail {
+		return TokenPair{}, fmt.Errorf("неверный формат Email в claims")
+	}
+
 	user, err := findUser(email)
 	if err != nil {
 		return TokenPair{}, err
 	}
 
-	return GenerateTokenPair(email, user.Name, user.Us, user.Image)
+	return GenerateTokenPair(id, email, user.Name, user.Us, user.Image)
 }
 
 func ParseJWT(tokenString string) (string, error) {

@@ -54,7 +54,7 @@ func AuthUser(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateTokenPair(user.Email, user.Name, user.Us, user.Image)
+	token, err := utils.GenerateTokenPair(int(user.ID), user.Email, user.Name, user.Us, user.Image)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации токена"})
 		return

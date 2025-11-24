@@ -2,7 +2,9 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"friendship/db"
+	"friendship/middlewares"
 	"friendship/models"
 	"friendship/models/sessions"
 	statsusers "friendship/models/stats_users"
@@ -62,10 +64,10 @@ type UserStatsInfo struct {
 }
 
 type UpdateUserRequest struct {
-	Name   *string `json:"name,omitempty" binding:"min=5,max=40"`
-	Us     *string `json:"us,omitempty" binding:"min=5,max=40"`
+	Name   *string `json:"name,omitempty" binding:"omitempty,min=5,max=40"`
+	Us     *string `json:"us,omitempty" binding:"omitempty,min=5,max=40"`
 	Image  *string `json:"image,omitempty"`
-	Status *string `json:"status,omitempty" binding:"min=1,max=50"`
+	Status *string `json:"status,omitempty" binding:"omitempty,min=1,max=50"`
 }
 
 func GetInfAboutUser(email string) (*InformationAboutUser, error) {
@@ -428,6 +430,9 @@ func UpdateUserProfile(email string, req UpdateUserRequest) (*models.User, error
 		return nil, errors.New("пользователь не найден")
 	}
 
+	// Сохраняем старый URL изображения
+	oldImageURL := user.Image
+
 	updates := make(map[string]interface{})
 
 	if req.Name != nil && *req.Name != "" {
@@ -453,6 +458,15 @@ func UpdateUserProfile(email string, req UpdateUserRequest) (*models.User, error
 
 	if err := database.Model(&user).Updates(updates).Error; err != nil {
 		return nil, err
+	}
+
+	// После успешного обновления удаляем старое изображение из S3
+	if req.Image != nil && oldImageURL != "" && oldImageURL != *req.Image {
+		go func(url string) {
+			if err := middlewares.DeleteImageFromS3(url); err != nil {
+				fmt.Printf("Предупреждение: не удалось удалить старое изображение пользователя из S3: %v\n", err)
+			}
+		}(oldImageURL)
 	}
 
 	return &user, nil

@@ -9,7 +9,7 @@ import (
 
 // ChangePhoto godoc
 // @Summary      Загрузка фотографии
-// @Description  Загружает фотографию в хранилище и возвращает URL. Этот URL затем можно использовать для создания или обновления данных сущности (например, группы).
+// @Description  Загружает фотографию в S3 хранилище и возвращает URL. Этот URL затем можно использовать для создания или обновления данных сущности (например, группы).
 // @Tags         groups_admin
 // @Accept       multipart/form-data
 // @Produce      json
@@ -37,21 +37,26 @@ func ChangePhoto(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неподдерживаемый тип файла", "details": err.Error()})
 		return
 	}
+
 	const maxFileSize = 10 * 1024 * 1024 // 10MB
 	if header.Size > maxFileSize {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл слишком большой, максимум 10MB"})
 		return
 	}
+
 	file, err := header.Open()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "не удалось открыть изображение"})
 		return
 	}
 	defer file.Close()
-	imageURL, err := middlewares.UploadImage(file, header.Filename, "groups")
+
+	// Используем новую функцию для загрузки в S3
+	imageURL, err := middlewares.UploadImageToS3(file, header.Filename, "groups")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки изображения: " + err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"image": imageURL})
 }

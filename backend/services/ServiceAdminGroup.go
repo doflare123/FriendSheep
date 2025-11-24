@@ -31,9 +31,10 @@ func GetAdminGroups(email *string) ([]AdminGroupResponse, error) {
 	var adminGroups []AdminGroupResponse
 
 	if err := db.Table("groups").
-		Select("groups.id, groups.name, groups.image, groups.small_description, CASE WHEN groups.is_private THEN 'приватная группа' ELSE 'открытая группа' END as type, COUNT(group_users.user_id) as member_count").
-		Joins("LEFT JOIN group_users ON group_users.group_id = groups.id").
-		Where("groups.creater_id = ?", user.ID).
+		Select("groups.id, groups.name, groups.image, groups.small_description, CASE WHEN groups.is_private THEN 'приватная группа' ELSE 'открытая группа' END as type, COUNT(DISTINCT gu2.user_id) as member_count").
+		Joins("JOIN group_users gu ON gu.group_id = groups.id").
+		Joins("LEFT JOIN group_users gu2 ON gu2.group_id = groups.id").
+		Where("gu.user_id = ? AND gu.role_in_group = ?", user.ID, "admin"). // или другая роль
 		Group("groups.id, groups.name, groups.image, groups.small_description, groups.is_private").
 		Order("groups.id DESC").
 		Scan(&adminGroups).Error; err != nil {
