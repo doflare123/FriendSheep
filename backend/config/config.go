@@ -17,6 +17,8 @@ type Config struct {
 	Postgres PostgresConfig `mapstructure:",squash"`
 	Mongo    MongoConfig    `mapstructure:",squash"`
 	Redis    RedisConfig    `mapstructure:",squash"`
+
+	S3 S3Storage `mapstructure:",squash"`
 }
 
 type EmailConfig struct {
@@ -43,6 +45,15 @@ type RedisConfig struct {
 	Addr     string `mapstructure:"REDIS_ADDR"`
 	Password string `mapstructure:"REDIS_PASS"`
 	DB       int    `mapstructure:"REDIS_DB"`
+}
+
+type S3Storage struct {
+	AccessKey   string `mapstructure:"S3_ACCESS_KEY"`
+	SecretKey   string `mapstructure:"S3_SECRET_KEY"`
+	Endpoint    string `mapstructure:"S3_ENDPOINT"`
+	Region      string `mapstructure:"S3_REGION"`
+	ContainerId string `mapstructure:"S3_CONTID"`
+	Bucket      string `mapstructure:"S3_BUCKET"`
 }
 
 func NewConfig() *Config {

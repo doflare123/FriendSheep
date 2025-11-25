@@ -1,6 +1,7 @@
 package server
 
 import (
+	storage "friendship/S3"
 	"friendship/config"
 	"friendship/db"
 	"friendship/logger"
@@ -21,6 +22,7 @@ type Server struct {
 	engine       *gin.Engine
 	logger       logger.Logger
 	postgres     repository.PostgresRepository
+	S3           storage.S3Storage
 	mongo        repository.MongoRepository
 	sessionStore session.SessionStore
 	cfg          config.Config
@@ -50,6 +52,11 @@ func InitServer() (*Server, error) {
 			logger.Error("Error with migrations: %s", err)
 		}
 	}
+	s3_storege, err := storage.NewSelectelS3(conf, logger)
+	if err != nil {
+		logger.Error("Error connect S3: %s", err)
+	}
+	logger.Info("S3 initialized")
 	r := gin.Default()
 	// r.Use(cors.New(cors.Config{
 	// 	AllowOrigins:     []string{"http://localhost:3000"},
@@ -68,6 +75,7 @@ func InitServer() (*Server, error) {
 		engine:       r,
 		logger:       logger,
 		postgres:     postgres,
+		S3:           s3_storege,
 		mongo:        mongo,
 		sessionStore: sessionStore,
 		cfg:          *conf,
