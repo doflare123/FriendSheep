@@ -73,6 +73,7 @@ export interface GroupDetailResponse {
   }[];
   sessions: GroupSession[];
   applications: GroupApplication[];
+  subscribers: GroupSubscriber[];
 }
 
 export interface PublicGroupResponse {
@@ -189,6 +190,13 @@ export interface SimpleGroupRequest {
 
 export interface SimpleGroupRequestsResponse {
   requests: SimpleGroupRequest[] | null;
+}
+
+export interface GroupSubscriber {
+  userId: number;
+  name: string;
+  image: string;
+  role: string;
 }
 
 class GroupService {
@@ -543,6 +551,51 @@ class GroupService {
       throw new Error(error.response?.data?.message || 'Ошибка выхода из группы');
     }
   }
+
+  async deleteGroup(groupId: string | number): Promise<void> {
+    try {
+      console.log(`[GroupService] Удаление группы ${groupId}...`);
+      const response = await apiClient.delete(`/admin/groups/${groupId}`);
+      console.log('[GroupService] ✅ Группа успешно удалена:', response.data);
+    } catch (error: any) {
+      console.error('[GroupService] ❌ Ошибка удаления группы:', error);
+      console.error('Детали ошибки:', error.response?.data);
+      
+      if (error.response?.status === 403) {
+        const errorMessage = error.response?.data?.error || '';
+
+        if (errorMessage.includes('foreign key constraint') || 
+            errorMessage.includes('fk_sessions_group')) {
+          throw new Error('Невозможно удалить группу, пока в ней есть события. Сначала удалите все события группы.');
+        }
+        
+        throw new Error('Недостаточно прав для удаления группы');
+      }
+      
+      throw new Error(error.response?.data?.message || error.response?.data?.error || 'Ошибка удаления группы');
+    }
+  }
+
+  async removeMember(groupId: number, userId: number): Promise<void> {
+    try {
+      console.log(`[GroupService] Удаление участника ${userId} из группы ${groupId}...`);
+      const response = await apiClient.delete(`/admin/groups/${groupId}/members/${userId}`);
+      console.log('[GroupService] ✅ Участник удалён:', response.data);
+    } catch (error: any) {
+      console.error('[GroupService] ❌ Ошибка удаления участника:', error);
+      console.error('Детали ошибки:', error.response?.data);
+      
+      if (error.response?.status === 403) {
+        throw new Error('Недостаточно прав для удаления участника');
+      }
+      if (error.response?.status === 404) {
+        throw new Error('Участник не найден в группе');
+      }
+      
+      throw new Error(error.response?.data?.message || error.response?.data?.error || 'Ошибка удаления участника');
+    }
+  }
+
 }
 
 export default new GroupService();

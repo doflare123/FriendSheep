@@ -1,5 +1,4 @@
 import sessionService from '@/api/services/session/sessionService';
-import userService from '@/api/services/userService';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { useToast } from '@/components/ToastContext';
 import { Event } from '@/components/event/EventCard';
@@ -92,6 +91,7 @@ const EventModal: React.FC<EventModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [sessionData, setSessionData] = useState<any>(null);
   const [isParticipant, setIsParticipant] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
   const [currentParticipants, setCurrentParticipants] = useState(event.currentParticipants);
   const [maxParticipants, setMaxParticipants] = useState(event.maxParticipants);
@@ -127,39 +127,10 @@ const EventModal: React.FC<EventModalProps> = ({
       setCurrentParticipants(data.session.current_users);
       setMaxParticipants(data.session.count_users_max);
 
-      try {
-        const userProfile = await userService.getCurrentUserProfile();
-        
-        console.log('[EventModal] 🔍 Проверка участия для сессии:', event.id);
-        console.log('[EventModal] 📋 Upcoming sessions:', JSON.stringify(userProfile.upcoming_sessions, null, 2));
-        console.log('[EventModal] 📋 Recent sessions:', JSON.stringify(userProfile.recent_sessions, null, 2));
-        
-        const isInUpcoming = userProfile.upcoming_sessions?.some(
-          s => {
-            console.log(`[EventModal] Проверка upcoming: ${s.id} === ${parseInt(event.id)}, status: ${s.status}`);
-            return s.id === parseInt(event.id);
-          }
-        );
-        
-        const isInRecent = userProfile.recent_sessions?.some(
-          s => {
-            console.log(`[EventModal] Проверка recent: ${s.id} === ${parseInt(event.id)}, status: ${s.status}`);
-            return s.id === parseInt(event.id);
-          }
-        );
-        
-        const userIsParticipant = isInUpcoming || isInRecent;
-        setIsParticipant(userIsParticipant);
-        
-        console.log('[EventModal] 👤 Результат проверки участия:', {
-          isInUpcoming,
-          isInRecent,
-          userIsParticipant
-        });
-      } catch (profileError) {
-        console.warn('[EventModal] ⚠️ Не удалось проверить статус участия:', profileError);
-      }
+      const userIsParticipant = data.session.is_sub === true;
+      setIsParticipant(userIsParticipant);
       
+      console.log('[EventModal] 👤 Статус участия (is_sub):', userIsParticipant);
       console.log('[EventModal] ✅ Данные сессии загружены');
     } catch (error: any) {
       console.error('[EventModal] ❌ Ошибка загрузки сессии:', error);
@@ -174,6 +145,15 @@ const EventModal: React.FC<EventModalProps> = ({
   };
 
   const handleJoinLeave = async () => {
+    if (isParticipant && currentParticipants === 1) {
+      showToast({
+        type: 'error',
+        title: 'Действие недоступно',
+        message: 'Вы создатель события. Удалите событие, если оно больше не нужно.',
+      });
+      return;
+    }
+
     if (isParticipant) {
       setShowLeaveConfirmation(true);
     } else {
@@ -256,10 +236,12 @@ const EventModal: React.FC<EventModalProps> = ({
 
   const getButtonText = () => {
     if (isProcessing) return 'Загрузка...';
+    if (isParticipant && currentParticipants === 1) return 'Вы создатель';
     return isParticipant ? 'Покинуть' : 'Присоединиться';
   };
 
   const getButtonStyle = () => {
+    if (isParticipant && currentParticipants === 1) return styles.disabledButton;
     return isParticipant ? styles.leaveButton : styles.joinButton;
   };
 
@@ -660,6 +642,9 @@ const styles = StyleSheet.create({
   },
   clickableText: {
     color: Colors.lightBlue3,
+  },
+  disabledButton: {
+    backgroundColor: Colors.white,
   },
 });
 

@@ -9,6 +9,7 @@ import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
 import { groupSessionsToEvents } from '@/utils/dataAdapters';
+import { filterActiveSessions } from '@/utils/sessionStatusHelpers';
 // eslint-disable-next-line import/no-unresolved
 import { LOCAL_IP } from '@env';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
@@ -370,10 +371,17 @@ const GroupPage = () => {
   }
 
   const mappedCategories = groupData.categories
-    .map(cat => CATEGORY_MAPPING[cat])
-    .filter(cat => cat !== undefined);
+  .map(cat => CATEGORY_MAPPING[cat])
+  .filter(cat => cat !== undefined);
 
-  const formattedSessions = groupSessionsToEvents(groupData, handleSessionUpdate);
+  const activeSessions = groupData.sessions 
+    ? filterActiveSessions(groupData.sessions)
+    : [];
+
+  const formattedSessions = groupSessionsToEvents(
+    { ...groupData, sessions: activeSessions }, 
+    handleSessionUpdate
+  );
 
   return (
     <SafeAreaView style={styles.container}>

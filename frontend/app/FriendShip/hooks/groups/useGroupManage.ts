@@ -3,6 +3,7 @@ import { TabType } from './groupManageTypes';
 import { useGroupData } from './useGroupData';
 import { useGroupEvents } from './useGroupEvents';
 import { useGroupRequests } from './useGroupRequests';
+import { useGroupSubscribers } from './useGroupSubscribers';
 
 export function useGroupManage(groupId: string) {
   const [activeTab, setActiveTab] = useState<TabType>('info');
@@ -12,6 +13,8 @@ export function useGroupManage(groupId: string) {
   const groupDataHook = useGroupData(groupId);
   const requestsHook = useGroupRequests(groupId);
   const eventsHook = useGroupEvents(groupId, groupDataHook.groupData);
+  const subscribersHook = useGroupSubscribers(groupId, groupDataHook.groupData?.subscribers);
+
 
   useEffect(() => {
     if (groupId) {
@@ -24,6 +27,7 @@ export function useGroupManage(groupId: string) {
   const getSectionTitle = () => {
     switch (activeTab) {
       case 'info': return 'Основная информация';
+      case 'subscribers': return 'Участники группы';
       case 'requests': return 'Управление заявками';
       case 'events': return 'Управление событиями';
       default: return 'Основная информация';
@@ -47,6 +51,14 @@ export function useGroupManage(groupId: string) {
     setContactsModalVisible(false);
   };
 
+  const handleDeleteGroup = async () => {
+    const success = await groupDataHook.deleteGroup();
+    if (success) {
+      return true;
+    }
+    return false;
+  };
+
   return {
     activeTab,
     setActiveTab,
@@ -67,7 +79,16 @@ export function useGroupManage(groupId: string) {
     ...eventsHook,
     handleCreateEventSave: (eventData: any) => 
       eventsHook.handleCreateEventSave(eventData, groupDataHook.loadGroupData),
+    ...subscribersHook,
+      handleRemoveMemberPress: subscribersHook.handleRemoveMemberPress,
+      handleConfirmRemoveMember: () =>
+        subscribersHook.handleConfirmRemoveMember(groupDataHook.loadGroupData),
+      handleCancelRemoveMember: subscribersHook.handleCancelRemoveMember,
     handleEditEventSave: (eventId: string, eventData: any) => 
       eventsHook.handleEditEventSave(eventId, eventData, groupDataHook.loadGroupData),
+    handleDeleteEvent: (eventId: string) =>
+      eventsHook.handleDeleteEvent(eventId, groupDataHook.loadGroupData),
+
+    handleDeleteGroup,
   };
 }

@@ -80,6 +80,9 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
 }) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [contactToDelete, setContactToDelete] = useState<number | null>(null);
 
   const memoizedInitialContacts = useMemo(() => {
     return initialContacts;
@@ -90,7 +93,12 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
       if (memoizedInitialContacts && memoizedInitialContacts.length > 0) {
         const existingContacts = memoizedInitialContacts.map(contact => {
           const contactType = getContactType(contact.link);
-          const contactInfo = CONTACT_TYPES.find(ct => ct.id === contactType) || { id: 'default', name: 'Ваш выбор', icon: contactIcons.default, placeholder: 'https://...' };
+          const contactInfo = CONTACT_TYPES.find(ct => ct.id === contactType) || { 
+            id: 'default', 
+            name: 'Ваш выбор', 
+            icon: contactIcons.default, 
+            placeholder: 'https://...' 
+          };
           
           return {
             id: contactType,
@@ -101,6 +109,7 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
           };
         });
         
+        console.log('[ContactsModal] 📋 Загружены контакты:', existingContacts);
         setContacts(existingContacts);
       } else {
         setContacts([
@@ -124,7 +133,6 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
             ...contact, 
             id: typeId,
             name: contactType.name,
-            description: contact.description || contactType.name
           }
         : contact
     ));
@@ -144,7 +152,6 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
           id: detectedType,
           name: contactType.name,
           icon: contactType.icon,
-          description: contact.description || contactType.name
         } : {})
       };
     }));
@@ -166,20 +173,32 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
     }]);
   };
 
-  const removeContact = (index: number) => {
-    if (contacts.length > 1) {
-      setContacts(prev => prev.filter((_, i) => i !== index));
+  const handleRemoveContactPress = (index: number) => {
+    setContactToDelete(index);
+    setDeleteConfirmVisible(true);
+  };
+
+  const confirmRemoveContact = () => {
+    if (contactToDelete !== null && contacts.length > 1) {
+      setContacts(prev => prev.filter((_, i) => i !== contactToDelete));
     }
+    setDeleteConfirmVisible(false);
+    setContactToDelete(null);
+  };
+
+  const cancelRemoveContact = () => {
+    setDeleteConfirmVisible(false);
+    setContactToDelete(null);
   };
 
   const handleSave = () => {
     const filledContacts = contacts.filter(contact => 
       contact.link.trim() !== ''
     );
-    
+
     const processedContacts = filledContacts.map(contact => ({
       ...contact,
-      description: contact.description || contact.name || contact.id
+      description: contact.description.trim() || contact.name || 'Ссылка'
     }));
     
     console.log('Сохранение контактов:', processedContacts);
@@ -196,109 +215,142 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
   const hasEmptyContact = contacts.some(c => !c.link || c.link.trim() === '');
 
   return (
-    <Modal visible={visible} animationType="fade" transparent>
-      <View style={styles.overlay}>
-        <TouchableWithoutFeedback onPress={handleClose}>
-          <View style={StyleSheet.absoluteFill} />
-        </TouchableWithoutFeedback>
+    <>
+      <Modal visible={visible} animationType="fade" transparent>
+        <View style={styles.overlay}>
+          <TouchableWithoutFeedback onPress={handleClose}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
 
-        <View style={styles.modal}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Контакты группы</Text>
-            <Text style={styles.subtitle}>Добавьте ссылки на социальные сети</Text>
-          </View>
-
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            bounces={false}
-            style={styles.scrollView}
-          >
-            <View style={styles.content}>
-              {contacts.map((contact, index) => (
-                <View key={`contact-item-${index}`} style={styles.contactItem}>
-                  <View style={styles.contactHeader}>
-                    <ScrollView 
-                      horizontal 
-                      showsHorizontalScrollIndicator={false}
-                      style={styles.typesScroll}
-                    >
-                      {CONTACT_TYPES.map(type => (
-                        <TouchableOpacity
-                          key={type.id}
-                          style={[
-                            styles.typeButton,
-                            contact.id === type.id && styles.typeButtonSelected
-                          ]}
-                          onPress={() => selectContactType(index, type.id)}
-                        >
-                          <Image source={type.icon} style={styles.typeIcon} />
-                          <Text style={[
-                            styles.typeText,
-                            contact.id === type.id && styles.typeTextSelected
-                          ]}>
-                            {type.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-
-                    {contacts.length > 1 && (
-                      <TouchableOpacity 
-                        style={styles.removeButton}
-                        onPress={() => removeContact(index)}
-                      >
-                        <Text style={styles.removeButtonText}>✕</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  <View style={styles.inputsContainer}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Название (необязательно)"
-                      placeholderTextColor={Colors.grey}
-                      value={contact.description}
-                      onChangeText={(text) => updateContactDescription(index, text)}
-                      maxLength={50}
-                    />
-                    <TextInput
-                      style={styles.input}
-                      placeholder={
-                        contact.id 
-                          ? CONTACT_TYPES.find(t => t.id === contact.id)?.placeholder 
-                          : "Ссылка"
-                      }
-                      placeholderTextColor={Colors.grey}
-                      value={contact.link}
-                      onChangeText={(text) => updateContactLink(index, text)}
-                      maxLength={200}
-                      keyboardType="url"
-                      autoCapitalize="none"
-                    />
-                  </View>
-                </View>
-              ))}
-
-              {!hasEmptyContact && (
-                <TouchableOpacity style={styles.addButton} onPress={addContact}>
-                  <Text style={styles.addButtonText}>+ Добавить контакт</Text>
-                </TouchableOpacity>
-              )}
+          <View style={styles.modal}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Контакты группы</Text>
+              <Text style={styles.subtitle}>Добавьте ссылки на социальные сети</Text>
             </View>
-          </ScrollView>
 
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
-              <Text style={styles.cancelButtonText}>Отмена</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>Сохранить</Text>
-            </TouchableOpacity>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+              style={styles.scrollView}
+            >
+              <View style={styles.content}>
+                {contacts.map((contact, index) => (
+                  <View key={`contact-item-${index}`} style={styles.contactItem}>
+                    <View style={styles.contactHeader}>
+                      <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.typesScroll}
+                      >
+                        {CONTACT_TYPES.map(type => (
+                          <TouchableOpacity
+                            key={type.id}
+                            style={[
+                              styles.typeButton,
+                              contact.id === type.id && styles.typeButtonSelected
+                            ]}
+                            onPress={() => selectContactType(index, type.id)}
+                          >
+                            <Image source={type.icon} style={styles.typeIcon} />
+                            <Text style={[
+                              styles.typeText,
+                              contact.id === type.id && styles.typeTextSelected
+                            ]}>
+                              {type.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+
+                      {contacts.length > 1 && (
+                        <TouchableOpacity 
+                          style={styles.removeButton}
+                          onPress={() => handleRemoveContactPress(index)}
+                        >
+                          <Text style={styles.removeButtonText}>✕</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    <View style={styles.inputsContainer}>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Название (необязательно)"
+                        placeholderTextColor={Colors.grey}
+                        value={contact.description}
+                        onChangeText={(text) => updateContactDescription(index, text)}
+                        maxLength={50}
+                      />
+                      <TextInput
+                        style={styles.input}
+                        placeholder={
+                          contact.id 
+                            ? CONTACT_TYPES.find(t => t.id === contact.id)?.placeholder 
+                            : "Ссылка"
+                        }
+                        placeholderTextColor={Colors.grey}
+                        value={contact.link}
+                        onChangeText={(text) => updateContactLink(index, text)}
+                        maxLength={200}
+                        keyboardType="url"
+                        autoCapitalize="none"
+                      />
+                    </View>
+                  </View>
+                ))}
+
+                {!hasEmptyContact && (
+                  <TouchableOpacity style={styles.addButton} onPress={addContact}>
+                    <Text style={styles.addButtonText}>+ Добавить контакт</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </ScrollView>
+
+            <View style={styles.footer}>
+              <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
+                <Text style={styles.cancelButtonText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                <Text style={styles.saveButtonText}>Сохранить</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      <Modal
+        visible={deleteConfirmVisible}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <Text style={styles.confirmModalTitle}>Удалить контакт?</Text>
+            <Text style={styles.confirmModalMessage}>
+              Контакт будет удалён из списка
+            </Text>
+            
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity 
+                style={[styles.confirmModalButton, styles.confirmCancelButton]}
+                onPress={cancelRemoveContact}
+              >
+                <Text style={styles.confirmCancelButtonText}>Отмена</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.confirmModalButton, styles.confirmDeleteButton]}
+                onPress={confirmRemoveContact}
+              >
+                <Text style={styles.confirmModalButtonText}>Удалить</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 };
 
@@ -398,18 +450,17 @@ const styles = StyleSheet.create({
   removeButton: {
     position: 'absolute',
     right: 0,
-    top: -12,
-    width: 25,
-    height: 25,
+    top: -16,
+    width: 30,
+    height: 30,
     borderRadius: 15,
-    backgroundColor: Colors.red,
     justifyContent: 'center',
     alignItems: 'center',
   },
   removeButtonText: {
     fontFamily: Montserrat.bold,
-    fontSize: 16,
-    color: Colors.white,
+    fontSize: 24,
+    color: Colors.red,
   },
   addButton: {
     backgroundColor: Colors.lightBlue3,
@@ -455,6 +506,59 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.white,
+  },
+  confirmModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmModalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 24,
+    marginHorizontal: 40,
+    width: '80%',
+  },
+  confirmModalTitle: {
+    fontFamily: Montserrat.bold,
+    fontSize: 18,
+    color: Colors.black,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  confirmModalMessage: {
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  confirmModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  confirmModalButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 25,
+    alignItems: 'center',
+  },
+  confirmDeleteButton: {
+    backgroundColor: Colors.red,
+  },
+  confirmCancelButton: {
+    backgroundColor: Colors.veryLightGrey,
+  },
+  confirmModalButtonText: {
+    fontFamily: Montserrat.bold,
+    fontSize: 14,
+    color: Colors.white,
+  },
+  confirmCancelButtonText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
+    color: Colors.black,
   },
 });
 

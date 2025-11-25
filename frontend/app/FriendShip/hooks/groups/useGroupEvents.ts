@@ -54,6 +54,13 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
         throw new Error('Сессия не найдена в списке');
       }
 
+      const sessionPlace = fullSessionData.session.session_place.toLowerCase();
+      const typePlace: 'online' | 'offline' = 
+        sessionPlace === 'оффлайн' || sessionPlace === 'offline' ? 'offline' : 'online';
+
+      console.log('[useGroupEvents] 🔍 session_place:', fullSessionData.session.session_place);
+      console.log('[useGroupEvents] 🔍 Определён typePlace:', typePlace);
+
       const eventForEdit = {
         id: eventId,
         title: fullSessionData.session.title,
@@ -69,15 +76,14 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
         duration: `${fullSessionData.session.duration} мин`,
         imageUri: normalizeImageUrl(fullSessionData.session.image_url),
         typeEvent: fullSessionData.session.session_type,
-        typePlace: (fullSessionData.session.session_place === 'offline' || 
-                   fullSessionData.session.session_place === 'online' 
-          ? fullSessionData.session.session_place : 'online') as 'online' | 'offline',
+        typePlace: typePlace,
         category: sessionTypeToCategory[fullSessionData.session.session_type] || 'other',
         group: groupData?.name || '',
       };
       
       console.log('[useGroupEvents] 📦 Данные для редактирования сформированы:', eventForEdit);
       console.log('[useGroupEvents] 📝 Проверка полей:');
+      console.log('  - typePlace:', eventForEdit.typePlace);
       console.log('  - description:', eventForEdit.description);
       console.log('  - publisher:', eventForEdit.publisher);
       console.log('  - ageRating:', eventForEdit.ageRating);
@@ -186,6 +192,26 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
     }
   };
 
+    const handleDeleteEvent = async (eventId: string, onSuccess: () => void) => {
+    try {
+      console.log('[useGroupEvents] 🗑️ Удаление события:', eventId);
+      
+      await sessionService.deleteSession(parseInt(eventId));
+      
+      console.log('[useGroupEvents] ✅ Событие успешно удалено');
+      Alert.alert('Успешно', 'Событие удалено!');
+
+      setEditEventModalVisible(false);
+      setSelectedEventId('');
+      setSelectedEventData(null);
+
+      onSuccess();
+    } catch (error: any) {
+      console.error('[useGroupEvents] ❌ Ошибка удаления:', error);
+      Alert.alert('Ошибка', error.message || 'Не удалось удалить событие');
+    }
+  };
+
   const formattedEvents = useMemo(() => {
     if (!groupData?.sessions) return [];
     
@@ -228,5 +254,6 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
     handleEditEvent,
     handleCreateEventSave,
     handleEditEventSave,
+    handleDeleteEvent,
   };
 }

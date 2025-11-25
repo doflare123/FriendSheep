@@ -26,4 +26,4 @@ export const CATEGORY_IDS: { [key: string]: number } = {
   'other': 4,
 };
 
-export type TabType = 'info' | 'requests' | 'events';
+export type TabType = 'info' | 'subscribers' | 'requests' | 'events';

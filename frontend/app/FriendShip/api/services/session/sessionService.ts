@@ -161,12 +161,20 @@ class SessionService {
 
   async deleteSession(sessionId: number): Promise<void> {
     try {
+      console.log(`[SessionService] 🗑️ Удаление сессии ${sessionId}...`);
       await apiClient.delete(`/sessions/sessions/${sessionId}`);
+      console.log('[SessionService] ✅ Сессия успешно удалена');
     } catch (error: any) {
+      console.error('[SessionService] ❌ Ошибка удаления сессии:', error);
+      console.error('Детали ошибки:', error.response?.data);
+      
       if (error.response?.status === 403) {
         throw new Error('Недостаточно прав для удаления сессии');
       }
-      throw new Error(error.response?.data?.message || 'Ошибка удаления сессии');
+      if (error.response?.status === 404) {
+        throw new Error('Сессия не найдена');
+      }
+      throw new Error(error.response?.data?.message || error.response?.data?.error || 'Ошибка удаления сессии');
     }
   }
 

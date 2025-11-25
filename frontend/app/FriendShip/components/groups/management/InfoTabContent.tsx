@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { getContactIconByLink } from '@/utils/contactHelpers';
 import * as ImagePicker from 'expo-image-picker';
 import React from 'react';
 import {
@@ -178,14 +179,17 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
                 </TouchableOpacity>
                 
                 {selectedContacts && selectedContacts.length > 0 && 
-                  selectedContacts.map((contact, index) => (
-                    <View key={`contact-${index}`} style={styles.contactButton}>
-                      <Image 
-                        source={contact.icon || require('@/assets/images/groups/contacts/default.png')} 
-                        style={styles.contactIcon} 
-                      />
-                    </View>
-                  ))
+                  selectedContacts.map((contact, index) => {
+                    const icon = getContactIconByLink(contact.link);
+                    return (
+                      <View key={`contact-${index}`} style={styles.contactButton}>
+                        <Image 
+                          source={icon} 
+                          style={styles.contactIcon} 
+                        />
+                      </View>
+                    );
+                  })
                 }
               </View>
           </View>

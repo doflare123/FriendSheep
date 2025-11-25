@@ -3,16 +3,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-export type TabType = 'info' | 'requests' | 'events';
+export type TabType = 'info' | 'subscribers' | 'requests' | 'events';
 
 interface GroupManageTabPanelProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
+  isPrivateGroup: boolean;
 }
 
 const GroupManageTabPanel: React.FC<GroupManageTabPanelProps> = ({
   activeTab,
   onTabChange,
+  isPrivateGroup,
 }) => {
   const renderTabButton = (tab: TabType, icon: any) => (
     <TouchableOpacity
@@ -27,7 +29,10 @@ const GroupManageTabPanel: React.FC<GroupManageTabPanelProps> = ({
         end={{ x: 0, y: 1 }}
         style={styles.gradientBorder}
       >
-        <View style={[styles.innerButton, activeTab === tab]}>
+        <View style={[
+          isPrivateGroup ? styles.innerButtonPrivate : styles.innerButtonPublic,
+          activeTab === tab
+        ]}>
           <Image 
             source={icon} 
             style={[
@@ -41,18 +46,26 @@ const GroupManageTabPanel: React.FC<GroupManageTabPanelProps> = ({
   );
 
   return (
-    <View style={styles.tabsContainer}>
-      {renderTabButton('info', require('@/assets/images/groups/panel/group.png'))}
-      {renderTabButton('requests', require('@/assets/images/groups/panel/person_add.png'))}
+    <View style={[
+        isPrivateGroup ? styles.tabsContainerPrivate : styles.tabsContainerPublic
+      ]}>
+      {renderTabButton('info', require('@/assets/images/groups/panel/edit.png'))}
+      {renderTabButton('subscribers', require('@/assets/images/groups/panel/group.png'))}
+      {isPrivateGroup && renderTabButton('requests', require('@/assets/images/groups/panel/person_add.png'))}
       {renderTabButton('events', require('@/assets/images/groups/panel/event.png'))}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  tabsContainer: {
+  tabsContainerPublic: {
     flexDirection: 'row',
     marginHorizontal: 45,
+    marginTop: -40,
+  },
+  tabsContainerPrivate:{
+    flexDirection: 'row',
+    marginHorizontal: 35,
     marginTop: -40,
   },
   tabButton: {
@@ -69,7 +82,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 3,
   },
-  innerButton: {
+  innerButtonPrivate: {
+    flex: 1,
+    backgroundColor: Colors.veryLightGrey,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    borderRadius: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+  },
+  innerButtonPublic: {
     flex: 1,
     backgroundColor: Colors.veryLightGrey,
     alignItems: 'center',

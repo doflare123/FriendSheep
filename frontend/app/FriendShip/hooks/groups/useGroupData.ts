@@ -62,8 +62,9 @@ export function useGroupData(groupId: string) {
             description: contact.name,
             link: contact.link
         } as Contact;
-        });
-      
+      });
+
+      console.log('[useGroupData] 📋 Контакты после загрузки:', mappedContacts);
       setSelectedContacts(mappedContacts);
       
     } catch (error: any) {
@@ -119,6 +120,21 @@ export function useGroupData(groupId: string) {
     }
   };
 
+  const deleteGroup = async () => {
+    try {
+      setIsSaving(true);
+      await groupService.deleteGroup(groupId);
+      Alert.alert('Успешно', 'Группа успешно удалена');
+      return true;
+    } catch (error: any) {
+      console.error('[useGroupData] Ошибка удаления группы:', error);
+      Alert.alert('Ошибка', error.message || 'Не удалось удалить группу');
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
   return {
     groupData,
     isLoading,
@@ -141,5 +157,6 @@ export function useGroupData(groupId: string) {
     setGroupImage,
     loadGroupData,
     saveGroupChanges,
+    deleteGroup
   };
 }

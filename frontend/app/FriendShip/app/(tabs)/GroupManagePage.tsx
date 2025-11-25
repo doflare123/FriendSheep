@@ -1,6 +1,6 @@
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Image,
   StyleSheet,
@@ -20,6 +20,7 @@ import ContactsModal from '@/components/groups/modal/ContactsModal';
 import TopBar from '@/components/TopBar';
 
 import CreateEditEventModal from '@/components/event/modal/CreateEventModal';
+import SubscribersTabContent from '@/components/groups/management/SubscribersTabContent';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
@@ -35,6 +36,7 @@ const GroupManagePage = () => {
   const navigation = useNavigation<GroupManagePageNavigationProp>();
   const { sortingState, sortingActions } = useSearchState();
   const { groupId } = route.params;
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const {
     activeTab,
@@ -87,16 +89,56 @@ const GroupManagePage = () => {
     editEventModalVisible,
     setEditEventModalVisible,
     selectedEventId,
+    deleteGroup,
     selectedEventData,
     handleCreateEvent,
     handleEditEvent,
     handleCreateEventSave,
     handleEditEventSave,
+    handleDeleteEvent,
     formattedEvents,   
+    formattedSubscribers,
+    subscriberSearchQuery,
+    setSubscriberSearchQuery,
+    isProcessingSubscriber,
+    removeMemberModal,
+    handleRemoveMemberPress,
+    handleConfirmRemoveMember,
+    handleCancelRemoveMember,
+    handleUserPress: handleUserPressFromHook,
   } = useGroupManage(groupId);
 
   const handleBackPress = () => {
     navigation.goBack();
+  };
+
+  const handleUserPress = (userId: string) => {
+    console.log('[GroupManagePage] Переход к профилю пользователя:', userId);
+    navigation.navigate('ProfilePage', { userId });
+  };
+
+  const handleDeletePress = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      const success = await deleteGroup();
+      if (success) {
+        setShowDeleteModal(false);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'GroupsPage' }],
+        });
+      }
+    } catch (error) {
+      console.error('[GroupManagePage] ❌ Ошибка при удалении группы:', error);
+      setShowDeleteModal(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
   };
 
   const renderTabContent = () => {
@@ -122,6 +164,18 @@ const GroupManagePage = () => {
             onSaveChanges={handleSaveChanges}
             isSaving={isSaving}
             selectedContacts={selectedContacts}
+          />
+        );
+      
+      case 'subscribers':
+        return (
+          <SubscribersTabContent
+            subscribers={formattedSubscribers}
+            searchQuery={subscriberSearchQuery}
+            setSearchQuery={setSubscriberSearchQuery}
+            onRemoveMember={handleRemoveMemberPress}
+            onUserPress={handleUserPress}
+            isProcessing={isProcessingSubscriber}
           />
         );
       
@@ -169,6 +223,7 @@ const GroupManagePage = () => {
           <GroupManageTabPanel
             activeTab={activeTab}
             onTabChange={setActiveTab}
+            isPrivateGroup={isPrivate}
           />
           
           <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
@@ -180,7 +235,21 @@ const GroupManagePage = () => {
           </TouchableOpacity>
         </View>
         
-        <Text style={styles.sectionTitle}>{getSectionTitle()}</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.sectionTitle}>{getSectionTitle()}</Text>
+          {activeTab === 'info' && (
+            <TouchableOpacity
+              style={styles.deleteIconButton}
+              onPress={handleDeletePress}
+              disabled={isSaving}
+            >
+              <Image
+                source={require('@/assets/images/groups/delete.png')}
+                style={styles.deleteIcon}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
         
       {renderTabContent()}
 
@@ -188,7 +257,7 @@ const GroupManagePage = () => {
         visible={contactsModalVisible}
         onClose={() => setContactsModalVisible(false)}
         onSave={handleContactsSave}
-        initialContacts={selectedContacts}
+        initialContacts={groupData?.contacts || []}
       />
       
       <ConfirmationModal
@@ -198,6 +267,22 @@ const GroupManagePage = () => {
         onConfirm={confirmAction}
         onCancel={cancelConfirmation}
       />
+
+      <ConfirmationModal
+        visible={showDeleteModal}
+        title="Удалить группу?"
+        message="Это действие нельзя отменить. Все участники, события и заявки будут безвозвратно удалены."
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
+
+    <ConfirmationModal
+      visible={removeMemberModal.visible}
+      title="Удалить участника?"
+      message={`Пользователь ${removeMemberModal.userName} будет исключён из группы`}
+      onConfirm={handleConfirmRemoveMember}
+      onCancel={handleCancelRemoveMember}
+    />
 
       <CreateEditEventModal
         visible={createEventModalVisible}
@@ -213,6 +298,7 @@ const GroupManagePage = () => {
         visible={editEventModalVisible}
         onClose={() => setEditEventModalVisible(false)}
         onUpdate={handleEditEventSave}
+        onDelete={handleDeleteEvent}
         groupName={groupData?.name || 'Группа'}
         editMode={true}
         initialData={selectedEventData}
@@ -268,14 +354,31 @@ const styles = StyleSheet.create({
   topBackground: {
     width: '100%',
   },
+  tabContent: {
+    flex: 1,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    position: 'relative',
+    marginBottom: 20,
+  },
   sectionTitle: {
     fontFamily: Montserrat_Alternates.bold,
     fontSize: 20,
     color: Colors.black,
-    textAlign: 'center',
   },
-  tabContent: {
-    flex: 1,
+  deleteIconButton: {
+    position: 'absolute',
+    right: 16,
+    padding: 8,
+  },
+  deleteIcon: {
+    width: 30,
+    height: 30,
+    resizeMode: 'contain',
   },
 });
 

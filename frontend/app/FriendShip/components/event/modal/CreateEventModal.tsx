@@ -32,6 +32,7 @@ interface CreateEditEventModalProps {
   visible: boolean;
   onClose: () => void;
   onCreate?: (eventData: any) => void;
+  onDelete?: (eventId: string) => void;
   onUpdate?: (eventId: string, eventData: any) => void;
   groupName?: string;
   editMode?: boolean;
@@ -44,6 +45,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   visible, 
   onClose, 
   onCreate,
+  onDelete,
   onUpdate,
   groupName = 'Мега крутая группа',
   editMode = false,
@@ -72,6 +74,8 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   const [isLoadingKinopoisk, setIsLoadingKinopoisk] = useState(false);
 
   const [mapModalVisible, setMapModalVisible] = useState(false);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     if (editMode && initialData && visible) {
@@ -359,6 +363,21 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
     return true;
   };
 
+  const handleDeletePress = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (initialData && onDelete) {
+      onDelete(initialData.id);
+      setShowDeleteModal(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+  };
+
   const handleSubmit = () => {
     console.log('[CreateEditEventModal] 🔍 selectedCategory перед отправкой:', selectedCategory);
     if (!validateForm()) {
@@ -437,9 +456,24 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
             scrollEnabled={!isLoading}
           >
             <View style={styles.header}>
+              {editMode && (
+                <TouchableOpacity 
+                  style={styles.deleteButton} 
+                  onPress={handleDeletePress}
+                  disabled={isLoading}
+                >
+                  <Image
+                    style={styles.deleteIcon}
+                    source={require('@/assets/images/groups/delete.png')}
+                    tintColor={Colors.red}
+                  />
+                </TouchableOpacity>
+              )}
+              
               <Text style={styles.title}>
                 {editMode ? 'Редактирование события' : 'Создание события'}
               </Text>
+              
               <TouchableOpacity 
                 style={styles.closeButton} 
                 onPress={handleClose}
@@ -706,6 +740,14 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
         onSelectAddress={handleSelectAddress}
         initialAddress={eventPlace}
       />
+
+      <ConfirmationModal
+        visible={showDeleteModal}
+        title="Удалить событие?"
+        message="Это действие нельзя отменить. Событие будет удалено безвозвратно."
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </Modal>
   );
 };
@@ -929,6 +971,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.black,
     marginBottom: 8,
+  },
+  deleteButton: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 1,
+  },
+  deleteIcon: {
+    width: 26,
+    height: 26,
+    resizeMode: 'contain',
   },
 });
 

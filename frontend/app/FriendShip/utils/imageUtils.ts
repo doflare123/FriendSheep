@@ -6,6 +6,11 @@ export const normalizeImageUrl = (imageUrl: string | null | undefined): string =
     console.warn('[imageUtils] ⚠️ Пустой URL изображения');
     return '';
   }
+ 
+  if (imageUrl.includes('selcloud.ru') || imageUrl.includes('selstorage.ru')) {
+    console.log('[imageUtils] ✅ URL Selectel - используем как есть:', imageUrl);
+    return imageUrl;
+  }
 
   if (imageUrl.includes('localhost:8080')) {
     const normalized = imageUrl.replace('http://localhost:8080', `http://${LOCAL_IP}:8080`);
