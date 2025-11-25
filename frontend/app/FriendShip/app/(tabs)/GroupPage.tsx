@@ -428,7 +428,7 @@ const GroupPage = () => {
         </CategorySection>
 
         <CategorySection title="Сессии:">
-          {groupData.sessions && groupData.sessions.length > 0 ? (
+          {formattedSessions && formattedSessions.length > 0 ? (
             <EventCarousel events={formattedSessions} />
           ) : (
             <View style={styles.emptyContainer}>

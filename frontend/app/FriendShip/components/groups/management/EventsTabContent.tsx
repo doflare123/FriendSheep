@@ -2,6 +2,7 @@ import EventCard, { Event } from '@/components/event/EventCard';
 import GroupEventsSearchBar from '@/components/groups/GroupEventsSearchBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useSearchState } from '@/hooks/useSearchState';
 import { sortEventsByDate, sortEventsByParticipants } from '@/utils/eventSorting';
 import { highlightEventTitle } from '@/utils/textHighlight';
 import React, { useMemo, useState } from 'react';
@@ -25,25 +26,7 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
   onEditEvent,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [checkedCategories, setCheckedCategories] = useState<string[]>(['Все']);
-  const [sortByDate, setSortByDate] = useState<'asc' | 'desc' | 'none'>('none');
-  const [sortByParticipants, setSortByParticipants] = useState<'asc' | 'desc' | 'none'>('none');
-
-  const handleCategoryToggle = (category: string) => {
-    if (category === 'Все') {
-      setCheckedCategories(['Все']);
-    } else {
-      setCheckedCategories(prev => {
-        const newCategories = prev.filter(c => c !== 'Все');
-        if (newCategories.includes(category)) {
-          const filtered = newCategories.filter(c => c !== category);
-          return filtered.length === 0 ? ['Все'] : filtered;
-        } else {
-          return [...newCategories, category];
-        }
-      });
-    }
-  };
+  const { sortingState, sortingActions } = useSearchState();
 
   const categoryMapping: Record<string, Event['category']> = {
     'Игры': 'game',
@@ -65,25 +48,25 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
       );
     }
 
-    if (!checkedCategories.includes('Все')) {
+    if (!sortingState.checkedCategories.includes('Все')) {
       filtered = filtered.filter(event => {
-        return checkedCategories.some(cat => {
+        return sortingState.checkedCategories.some(cat => {
           const mappedCategory = categoryMapping[cat];
           return mappedCategory && event.category === mappedCategory;
         });
       });
     }
 
-    if (sortByDate !== 'none') {
-      filtered = sortEventsByDate(filtered, sortByDate);
+    if (sortingState.sortByDate !== 'none') {
+      filtered = sortEventsByDate(filtered, sortingState.sortByDate);
     }
 
-    if (sortByParticipants !== 'none') {
-      filtered = sortEventsByParticipants(filtered, sortByParticipants);
+    if (sortingState.sortByParticipants !== 'none') {
+      filtered = sortEventsByParticipants(filtered, sortingState.sortByParticipants);
     }
 
     return filtered;
-  }, [events, searchQuery, checkedCategories, sortByDate, sortByParticipants]);
+  }, [events, searchQuery, sortingState.checkedCategories, sortingState.sortByDate, sortingState.sortByParticipants]);
 
   const renderEventCard = ({ item }: { item: Event }) => (
     <View style={styles.cardContainer}>
@@ -100,12 +83,8 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
         <GroupEventsSearchBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          checkedCategories={checkedCategories}
-          onCategoryToggle={handleCategoryToggle}
-          sortByDate={sortByDate}
-          onDateSortChange={setSortByDate}
-          sortByParticipants={sortByParticipants}
-          onParticipantsSortChange={setSortByParticipants}
+          sortingState={sortingState}
+          sortingActions={sortingActions}
         />
       </View>
 
@@ -122,7 +101,7 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              {searchQuery.trim() || !checkedCategories.includes('Все')
+              {searchQuery.trim() || !sortingState.checkedCategories.includes('Все')
                 ? 'События не найдены' 
                 : 'У группы пока нет событий'
               }

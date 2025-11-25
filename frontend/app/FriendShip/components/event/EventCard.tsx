@@ -151,7 +151,7 @@ const EventCard: React.FC<Event> = ({
               <Text style={styles.dateText}>{date}</Text>
             </View>
 
-            {typePlace === 'offline' && (
+            {typePlace === 'offline' && eventPlace && eventPlace.trim() !== '' && (
               <View style={styles.placeBadgeContainer}>
                 <Image
                   source={require('@/assets/images/event_card/placeBadge.png')}
@@ -162,7 +162,7 @@ const EventCard: React.FC<Event> = ({
                   style={styles.placeText}
                   onLayout={(e) => setPlaceTextWidth(e.nativeEvent.layout.width)}
                 >
-                  {eventPlace}
+                  {eventPlace.length > 20 ? eventPlace.substring(0, 14) + '...' : eventPlace}
                 </Text>
               </View>
             )}

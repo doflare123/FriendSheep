@@ -1,5 +1,6 @@
 import { PublicGroupResponse } from '@/api/services/groupService';
-import { Session } from '@/api/types/user';
+import { Session, SessionInfo } from '@/api/types/user';
+import { formatSessionDate, sessionTypeToCategory } from '@/hooks/groups/groupManageHelpers';
 import { normalizeImageUrl } from '@/utils/imageUtils';
 
 export interface Event {
@@ -105,11 +106,36 @@ export const sessionToEvent = (session: Session): Event => {
   };
 };
 
-export const sessionsToEvents = (sessions?: Session[] | null): Event[] => {
+export const sessionsToEvents = (sessions: SessionInfo[]): Event[] => {
   if (!sessions || sessions.length === 0) {
     return [];
   }
-  return sessions.map(sessionToEvent);
+
+  return sessions.map((session) => {
+    const typePlace = (session.type_session || '').toLowerCase();
+    const eventTypePlace: 'online' | 'offline' = 
+      typePlace === 'оффлайн' || typePlace === 'offline' ? 'offline' : 'online';
+
+    return {
+      id: session.id.toString(),
+      title: session.title,
+      date: formatSessionDate(session.start_time),
+      genres: session.genres || [],
+      currentParticipants: session.current_users || 0,
+      maxParticipants: session.max_users,
+      duration: `${Math.floor((new Date(session.end_time).getTime() - new Date(session.start_time).getTime()) / 60000)} мин`,
+      imageUri: session.image_url || '',
+      description: '',
+      typeEvent: session.category_session,
+      typePlace: eventTypePlace,
+      eventPlace: session.location || session.city || '',
+      publisher: '',
+      publicationDate: '',
+      ageRating: '',
+      category: sessionTypeToCategory[session.category_session] || 'other',
+      group: '',
+    };
+  });
 };
 
 export const groupSessionsToEvents = (
@@ -120,49 +146,39 @@ export const groupSessionsToEvents = (
     return [];
   }
 
-  const sessionTypeToCategory: { [key: string]: Event['category'] } = {
-    'Фильмы': 'movie',
-    'Игры': 'game',
-    'Настольные игры': 'table_game',
-    'Другое': 'other',
-  };
+  return groupData.sessions.map((sessionWrapper) => {
+    const session = sessionWrapper.session;
+    const metadata = sessionWrapper.metadata;
 
-  return groupData.sessions.map(item => {
-    const sessionPlace = item.session.session_place.toLowerCase();
+    const sessionPlace = (session.session_place || '').toLowerCase();
     const typePlace: 'online' | 'offline' = 
-      sessionPlace === 'офлайн' || sessionPlace === 'offline' ? 'offline' : 'online';
+      sessionPlace === 'оффлайн' || sessionPlace === 'offline' ? 'offline' : 'online';
 
-    const location = item.metadata?.Location || (item.metadata as any)?.location || '';
+    const eventPlace = metadata?.Location || '';
 
-    const eventPlace = typePlace === 'offline' ? location : '';
-
-    console.log('[groupSessionsToEvents] 🔍', item.session.title);
-    console.log('  - session_place:', item.session.session_place);
-    console.log('  - Location:', location);
+    console.log('[groupSessionsToEvents] 🔍', session.title);
+    console.log('  - session_place:', session.session_place);
+    console.log('  - Location:', metadata?.Location);
     console.log('  - typePlace:', typePlace);
     console.log('  - eventPlace:', eventPlace);
 
     return {
-      id: item.session.id.toString(),
-      title: item.session.title,
-      date: new Date(item.session.start_time).toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }),
-      genres: item.metadata?.Genres || (item.metadata as any)?.genres || [],
-      currentParticipants: item.session.current_users,
-      maxParticipants: item.session.count_users_max,
-      duration: `${item.session.duration} мин`,
-      imageUri: item.session.image_url,
-      description: item.metadata?.Notes || (item.metadata as any)?.notes || '',
-      typeEvent: item.session.session_type,
-      typePlace,
-      eventPlace,
-      publisher: groupData.name,
-      publicationDate: item.metadata?.Year?.toString() || (item.metadata as any)?.year?.toString() || '',
-      ageRating: item.metadata?.AgeLimit || (item.metadata as any)?.ageLimit || '',
-      category: sessionTypeToCategory[item.session.session_type] || 'other',
+      id: session.id.toString(),
+      title: session.title,
+      date: formatSessionDate(session.start_time),
+      genres: metadata?.Genres || [],
+      currentParticipants: session.current_users || 0,
+      maxParticipants: session.count_users_max,
+      duration: `${session.duration} мин`,
+      imageUri: session.image_url || '',
+      description: metadata?.Notes || '',
+      typeEvent: session.session_type,
+      typePlace: typePlace,
+      eventPlace: eventPlace,
+      publisher: metadata?.Country || '',
+      publicationDate: metadata?.Year?.toString() || '',
+      ageRating: metadata?.AgeLimit || '',
+      category: sessionTypeToCategory[session.session_type] || 'other',
       group: groupData.name,
       onSessionUpdate,
     };

@@ -121,77 +121,77 @@ const FilterModal: React.FC<FilterModalProps> = ({
               </>
             )}
 
-            {searchType === 'group' && (
-              <>
-                <Text style={styles.dropdownTitle}>Сортировка по участникам</Text>
-                {(['none', 'asc', 'desc'] as const).map((order) => (
-                  <TouchableOpacity
-                    key={order}
-                    style={styles.radioItem}
-                    onPress={() => groupSearchActions.setSortByParticipants(order)}
-                  >
-                    <View style={styles.radioCircleEmpty}>
-                      {groupSearchState.sortByParticipants === order && (
-                        <View style={styles.radioInnerCircle} />
-                      )}
-                    </View>
-                    <Text style={styles.radioLabel}>{getSortingLabel(order)}</Text>
-                  </TouchableOpacity>
-                ))}
+          {searchType === 'group' && (
+            <>
+              <Text style={styles.dropdownTitle}>Сортировка по участникам</Text>
+              {(['none', 'asc', 'desc'] as const).map((order) => (
+                <TouchableOpacity
+                  key={order}
+                  style={styles.radioItem}
+                  onPress={() => groupSearchActions.setSortByParticipants(order)}
+                >
+                  <View style={styles.radioCircleEmpty}>
+                    {groupSearchState.sortByParticipants === order && (
+                      <View style={styles.radioInnerCircle} />
+                    )}
+                  </View>
+                  <Text style={styles.radioLabel}>{getSortingLabel(order)}</Text>
+                </TouchableOpacity>
+              ))}
 
-                <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
-                  Сортировка по категориям
-                </Text>
-                {[
-                  { label: 'Все', value: null },
-                  { label: 'Фильмы', value: 'movie' },
-                  { label: 'Игры', value: 'game' },
-                  { label: 'Настолки', value: 'table_game' },
-                  { label: 'Другое', value: 'other' },
-                ].map(({ label, value }) => (
-                  <TouchableOpacity
-                    key={label}
-                    style={styles.radioItem}
-                    onPress={() => {
-                      if (value === null) {
-                        groupSearchActions.setCheckedCategories([]);
-                      } else {
-                        groupSearchActions.toggleCategoryCheckbox(value);
-                      }
-                    }}
-                  >
-                    <View style={styles.radioCircleEmpty}>
-                      {value === null
-                        ? groupSearchState.checkedCategories.length === 0 && (
-                            <View style={styles.radioInnerCircle} />
-                          )
-                        : groupSearchState.checkedCategories.includes(value) && (
-                            <View style={styles.radioInnerCircle} />
-                          )}
-                    </View>
-                    <Text style={styles.radioLabel}>{label}</Text>
-                  </TouchableOpacity>
-                ))}
+              <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
+                Сортировка по категориям
+              </Text>
+              {[
+                { label: 'Все', value: null },
+                { label: 'Фильмы', value: 'movie' as const },
+                { label: 'Игры', value: 'game' as const },
+                { label: 'Настолки', value: 'table_game' as const },
+                { label: 'Другое', value: 'other' as const },
+              ].map(({ label, value }) => (
+                <TouchableOpacity
+                  key={label}
+                  style={styles.radioItem}
+                  onPress={() => {
+                    if (value === null) {
+                      groupSearchActions.setCheckedCategories([]);
+                    } else {
+                      groupSearchActions.toggleCategoryCheckbox(value);
+                    }
+                  }}
+                >
+                  <View style={styles.radioCircleEmpty}>
+                    {value === null
+                      ? groupSearchState.checkedCategories.length === 0 && (
+                          <View style={styles.radioInnerCircle} />
+                        )
+                      : groupSearchState.checkedCategories.includes(value) && (
+                          <View style={styles.radioInnerCircle} />
+                        )}
+                  </View>
+                  <Text style={styles.radioLabel}>{label}</Text>
+                </TouchableOpacity>
+              ))}
 
-                <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
-                  Сортировка по регистрации
-                </Text>
-                {(['none', 'asc', 'desc'] as const).map((order) => (
-                  <TouchableOpacity
-                    key={order}
-                    style={styles.radioItem}
-                    onPress={() => groupSearchActions.setSortByRegistration(order)}
-                  >
-                    <View style={styles.radioCircleEmpty}>
-                      {groupSearchState.sortByRegistration === order && (
-                        <View style={styles.radioInnerCircle} />
-                      )}
-                    </View>
-                    <Text style={styles.radioLabel}>{getSortingLabel(order)}</Text>
-                  </TouchableOpacity>
-                ))}
-              </>
-            )}
+              <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
+                Сортировка по регистрации
+              </Text>
+              {(['none', 'asc', 'desc'] as const).map((order) => (
+                <TouchableOpacity
+                  key={order}
+                  style={styles.radioItem}
+                  onPress={() => groupSearchActions.setSortByRegistration(order)}
+                >
+                  <View style={styles.radioCircleEmpty}>
+                    {groupSearchState.sortByRegistration === order && (
+                      <View style={styles.radioInnerCircle} />
+                    )}
+                  </View>
+                  <Text style={styles.radioLabel}>{getSortingLabel(order)}</Text>
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
           </Pressable>
         </Pressable>
       </Modal>

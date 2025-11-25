@@ -149,6 +149,7 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
 
       console.log('[useGroupEvents] 📝 Обновление события:', eventId);
       console.log('[useGroupEvents] 📦 Данные для обновления:', eventData);
+      console.log('[useGroupEvents] 🔍 typePlace из eventData:', eventData.typePlace);
 
       const updateData: UpdateSessionData = {
         title: eventData.title,
@@ -215,26 +216,39 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
   const formattedEvents = useMemo(() => {
     if (!groupData?.sessions) return [];
     
-    return groupData.sessions.map(session => ({
-      id: session.id.toString(),
-      title: session.title,
-      date: formatSessionDate(session.start_time),
-      genres: session.genres || [],
-      currentParticipants: session.current_users,
-      maxParticipants: session.count_users_max,
-      duration: `${session.duration} мин`,
-      imageUri: normalizeImageUrl(session.image_url),
-      description: '',
-      typeEvent: session.session_type,
-      typePlace: (session.session_place === 'offline' || session.session_place === 'online' 
-        ? session.session_place : 'online') as 'online' | 'offline',
-      eventPlace: session.city || '',
-      publisher: groupData.name,
-      publicationDate: session.start_time,
-      ageRating: '',
-      category: sessionTypeToCategory[session.session_type] || 'other',
-      group: groupData.name,
-    }));
+    return groupData.sessions.map(session => {
+      const sessionPlace = (session.session_place || '').toLowerCase();
+      const typePlace: 'online' | 'offline' = 
+        sessionPlace === 'оффлайн' || sessionPlace === 'offline' ? 'offline' : 'online';
+
+      const eventPlace = session.city || '';
+      
+      console.log('[useGroupEvents] 🔍 Форматирование события:', session.title);
+      console.log('  - session_place:', session.session_place);
+      console.log('  - определён typePlace:', typePlace);
+      console.log('  - session.city:', session.city);
+      console.log('  - eventPlace:', eventPlace);
+      
+      return {
+        id: session.id.toString(),
+        title: session.title,
+        date: formatSessionDate(session.start_time),
+        genres: session.genres || [],
+        currentParticipants: session.current_users,
+        maxParticipants: session.count_users_max,
+        duration: `${session.duration} мин`,
+        imageUri: normalizeImageUrl(session.image_url),
+        description: '',
+        typeEvent: session.session_type,
+        typePlace: typePlace,
+        eventPlace: eventPlace,
+        publisher: groupData.name,
+        publicationDate: session.start_time,
+        ageRating: '',
+        category: sessionTypeToCategory[session.session_type] || 'other',
+        group: groupData.name,
+      };
+    });
   }, [groupData]);
 
   return {
