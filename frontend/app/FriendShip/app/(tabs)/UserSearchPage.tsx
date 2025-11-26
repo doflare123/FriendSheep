@@ -1,5 +1,11 @@
-import React, { useMemo } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BottomBar from '@/components/BottomBar';
@@ -7,79 +13,116 @@ import UserCard, { User } from '@/components/profile/UserCard';
 import SearchResultsSection from '@/components/search/SearchResultsSection';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
+import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useUserSearch } from '@/hooks/useUserSearch';
 import { useUserSearchState } from '@/hooks/useUserSearchState';
-import { createHighlightedText } from '@/utils/textHighlight';
-
-const mockUsers: User[] = [
-  {
-    id: '1',
-    name: 'Лейс с крабом',
-    username: '@laysKRAB',
-    description: 'Вкуснее, чем Pringles 😎',
-    imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-  },
-  {
-    id: '2',
-    name: 'Игорь Петров',
-    username: '@igorpetrov',
-    description: 'Люблю путешествовать и фотографировать',
-    imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-  },
-  {
-    id: '3',
-    name: 'Анна Смирнова',
-    username: '@annasmirn',
-    description: 'Дизайнер и любитель кофе ☕',
-    imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-  },
-  {
-    id: '4',
-    name: 'Максим Волков',
-    username: '@maxvolkov',
-    description: 'Программист и геймер 🎮',
-    imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-  },
-  {
-    id: '5',
-    name: 'Елена Козлова',
-    username: '@elenakozlova',
-    description: 'Художница и мечтательница 🎨',
-    imageUri: 'https://i.pinimg.com/736x/9e/b9/76/9eb976bc8832404d75c575763a37bfe0.jpg',
-  },
-];
-
-const highlightUserText = (user: User, query: string): User => {
-  const highlightedUsername = createHighlightedText(user.username, query);
-  
-  return {
-    ...user,
-    ...(highlightedUsername && { highlightedUsername }),
-  };
-};
+import { RootStackParamList } from '@/navigation/types';
+import { createUserWithHighlightedText } from '@/utils/userUtils';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 const UserSearchPage: React.FC = () => {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { sortingState: globalSortingState, sortingActions: globalSortingActions } = useSearchState();
-  const { searchState: userSearchState, searchActions: userSearchActions } = useUserSearchState();
+  const { searchState, searchActions } = useUserSearchState();
 
-  const filteredUsers = useMemo((): User[] => {
-    let users = [...mockUsers];
-    
-    if (userSearchState.searchQuery.trim()) {
-      users = users.filter(user =>
-        user.username.toLowerCase().includes(userSearchState.searchQuery.toLowerCase())
-      );
-      
-      users = users.map(user => highlightUserText(user, userSearchState.searchQuery));
+  const {
+    users,
+    isLoading,
+    isLoadingMore,
+    error,
+    hasMore,
+    totalUsers,
+    searchUsers,
+    loadMore,
+  } = useUserSearch();
+
+  useEffect(() => {
+    if (searchState.searchQuery.trim()) {
+      console.log('[UserSearchPage] 🔍 Выполняем поиск:', searchState.searchQuery);
+      searchUsers(searchState.searchQuery, 1, false);
     } else {
-      return [];
+      searchUsers('', 1, false);
     }
-    
-    return users;
-  }, [userSearchState.searchQuery]);
+  }, [searchState.searchQuery]);
+
+  const formattedUsers: User[] = useMemo(() => {
+    return users.map(user =>
+      createUserWithHighlightedText(user, searchState.searchQuery)
+    );
+  }, [users, searchState.searchQuery]);
 
   const handleUserPress = (userId: string) => {
-    console.log('User pressed:', userId);
+    console.log('[UserSearchPage] Переход к профилю:', userId);
+    navigation.navigate('ProfilePage', { userId });
+  };
+
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMore && searchState.searchQuery.trim()) {
+      console.log('[UserSearchPage] Загружаем больше пользователей');
+      loadMore(searchState.searchQuery);
+    }
+  };
+
+  const getUserWordForm = (count: number): string => {
+    if (count % 10 === 1 && count % 100 !== 11) {
+      return 'пользователь';
+    } else if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
+      return 'пользователя';
+    } else {
+      return 'пользователей';
+    }
+  };
+
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={Colors.lightBlue} />
+        <Text style={styles.footerText}>Загрузка...</Text>
+      </View>
+    );
+  };
+
+  const renderEmpty = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.lightBlue} />
+          <Text style={styles.loadingText}>Поиск пользователей...</Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>Ошибка: {error}</Text>
+        </View>
+      );
+    }
+
+    if (!searchState.searchQuery.trim()) {
+      return (
+        <View style={styles.centerContainer}>
+          <Text style={styles.emptyText}>Введите имя пользователя</Text>
+          <Text style={styles.emptySubtext}>
+            для начала поиска
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.emptyText}>Пользователи не найдены</Text>
+        <Text style={styles.emptySubtext}>
+          Попробуйте изменить запрос
+        </Text>
+      </View>
+    );
   };
 
   return (
@@ -89,28 +132,38 @@ const UserSearchPage: React.FC = () => {
       <View style={styles.content}>
         <SearchResultsSection
           title="Поиск по профилям"
-          searchQuery={userSearchState.searchQuery}
-          hasResults={filteredUsers.length > 0}
+          searchQuery={searchState.searchQuery}
+          hasResults={formattedUsers.length > 0}
           showWave
         >
-          {filteredUsers.length > 0 && (
-            <View style={styles.contentContainer}>
-              <FlatList
-                data={filteredUsers}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <View style={styles.cardWrapper}>
-                    <UserCard
-                      {...item}
-                      onPress={() => handleUserPress(item.id)}
-                    />
-                  </View>
-                )}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContent}
-              />
+          {totalUsers > 0 && (
+            <View style={styles.resultsHeader}>
+              <Text style={styles.resultsCount}>
+                Найдено: {totalUsers} {getUserWordForm(totalUsers)}
+              </Text>
             </View>
           )}
+
+          <View style={styles.contentContainer}>
+            <FlatList
+              data={formattedUsers}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <View style={styles.cardWrapper}>
+                  <UserCard
+                    {...item}
+                    onPress={() => handleUserPress(item.id)}
+                  />
+                </View>
+              )}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
+              ListEmptyComponent={renderEmpty}
+              ListFooterComponent={renderFooter}
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.5}
+            />
+          </View>
         </SearchResultsSection>
       </View>
 
@@ -133,9 +186,60 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 16,
+    flexGrow: 1,
   },
   cardWrapper: {
     marginBottom: 16,
+  },
+  resultsHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  resultsCount: {
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
+    color: Colors.grey,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontFamily: Montserrat.regular,
+    fontSize: 16,
+    color: Colors.grey,
+  },
+  errorText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 16,
+    color: Colors.red,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyText: {
+    fontFamily: Montserrat.bold,
+    fontSize: 18,
+    color: Colors.grey,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  footerText: {
+    marginTop: 8,
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
+    color: Colors.grey,
   },
 });
 

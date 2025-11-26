@@ -12,7 +12,7 @@ import VerticalEventList from '@/components/event/VerticalEventList';
 import CategorySearchBar from '@/components/search/CategorySearchBar';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import { useEvents } from '@/hooks/useEvents';
 import { useSearchState } from '@/hooks/useSearchState';
 import { sortEventsByDate, sortEventsByParticipants } from '@/utils/eventSorting';
@@ -138,6 +138,16 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
     }
   }, [sortedCategoryEvents, categorySortingState.searchQuery]);
 
+  const getEventWordForm = (count: number): string => {
+    if (count % 10 === 1 && count % 100 !== 11) {
+      return 'событие';
+    } else if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
+      return 'события';
+    } else {
+      return 'событий';
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
@@ -156,6 +166,14 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
         />
       </View>
 
+      {eventsToShow.length > 0 && (
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsCount}>
+            Найдено: {eventsToShow.length} {getEventWordForm(eventsToShow.length)}
+          </Text>
+        </View>
+      )}
+
       <View style={styles.contentContainer}>
         {eventsToShow.length > 0 ? (
           <VerticalEventList events={addOnPressToEvents(eventsToShow)} />
@@ -164,7 +182,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
             <Text style={styles.noEventsText}>
               {categorySortingState.searchQuery.trim() 
                 ? `Ничего не найдено по запросу "${categorySortingState.searchQuery}"` 
-                : `В категории "${title}" пока нет событий`
+                : `В этой категории пока нет событий`
               }
             </Text>
           </View>
@@ -191,7 +209,15 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 12,
+  },
+  resultsHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  resultsCount: {
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
+    color: Colors.grey,
   },
   contentContainer: {
     flex: 1,
@@ -202,15 +228,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   noEventsText: {
-    fontFamily: inter.regular,
-    fontSize: 18,
-    color: Colors.black,
+    fontFamily: Montserrat.regular,
+    fontSize: 20,
     textAlign: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 40,
-    padding: 12,
-    borderWidth: 3,
-    borderColor: Colors.lightBlue,
+    color: Colors.blue2,
+    marginBottom: 4,
   },
 });
 

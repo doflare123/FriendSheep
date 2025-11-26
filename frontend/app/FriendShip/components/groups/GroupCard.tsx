@@ -42,30 +42,39 @@ const GroupCard: React.FC<GroupCardProps> = ({
   onPress,
   highlightedName,
 }) => {
-  const renderHighlightedText = (
-    normalText: string,
-    highlighted: { before: string; match: string; after: string } | undefined,
-    style: any
-  ) => {
-    if (!highlighted) {
-      return <Text style={style}>{normalText}</Text>;
+  const renderHighlightedText = () => {
+    if (!highlightedName) {
+      return (
+        <Text 
+          style={styles.groupName}
+          numberOfLines={2}
+          ellipsizeMode='tail'
+        >
+          {name}
+        </Text>
+      );
     }
 
-    console.log('GroupCard получил:', {
-      name,
-      imageUri,
-      categories,
-      imageType: typeof imageUri,
-    });
-
     return (
-      <Text style={style}>
-        {highlighted.before}
-        <Text style={styles.highlight}>{highlighted.match}</Text>
-        {highlighted.after}
+      <Text 
+        style={styles.groupName}
+        numberOfLines={2}
+        ellipsizeMode='tail'
+      >
+        {highlightedName.before}
+        <Text style={styles.highlight}>{highlightedName.match}</Text>
+        {highlightedName.after}
       </Text>
     );
   };
+
+  console.log('GroupCard получил:', {
+    name,
+    imageUri,
+    categories,
+    imageType: typeof imageUri,
+    highlightedName,
+  });
 
   return (
     <View style={styles.shadowWrapper}>
@@ -83,11 +92,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
           </View>
           <View style={styles.content}>
             <View style={styles.headerContent}>
-              {renderHighlightedText(
-                name,
-                highlightedName,
-                [styles.groupName, { numberOfLines: 2, ellipsizeMode: 'tail' }]
-              )}
+              {renderHighlightedText()}
               
               {categories.length > 0 && (
                 <View style={styles.iconsContainer}>
@@ -204,7 +209,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   highlight: {
-    backgroundColor: Colors.lightBlue,
+    backgroundColor: Colors.lightBlue2,
     color: Colors.black,
   },
 });

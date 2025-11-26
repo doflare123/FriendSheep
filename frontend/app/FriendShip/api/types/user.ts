@@ -112,3 +112,18 @@ export interface TileSettings {
   count_other: boolean;
   spent_time: boolean;
 }
+
+export interface SearchUserItem {
+  id: number;
+  name: string;
+  us: string;
+  image: string;
+  status: string;
+}
+
+export interface SearchUsersResponse {
+  users: SearchUserItem[];
+  total: number;
+  page: number;
+  has_more: boolean;
+}

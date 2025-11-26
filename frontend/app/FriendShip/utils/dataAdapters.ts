@@ -2,6 +2,7 @@ import { PublicGroupResponse } from '@/api/services/groupService';
 import { Session, SessionInfo } from '@/api/types/user';
 import { formatSessionDate, sessionTypeToCategory } from '@/hooks/groups/groupManageHelpers';
 import { normalizeImageUrl } from '@/utils/imageUtils';
+import { extractCityFromAddress } from './addressUtils';
 
 export interface Event {
   id: string;
@@ -116,6 +117,16 @@ export const sessionsToEvents = (sessions: SessionInfo[]): Event[] => {
     const eventTypePlace: 'online' | 'offline' = 
       typePlace === 'оффлайн' || typePlace === 'offline' ? 'offline' : 'online';
 
+    let eventPlace = '';
+    if (eventTypePlace === 'offline') {
+      if (session.location) {
+        const city = extractCityFromAddress(session.location);
+        eventPlace = city || session.city || session.location;
+      } else {
+        eventPlace = session.city || '';
+      }
+    }
+
     return {
       id: session.id.toString(),
       title: session.title,
@@ -154,7 +165,11 @@ export const groupSessionsToEvents = (
     const typePlace: 'online' | 'offline' = 
       sessionPlace === 'оффлайн' || sessionPlace === 'offline' ? 'offline' : 'online';
 
-    const eventPlace = metadata?.Location || '';
+    let eventPlace = '';
+    if (typePlace === 'offline' && metadata?.Location) {
+      const city = extractCityFromAddress(metadata.Location);
+      eventPlace = city || metadata.Location;
+    }
 
     console.log('[groupSessionsToEvents] 🔍', session.title);
     console.log('  - session_place:', session.session_place);

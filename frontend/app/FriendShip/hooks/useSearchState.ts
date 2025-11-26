@@ -8,6 +8,7 @@ export interface SortingState {
   sortByParticipants: 'asc' | 'desc' | 'none';
   searchQuery: string;
   activeSearchType: SearchType;
+  cityFilter: string;
 }
 
 export interface SortingActions {
@@ -17,6 +18,7 @@ export interface SortingActions {
   toggleCategoryCheckbox: (category: string) => void;
   setSearchQuery: (query: string) => void;
   setActiveSearchType: (type: SearchType) => void;
+  setCityFilter: (city: string) => void;
 }
 
 let globalActiveSearchType: SearchType = 'event';
@@ -32,6 +34,7 @@ export const useSearchState = () => {
   const [sortByParticipants, setSortByParticipants] = useState<'asc' | 'desc' | 'none'>('none');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeSearchType, setActiveSearchTypeLocal] = useState<SearchType>(globalActiveSearchType);
+  const [cityFilter, setCityFilter] = useState<string>('');
 
   useState(() => {
     const listener = (type: SearchType) => {
@@ -69,6 +72,7 @@ export const useSearchState = () => {
     sortByParticipants,
     searchQuery,
     activeSearchType,
+    cityFilter,
   };
 
   const sortingActions: SortingActions = {
@@ -78,6 +82,7 @@ export const useSearchState = () => {
     toggleCategoryCheckbox,
     setSearchQuery,
     setActiveSearchType,
+    setCityFilter,
   };
 
   return {

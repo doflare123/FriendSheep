@@ -1,13 +1,16 @@
-import { eventsData } from '@/data/eventsData';
+import sessionService from '@/api/services/session/sessionService';
+import { Event } from '@/components/event/EventCard';
 import { SortingState } from '@/hooks/useSearchState';
 import {
   createEventWithHighlightedTitle,
   filterEventsByCategories,
+  filterEventsByCity, // 🆕 Импортируем новую функцию
   filterEventsBySearch,
-  getEventsByCategory,
   sortEventsByParticipants
 } from '@/utils/eventUtils';
-import { useMemo } from 'react';
+import { mapBackendSessionsToEvents } from '@/utils/sessionMapper';
+import { getSessionStatus } from '@/utils/sessionStatusHelpers';
+import { useEffect, useMemo, useState } from 'react';
 
 const parseDate = (dateString: string): Date => {
   const parts = dateString.split(' ');
@@ -26,7 +29,7 @@ const parseDate = (dateString: string): Date => {
   );
 };
 
-const sortEventsByDate = (events: any[], order: 'asc' | 'desc' | 'none') => {
+const sortEventsByDate = (events: Event[], order: 'asc' | 'desc' | 'none') => {
   if (order === 'none') return events;
   
   return [...events].sort((a, b) => {
@@ -41,57 +44,143 @@ const sortEventsByDate = (events: any[], order: 'asc' | 'desc' | 'none') => {
   });
 };
 
-export const useEvents = (sortingState: SortingState) => {
-  const { checkedCategories, sortByDate, sortByParticipants, searchQuery } = sortingState;
+const getEventsByCategory = (events: Event[], category: Event['category']) => {
+  return events.filter(event => event.category === category);
+};
 
+function filterActiveEvents(events: Event[]): Event[] {
+  return events.filter(event => {
+    const durationMatch = event.duration.match(/\d+/);
+    const duration = durationMatch ? parseInt(durationMatch[0]) : 0;
+
+    const status = getSessionStatus(event.date, duration);
+    
+    const isActive = status === 'recruitment' || status === 'in_progress';
+    
+    if (!isActive) {
+      console.log('[useEvents] 🚫 Событие завершено, фильтруем:', event.title);
+    }
+    
+    return isActive;
+  });
+}
+
+export const useEvents = (sortingState: SortingState) => {
+  const { checkedCategories, sortByDate, sortByParticipants, searchQuery, cityFilter } = sortingState; // 🆕 Добавлен cityFilter
+  
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [popularEventsData, setPopularEventsData] = useState<Event[]>([]);
+  const [newEventsData, setNewEventsData] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadSessions = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        console.log('[useEvents] 🚀 Загрузка всех событий...');
+
+        const popularResponse = await sessionService.getPopularSessions();
+        const popularSessions = popularResponse?.sessions || [];
+        const mappedPopular = mapBackendSessionsToEvents(popularSessions);
+
+        const filteredPopular = filterActiveEvents(mappedPopular);
+        setPopularEventsData(filteredPopular);
+
+        console.log('[useEvents] ✅ Популярные события загружены:', filteredPopular.length);
+
+        try {
+          const newResponse = await sessionService.getNewSessions();
+          const newSessions = newResponse?.sessions || [];
+          const mappedNew = mapBackendSessionsToEvents(newSessions);
+
+          const filteredNew = filterActiveEvents(mappedNew);
+          setNewEventsData(filteredNew);
+          console.log('[useEvents] ✅ Новые события загружены:', filteredNew.length);
+        } catch (newError) {
+          console.log('[useEvents] ⚠️ Эндпоинт для новых событий недоступен');
+          setNewEventsData([]);
+        }
+
+        try {
+          const allResponse = await sessionService.getAllSessions();
+          const allSessions = allResponse?.sessions || [];
+          const mappedAll = mapBackendSessionsToEvents(allSessions);
+
+          const filteredAll = filterActiveEvents(mappedAll);
+          setAllEvents(filteredAll);
+          console.log('[useEvents] ✅ Все события загружены:', filteredAll.length);
+        } catch (allError) {
+          console.log('[useEvents] ⚠️ Эндпоинт для всех событий недоступен');
+          setAllEvents([]);
+        }
+
+      } catch (error: any) {
+        console.error('[useEvents] ❌ Ошибка загрузки событий:', error);
+        setError(error.message || 'Не удалось загрузить события');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSessions();
+  }, []);
+
+  // 🆕 Применяем фильтрацию по городу ко всем категориям
   const movieEvents = useMemo(() => {
-    let events = getEventsByCategory(eventsData, 'movie');
+    let events = getEventsByCategory(allEvents, 'movie');
+    events = filterEventsByCity(events, cityFilter); // 🆕 Фильтр по городу
     events = sortEventsByDate(events, sortByDate);
     events = sortEventsByParticipants(events, sortByParticipants);
     return events;
-  }, [sortByDate, sortByParticipants]);
+  }, [allEvents, sortByDate, sortByParticipants, cityFilter]); // 🆕 Добавлен cityFilter
 
   const gameEvents = useMemo(() => {
-    let events = getEventsByCategory(eventsData, 'game');
+    let events = getEventsByCategory(allEvents, 'game');
+    events = filterEventsByCity(events, cityFilter); // 🆕 Фильтр по городу
     events = sortEventsByDate(events, sortByDate);
     events = sortEventsByParticipants(events, sortByParticipants);
     return events;
-  }, [sortByDate, sortByParticipants]);
+  }, [allEvents, sortByDate, sortByParticipants, cityFilter]); // 🆕 Добавлен cityFilter
 
   const tableGameEvents = useMemo(() => {
-    let events = getEventsByCategory(eventsData, 'table_game');
+    let events = getEventsByCategory(allEvents, 'table_game');
+    events = filterEventsByCity(events, cityFilter); // 🆕 Фильтр по городу
     events = sortEventsByDate(events, sortByDate);
     events = sortEventsByParticipants(events, sortByParticipants);
     return events;
-  }, [sortByDate, sortByParticipants]);
+  }, [allEvents, sortByDate, sortByParticipants, cityFilter]); // 🆕 Добавлен cityFilter
 
   const otherEvents = useMemo(() => {
-    let events = getEventsByCategory(eventsData, 'other');
+    let events = getEventsByCategory(allEvents, 'other');
+    events = filterEventsByCity(events, cityFilter); // 🆕 Фильтр по городу
     events = sortEventsByDate(events, sortByDate);
     events = sortEventsByParticipants(events, sortByParticipants);
     return events;
-  }, [sortByDate, sortByParticipants]);
+  }, [allEvents, sortByDate, sortByParticipants, cityFilter]); // 🆕 Добавлен cityFilter
 
+  // 🆕 Фильтруем популярные и новые события по городу
   const popularEvents = useMemo(() => {
-    return [...eventsData].sort((a, b) => b.currentParticipants - a.currentParticipants);
-  }, []);
+    return filterEventsByCity(popularEventsData, cityFilter);
+  }, [popularEventsData, cityFilter]);
 
   const newEvents = useMemo(() => {
-    return sortEventsByDate(eventsData, 'desc');
-  }, []);
+    return filterEventsByCity(newEventsData, cityFilter);
+  }, [newEventsData, cityFilter]);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
 
-    let filtered = filterEventsBySearch(eventsData, searchQuery);
-
+    let filtered = filterEventsBySearch(allEvents, searchQuery);
     filtered = filterEventsByCategories(filtered, checkedCategories);
-
+    filtered = filterEventsByCity(filtered, cityFilter);
     filtered = sortEventsByDate(filtered, sortByDate);
     filtered = sortEventsByParticipants(filtered, sortByParticipants);
 
     return filtered.map(event => createEventWithHighlightedTitle(event, searchQuery));
-  }, [searchQuery, checkedCategories, sortByDate, sortByParticipants]);
+  }, [searchQuery, allEvents, checkedCategories, sortByDate, sortByParticipants, cityFilter]);
 
   return {
     movieEvents,
@@ -100,6 +189,8 @@ export const useEvents = (sortingState: SortingState) => {
     otherEvents,
     popularEvents,
     newEvents,
-    searchResults
+    searchResults,
+    isLoading,
+    error,
   };
 };

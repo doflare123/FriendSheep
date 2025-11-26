@@ -1,4 +1,5 @@
 import barsStyle from '@/app/styles/barsStyle';
+import CityFilterInput from '@/components/filters/CityFilterInput';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import React, { useRef, useState } from 'react';
@@ -25,12 +26,13 @@ const CategorySearchBar: React.FC<CategorySearchBarProps> = ({
   const filterIconRef = useRef<View>(null);
   const [filterIconLayout, setFilterIconLayout] = useState({ width: 0, height: 0 });
 
-  const { checkedCategories, sortByDate, sortByParticipants, searchQuery } = sortingState;
+  const { checkedCategories, sortByDate, sortByParticipants, searchQuery, cityFilter } = sortingState;
   const { 
     setSortByDate, 
     setSortByParticipants, 
     setSearchQuery,
-    toggleCategoryCheckbox
+    toggleCategoryCheckbox,
+    setCityFilter
   } = sortingActions;
 
   const handleSearchInputChange = (text: string) => {
@@ -106,9 +108,16 @@ const CategorySearchBar: React.FC<CategorySearchBarProps> = ({
             ]}
             onPress={() => {}}
           >
+            <CityFilterInput
+              value={cityFilter}
+              onChangeText={setCityFilter}
+            />
+
             {showCategoryFilter && (
               <>
-                <Text style={styles.dropdownTitle}>Фильтрация по категориям</Text>
+                <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
+                  Фильтрация по категориям
+                </Text>
                 {['Все', 'Игры', 'Фильмы', 'Настолки', 'Другое'].map((cat) => (
                   <TouchableOpacity
                     key={cat}

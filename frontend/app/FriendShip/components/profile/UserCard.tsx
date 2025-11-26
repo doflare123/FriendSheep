@@ -139,8 +139,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   highlight: {
-    backgroundColor: Colors.lightBlue,
-    color: Colors.black,
+    backgroundColor: Colors.lightBlue2,
   },
 });
 

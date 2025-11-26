@@ -18,6 +18,7 @@ import { useGroupSearch } from '@/hooks/useGroupSearch';
 import { useGroupSearchState } from '@/hooks/useGroupSearchState';
 import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
+import { createGroupWithHighlightedName } from '@/utils/groupUtils';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -63,7 +64,7 @@ const GroupSearchPage: React.FC = () => {
   ]);
 
   const formattedGroups: Group[] = useMemo(() => {
-    return groups.map(group => ({
+    const mapped = groups.map(group => ({
       id: group.id.toString(),
       name: group.name,
       participantsCount: group.count,
@@ -74,7 +75,15 @@ const GroupSearchPage: React.FC = () => {
         .filter(Boolean) as any[],
       isPrivate: group.isPrivate,
     }));
-  }, [groups]);
+
+    if (searchState.searchQuery.trim()) {
+      return mapped.map(group => 
+        createGroupWithHighlightedName(group, searchState.searchQuery)
+      );
+    }
+
+    return mapped;
+  }, [groups, searchState.searchQuery]);
 
   const handleGroupPress = (groupId: string) => {
     console.log('[GroupSearchPage] Переход к группе:', groupId);

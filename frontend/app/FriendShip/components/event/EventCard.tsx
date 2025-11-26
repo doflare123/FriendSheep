@@ -1,6 +1,5 @@
 import EventModal from '@/components/event/modal/EventModal';
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
 import { Montserrat } from '@/constants/Montserrat';
 import { formatTitle } from "@/utils/formatTitle";
 import React, { useState } from 'react';
@@ -323,9 +322,7 @@ const styles = StyleSheet.create({
     color: Colors.black,
   },
   highlightedText: {
-    backgroundColor: Colors.lightBlue,
-    color: Colors.blue,
-    fontFamily: inter.black,
+    backgroundColor: Colors.lightBlue2,
   },
   genres: { 
     flexDirection: 'row', 

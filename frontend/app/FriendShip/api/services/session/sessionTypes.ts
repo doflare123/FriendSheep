@@ -31,6 +31,7 @@ export interface UpdateSessionData {
   genres?: string[];
   image_url?: string;
   location?: string;
+  city?: string;
   year?: number;
   country?: string;
   age_limit?: string;

@@ -1,3 +1,4 @@
+import CityFilterInput from '@/components/filters/CityFilterInput';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { GroupSearchActions, GroupSearchState } from '@/hooks/useGroupSearchState';
@@ -67,7 +68,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
           >
             {searchType === 'event' && (
               <>
-                <Text style={styles.dropdownTitle}>Фильтрация по категориям</Text>
+                <CityFilterInput
+                  value={sortingState.cityFilter}
+                  onChangeText={sortingActions.setCityFilter}
+                />
+
+                <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
+                  Фильтрация по категориям
+                </Text>
                 {['Все', 'Игры', 'Фильмы', 'Настолки', 'Другое'].map((cat) => (
                   <TouchableOpacity
                     key={cat}

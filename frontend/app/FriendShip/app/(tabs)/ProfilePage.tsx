@@ -302,16 +302,16 @@ const ProfilePage: React.FC = () => {
           {profileData.popular_genres && profileData.popular_genres.length > 0 ? (
             <View style={styles.genresContainer}>
               <View style={styles.genresColumn}>
-                {profileData.popular_genres.slice(0, 3).map((genre, index) => (
+                {profileData.popular_genres.slice(0, 5).map((genre, index) => (
                   <Text key={index} style={styles.genreItem}>
                     {index + 1}. {genre.name} - {genre.count}
                   </Text>
                 ))}
               </View>
               <View style={styles.genresColumn}>
-                {profileData.popular_genres.slice(3).map((genre, index) => (
+                {profileData.popular_genres.slice(5).map((genre, index) => (
                   <Text key={index} style={styles.genreItem}>
-                    {index + 4}. {genre.name} - {genre.count}
+                    {index + 6}. {genre.name} - {genre.count}
                   </Text>
                 ))}
               </View>
@@ -473,7 +473,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 12,
-    justifyContent: 'space-between',
     marginBottom: 16
   },
   subscriptionImage: {

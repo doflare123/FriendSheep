@@ -29,6 +29,28 @@ export const filterEventsByCategories = (events: any[], categories: string[]) =>
   return events.filter(event => mappedCategories.includes(event.category));
 };
 
+export const filterEventsByCity = (events: Event[], cityFilter: string): Event[] => {
+  if (!cityFilter.trim()) {
+    return events;
+  }
+
+  const normalizedFilter = cityFilter.toLowerCase().trim();
+
+  return events.filter(event => {
+    if (event.typePlace !== 'offline') {
+      return false;
+    }
+
+    if (!event.eventPlace) {
+      return false;
+    }
+
+    const normalizedCity = event.eventPlace.toLowerCase().trim();
+
+    return normalizedCity.includes(normalizedFilter);
+  });
+};
+
 export const sortEventsByParticipants = (events: any[], order: 'asc' | 'desc' | 'none') => {
   if (order === 'none') return events;
   

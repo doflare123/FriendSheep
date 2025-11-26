@@ -114,6 +114,8 @@ class SessionService {
 
       const result = await response.json();
       console.log('[SessionService] ✅ Сессия создана:', result);
+      console.log('[SessionService] 🔍 Проверяем city в ответе:', result.city);
+
       return result;
     } catch (error: any) {
       console.error('[SessionService] ❌ Ошибка:', error);
@@ -205,6 +207,62 @@ class SessionService {
         throw new Error('Нет доступа к этой сессии');
       }
       throw new Error(error.response?.data?.message || 'Ошибка загрузки информации о сессии');
+    }
+  }
+  async getPopularSessions(): Promise<any> {
+    try {
+      console.log('[SessionService] 📊 Загрузка популярных сессий');
+      const response = await apiClient.get('/users/sessions/popular');
+      console.log('[SessionService] ✅ Популярные сессии получены:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[SessionService] ❌ Ошибка загрузки популярных сессий:', error);
+      throw new Error(error.response?.data?.message || 'Ошибка загрузки популярных сессий');
+    }
+  }
+
+  async getNewSessions(): Promise<any> {
+    try {
+      console.log('[SessionService] 🆕 Загрузка новых сессий');
+      const response = await apiClient.get('/users/sessions/search', {
+        params: {
+          page: 1,
+          new_only: true,
+          sort_by: 'date',
+          order: 'desc'
+        }
+      });
+      console.log('[SessionService] ✅ Новые сессии получены:', response.data);
+      return {
+        count: response.data.total || 0,
+        sessions: response.data.sessions || [],
+        updated_at: new Date().toISOString()
+      };
+    } catch (error: any) {
+      console.error('[SessionService] ❌ Ошибка загрузки новых сессий:', error);
+      throw new Error(error.response?.data?.message || 'Ошибка загрузки новых сессий');
+    }
+  }
+
+  async getAllSessions(): Promise<any> {
+    try {
+      console.log('[SessionService] 📋 Загрузка всех сессий');
+      const response = await apiClient.get('/users/sessions/search', {
+        params: {
+          page: 1,
+          sort_by: 'date',
+          order: 'desc'
+        }
+      });
+      console.log('[SessionService] ✅ Все сессии получены:', response.data);
+      return {
+        count: response.data.total || 0,
+        sessions: response.data.sessions || [],
+        updated_at: new Date().toISOString()
+      };
+    } catch (error: any) {
+      console.error('[SessionService] ❌ Ошибка загрузки всех сессий:', error);
+      throw new Error(error.response?.data?.message || 'Ошибка загрузки сессий');
     }
   }
 }

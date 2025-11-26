@@ -163,6 +163,14 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
         notes: eventData.description || '',
       };
 
+      if (eventData.typePlace === 'offline' && eventData.eventPlace) {
+        const city = extractCityFromAddress(eventData.eventPlace);
+        if (city) {
+          updateData.city = city;
+          console.log('[useGroupEvents] 🏙️ Город извлечён при обновлении:', city);
+        }
+      }
+
       if (eventData.date) {
         updateData.start_time = convertToRFC3339(eventData.date);
       }
@@ -172,11 +180,7 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
         updateData.image_url = imageUrl;
       }
 
-      console.log('[useGroupEvents] 📝 Финальные данные для PATCH:');
-      console.log('  - notes:', updateData.notes);
-      console.log('  - country:', updateData.country);
-      console.log('  - year:', updateData.year);
-      console.log('  - age_limit:', updateData.age_limit);
+      console.log('[useGroupEvents] 📝 Финальные данные для PATCH:', updateData);
 
       await sessionService.updateSession(parseInt(eventId), updateData);
       
@@ -192,6 +196,26 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
       setIsUpdatingEvent(false);
     }
   };
+
+  function extractCityFromAddress(address: string): string {
+    if (!address || !address.trim()) return '';
+    
+    const cleaned = address.trim();
+    
+    const cityPrefixMatch = cleaned.match(/^(?:г\.\s*|город\s+)([^,]+)/i);
+    if (cityPrefixMatch) {
+      return cityPrefixMatch[1].trim();
+    }
+    
+    const firstPart = cleaned.split(',')[0].trim();
+    
+    const notCityPrefixes = /^(ул\.|улица|пр\.|проспект|пер\.|переулок|д\.|дом|кв\.|квартира)/i;
+    if (!notCityPrefixes.test(firstPart)) {
+      return firstPart;
+    }
+    
+    return '';
+  }
 
     const handleDeleteEvent = async (eventId: string, onSuccess: () => void) => {
     try {

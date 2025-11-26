@@ -12,6 +12,9 @@ const VerticalEventList: React.FC<VerticalEventListProps> = ({ events }) => {
       data={events}
       keyExtractor={(item) => item.id}
       showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
+      horizontal={false}
+      contentContainerStyle={styles.listContent}
       renderItem={({ item }) => (
         <View style={styles.cardContainer}>
           <EventCard {...item} />
@@ -22,6 +25,9 @@ const VerticalEventList: React.FC<VerticalEventListProps> = ({ events }) => {
 };
 
 const styles = StyleSheet.create({
+  listContent: {
+    paddingBottom: 16,
+  },
   cardContainer: {
     marginBottom: 16,
     alignItems: 'center',

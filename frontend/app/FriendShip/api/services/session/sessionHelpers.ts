@@ -102,6 +102,26 @@ export async function uploadSessionImage(imageUri: string): Promise<string> {
   }
 }
 
+function extractCityFromAddress(address: string): string {
+  if (!address || !address.trim()) return '';
+
+  const cleaned = address.trim();
+
+  const cityPrefixMatch = cleaned.match(/^(?:г\.\s*|город\s+)([^,]+)/i);
+  if (cityPrefixMatch) {
+    return cityPrefixMatch[1].trim();
+  }
+
+  const firstPart = cleaned.split(',')[0].trim();
+
+  const notCityPrefixes = /^(ул\.|улица|пр\.|проспект|пер\.|переулок|д\.|дом|кв\.|квартира)/i;
+  if (!notCityPrefixes.test(firstPart)) {
+    return firstPart;
+  }
+  
+  return '';
+}
+
 export function buildSessionFormData(
   sessionData: CreateSessionData, 
   imageUrl: string
@@ -125,8 +145,17 @@ export function buildSessionFormData(
   }
 
   if (sessionData.location && sessionData.location.trim()) {
-    formData.append('location', sessionData.location);
-  }
+      formData.append('location', sessionData.location);
+      
+      if (sessionData.session_place === 2) {
+        const city = extractCityFromAddress(sessionData.location);
+        if (city) {
+          const fieldsValue = `city:${city}`;
+          formData.append('fields', fieldsValue);
+          console.log('[SessionHelpers] 🏙️ Город добавлен в fields:', fieldsValue);
+        }
+      }
+    }
 
   if (sessionData.year !== undefined && sessionData.year !== null && sessionData.year > 0) {
     formData.append('year', sessionData.year.toString());
@@ -145,11 +174,6 @@ export function buildSessionFormData(
     formData.append('notes', sessionData.notes);
     console.log('[SessionHelpers] 📝 Описание (notes) добавлено');
   }
-
-  if (sessionData.fields && sessionData.fields.trim()) {
-    formData.append('fields', sessionData.fields);
-  }
-
   return formData;
 }
 

@@ -1,6 +1,7 @@
 import { normalizeImageUrl } from '@/utils/imageUtils';
 import apiClient from '../apiClient';
 import {
+  SearchUsersResponse, // 🆕
   Subscription,
   TileSettings,
   UpdateProfileRequest,
@@ -55,7 +56,39 @@ class UserService {
     } catch (error: any) {
       throw this.handleError(error);
     }
-}
+  }
+
+  async searchUsers(query: string, page: number = 1): Promise<SearchUsersResponse> {
+    try {
+      console.log('[UserService] 🔍 Поиск пользователей:', { query, page });
+      
+      const response = await apiClient.get<SearchUsersResponse>('/users/search', {
+        params: {
+          name: query,
+          page: page,
+        },
+      });
+
+      const users = response.data.users || [];
+
+      const normalizedUsers = users.map(user => ({
+        ...user,
+        image: normalizeImageUrl(user.image),
+      }));
+
+      console.log('[UserService] ✅ Найдено пользователей:', normalizedUsers.length);
+
+      return {
+        total: response.data.total || 0,
+        page: response.data.page || 1,
+        has_more: response.data.has_more || false,
+        users: normalizedUsers,
+      };
+    } catch (error: any) {
+      console.error('[UserService] ❌ Ошибка поиска:', error);
+      throw this.handleError(error);
+    }
+  }
 
   async updateProfile(data: UpdateProfileRequest): Promise<UpdateProfileResponse> {
     try {
