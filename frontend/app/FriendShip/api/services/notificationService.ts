@@ -1,49 +1,28 @@
 import apiClient from '../apiClient';
 import {
-    MarkAsViewedResponse,
-    Notification,
-    NotificationsResponse,
-    normalizeInvite,
-    normalizeNotification
+  MarkAsViewedResponse,
+  NotificationsResponse
 } from '../types/notification';
 
 class NotificationService {
-  private viewedNotificationIds: Set<number> = new Set();
 
   async getNotifications(): Promise<NotificationsResponse> {
     try {
       console.log('[NotificationService] 📬 Загрузка уведомлений...');
       
-      const response = await apiClient.get<any>('/users/notify');
-      
-      console.log('[NotificationService] ✅ Ответ сервера:', JSON.stringify(response.data, null, 2));
- 
-      const notifications = (response.data.notifications || [])
-        .map(normalizeNotification)
-        .filter((n: Notification) => !this.viewedNotificationIds.has(n.id));
-      
-      const invites = (response.data.invites || [])
-        .map(normalizeInvite)
-        .filter((inv: any) => inv.status === 'pending');
+      const response = await apiClient.get<NotificationsResponse>('/users/notify');
       
       console.log('[NotificationService] ✅ Загружено:', {
-        notifications: notifications.length,
-        invites: invites.length,
-        viewedInMemory: this.viewedNotificationIds.size,
+        notifications: response.data.notifications?.length || 0,
+        invites: response.data.invites?.length || 0,
       });
       
       return {
-        notifications,
-        invites,
+        notifications: response.data.notifications || [],
+        invites: response.data.invites || [],
       };
     } catch (error: any) {
       console.error('[NotificationService] ❌ Ошибка загрузки уведомлений:', error);
-      console.error('[NotificationService] 📋 Детали ошибки:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message,
-      });
       throw this.handleError(error);
     }
   }
@@ -51,18 +30,11 @@ class NotificationService {
   async hasNotifications(): Promise<boolean> {
     try {
       const response = await apiClient.get<boolean>('/users/notify/inf');
-      console.log('[NotificationService] 🔔 Есть уведомления:', response.data);
+      console.log('[NotificationService] 🔔 Есть непросмотренные:', response.data);
       return response.data;
     } catch (error: any) {
-      try {
-        const data = await this.getNotifications();
-        const hasAny = (data.notifications.length + data.invites.length) > 0;
-        console.log('[NotificationService] 🔔 Есть уведомления (fallback):', hasAny);
-        return hasAny;
-      } catch (fallbackError) {
-        console.error('[NotificationService] ❌ Ошибка проверки уведомлений:', error);
-        return false;
-      }
+      console.error('[NotificationService] ❌ Ошибка проверки уведомлений:', error);
+      throw this.handleError(error);
     }
   }
 
@@ -70,33 +42,17 @@ class NotificationService {
     try {
       console.log('[NotificationService] 👁️ Отмечаю уведомление как просмотренное:', notificationId);
       
-      this.viewedNotificationIds.add(notificationId);
-
-      try {
-        const response = await apiClient.post<MarkAsViewedResponse>(
-          '/users/notifications/viewed',
-          { id: notificationId }
-        );
-        
-        console.log('[NotificationService] ✅ Уведомление отмечено на бэкенде');
-        return response.data;
-      } catch (backendError: any) {
-        console.log('[NotificationService] ⚠️ Бэкенд не поддерживает viewed, используем локальное хранилище');
-        return { success: 'true' };
-      }
+      const response = await apiClient.post<MarkAsViewedResponse>(
+        '/users/notifications/viewed',
+        { id: notificationId }
+      );
+      
+      console.log('[NotificationService] ✅ Уведомление отмечено');
+      return response.data;
     } catch (error: any) {
       console.error('[NotificationService] ❌ Ошибка отметки уведомления:', error);
       throw this.handleError(error);
     }
-  }
-
-  clearViewedCache(): void {
-    this.viewedNotificationIds.clear();
-    console.log('[NotificationService] 🗑️ Кэш просмотренных уведомлений очищен');
-  }
-
-  getViewedCount(): number {
-    return this.viewedNotificationIds.size;
   }
 
   private handleError(error: any): Error {
@@ -105,9 +61,7 @@ class NotificationService {
       const data = error.response.data;
 
       const errorMessage =
-        typeof data === 'object' && data.error
-          ? data.error
-          : typeof data === 'object'
+        typeof data === 'object'
           ? Object.values(data).join(', ')
           : data || 'Произошла ошибка';
 
@@ -119,7 +73,7 @@ class NotificationService {
         case 404:
           return new Error('Уведомление не найдено');
         case 500:
-          return new Error(`Ошибка сервера: ${errorMessage}`);
+          return new Error('Ошибка сервера. Попробуйте позже');
         default:
           return new Error(errorMessage);
       }

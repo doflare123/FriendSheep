@@ -62,11 +62,11 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
     } catch (error: any) {
       console.error('[TopBar] Ошибка загрузки уведомлений:', error);
       setServerError(true);
-      
+ 
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: 'Не удалось загрузить уведомления',
+        message: 'Не удалось загрузить уведомления. Возможно, сервис уведомлений временно недоступен.',
       });
     } finally {
       setLoading(false);
@@ -98,10 +98,6 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
       await notificationService.markAsViewed(notificationId);
 
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-
-      if (notifications.length + invites.length === 1) {
-        setHasUnread(false);
-      }
       
       showToast({
         type: 'success',
@@ -120,12 +116,8 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
   const handleAcceptInvite = async (inviteId: number, groupId: number) => {
     try {
       await groupService.respondToInvite(inviteId.toString(), 'accepted');
-      
-      setInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
 
-      if (notifications.length + invites.length === 1) {
-        setHasUnread(false);
-      }
+      setInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
       
       showToast({
         type: 'success',
@@ -146,10 +138,6 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
       await groupService.respondToInvite(inviteId.toString(), 'rejected');
 
       setInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
-
-      if (notifications.length + invites.length === 1) {
-        setHasUnread(false);
-      }
       
       showToast({
         type: 'success',
@@ -234,7 +222,7 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
               <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>
                   Не удалось загрузить уведомления.{'\n'}
-                  Попробуйте позже.
+                  Возможно, notify_service не запущен.
                 </Text>
                 <TouchableOpacity 
                   style={styles.retryButton}
@@ -247,7 +235,7 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
               <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {invites.map((invite) => (
                   <View key={`invite-${invite.id}`} style={styles.notificationItem}>
-                    <View style={[styles.iconWrapper, { backgroundColor: Colors.lightBlue }]}>
+                    <View style={styles.iconWrapper}>
                       <Image
                         style={styles.notificationIcon}
                         source={require('@/assets/images/top_bar/notifications.png')}
@@ -283,19 +271,14 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
                     onPress={() => handleMarkAsViewed(notification.id)}
                     activeOpacity={0.7}
                   >
-                    <View style={[styles.iconWrapper, { backgroundColor: Colors.red }]}>
+                    <View style={styles.iconWrapper}>
                       <Image
                         style={styles.notificationIcon}
                         source={require('@/assets/images/top_bar/notifications.png')}
                       />
                     </View>
-                    <View style={{ flex: 1 }}>
-                      {notification.title && (
-                        <Text style={styles.notificationTitle}>{notification.title}</Text>
-                      )}
-                      <Text style={styles.notificationText}>{notification.text}</Text>
-                    </View>
-                    <Text style={styles.notificationTime}>{formatTime(notification.send_at)}</Text>
+                    <Text style={styles.notificationText}>{notification.text}</Text>
+                    <Text style={styles.notificationTime}>{formatTime(notification.sendAt)}</Text>
                   </TouchableOpacity>
                 ))}
 
@@ -393,6 +376,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
+    backgroundColor: Colors.lightBlue,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -402,13 +386,9 @@ const styles = StyleSheet.create({
     height: 32,
     tintColor: Colors.white,
   },
-  notificationTitle: {
-    fontFamily: Montserrat.bold,
-    fontSize: 12,
-    marginBottom: 2,
-  },
   notificationText: {
     fontFamily: Montserrat.regular,
+    flex: 1,
     fontSize: 11,
   },
   notificationTime: {

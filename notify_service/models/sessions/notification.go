@@ -14,5 +14,6 @@ type Notification struct {
 	Text               string    `json:"text" gorm:"not null"`
 	ImageURL           string    `json:"image_url" gorm:"type:text"`
 	Title              string    `json:"title" gorm:"not null"`
+	Viewed   bool   `json:"viewed" gorm:"default:false"`
 	CreatedAt          time.Time
 }
