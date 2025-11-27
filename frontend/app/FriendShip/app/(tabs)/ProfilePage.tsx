@@ -119,9 +119,7 @@ const ProfilePage: React.FC = () => {
       let imageUrl = profileData?.image;
 
       if (updatedProfile.avatar?.uri && typeof updatedProfile.avatar === 'object') {
-        console.log('[ProfilePage] Загружаем аватар:', updatedProfile.avatar.uri);
         imageUrl = await userService.uploadImage(updatedProfile.avatar.uri);
-        console.log('[ProfilePage] Загружен новый аватар:', imageUrl);
       }
 
       await userService.updateProfile({
@@ -182,7 +180,6 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleGroupPress = (groupId: number) => {
-    console.log('[ProfilePage] Переход к группе:', groupId);
     navigation.navigate('GroupPage', { groupId: groupId.toString() });
   };
 
@@ -217,49 +214,25 @@ const ProfilePage: React.FC = () => {
   }
 
   const generateUserStatistics = () => {
-    const stats = profileData.user_stats;
-    const total = stats.count_films + stats.count_games + stats.count_table_games + stats.count_another;
+    if (!profileData.popular_genres || profileData.popular_genres.length === 0) {
+      return [];
+    }
+    
+    const total = profileData.popular_genres.reduce((sum, genre) => sum + genre.count, 0);
     
     if (total === 0) return [];
     
-    const data = [];
+    const colors = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#95E1D3',
+      '#F38181', '#AA96DA', '#FCBAD3', '#A8D8EA', '#FFCB85'
+    ];
     
-    if (stats.count_films > 0) {
-      data.push({
-        name: 'Фильмы',
-        percentage: Math.round((stats.count_films / total) * 100),
-        color: '#FF6B6B',
-        legendFontColor: '#000'
-      });
-    }
-    
-    if (stats.count_games > 0) {
-      data.push({
-        name: 'Игры',
-        percentage: Math.round((stats.count_games / total) * 100),
-        color: '#4ECDC4',
-        legendFontColor: '#000'
-      });
-    }
-    
-    if (stats.count_table_games > 0) {
-      data.push({
-        name: 'Настолки',
-        percentage: Math.round((stats.count_table_games / total) * 100),
-        color: '#45B7D1',
-        legendFontColor: '#000'
-      });
-    }
-    
-    if (stats.count_another > 0) {
-      data.push({
-        name: 'Другое',
-        percentage: Math.round((stats.count_another / total) * 100),
-        color: '#FFA07A',
-        legendFontColor: '#000'
-      });
-    }
-    return data;
+    return profileData.popular_genres.map((genre, index) => ({
+      name: genre.name,
+      percentage: Math.round((genre.count / total) * 100),
+      color: colors[index % colors.length],
+      legendFontColor: '#000'
+    }));
   };
 
   const statisticsData = generateUserStatistics();
@@ -294,7 +267,7 @@ const ProfilePage: React.FC = () => {
             video_games: profileData.user_stats.count_games,
             board_games: profileData.user_stats.count_table_games,
             other: profileData.user_stats.count_another,
-            time: 0,
+            time: Math.round(profileData.user_stats.spent_time / 60),
           }}
         />
 
@@ -377,7 +350,7 @@ const ProfilePage: React.FC = () => {
             />
 
             <StatisticsBottomBars
-              mostPopularDay={profileData.user_stats.most_pop_day || '—'}
+              mostPopularDay={profileData.user_stats.most_pop_day}
               sessionsCreated={profileData.user_stats.count_create_session}
               sessionsSeries={profileData.user_stats.series_session_count}
             />
@@ -401,7 +374,7 @@ const ProfilePage: React.FC = () => {
               video_games: profileData.user_stats.count_games,
               board_games: profileData.user_stats.count_table_games,
               other: profileData.user_stats.count_another,
-              time: 0,
+              time: Math.round(profileData.user_stats.spent_time / 60),
             }}
           />
 

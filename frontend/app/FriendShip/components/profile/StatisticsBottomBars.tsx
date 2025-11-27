@@ -3,15 +3,15 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 interface StatisticsBottomBarsProps {
-  mostPopularDay?: string;
-  sessionsCreated?: number;
-  sessionsSeries?: number;
+  mostPopularDay: string;
+  sessionsCreated: number;
+  sessionsSeries: number;
 }
 
 const StatisticsBottomBars: React.FC<StatisticsBottomBarsProps> = ({
-  mostPopularDay = 'Воскресенье',
-  sessionsCreated = 4,
-  sessionsSeries = 4,
+  mostPopularDay,
+  sessionsCreated,
+  sessionsSeries,
 }) => {
   return (
     <View style={styles.container}>

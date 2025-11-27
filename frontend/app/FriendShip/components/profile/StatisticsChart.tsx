@@ -13,16 +13,10 @@ export interface StatisticsDataItem {
 
 interface StatisticsChartProps {
   statisticsData: StatisticsDataItem[];
-  mostPopularDay?: string;
-  sessionsCreated?: number;
-  sessionsSeries?: number;
 }
 
 const StatisticsChart: React.FC<StatisticsChartProps> = ({
   statisticsData,
-  mostPopularDay = 'Воскресенье',
-  sessionsCreated = 4,
-  sessionsSeries = 4,
 }) => {
   const chartConfig = {
     color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
@@ -38,7 +32,7 @@ const StatisticsChart: React.FC<StatisticsChartProps> = ({
               population: item.percentage,
               color: item.color,
               legendFontColor: item.legendFontColor,
-              legendFontSize: 12,
+              legendFontSize: 11,
               legendFontFamily: Montserrat.regular,
             }))}
             width={Dimensions.get('window').width - 60}
@@ -46,9 +40,12 @@ const StatisticsChart: React.FC<StatisticsChartProps> = ({
             chartConfig={chartConfig}
             accessor="population"
             backgroundColor="transparent"
-            paddingLeft="0"
+            paddingLeft="4"
             absolute={false}
             hasLegend={true}
+            style={{
+              marginBottom: 8,
+            }}
           />
         </View>
       
@@ -62,8 +59,9 @@ const StatisticsChart: React.FC<StatisticsChartProps> = ({
 
 const styles = StyleSheet.create({
   statisticsContainer: {
-    alignItems: 'center',
-    marginTop: -16
+    alignItems: 'flex-start',
+    marginTop: -16,
+    marginLeft: 16
   },
   chartContainer: {
     justifyContent: 'space-between'

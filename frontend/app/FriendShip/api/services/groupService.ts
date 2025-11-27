@@ -596,6 +596,19 @@ class GroupService {
     }
   }
 
+  async respondToInvite(inviteId: string, action: 'accepted' | 'rejected'): Promise<void> {
+    try {
+      console.log('[GroupService] 📨 Ответ на приглашение:', { inviteId, action });
+      
+      await apiClient.post(`/groups/invite/${inviteId}`, { action });
+      
+      console.log('[GroupService] ✅ Приглашение обработано');
+    } catch (error: any) {
+      console.error('[GroupService] ❌ Ошибка ответа на приглашение:', error);
+      throw new Error(error);
+    }
+  }
+
 }
 
 export default new GroupService();

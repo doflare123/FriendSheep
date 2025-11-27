@@ -1,45 +1,207 @@
+import groupService from '@/api/services/groupService';
+import notificationService from '@/api/services/notificationService';
+import { GroupInvite, Notification } from '@/api/types/notification';
 import barsStyle from '@/app/styles/barsStyle';
 import MainSearchBar from '@/components/search/MainSearchBar';
+import { useToast } from '@/components/ToastContext';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { SortingActions, SortingState } from '@/hooks/useSearchState';
-import React, { useRef, useState } from 'react';
-import { Image, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 interface TopBarProps {
   sortingState: SortingState;
   sortingActions: SortingActions;
 }
 
-const TopBar : React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
+const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
+  const { showToast } = useToast();
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [notifModalPos, setNotifModalPos] = useState({ top: 0, left: 0 });
   const notifIconRef = useRef<View>(null);
 
-  const openNotifications = () => {
+  const [loading, setLoading] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [invites, setInvites] = useState<GroupInvite[]>([]);
+  const [serverError, setServerError] = useState(false);
+
+  const checkUnreadNotifications = useCallback(async () => {
+    try {
+      const hasNotifications = await notificationService.hasNotifications();
+      setHasUnread(hasNotifications);
+      setServerError(false);
+    } catch (error: any) {
+      console.warn('[TopBar] Не удалось проверить уведомления:', error.message);
+      setServerError(true);
+    }
+  }, []);
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      setLoading(true);
+      setServerError(false);
+      
+      const data = await notificationService.getNotifications();
+      
+      setNotifications(data.notifications || []);
+      setInvites(data.invites || []);
+      setHasUnread(false);
+      
+    } catch (error: any) {
+      console.error('[TopBar] Ошибка загрузки уведомлений:', error);
+      setServerError(true);
+      
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Не удалось загрузить уведомления',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    checkUnreadNotifications();
+    const interval = setInterval(checkUnreadNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [checkUnreadNotifications]);
+
+  const openNotifications = async () => {
     notifIconRef.current?.measureInWindow((x, y, width, height) => {
       const modalWidth = 320;
       const centerX = x + width / 2;
       const left = centerX - modalWidth + 5;
-      const top = y + (height * 0.5);
+      const top = y + height * 0.5;
 
       setNotifModalPos({ top, left });
       setNotificationsVisible(true);
     });
+
+    await loadNotifications();
   };
+
+  const handleMarkAsViewed = async (notificationId: number) => {
+    try {
+      await notificationService.markAsViewed(notificationId);
+
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+
+      if (notifications.length + invites.length === 1) {
+        setHasUnread(false);
+      }
+      
+      showToast({
+        type: 'success',
+        title: 'Готово',
+        message: 'Уведомление отмечено как просмотренное',
+      });
+    } catch (error: any) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось отметить уведомление',
+      });
+    }
+  };
+
+  const handleAcceptInvite = async (inviteId: number, groupId: number) => {
+    try {
+      await groupService.respondToInvite(inviteId.toString(), 'accepted');
+      
+      setInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
+
+      if (notifications.length + invites.length === 1) {
+        setHasUnread(false);
+      }
+      
+      showToast({
+        type: 'success',
+        title: 'Успешно',
+        message: 'Вы присоединились к группе',
+      });
+    } catch (error: any) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось принять приглашение',
+      });
+    }
+  };
+
+  const handleRejectInvite = async (inviteId: number) => {
+    try {
+      await groupService.respondToInvite(inviteId.toString(), 'rejected');
+
+      setInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
+
+      if (notifications.length + invites.length === 1) {
+        setHasUnread(false);
+      }
+      
+      showToast({
+        type: 'success',
+        title: 'Готово',
+        message: 'Приглашение отклонено',
+      });
+    } catch (error: any) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось отклонить приглашение',
+      });
+    }
+  };
+
+  const formatTime = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMins < 1) return 'только что';
+      if (diffMins < 60) return `${diffMins} мин назад`;
+      if (diffHours < 24) return `${diffHours} ч назад`;
+      if (diffDays < 7) return `${diffDays} дн назад`;
+      
+      return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+    } catch {
+      return '';
+    }
+  };
+
+  const totalCount = notifications.length + invites.length;
 
   return (
     <View style={styles.container}>
-      <MainSearchBar 
-        sortingState={sortingState} 
-        sortingActions={sortingActions} 
-      />
+      <MainSearchBar sortingState={sortingState} sortingActions={sortingActions} />
+      
       <TouchableOpacity
         ref={notifIconRef}
         onPress={openNotifications}
         activeOpacity={0.7}
+        style={styles.notificationButton}
       >
-        <Image style={barsStyle.notifications} source={require("@/assets/images/top_bar/notifications.png")} />
+        <Image
+          style={barsStyle.notifications}
+          source={require('@/assets/images/top_bar/notifications.png')}
+        />
+        {hasUnread && !serverError && <View style={styles.unreadIndicator} />}
       </TouchableOpacity>
 
       <Modal
@@ -48,48 +210,100 @@ const TopBar : React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
         visible={notificationsVisible}
         onRequestClose={() => setNotificationsVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setNotificationsVisible(false)}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setNotificationsVisible(false)}
+        >
           <Pressable
             style={[styles.notificationsModal, { top: notifModalPos.top, left: notifModalPos.left }]}
             onPress={() => {}}
           >
-            <Text style={styles.title}>У вас N непрочитанных уведомлений:</Text>
+            <Text style={styles.title}>
+              {serverError 
+                ? 'Сервис уведомлений недоступен'
+                : totalCount > 0
+                ? `У вас ${totalCount} ${totalCount === 1 ? 'уведомление' : totalCount < 5 ? 'уведомления' : 'уведомлений'}:`
+                : 'Нет новых уведомлений'}
+            </Text>
 
-            <View style={styles.notificationItem}>
-              <View style={styles.iconWrapper}>
-                <Image
-                  style={styles.notificationIcon}
-                  source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png' }}
-                />
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={Colors.lightBlue} />
               </View>
-              <Text style={styles.notificationText}>
-                Событие “Какое-то событие” начнётся через 30 мин
-              </Text>
-              <Text style={styles.notificationTime}>1 час назад</Text>
-            </View>
-
-            <View style={styles.notificationItem}>
-              <View style={styles.iconWrapper}>
-                <Image
-                  style={styles.notificationIcon}
-                  source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png' }}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.notificationText}>
-                  Вас приглашают в группу “МЕГАКРУТЫЕ ПАЦАНЯТА”
+            ) : serverError ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>
+                  Не удалось загрузить уведомления.{'\n'}
+                  Попробуйте позже.
                 </Text>
-                <View style={styles.buttonsRow}>
-                  <TouchableOpacity style={styles.acceptButton}>
-                    <Text style={styles.buttonText}>Принять</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.rejectButton}>
-                    <Text style={styles.buttonText}>Отклонить</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity 
+                  style={styles.retryButton}
+                  onPress={loadNotifications}
+                >
+                  <Text style={styles.retryButtonText}>Попробовать снова</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.notificationTime}>1 час назад</Text>
-            </View>
+            ) : (
+              <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                {invites.map((invite) => (
+                  <View key={`invite-${invite.id}`} style={styles.notificationItem}>
+                    <View style={[styles.iconWrapper, { backgroundColor: Colors.lightBlue }]}>
+                      <Image
+                        style={styles.notificationIcon}
+                        source={require('@/assets/images/top_bar/notifications.png')}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.notificationText}>
+                        Вас приглашают в группу {invite.groupName}
+                      </Text>
+                      <View style={styles.buttonsRow}>
+                        <TouchableOpacity
+                          style={styles.acceptButton}
+                          onPress={() => handleAcceptInvite(invite.id, invite.groupId)}
+                        >
+                          <Text style={styles.buttonText}>Принять</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.rejectButton}
+                          onPress={() => handleRejectInvite(invite.id)}
+                        >
+                          <Text style={styles.buttonText}>Отклонить</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    <Text style={styles.notificationTime}>{formatTime(invite.createdAt)}</Text>
+                  </View>
+                ))}
+
+                {notifications.map((notification) => (
+                  <TouchableOpacity
+                    key={`notification-${notification.id}`}
+                    style={styles.notificationItem}
+                    onPress={() => handleMarkAsViewed(notification.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.iconWrapper, { backgroundColor: Colors.red }]}>
+                      <Image
+                        style={styles.notificationIcon}
+                        source={require('@/assets/images/top_bar/notifications.png')}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      {notification.title && (
+                        <Text style={styles.notificationTitle}>{notification.title}</Text>
+                      )}
+                      <Text style={styles.notificationText}>{notification.text}</Text>
+                    </View>
+                    <Text style={styles.notificationTime}>{formatTime(notification.send_at)}</Text>
+                  </TouchableOpacity>
+                ))}
+
+                {totalCount === 0 && !serverError && (
+                  <Text style={styles.emptyText}>Здесь пока ничего нет</Text>
+                )}
+              </ScrollView>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -107,6 +321,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     zIndex: 10,
   },
+  notificationButton: {
+    position: 'relative',
+  },
+  unreadIndicator: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.red,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: Colors.lightBlack,
@@ -114,6 +340,7 @@ const styles = StyleSheet.create({
   notificationsModal: {
     position: 'absolute',
     width: 320,
+    maxHeight: 400,
     backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 16,
@@ -128,6 +355,35 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 12,
   },
+  scrollView: {
+    maxHeight: 320,
+  },
+  loadingContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  errorContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  errorText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 12,
+    color: Colors.grey,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: Colors.lightBlue,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontFamily: Montserrat.regular,
+    color: Colors.white,
+    fontSize: 12,
+  },
   notificationItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -137,7 +393,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.red,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -145,10 +400,15 @@ const styles = StyleSheet.create({
   notificationIcon: {
     width: 32,
     height: 32,
+    tintColor: Colors.white,
+  },
+  notificationTitle: {
+    fontFamily: Montserrat.bold,
+    fontSize: 12,
+    marginBottom: 2,
   },
   notificationText: {
     fontFamily: Montserrat.regular,
-    flex: 1,
     fontSize: 11,
   },
   notificationTime: {
@@ -156,7 +416,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.lightGrey,
     marginLeft: 8,
-    alignSelf: 'flex-end'
+    alignSelf: 'flex-end',
   },
   buttonsRow: {
     flexDirection: 'row',
@@ -179,6 +439,13 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.regular,
     color: Colors.white,
     fontSize: 10,
+  },
+  emptyText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 12,
+    color: Colors.lightGrey,
+    textAlign: 'center',
+    paddingVertical: 24,
   },
 });
 
