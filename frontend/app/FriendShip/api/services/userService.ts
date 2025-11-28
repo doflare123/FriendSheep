@@ -92,12 +92,20 @@ class UserService {
 
   async updateProfile(data: UpdateProfileRequest): Promise<UpdateProfileResponse> {
     try {
+      console.log('[UserService] 📤 Отправляемые данные профиля:', JSON.stringify(data, null, 2));
+      
       const response = await apiClient.patch<UpdateProfileResponse>(
         '/users/user/profile',
         data
-      );
+      ); 
+      
+      console.log('[UserService] ✅ Профиль обновлён:', response.data);
       return response.data;
     } catch (error: any) {
+      console.error('[UserService] ❌ Ошибка обновления профиля:');
+      console.error('  Status:', error.response?.status);
+      console.error('  Data:', JSON.stringify(error.response?.data, null, 2));
+      console.error('  Отправленные данные:', JSON.stringify(data, null, 2));
       throw this.handleError(error);
     }
   }

@@ -1,5 +1,5 @@
 import userService from '@/api/services/userService';
-import { Subscription, UserProfile } from '@/api/types/user';
+import { Subscription, UpdateProfileRequest, UserProfile } from '@/api/types/user';
 import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
 import PageHeader from '@/components/PageHeader';
@@ -119,15 +119,32 @@ const ProfilePage: React.FC = () => {
       let imageUrl = profileData?.image;
 
       if (updatedProfile.avatar?.uri && typeof updatedProfile.avatar === 'object') {
+        console.log('[ProfilePage] 📤 Загружаем новое изображение...');
         imageUrl = await userService.uploadImage(updatedProfile.avatar.uri);
+        console.log('[ProfilePage] ✅ Изображение загружено:', imageUrl);
       }
 
-      await userService.updateProfile({
-        name: updatedProfile.name,
-        us: updatedProfile.username,
-        status: updatedProfile.description,
-        image: imageUrl,
-      });
+      const updateData: UpdateProfileRequest = {};
+
+      if (updatedProfile.name?.trim()) {
+        updateData.name = updatedProfile.name.trim();
+      }
+
+      if (updatedProfile.username?.trim()) {
+        updateData.us = updatedProfile.username.trim();
+      }
+
+      if (updatedProfile.description?.trim()) {
+        updateData.status = updatedProfile.description.trim();
+      }
+
+      if (imageUrl) {
+        updateData.image = imageUrl;
+      }
+
+      console.log('[ProfilePage] 📤 Обновляем профиль с данными:', JSON.stringify(updateData, null, 2));
+
+      await userService.updateProfile(updateData);
 
       showToast({
         type: 'success',
@@ -139,7 +156,8 @@ const ProfilePage: React.FC = () => {
       setEditModalVisible(false);
 
     } catch (error: any) {
-      console.error('[ProfilePage] Ошибка:', error);
+      console.error('[ProfilePage] ❌ Ошибка обновления профиля:', error);
+      console.error('[ProfilePage] ❌ Сообщение об ошибке:', error.message);
       
       showToast({
         type: 'error',
