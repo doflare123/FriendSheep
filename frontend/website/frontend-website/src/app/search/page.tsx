@@ -21,14 +21,14 @@ interface User {
 }
 
 interface Group {
-  category: string[];
+  category: string[] | null;
   count: number;
   description: string;
   id: number;
   image: string;
-  name: string;
   isPrivate?: boolean;
   createdAt?: string;
+  name: string;
 }
 
 interface UsersResponse {
@@ -516,22 +516,24 @@ export default function SearchPage() {
                                     style={{ cursor: 'pointer' }}
                                   >
                                     {group.name}
-                                    <span className={styles.groupIcons}>
-                                      {group.category.map((cat, index) => {
-                                        const engCategories = convertCategRuToEng([cat]);
-                                        const engCat = engCategories[0] || 'other';
-                                        return (
-                                          <Image
-                                            key={index}
-                                            src={getCategoryIcon(engCat)}
-                                            alt={cat}
-                                            width={16}
-                                            height={16}
-                                            className={styles.categoryIcon}
-                                          />
-                                        );
-                                      })}
-                                    </span>
+                                    {group.category && group.category.length > 0 && (
+                                      <span className={styles.groupIcons}>
+                                        {group.category.map((cat, index) => {
+                                          const engCategories = convertCategRuToEng([cat]);
+                                          const engCat = engCategories[0] || 'other';
+                                          return (
+                                            <Image
+                                              key={index}
+                                              src={getCategoryIcon(engCat)}
+                                              alt={cat}
+                                              width={16}
+                                              height={16}
+                                              className={styles.categoryIcon}
+                                            />
+                                          );
+                                        })}
+                                      </span>
+                                    )}
                                   </h3>
                                 </div>
                                 

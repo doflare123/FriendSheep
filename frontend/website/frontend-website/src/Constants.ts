@@ -205,10 +205,8 @@ export const getSocialIcon = (name: string, link?: string, ): string => {
     return '/social/tg.png';
   } else if (lowerLink.includes('vk.com') || lowerName.includes('вконтакте') || lowerName.includes('vk')) {
     return '/social/vk.png';
-  } else if (lowerLink.includes('wa.me') || lowerLink.includes('whatsapp') || lowerName.includes('whatsapp') || lowerName.includes('wa')) {
-    return '/social/wa.png';
-  } else if (lowerLink.includes('snapchat') || lowerName.includes('snapchat') || lowerName.includes('snap')) {
-    return '/social/snap.png';
+  } else if (lowerLink.includes('max')) {
+    return '/social/max.png';
   } else {
     return '/default/soc_net.png';
   }

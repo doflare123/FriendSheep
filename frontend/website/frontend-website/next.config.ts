@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
         hostname: '**.selstorage.ru',
         port: '',
         pathname: '/**',
-      },
+      }
     ],
   },
   reactStrictMode: false,

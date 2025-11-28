@@ -42,17 +42,16 @@
   }
 }
 
+* {
+  color-scheme: light;
+}
+
 html,
 body {
   height: 100%;
-  color: #000000;
+  color: black;
   font-family: 'Inter', sans-serif;
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-inter);
+  background-color: white;
 }
 
 .bgPage {
@@ -71,11 +70,12 @@ body {
     content: "";
     position: absolute;
     inset: 0;
-    background: url('/bg_login.webp') repeat, 
-                linear-gradient(135deg, #4e79a7 0%, #37A2E6 100%);
+    background-image: url('/bg.webp'), 
+                      linear-gradient(135deg, #4e79a7 0%, #37A2E6 100%);
     filter: blur(4px);
+    opacity: 0.5;
     z-index: -1;
-    transform: scale(1.05); /* чтобы края не обрезались */
+    transform: scale(1.05);
 }
 
 .form-container {

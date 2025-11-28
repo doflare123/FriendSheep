@@ -28,8 +28,7 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
     { id: 'discord', name: 'Discord', icon: getSocialIcon("ds") },
     { id: 'telegram', name: 'Telegram', icon: getSocialIcon("tg")  },
     { id: 'vkontakte', name: 'VKontakte', icon: getSocialIcon("vk")  },
-    { id: 'whatsapp', name: 'WhatsApp', icon: getSocialIcon("wa")  },
-    { id: 'snapchat', name: 'Snapchat', icon: getSocialIcon("snap")  }
+    { id: 'max', name: 'Max', icon: getSocialIcon("max")  }
   ];
 
   const [socialNetworks, setSocialNetworks] = useState<SocialNetwork[]>(baseSocialNetworks);

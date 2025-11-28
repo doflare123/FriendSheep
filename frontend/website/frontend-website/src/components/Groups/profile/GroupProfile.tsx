@@ -135,6 +135,8 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
   // Преобразуем sessions в формат для CategorySection
   const eventsData = transformSessionsToEvents(groupData.sessions);
 
+  console.log("ZXCZXC", groupData.users)
+
   if (isLoading) {
     return (
       <div className='bgPage' style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
@@ -263,7 +265,12 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
               {groupData.users && groupData.users.length > 0 && (
                 <div className={styles.subscribersList}>
                   {groupData.users.slice(0, 6).map((user, index) => (
-                    <div key={index} className={styles.subscriberItem}>
+                    <div 
+                      key={index} 
+                      className={styles.subscriberItem}
+                      onClick={() => router.push(`/profile/${user.us}`)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <div className={styles.subscriberAvatar}>
                         <Image
                           src={user.image || "/default-avatar.png"}
