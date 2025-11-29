@@ -75,23 +75,19 @@ export const getAccesToken = async (router?: AppRouterInstance): Promise<string>
     const refreshToken = getCookie('refresh_token');
     
     if (!refreshToken) {
-      console.warn('⚠️ Refresh token отсутствует');
       if (router) router.push('/login');
       return '';
     }
     
-    console.log('🔄 Обновление токена...');
     const tokens = await refreshAccessToken(refreshToken);
     
     // Сохраняем новые токены
     localStorage.setItem('access_token', tokens.access_token);
     setCookie('refresh_token', tokens.refresh_token, 7);
     
-    console.log('✅ Токен успешно обновлён');
     return tokens.access_token;
     
   } catch (error) {
-    console.error('❌ Ошибка обновления токена:', error);
     if (router) router.push('/login');
     return '';
   }
