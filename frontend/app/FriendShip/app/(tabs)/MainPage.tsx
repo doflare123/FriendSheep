@@ -1,13 +1,20 @@
+import sessionService from '@/api/services/session';
+import { AdminGroup } from '@/api/types/auth';
 import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
+import CreateEventButton from '@/components/event/CreateEventButton';
 import { Event } from '@/components/event/EventCard';
+import CreateEditEventModal from '@/components/event/modal/CreateEventModal';
 import EventModal from '@/components/event/modal/EventModal';
 import VerticalEventList from '@/components/event/VerticalEventList';
+import GroupSelectorModal from '@/components/groups/modal/GroupSelectorModal';
 import PageHeader from '@/components/PageHeader';
 import SearchResultsSection from '@/components/search/SearchResultsSection';
+import { useToast } from '@/components/ToastContext';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { categoryToSessionType } from '@/hooks/groups/groupManageHelpers';
 import { useEvents } from '@/hooks/useEvents';
 import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
@@ -26,6 +33,11 @@ const MainPage = () => {
 
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [groupSelectorVisible, setGroupSelectorVisible] = useState(false);
+  const [createEventModalVisible, setCreateEventModalVisible] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<AdminGroup | null>(null);
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const { showToast } = useToast();
 
   const { sortingState, sortingActions } = useSearchState();
   const { 
@@ -91,13 +103,86 @@ const MainPage = () => {
       return 'событий';
     }
   };
+  
+  const handleCreateEventPress = () => {
+    setGroupSelectorVisible(true);
+  };
+
+  const handleSelectGroup = (group: AdminGroup) => {
+    console.log('[MainPage] Выбрана группа для создания события:', group.name);
+    setSelectedGroup(group);
+    setGroupSelectorVisible(false);
+    setCreateEventModalVisible(true);
+  };
+
+  const handleCreateEvent = async (eventData: any) => {
+    if (!selectedGroup) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Группа не выбрана',
+      });
+      return;
+    }
+
+    try {
+      setIsCreatingEvent(true);
+      console.log('[MainPage] 📤 Создание события для группы:', selectedGroup.id);
+      
+      const sessionData = {
+        title: eventData.title,
+        session_type: categoryToSessionType[eventData.category] || 'Другое',
+        session_place: eventData.typePlace === 'online' ? 1 : 2,
+        group_id: selectedGroup.id,
+        start_time: eventData.start_time,
+        count_users: eventData.maxParticipants,
+        image: eventData.image,
+        duration: eventData.duration,
+        genres: eventData.genres || [],
+        location: eventData.eventPlace || '',
+        year: eventData.year,
+        country: eventData.country || eventData.publisher || '',
+        age_limit: eventData.ageRating || '',
+        notes: eventData.description || '',
+        fields: eventData.category,
+      };
+
+      console.log('[MainPage] 📤 Отправляемые данные:', sessionData);
+      
+      await sessionService.createSession(sessionData);
+      
+      showToast({
+        type: 'success',
+        title: 'Успешно',
+        message: 'Событие создано!',
+      });
+      
+      setCreateEventModalVisible(false);
+      setSelectedGroup(null);
+      
+    } catch (error: any) {
+      console.error('[MainPage] ❌ Ошибка создания события:', error);
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось создать событие',
+      });
+    } finally {
+      setIsCreatingEvent(false);
+    }
+  };
+
+  const handleCloseCreateEventModal = () => {
+    setCreateEventModalVisible(false);
+    setSelectedGroup(null);
+  };
 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={Colors.lightBlue3} />
+          <ActivityIndicator size="large" color={Colors.lightBlue} />
           <Text style={styles.loadingText}>
             Загрузка событий...
           </Text>
@@ -267,6 +352,25 @@ const MainPage = () => {
       )}
 
       <BottomBar />
+
+      <CreateEventButton onPress={handleCreateEventPress} />
+
+      <GroupSelectorModal
+        visible={groupSelectorVisible}
+        onClose={() => setGroupSelectorVisible(false)}
+        onSelectGroup={handleSelectGroup}
+      />
+
+      {selectedGroup && (
+        <CreateEditEventModal
+          visible={createEventModalVisible}
+          onClose={handleCloseCreateEventModal}
+          onCreate={handleCreateEvent}
+          groupName={selectedGroup.name}
+          editMode={false}
+          isLoading={isCreatingEvent}
+        />
+      )}
 
       {selectedEvent && (
         <EventModal

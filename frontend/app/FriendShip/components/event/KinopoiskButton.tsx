@@ -24,7 +24,7 @@ const KinopoiskButton: React.FC<KinopoiskButtonProps> = ({
       activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={Colors.lightBlue3} />
+        <ActivityIndicator size="small" color={Colors.lightBlue} />
       ) : (
         <Image
           source={require('@/assets/images/event_card/kinopoisk.png')}

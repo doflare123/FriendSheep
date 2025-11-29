@@ -33,7 +33,7 @@ const authorizeStyle = StyleSheet.create({
   title: {
     fontSize: 28,
     fontFamily: Montserrat_Alternates.medium,
-    color: Colors.lightBlue3,
+    color: Colors.lightBlue,
     textAlign: 'center',
     marginBottom: 40,
   },

@@ -20,6 +20,7 @@ import ContactsModal from '@/components/groups/modal/ContactsModal';
 import TopBar from '@/components/TopBar';
 
 import CreateEditEventModal from '@/components/event/modal/CreateEventModal';
+import { GroupAdminGuard } from '@/components/groups/management/GroupAdminGuard';
 import SubscribersTabContent from '@/components/groups/management/SubscribersTabContent';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
@@ -217,97 +218,99 @@ const GroupManagePage = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <TopBar sortingState={sortingState} sortingActions={sortingActions} />
-        <View style={styles.sectionHeader}>
-          <GroupManageTabPanel
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            isPrivateGroup={isPrivate}
-          />
-          
-          <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-            <Image
-              source={require('../../assets/images/event_card/back.png')}
-              style={styles.backIcon}
-              tintColor={Colors.darkGrey}
+    <GroupAdminGuard groupId={groupId}>
+      <SafeAreaView style={styles.container}>
+        <TopBar sortingState={sortingState} sortingActions={sortingActions} />
+          <View style={styles.sectionHeader}>
+            <GroupManageTabPanel
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              isPrivateGroup={isPrivate}
             />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.titleContainer}>
-          <Text style={styles.sectionTitle}>{getSectionTitle()}</Text>
-          {activeTab === 'info' && (
-            <TouchableOpacity
-              style={styles.deleteIconButton}
-              onPress={handleDeletePress}
-              disabled={isSaving}
-            >
+            
+            <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
               <Image
-                source={require('@/assets/images/groups/delete.png')}
-                style={styles.deleteIcon}
+                source={require('../../assets/images/event_card/back.png')}
+                style={styles.backIcon}
+                tintColor={Colors.darkGrey}
               />
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+          
+          <View style={styles.titleContainer}>
+            <Text style={styles.sectionTitle}>{getSectionTitle()}</Text>
+            {activeTab === 'info' && (
+              <TouchableOpacity
+                style={styles.deleteIconButton}
+                onPress={handleDeletePress}
+                disabled={isSaving}
+              >
+                <Image
+                  source={require('@/assets/images/groups/delete.png')}
+                  style={styles.deleteIcon}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+          
+        {renderTabContent()}
+
+        <ContactsModal
+          visible={contactsModalVisible}
+          onClose={() => setContactsModalVisible(false)}
+          onSave={handleContactsSave}
+          initialContacts={groupData?.contacts || []}
+        />
         
-      {renderTabContent()}
+        <ConfirmationModal
+          visible={confirmationModal.visible}
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          onConfirm={confirmAction}
+          onCancel={cancelConfirmation}
+        />
 
-      <ContactsModal
-        visible={contactsModalVisible}
-        onClose={() => setContactsModalVisible(false)}
-        onSave={handleContactsSave}
-        initialContacts={groupData?.contacts || []}
-      />
-      
+        <ConfirmationModal
+          visible={showDeleteModal}
+          title="Удалить группу?"
+          message="Это действие нельзя отменить. Все участники, события и заявки будут безвозвратно удалены."
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
+
       <ConfirmationModal
-        visible={confirmationModal.visible}
-        title={confirmationModal.title}
-        message={confirmationModal.message}
-        onConfirm={confirmAction}
-        onCancel={cancelConfirmation}
+        visible={removeMemberModal.visible}
+        title="Удалить участника?"
+        message={`Пользователь ${removeMemberModal.userName} будет исключён из группы`}
+        onConfirm={handleConfirmRemoveMember}
+        onCancel={handleCancelRemoveMember}
       />
 
-      <ConfirmationModal
-        visible={showDeleteModal}
-        title="Удалить группу?"
-        message="Это действие нельзя отменить. Все участники, события и заявки будут безвозвратно удалены."
-        onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
-      />
+        <CreateEditEventModal
+          visible={createEventModalVisible}
+          onClose={() => setCreateEventModalVisible(false)}
+          onCreate={handleCreateEventSave}
+          groupName={groupData?.name || 'Группа'}
+          availableGenres={availableGenres}
+          isLoading={isCreatingEvent}
+          editMode={false}
+        />
 
-    <ConfirmationModal
-      visible={removeMemberModal.visible}
-      title="Удалить участника?"
-      message={`Пользователь ${removeMemberModal.userName} будет исключён из группы`}
-      onConfirm={handleConfirmRemoveMember}
-      onCancel={handleCancelRemoveMember}
-    />
-
-      <CreateEditEventModal
-        visible={createEventModalVisible}
-        onClose={() => setCreateEventModalVisible(false)}
-        onCreate={handleCreateEventSave}
-        groupName={groupData?.name || 'Группа'}
-        availableGenres={availableGenres}
-        isLoading={isCreatingEvent}
-        editMode={false}
-      />
-
-      <CreateEditEventModal
-        visible={editEventModalVisible}
-        onClose={() => setEditEventModalVisible(false)}
-        onUpdate={handleEditEventSave}
-        onDelete={handleDeleteEvent}
-        groupName={groupData?.name || 'Группа'}
-        editMode={true}
-        initialData={selectedEventData}
-        availableGenres={availableGenres}
-        isLoading={isUpdatingEvent}
-      />
-      
-      <BottomBar />
-    </SafeAreaView>
+        <CreateEditEventModal
+          visible={editEventModalVisible}
+          onClose={() => setEditEventModalVisible(false)}
+          onUpdate={handleEditEventSave}
+          onDelete={handleDeleteEvent}
+          groupName={groupData?.name || 'Группа'}
+          editMode={true}
+          initialData={selectedEventData}
+          availableGenres={availableGenres}
+          isLoading={isUpdatingEvent}
+        />
+        
+        <BottomBar />
+      </SafeAreaView>
+    </GroupAdminGuard>
   );
 };
 

@@ -5,6 +5,13 @@ import axios, { AxiosError, AxiosInstance } from 'axios';
 
 const BASE_URL = API_BASE_URL || 'http://localhost:8080/api';
 
+if (__DEV__ === false && !BASE_URL.startsWith('https://')) {
+  console.error('⚠️ КРИТИЧНО: Production API должен использовать HTTPS!');
+}
+
+let requestCounter = 0;
+const MAX_PENDING_REQUESTS = 50;
+
 const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 10000,
@@ -32,26 +39,36 @@ const isPublicEndpoint = (url?: string): boolean => {
 
 apiClient.interceptors.request.use(
   async (config) => {
+    requestCounter++;
+    
+    if (requestCounter > MAX_PENDING_REQUESTS) {
+      requestCounter--;
+      throw new Error('Слишком много одновременных запросов. Подождите.');
+    }
+
     console.log(`\n[API] → ${config.method?.toUpperCase()} ${config.url}`);
 
     if (isPublicEndpoint(config.url)) {
-      console.log('[API] Публичный endpoint — токен не нужен');
+      console.log('[API] Публичный endpoint');
       return config;
     }
 
     const tokens = await getTokens();
-    console.log('[API] Токены:', tokens ? 'НАЙДЕНЫ' : 'НЕ НАЙДЕНЫ');
+    console.log('[API] Токены:', tokens ? 'OK' : 'отсутствуют');
 
     if (tokens?.accessToken) {
       config.headers.Authorization = `Bearer ${tokens.accessToken}`;
       console.log('[API] → Authorization добавлен');
     } else {
-      console.warn('[API] ⚠ Токен отсутствует — запрос будет 401');
+      console.warn('[API] ⚠ Токен отсутствует');
     }
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    requestCounter--;
+    return Promise.reject(error);
+  }
 );
 
 let isRefreshing = false;
@@ -64,9 +81,12 @@ const processQueue = (token: string | null) => {
 
 
 apiClient.interceptors.response.use(
-  (response) => response,
-
+  (response) => {
+    requestCounter--;
+    return response;
+  },
   async (error: AxiosError) => {
+    requestCounter--;
     const originalRequest: any = error.config;
 
     if (error.response?.status !== 401 || isPublicEndpoint(originalRequest?.url)) {

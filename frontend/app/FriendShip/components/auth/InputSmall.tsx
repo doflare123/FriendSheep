@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   inputActive: {
-    borderColor: Colors.lightBlue3,
+    borderColor: Colors.lightBlue,
   },
   inputDisabled: {
     opacity: 0.5,

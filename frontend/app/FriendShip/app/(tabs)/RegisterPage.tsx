@@ -1,3 +1,4 @@
+import { useAuthContext } from '@/api/services/AuthContext';
 import authService from '@/api/services/authService';
 import { useToast } from '@/components/ToastContext';
 import { useNavigation } from '@react-navigation/native';
@@ -10,6 +11,7 @@ import Logo from '../../components/auth/Logo';
 import authorizeStyle from '../styles/authorizeStyle';
 
 const Register = () => {
+  const { setTempRegData } = useAuthContext();
   const navigation = useNavigation();
   const { showToast } = useToast();
   
@@ -30,8 +32,9 @@ const Register = () => {
   };
 
   const handleRegister = async () => {
-    // Валидация
-    if (!email.trim()) {
+    const sanitizedEmail = email.trim().toLowerCase();
+    
+    if (!sanitizedEmail) {
       showToast({
         type: 'error',
         title: 'Ошибка',
@@ -40,7 +43,7 @@ const Register = () => {
       return;
     }
 
-    if (!validateEmail(email)) {
+    if (!validateEmail(sanitizedEmail)) {
       showToast({
         type: 'error',
         title: 'Ошибка',
@@ -70,8 +73,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-      // Создаем сессию регистрации
-      const response = await authService.createRegistrationSession(email);
+      const response = await authService.createRegistrationSession(sanitizedEmail);
 
       showToast({
         type: 'success',
@@ -79,11 +81,10 @@ const Register = () => {
         message: 'Код подтверждения отправлен на почту',
       });
 
-      // Переходим на страницу подтверждения с данными
       (navigation.navigate as any)('Confirm', {
         sessionId: response.session_id,
-        email,
-        username,
+        email: sanitizedEmail,
+        username: username.trim(),
         password,
       });
     } catch (error: any) {

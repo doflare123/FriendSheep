@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
     marginLeft: 6,
-    borderColor: Colors.lightBlue3,
+    borderColor: Colors.lightBlue,
     alignItems: 'center',
     alignSelf: 'center',
     justifyContent: 'center'
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   genreBadge: {
     justifyContent: 'center',
     marginRight: 6,
-    borderColor: Colors.lightBlue3,
+    borderColor: Colors.lightBlue,
     borderWidth: 2,
     borderRadius: 30,
     paddingHorizontal: 8,

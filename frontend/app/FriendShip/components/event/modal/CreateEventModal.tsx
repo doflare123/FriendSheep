@@ -489,7 +489,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
 
             {(isLoading || isLoadingKinopoisk) && (
               <View style={styles.loadingOverlay}>
-                <ActivityIndicator size="large" color={Colors.lightBlue3} />
+                <ActivityIndicator size="large" color={Colors.lightBlue} />
                 <Text style={styles.loadingText}>
                   {isLoadingKinopoisk 
                     ? 'Загрузка данных с Кинопоиска...' 
@@ -701,7 +701,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               source={require('@/assets/images/event_card/bottom_rectangle.png')}
               style={styles.bottomBackground}
               resizeMode="stretch"
-              tintColor={Colors.lightBlue3}
+              tintColor={Colors.lightBlue}
             >
               <View style={styles.bottomContent}>
                 <TouchableOpacity 
@@ -892,7 +892,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: Colors.lightBlue3,
+    borderColor: Colors.lightBlue,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,

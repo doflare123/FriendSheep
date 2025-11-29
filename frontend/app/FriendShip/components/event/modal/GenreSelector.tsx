@@ -1,5 +1,5 @@
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     flex: 1,
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.grey,
   },
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     tintColor: Colors.grey,
   },
   genreDropdown: {
-    backgroundColor: Colors.veryLightGrey,
+    backgroundColor: Colors.white2,
     marginHorizontal: 20,
     borderRadius: 20,
     marginBottom: 16,
@@ -99,9 +99,9 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 20,
     height: 20,
-    borderRadius: 40,
+    borderRadius: 6,
     borderWidth: 2,
-    borderColor: Colors.lightGrey,
+    borderColor: Colors.lightBlue2,
     marginRight: 12,
     backgroundColor: Colors.white,
     justifyContent: 'center',
@@ -110,11 +110,11 @@ const styles = StyleSheet.create({
   checkboxSelected: {
     width: 12,
     height: 12,
-    borderRadius: 40,
-    backgroundColor: Colors.lightBlue3,
+    borderRadius: 2,
+    backgroundColor: Colors.blue2,
   },
   genreText: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 14,
     color: Colors.black,
   },

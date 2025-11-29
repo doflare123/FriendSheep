@@ -1,5 +1,5 @@
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -50,7 +50,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
 
 const styles = StyleSheet.create({
   sectionLabel: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.black,
     marginBottom: 10,
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categorySelected: {
-    backgroundColor: Colors.lightBlue3,
+    backgroundColor: Colors.lightBlue,
   },
   categoryIcon: {
     width: 30,

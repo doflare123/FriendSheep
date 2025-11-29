@@ -41,9 +41,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const { sortingState: globalSortingState, sortingActions: globalSortingActions } = useSearchState();
-
-  const { sortingState: categorySortingState, sortingActions: categorySortingActions } = useSearchState();
+  const { sortingState, sortingActions } = useSearchState();
 
   const { 
     movieEvents, 
@@ -52,7 +50,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
     otherEvents,
     popularEvents,
     newEvents,
-  } = useEvents(globalSortingState);
+  } = useEvents(sortingState);
 
   const isSpecialCategory = category === 'popular' || category === 'new';
 
@@ -80,30 +78,30 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
     
     console.log('Исходные события:', events.length);
     console.log('Категория:', category);
-    console.log('Сортировка по дате:', categorySortingState.sortByDate);
-    console.log('Сортировка по участникам:', categorySortingState.sortByParticipants);
+    console.log('Сортировка по дате:', sortingState.sortByDate);
+    console.log('Сортировка по участникам:', sortingState.sortByParticipants);
 
-    if (isSpecialCategory && categorySortingState.checkedCategories) {
-      events = filterEventsByCategories(events, categorySortingState.checkedCategories);
+    if (isSpecialCategory && sortingState.checkedCategories) {
+      events = filterEventsByCategories(events, sortingState.checkedCategories);
       console.log('После фильтрации по категориям:', events.length);
     }
 
-    if (categorySortingState.sortByDate !== 'none') {
-      events = sortEventsByDate(events, categorySortingState.sortByDate);
+    if (sortingState.sortByDate !== 'none') {
+      events = sortEventsByDate(events, sortingState.sortByDate);
       console.log('После сортировки по дате:', events.map(e => e.date));
     }
 
-    if (categorySortingState.sortByParticipants !== 'none') {
-      events = sortEventsByParticipants(events, categorySortingState.sortByParticipants);
+    if (sortingState.sortByParticipants !== 'none') {
+      events = sortEventsByParticipants(events, sortingState.sortByParticipants);
       console.log('После сортировки по участникам:', events.map(e => e.currentParticipants));
     }
     
     return events;
   }, [
     category, 
-    categorySortingState.sortByDate, 
-    categorySortingState.sortByParticipants, 
-    categorySortingState.checkedCategories,
+    sortingState.sortByDate, 
+    sortingState.sortByParticipants, 
+    sortingState.checkedCategories,
     movieEvents, 
     gameEvents, 
     tableGameEvents, 
@@ -123,20 +121,20 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
   };
 
   const eventsToShow = useMemo(() => {
-    if (categorySortingState.searchQuery.trim()) {
+    if (sortingState.searchQuery.trim()) {
       let filtered = sortedCategoryEvents.filter(event =>
-        event.title.toLowerCase().includes(categorySortingState.searchQuery.toLowerCase())
+        event.title.toLowerCase().includes(sortingState.searchQuery.toLowerCase())
       );
       
       filtered = filtered.map(event => 
-        highlightEventTitle(event, categorySortingState.searchQuery)
+        highlightEventTitle(event, sortingState.searchQuery)
       );
       
       return filtered;
     } else {
       return sortedCategoryEvents;
     }
-  }, [sortedCategoryEvents, categorySortingState.searchQuery]);
+  }, [sortedCategoryEvents, sortingState.searchQuery]);
 
   const getEventWordForm = (count: number): string => {
     if (count % 10 === 1 && count % 100 !== 11) {
@@ -150,7 +148,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
+      <TopBar sortingState={sortingState} sortingActions={sortingActions} />
       
       <CategorySection
         title={title}
@@ -160,8 +158,8 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
 
       <View style={styles.searchContainer}>
         <CategorySearchBar 
-          sortingState={categorySortingState} 
-          sortingActions={categorySortingActions}
+          sortingState={sortingState} 
+          sortingActions={sortingActions}
           showCategoryFilter={isSpecialCategory}
         />
       </View>
@@ -180,8 +178,8 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
         ) : (
           <View style={styles.noEventsContainer}>
             <Text style={styles.noEventsText}>
-              {categorySortingState.searchQuery.trim() 
-                ? `Ничего не найдено по запросу "${categorySortingState.searchQuery}"` 
+              {sortingState.searchQuery.trim() 
+                ? `Ничего не найдено по запросу "${sortingState.searchQuery}"` 
                 : `В этой категории пока нет событий`
               }
             </Text>

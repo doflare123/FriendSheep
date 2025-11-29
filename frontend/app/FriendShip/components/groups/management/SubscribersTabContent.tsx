@@ -45,7 +45,7 @@ const SubscribersTabContent: React.FC<SubscribersTabContentProps> = ({
       case 'admin':
         return Colors.red;
       case 'operator':
-        return Colors.lightBlue3;
+        return Colors.lightBlue;
       default:
         return Colors.lightGrey;
     }

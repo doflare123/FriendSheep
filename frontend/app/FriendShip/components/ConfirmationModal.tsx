@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmButton: {
-    backgroundColor: Colors.lightBlue3,
+    backgroundColor: Colors.lightBlue,
     borderRadius: 40,
     paddingVertical: 6,
   },

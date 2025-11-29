@@ -274,7 +274,7 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
         <View style={styles.mapContainer}>
           {isMapLoading && (
             <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color={Colors.lightBlue3} />
+              <ActivityIndicator size="large" color={Colors.lightBlue} />
               <Text style={styles.loadingText}>Загрузка карты...</Text>
             </View>
           )}
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     color: Colors.black,
   },
   searchButton: {
-    backgroundColor: Colors.lightBlue3,
+    backgroundColor: Colors.lightBlue,
     borderRadius: 20,
     paddingHorizontal: 20,
     justifyContent: 'center',
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.lightGrey,
   },
   selectButton: {
-    backgroundColor: Colors.lightBlue3,
+    backgroundColor: Colors.lightBlue,
     borderRadius: 20,
     paddingVertical: 8,
     alignItems: 'center',

@@ -140,8 +140,15 @@ export function buildSessionFormData(
     formData.append('duration', sessionData.duration.toString());
   }
 
-  if (sessionData.genres && sessionData.genres.trim()) {
-    formData.append('genres', sessionData.genres);
+  if (sessionData.genres) {
+    const genresString = Array.isArray(sessionData.genres) 
+      ? sessionData.genres.join(', ')
+      : sessionData.genres.toString();
+    
+    if (genresString.trim()) {
+      formData.append('genres', genresString);
+      console.log('[SessionHelpers] 🎭 Жанры добавлены:', genresString);
+    }
   }
 
   if (sessionData.location && sessionData.location.trim()) {

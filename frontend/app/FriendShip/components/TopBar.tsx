@@ -36,10 +36,15 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [invites, setInvites] = useState<GroupInvite[]>([]);
   const [serverError, setServerError] = useState(false);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+
+  const MIN_REFRESH_INTERVAL = 30000;
+  let lastRefreshTime = 0;
 
   const checkUnreadNotifications = useCallback(async () => {
     try {
-      const hasNotifications = await notificationService.hasNotifications();
+      const unreadData = await notificationService.checkUnreadNotifications();
+      const hasNotifications = unreadData.has_unread;
       setHasUnread(hasNotifications);
       setServerError(false);
     } catch (error: any) {
@@ -48,30 +53,43 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
     }
   }, []);
 
-  const loadNotifications = useCallback(async () => {
-    try {
-      setLoading(true);
-      setServerError(false);
-      
-      const data = await notificationService.getNotifications();
-      
-      setNotifications(data.notifications || []);
-      setInvites(data.invites || []);
-      setHasUnread(false);
-      
-    } catch (error: any) {
-      console.error('[TopBar] Ошибка загрузки уведомлений:', error);
-      setServerError(true);
- 
-      showToast({
-        type: 'error',
-        title: 'Ошибка',
-        message: 'Не удалось загрузить уведомления. Возможно, сервис уведомлений временно недоступен.',
-      });
-    } finally {
-      setLoading(false);
+  const loadNotifications = async () => {
+    const now = Date.now();
+    
+    if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
+      console.log('[TopBar] Слишком частые обновления, пропускаем');
+      return;
     }
-  }, [showToast]);
+    
+    lastRefreshTime = now;
+
+    try {
+      setIsLoadingNotifications(true);
+      
+      console.log('[TopBar] 📥 Загружаем уведомления и приглашения...');
+
+      const notificationsData = await notificationService.getNotifications();
+      console.log('[TopBar] ✅ Уведомлений:', notificationsData.length);
+      setNotifications(notificationsData);
+
+      const invitesData = await notificationService.getGroupInvites();
+      console.log('[TopBar] ✅ Приглашений:', invitesData.length);
+      setInvites(invitesData);
+
+      const unreadData = await notificationService.checkUnreadNotifications();
+      setHasUnread(unreadData.has_unread);
+      
+      console.log('[TopBar] ✅ Загрузка завершена. Всего:', notificationsData.length + invitesData.length);
+      
+    } catch (error) {
+      console.error('[TopBar] ❌ Ошибка загрузки уведомлений:', error);
+      setNotifications([]);
+      setInvites([]);
+      setHasUnread(false);
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  };
 
   useEffect(() => {
     checkUnreadNotifications();

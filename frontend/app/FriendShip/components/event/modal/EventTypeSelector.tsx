@@ -1,5 +1,5 @@
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -52,7 +52,7 @@ const EventTypeSelector: React.FC<EventTypeSelectorProps> = ({
 
 const styles = StyleSheet.create({
   sectionLabel: {
-    fontFamily: inter.bold,
+    fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.black,
     marginBottom: 10,
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.lightGrey,
   },
   typeSelected: {
-    borderColor: Colors.lightBlue3,
+    borderColor: Colors.lightBlue,
   },
   typeIconContainer: {
     width: 30,
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   typeText: {
     marginTop: 2,
-    fontFamily: inter.medium,
+    fontFamily: Montserrat.bold,
     fontSize: 10,
     color: Colors.black,
   },

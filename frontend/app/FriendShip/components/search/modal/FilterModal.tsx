@@ -82,9 +82,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     style={styles.radioItem}
                     onPress={() => sortingActions.toggleCategoryCheckbox(cat)}
                   >
-                    <View style={styles.radioCircleEmpty}>
+                    <View style={styles.radioSquareEmpty}>
                       {sortingState.checkedCategories.includes(cat) && (
-                        <View style={styles.radioInnerCircle} />
+                        <View style={styles.radioInnerSquare} />
                       )}
                     </View>
                     <Text style={styles.radioLabel}>{cat}</Text>
@@ -168,13 +168,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     }
                   }}
                 >
-                  <View style={styles.radioCircleEmpty}>
+                  <View style={styles.radioSquareEmpty}>
                     {value === null
                       ? groupSearchState.checkedCategories.length === 0 && (
-                          <View style={styles.radioInnerCircle} />
+                          <View style={styles.radioInnerSquare} />
                         )
                       : groupSearchState.checkedCategories.includes(value) && (
-                          <View style={styles.radioInnerCircle} />
+                          <View style={styles.radioInnerSquare} />
                         )}
                   </View>
                   <Text style={styles.radioLabel}>{label}</Text>
@@ -250,6 +250,25 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 10,
+    backgroundColor: Colors.blue2,
+    alignSelf: 'center',
+    justifyContent: 'center',
+  },
+  radioSquareEmpty: {
+    height: 20,
+    width: 20,
+    borderWidth: 2,
+    borderRadius: 6,
+    borderColor: Colors.lightBlue2,
+    backgroundColor: 'transparent',
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioInnerSquare: {
+    width: 12,
+    height: 12,
+    borderRadius: 2,
     backgroundColor: Colors.blue2,
     alignSelf: 'center',
     justifyContent: 'center',

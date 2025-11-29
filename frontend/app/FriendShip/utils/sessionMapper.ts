@@ -31,7 +31,6 @@ const normalizeImageUrl = (url: string): string => {
   return url;
 };
 
-// Формат даты: DD.MM.YYYY (без времени)
 const formatDate = (isoDate: string): string => {
   if (!isoDate) return 'Дата не указана';
   
@@ -49,7 +48,6 @@ const mapSessionTypeToCategory = (sessionType: string): Event['category'] => {
   if (type.includes('movie') || type.includes('фильм') || type.includes('кино') || type.includes('медиа')) {
     return 'movie';
   }
-  // Исправляем проверку на "игры"
   if (type.includes('game') || type.includes('игр') && !type.includes('настольн')) {
     return 'game';
   }
@@ -77,16 +75,13 @@ const getEventPlace = (
   const typePlace = mapSessionPlaceToType(session.session_place);
   
   if (typePlace === 'offline') {
-    // Приоритет: metadata.Location -> session.location -> session.city
     const location = metadata?.Location?.trim() || 
                      session.location?.trim() || 
                      session.city?.trim();
-    
-    // Возвращаем адрес или пустую строку (без бейджа)
+
     return location || '';
   }
-  
-  // Для онлайн не показываем бейдж
+
   return '';
 };
 

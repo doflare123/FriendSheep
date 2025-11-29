@@ -1,100 +1,140 @@
+import groupService, { AdminGroup } from '@/api/services/groupService';
+import GroupCard, { GroupCategory } from '@/components/groups/GroupCard';
+import { useToast } from '@/components/ToastContext';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Dimensions,
-    FlatList,
-    Image,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
 } from 'react-native';
 
 const screenHeight = Dimensions.get("window").height;
 
-interface Group {
-  id: string;
-  name: string;
-  imageUri: any;
-  participantsCount: number;
-}
-
 interface InviteToGroupModalProps {
   visible: boolean;
   onClose: () => void;
-  onGroupSelect: (groupId: string) => void;
+  userId: number;
+  onInviteSent?: () => void;
 }
 
-const myGroups: Group[] = [
-  {
-    id: '1',
-    name: 'Моя супер группа',
-    imageUri: require('@/assets/images/profile/profile_avatar.jpg'),
-    participantsCount: 25,
-  },
-  {
-    id: '2',
-    name: 'Любители кино',
-    imageUri: require('@/assets/images/profile/profile_avatar.jpg'),
-    participantsCount: 48,
-  },
-  {
-    id: '3',
-    name: 'Геймеры',
-    imageUri: require('@/assets/images/profile/profile_avatar.jpg'),
-    participantsCount: 15,
-  },
-  {
-    id: '4',
-    name: 'Настольные игры',
-    imageUri: require('@/assets/images/profile/profile_avatar.jpg'),
-    participantsCount: 12,
-  },
-];
+const CATEGORY_MAPPING: Record<string, GroupCategory> = {
+  'Фильмы': 'movie',
+  'Игры': 'game',
+  'Настольные игры': 'table_game',
+  'Другое': 'other',
+};
 
 const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
   visible,
   onClose,
-  onGroupSelect,
+  userId,
+  onInviteSent,
 }) => {
-  const handleGroupPress = (groupId: string) => {
-    onGroupSelect(groupId);
+  const { showToast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
+
+  useEffect(() => {
+    if (visible) {
+      loadAdminGroups();
+    }
+  }, [visible]);
+
+  const loadAdminGroups = async () => {
+    try {
+      setLoading(true);
+      console.log('[InviteToGroupModal] 📥 Загрузка групп администратора...');
+      
+      const groups = await groupService.getAdminGroups();
+      
+      console.log('[InviteToGroupModal] ✅ Загружено групп:', groups.length);
+      setAdminGroups(groups);
+      
+    } catch (error: any) {
+      console.error('[InviteToGroupModal] ❌ Ошибка загрузки групп:', error);
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось загрузить группы',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const renderGroupItem = ({ item }: { item: Group }) => (
-    <TouchableOpacity
-      style={styles.groupItem}
-      onPress={() => handleGroupPress(item.id)}
-      activeOpacity={0.7}
-    >
-      <Image source={item.imageUri} style={styles.groupImage} />
-      <View style={styles.groupInfo}>
-        <Text style={styles.groupName} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.participantsText}>
-          Участники: {item.participantsCount}
-        </Text>
+  const handleGroupPress = async (groupId: number) => {
+    try {
+      setSending(true);
+      console.log('[InviteToGroupModal] 📨 Отправка приглашения:', { groupId, userId });
+      
+      const result = await groupService.sendInviteToUser(groupId, userId);
+      
+      console.log('[InviteToGroupModal] ✅ Результат:', result);
+      
+      showToast({
+        type: 'success',
+        title: 'Успешно',
+        message: result.message || 'Приглашение отправлено',
+      });
+
+      onInviteSent?.();
+      onClose();
+      
+    } catch (error: any) {
+      console.error('[InviteToGroupModal] ❌ Ошибка отправки:', error);
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось отправить приглашение',
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const renderGroupCard = ({ item }: { item: AdminGroup }) => {
+    const mappedCategories = item.category
+      .map(cat => CATEGORY_MAPPING[cat])
+      .filter((cat): cat is GroupCategory => cat !== undefined);
+
+    return (
+      <View style={styles.cardWrapper}>
+        <GroupCard
+          id={item.id.toString()}
+          name={item.name}
+          participantsCount={item.member_count}
+          description={item.small_description}
+          imageUri={item.image}
+          categories={mappedCategories}
+          onPress={() => handleGroupPress(item.id)}
+        />
       </View>
-      <Image 
-        source={require('@/assets/images/arrow.png')} 
-        style={styles.arrowIcon}
-      />
-    </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <Modal visible={visible} animationType="fade" transparent>
-      <TouchableWithoutFeedback onPress={onClose}>
+      <TouchableWithoutFeedback onPress={sending ? undefined : onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
             <View style={styles.modal}>
               <View style={styles.header}>
                 <Text style={styles.title}>Выберите группу</Text>
-                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <TouchableOpacity 
+                  style={styles.closeButton} 
+                  onPress={onClose}
+                  disabled={sending}
+                >
                   <Image
                     tintColor={Colors.black}
                     style={{ width: 35, height: 35, resizeMode: 'cover' }}
@@ -104,17 +144,28 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
               </View>
 
               <View style={styles.content}>
-                {myGroups.length > 0 ? (
+                {loading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Colors.lightBlue} />
+                    <Text style={styles.loadingText}>Загрузка групп...</Text>
+                  </View>
+                ) : sending ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Colors.lightBlue} />
+                    <Text style={styles.loadingText}>Отправка приглашения...</Text>
+                  </View>
+                ) : adminGroups.length > 0 ? (
                   <FlatList
-                    data={myGroups}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderGroupItem}
+                    data={adminGroups}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderGroupCard}
+                    contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                   />
                 ) : (
                   <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>
-                      У вас пока нет групп
+                      У вас пока нет групп, где вы администратор
                     </Text>
                   </View>
                 )}
@@ -139,8 +190,8 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     overflow: "hidden",
     backgroundColor: Colors.white,
-    maxHeight: screenHeight * 0.7,
-    width: '90%',
+    maxHeight: screenHeight * 0.8,
+    width: '95%',
   },
   header: {
     flexDirection: 'row',
@@ -167,40 +218,23 @@ const styles = StyleSheet.create({
   content: {
     backgroundColor: Colors.white,
     paddingVertical: 8,
-    maxHeight: screenHeight * 0.5,
+    maxHeight: screenHeight * 0.6,
   },
-  groupItem: {
-    flexDirection: 'row',
+  loadingContainer: {
+    paddingVertical: 40,
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.veryLightGrey,
   },
-  groupImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-  },
-  groupInfo: {
-    flex: 1,
-  },
-  groupName: {
-    fontFamily: Montserrat.bold,
-    fontSize: 16,
-    color: Colors.black,
-    marginBottom: 4,
-  },
-  participantsText: {
+  loadingText: {
+    marginTop: 12,
     fontFamily: Montserrat.regular,
     fontSize: 14,
     color: Colors.grey,
   },
-  arrowIcon: {
-    width: 20,
-    height: 20,
-    tintColor: Colors.grey,
+  listContent: {
+    padding: 16,
+  },
+  cardWrapper: {
+    marginBottom: 16,
   },
   emptyContainer: {
     paddingVertical: 40,
@@ -210,6 +244,8 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.grey,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
 });
 

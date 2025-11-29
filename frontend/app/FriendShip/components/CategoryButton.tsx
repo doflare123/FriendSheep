@@ -1,5 +1,5 @@
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
   text: {
     color: Colors.white,
     fontSize: 20,
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
   },
   backgroundImage: {
     ...StyleSheet.absoluteFillObject,

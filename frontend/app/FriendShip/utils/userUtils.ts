@@ -23,6 +23,13 @@ export const createUserWithHighlightedText = (
   
   const usernameWithAt = `@${user.us}`;
   
+  console.log('[userUtils] Создание User из SearchUserItem:', {
+    id: user.id,
+    name: user.name,
+    image: user.image,
+    imageEmpty: !user.image || user.image.trim() === '',
+  });
+  
   return {
     id: user.id.toString(),
     name: user.name,

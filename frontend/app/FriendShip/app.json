@@ -28,7 +28,8 @@
         {
           "photosPermission": "Приложению нужен доступ к вашим фото для загрузки аватара"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

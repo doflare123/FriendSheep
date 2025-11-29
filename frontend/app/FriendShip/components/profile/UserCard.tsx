@@ -27,6 +27,8 @@ export interface User {
   };
 }
 
+const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=User';
+
 const UserCard: React.FC<User> = ({
   name,
   username,
@@ -37,6 +39,13 @@ const UserCard: React.FC<User> = ({
   highlightedUsername,
   highlightedDescription,
 }) => {
+  const getImageSource = () => {
+    if (!imageUri || (typeof imageUri === 'string' && imageUri.trim() === '')) {
+      return { uri: PLACEHOLDER_IMAGE };
+    }
+    return typeof imageUri === 'string' ? { uri: imageUri } : imageUri;
+  };
+
   const renderHighlightedText = (
     normalText: string,
     highlighted: { before: string; match: string; after: string } | undefined,
@@ -63,8 +72,9 @@ const UserCard: React.FC<User> = ({
         activeOpacity={0.7}
       >
         <Image 
-          source={typeof imageUri === 'string' ? { uri: imageUri } : imageUri} 
+          source={getImageSource()}
           style={styles.userImage}
+          defaultSource={{ uri: PLACEHOLDER_IMAGE }}
         />
         
         <View style={styles.content}>
@@ -80,7 +90,7 @@ const UserCard: React.FC<User> = ({
             styles.userUsername
           )}
           
-          {renderHighlightedText(
+          {description && renderHighlightedText(
             description,
             highlightedDescription,
             styles.description

@@ -1,6 +1,7 @@
 import groupService, { PublicGroupResponse } from '@/api/services/groupService';
 import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import EventCarousel from '@/components/event/EventCarousel';
 import PrivateGroupPreview from '@/components/groups/PrivateGroupPreview';
 import TopBar from '@/components/TopBar';
@@ -71,6 +72,7 @@ const GroupPage = () => {
   const [isPrivateGroup, setIsPrivateGroup] = useState(false);
   const [privateGroupName, setPrivateGroupName] = useState<string>('');
   const { sortingState, sortingActions } = useSearchState();
+  const [confirmLeaveModalVisible, setConfirmLeaveModalVisible] = useState(false);
   const navigation = useNavigation<GroupManagePageNavigationProp>();
 
   const loadGroupData = async () => {
@@ -248,30 +250,7 @@ const GroupPage = () => {
       console.log('[GroupPage] Переход к управлению группой');
       navigation.navigate('GroupManagePage', { groupId });
     } else if (membershipStatus === 'member') {
-      Alert.alert(
-        'Покинуть группу?',
-        'Вы уверены, что хотите покинуть эту группу?',
-        [
-          { text: 'Отмена', style: 'cancel' },
-          {
-            text: 'Покинуть',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                setIsProcessing(true);
-                await groupService.leaveGroup(parseInt(groupId));
-                Alert.alert('Успешно', 'Вы покинули группу');
-                await loadGroupData();
-              } catch (error: any) {
-                console.error('[GroupPage] Ошибка выхода из группы:', error);
-                Alert.alert('Ошибка', error.message || 'Не удалось покинуть группу');
-              } finally {
-                setIsProcessing(false);
-              }
-            },
-          },
-        ]
-      );
+      setConfirmLeaveModalVisible(true);
     } else if (membershipStatus === 'not_member') {
       try {
         setIsProcessing(true);
@@ -282,7 +261,7 @@ const GroupPage = () => {
         console.log('[GroupPage] Результат вступления:', result);
 
         Alert.alert('Успешно', result.message);
- 
+
         if (result.joined) {
           setMembershipStatus('member');
         } else {
@@ -296,6 +275,26 @@ const GroupPage = () => {
       } finally {
         setIsProcessing(false);
       }
+    }
+  };
+
+  const handleLeaveGroupConfirm = async () => {
+    try {
+      setConfirmLeaveModalVisible(false);
+      setIsProcessing(true);
+      
+      console.log('[GroupPage] 🔍 Попытка покинуть группу, groupId:', groupId);
+      console.log('[GroupPage] 🔍 Тип groupId:', typeof groupId);
+      
+      await groupService.leaveGroup(parseInt(groupId));
+      
+      Alert.alert('Успешно', 'Вы покинули группу');
+      await loadGroupData();
+    } catch (error: any) {
+      console.error('[GroupPage] Ошибка выхода из группы:', error);
+      Alert.alert('Ошибка', error.message || 'Не удалось покинуть группу');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -427,6 +426,25 @@ const GroupPage = () => {
           </TouchableOpacity>
         </CategorySection>
 
+        <CategorySection title={`Участники: ${groupData.count_members || groupData.users?.length || 0}`}>
+          {groupData.users && groupData.users.length > 0 ? (
+            <View style={styles.membersContainer}>
+              {groupData.users.map((user, index) => (
+                <View key={`member-${index}`} style={styles.memberItem}>
+                  <Image 
+                    source={{ uri: user.image }} 
+                    style={styles.memberImage} 
+                  />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Пока нет участников</Text>
+            </View>
+          )}
+        </CategorySection>
+
         <CategorySection title="Сессии:">
           {formattedSessions && formattedSessions.length > 0 ? (
             <EventCarousel events={formattedSessions} />
@@ -493,6 +511,14 @@ const GroupPage = () => {
           </View>
         </View>
       </Modal>
+
+      <ConfirmationModal
+        visible={confirmLeaveModalVisible}
+        title="Покинуть группу?"
+        message="Вы уверены, что хотите покинуть эту группу?"
+        onConfirm={handleLeaveGroupConfirm}
+        onCancel={() => setConfirmLeaveModalVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -562,7 +588,7 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   actionButton: {
-    backgroundColor: Colors.lightBlue3,
+    backgroundColor: Colors.lightBlue,
     paddingVertical: 4,
     marginTop: 20,
     borderRadius: 25,
@@ -686,6 +712,21 @@ const styles = StyleSheet.create({
   },
   pendingButton: {
     backgroundColor: Colors.grey,
+  },
+  membersContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  memberItem: {
+    alignItems: 'center',
+  },
+  memberImage: {
+    width: 75,
+    height: 75,
+    borderRadius: 40,
   },
 });
 

@@ -29,25 +29,34 @@ export const useUserSearch = () => {
 
       const response = await userService.searchUsers(query, page);
 
-      if (append) {
-        setUsers(prev => [...prev, ...response.users]);
-      } else {
-        setUsers(response.users);
+      if (!response || !response.users) {
+        console.warn('[useUserSearch] ⚠ Пустой ответ от сервера');
+        setUsers([]);
+        setTotalUsers(0);
+        setHasMore(false);
+        return;
       }
 
-      setTotalUsers(response.total);
-      setHasMore(response.has_more);
+      if (append) {
+        setUsers(prev => [...prev, ...(response.users || [])]);
+      } else {
+        setUsers(response.users || []);
+      }
+
+      setTotalUsers(response.total || 0);
+      setHasMore(response.has_more || false);
       setCurrentPage(page);
 
       console.log('[useUserSearch] ✅ Пользователи загружены:', {
         page,
         total: response.total,
-        loaded: response.users.length,
+        loaded: response.users?.length || 0,
         hasMore: response.has_more,
       });
     } catch (err: any) {
       console.error('[useUserSearch] ❌ Ошибка поиска:', err);
       setError(err.message || 'Не удалось выполнить поиск');
+      setUsers([]);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);

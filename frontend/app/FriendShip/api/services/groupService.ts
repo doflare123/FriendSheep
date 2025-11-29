@@ -1,5 +1,7 @@
 import apiClient from '@/api/apiClient';
 import { getTokens } from '@/api/storage/tokenStorage';
+import { rateLimiter } from '@/utils/rateLimiter';
+import { validateGroupId, validateUserId } from '@/utils/validators';
 // eslint-disable-next-line import/no-unresolved
 import { API_BASE_URL, LOCAL_IP } from '@env';
 
@@ -91,6 +93,7 @@ export interface PublicGroupResponse {
   creater: string;
   subscription: boolean;
   users: {
+    id: number;
     name: string;
     image: string;
   }[];
@@ -200,67 +203,73 @@ export interface GroupSubscriber {
 }
 
 class GroupService {
-  async createGroup(groupData: CreateGroupData): Promise<any> {
+  async createGroup(data: CreateGroupData): Promise<any> {
     const tokens = await getTokens();
     if (!tokens?.accessToken) {
       throw new Error('Пользователь не авторизован');
     }
 
-    console.log('=== Создание группы ===');
-    console.log('Данные группы:', {
-      name: groupData.name,
-      description: groupData.description,
-      smallDescription: groupData.smallDescription,
-      city: groupData.city,
-      isPrivate: groupData.isPrivate,
-      categories: groupData.categories,
-      hasImage: !!groupData.image,
-      contactsCount: groupData.contacts?.length || 0,
-    });
+    if (!data.name?.trim() || data.name.length > 100) {
+      throw new Error('Название группы должно быть от 1 до 100 символов');
+    }
+    
+    if (!data.description?.trim() || data.description.length > 1000) {
+      throw new Error('Описание не должно превышать 1000 символов');
+    }
+    
+    if (!data.smallDescription?.trim() || data.smallDescription.length > 200) {
+      throw new Error('Краткое описание не должно превышать 200 символов');
+    }
+
+    if (data.categories.length === 0) {
+      throw new Error('Выберите хотя бы одну категорию');
+    }
+
+    console.log('[GroupService] Создание группы:', data.name);
 
     const formData = new FormData();
     
-    formData.append('name', groupData.name);
-    formData.append('description', groupData.description);
-    formData.append('smallDescription', groupData.smallDescription);
+    formData.append('name', data.name.trim());
+    formData.append('description', data.description.trim());
+    formData.append('smallDescription', data.smallDescription.trim());
     
-    if (groupData.city) {
-      formData.append('city', groupData.city);
+    if (data.city?.trim()) {
+      formData.append('city', data.city.trim());
     }
     
-    formData.append('isPrivate', groupData.isPrivate.toString());
+    formData.append('isPrivate', data.isPrivate.toString());
 
-    groupData.categories.forEach(categoryId => {
+    data.categories.forEach(categoryId => {
       formData.append('categories', categoryId.toString());
     });
 
-    console.log('Категории для отправки:', groupData.categories);
-
-    if (groupData.image) {
+    if (data.image) {
       formData.append('image', {
-        uri: groupData.image.uri,
-        name: groupData.image.name,
-        type: groupData.image.type,
+        uri: data.image.uri,
+        name: data.image.name,
+        type: data.image.type,
       } as any);
-      console.log('Изображение добавлено:', groupData.image.name);
     }
 
-    if (groupData.contacts && groupData.contacts.length > 0) {
-      const contactsString = groupData.contacts
+    if (data.contacts && data.contacts.length > 0) {
+      const sanitizedContacts = data.contacts
         .filter(contact => contact.link && contact.link.trim() !== '')
         .map(contact => {
-          const name = contact.name.trim();
-          return `${name}:${contact.link.trim()}`;
+          const name = contact.name.trim().substring(0, 50);
+          let link = contact.link.trim();
+          
+          if (link.toLowerCase().startsWith('javascript:')) {
+            throw new Error(`Недопустимый URL в контакте: ${name}`);
+          }
+          
+          return `${name}:${link}`;
         })
         .join(', ');
       
-      if (contactsString) {
-        formData.append('contacts', contactsString);
-        console.log('Контакты для отправки:', contactsString);
+      if (sanitizedContacts) {
+        formData.append('contacts', sanitizedContacts);
       }
     }
-
-    console.log('Отправка запроса на:', `${BASE_URL}/groups/createGroup`);
 
     try {
       const response = await fetch(`${BASE_URL}/groups/createGroup`, {
@@ -271,26 +280,23 @@ class GroupService {
         body: formData,
       });
 
-      console.log('Статус ответа:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Ошибка от сервера (текст):', errorText);
+        console.error('[GroupService] Ошибка:', response.status);
         
         try {
           const errorData = JSON.parse(errorText);
-          console.error('Ошибка от сервера (JSON):', errorData);
           throw new Error(errorData.message || 'Ошибка создания группы');
         } catch (parseError) {
-          throw new Error(`Ошибка создания группы: ${response.status} ${response.statusText}`);
+          throw new Error(`Ошибка создания группы: ${response.status}`);
         }
       }
 
       const result = await response.json();
-      console.log('Группа успешно создана:', result);
+      console.log('[GroupService] Группа успешно создана');
       return result;
     } catch (error: any) {
-      console.error('Ошибка при создании группы:', error);
+      console.error('[GroupService] Ошибка создания группы:', error.message);
       throw error;
     }
   }
@@ -427,25 +433,41 @@ class GroupService {
   }
 
   async approveRequest(requestId: number): Promise<void> {
-  try {
-    console.log(`Одобрение заявки ${requestId}...`);
-    const response = await apiClient.post(`/admin/groups/requests/${requestId}/approve`);
-    console.log('Заявка одобрена:', response.data);
-  } catch (error: any) {
-    console.error('Ошибка одобрения заявки:', error);
-    console.error('Детали ошибки:', error.response?.data);
-    throw new Error(error.response?.data?.message || 'Ошибка одобрения заявки');
+    try {
+      if (!Number.isInteger(requestId) || requestId <= 0) {
+        throw new Error('Некорректный ID заявки');
+      }
+
+      const rateLimitKey = 'approve_request';
+      if (!rateLimiter.canPerformAction(rateLimitKey, 10, 60000)) {
+        throw new Error('Слишком много действий. Подождите минуту.');
+      }
+
+      console.log(`[GroupService] Одобрение заявки ${requestId}`);
+      const response = await apiClient.post(`/admin/groups/requests/${requestId}/approve`);
+      console.log('[GroupService] Заявка одобрена');
+    } catch (error: any) {
+      console.error('[GroupService] Ошибка одобрения заявки');
+      throw new Error(error.response?.data?.message || 'Ошибка одобрения заявки');
+    }
   }
-}
 
   async rejectRequest(requestId: number): Promise<void> {
     try {
-      console.log(`Отклонение заявки ${requestId}...`);
+      if (!Number.isInteger(requestId) || requestId <= 0) {
+        throw new Error('Некорректный ID заявки');
+      }
+
+      const rateLimitKey = 'reject_request';
+      if (!rateLimiter.canPerformAction(rateLimitKey, 10, 60000)) {
+        throw new Error('Слишком много действий. Подождите минуту.');
+      }
+
+      console.log(`[GroupService] Отклонение заявки ${requestId}`);
       const response = await apiClient.post(`/admin/groups/requests/${requestId}/reject`);
-      console.log('Заявка отклонена:', response.data);
+      console.log('[GroupService] Заявка отклонена');
     } catch (error: any) {
-      console.error('Ошибка отклонения заявки:', error);
-      console.error('Детали ошибки:', error.response?.data);
+      console.error('[GroupService] Ошибка отклонения заявки');
       throw new Error(error.response?.data?.message || 'Ошибка отклонения заявки');
     }
   }
@@ -542,15 +564,29 @@ class GroupService {
   }
 
   async leaveGroup(groupId: number): Promise<void> {
-    try {
-      console.log(`[GroupService] Выход из группы ${groupId}...`);
-      const response = await apiClient.post(`/groups/${groupId}/leave`);
-      console.log('[GroupService] Группа покинута:', response.data);
-    } catch (error: any) {
-      console.error('[GroupService] Ошибка выхода из группы:', error);
-      throw new Error(error.response?.data?.message || 'Ошибка выхода из группы');
+  try {
+    console.log(`[GroupService] 🚪 Выход из группы ${groupId}...`);
+
+    const response = await apiClient.delete(`/groups/${groupId}/leave`);
+    
+    console.log('[GroupService] ✅ Группа покинута:', response.data);
+  } catch (error: any) {
+    console.error('[GroupService] ❌ Ошибка выхода из группы:', error);
+    
+    if (error.response?.status === 400) {
+      const errorMsg = error.response?.data?.error || '';
+      if (errorMsg.includes('единственный админ')) {
+        throw new Error('Вы не можете покинуть группу, так как являетесь единственным администратором');
+      }
+      throw new Error('Вы не состоите в этой группе');
     }
+    if (error.response?.status === 401) {
+      throw new Error('Необходимо войти в систему');
+    }
+    
+    throw new Error(error.response?.data?.error || error.response?.data?.message || 'Ошибка выхода из группы');
   }
+}
 
   async deleteGroup(groupId: string | number): Promise<void> {
     try {
@@ -599,16 +635,72 @@ class GroupService {
   async respondToInvite(inviteId: string, action: 'accepted' | 'rejected'): Promise<void> {
     try {
       console.log('[GroupService] 📨 Ответ на приглашение:', { inviteId, action });
+
+      const endpoint = action === 'accepted' 
+        ? `/users/invites/${inviteId}/approve`
+        : `/users/invites/${inviteId}/reject`;
       
-      await apiClient.post(`/groups/invite/${inviteId}`, { action });
+      await apiClient.put(endpoint);
       
-      console.log('[GroupService] ✅ Приглашение обработано');
+      console.log('[GroupService] ✅ Приглашение обработано:', action);
     } catch (error: any) {
       console.error('[GroupService] ❌ Ошибка ответа на приглашение:', error);
-      throw new Error(error);
+      
+      if (error.response?.status === 400) {
+        throw new Error('Приглашение уже обработано или недоступно');
+      }
+      if (error.response?.status === 401) {
+        throw new Error('Необходимо войти в систему');
+      }
+      
+      throw new Error(error.response?.data?.message || 'Ошибка обработки приглашения');
     }
   }
 
+  async sendInviteToUser(groupId: number, userId: number): Promise<{ joined: boolean; message: string }> {
+    try {
+      const validGroupId = validateGroupId(groupId);
+      const validUserId = validateUserId(userId);
+
+      const rateLimitKey = `invite_user_${validGroupId}`;
+      if (!rateLimiter.canPerformAction(rateLimitKey, 10, 60000)) {
+        throw new Error('Слишком много приглашений. Подождите минуту.');
+      }
+
+      console.log('[GroupService] Отправка приглашения');
+      
+      const response = await apiClient.post<{ joined: boolean; message: string }>(
+        '/admin/groups/requestsForUser',
+        null,
+        {
+          params: {
+            group_id: validGroupId,
+            user_id: validUserId,
+          },
+        }
+      );
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('[GroupService] Ошибка отправки приглашения');
+      
+      if (error.response?.status === 403) {
+        throw new Error('У вас нет прав администратора этой группы');
+      }
+      if (error.response?.status === 404) {
+        throw new Error('Пользователь или группа не найдены');
+      }
+      if (error.response?.status === 400) {
+        const errorMsg = error.response?.data?.message || '';
+        if (errorMsg.includes('already')) {
+          throw new Error('Пользователь уже состоит в группе');
+        }
+        throw new Error(errorMsg || 'Некорректные параметры запроса');
+      }
+      
+      throw new Error(error.response?.data?.message || 'Ошибка отправки приглашения');
+    }
+  }
 }
 
 export default new GroupService();

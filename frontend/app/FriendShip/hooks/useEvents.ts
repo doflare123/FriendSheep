@@ -4,7 +4,7 @@ import { SortingState } from '@/hooks/useSearchState';
 import {
   createEventWithHighlightedTitle,
   filterEventsByCategories,
-  filterEventsByCity, // 🆕 Импортируем новую функцию
+  filterEventsByCity,
   filterEventsBySearch,
   sortEventsByParticipants
 } from '@/utils/eventUtils';
@@ -66,7 +66,7 @@ function filterActiveEvents(events: Event[]): Event[] {
 }
 
 export const useEvents = (sortingState: SortingState) => {
-  const { checkedCategories, sortByDate, sortByParticipants, searchQuery, cityFilter } = sortingState; // 🆕 Добавлен cityFilter
+  const { checkedCategories, sortByDate, sortByParticipants, searchQuery, cityFilter } = sortingState;
   
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [popularEventsData, setPopularEventsData] = useState<Event[]>([]);
@@ -128,40 +128,38 @@ export const useEvents = (sortingState: SortingState) => {
     loadSessions();
   }, []);
 
-  // 🆕 Применяем фильтрацию по городу ко всем категориям
   const movieEvents = useMemo(() => {
     let events = getEventsByCategory(allEvents, 'movie');
-    events = filterEventsByCity(events, cityFilter); // 🆕 Фильтр по городу
+    events = filterEventsByCity(events, cityFilter);
     events = sortEventsByDate(events, sortByDate);
     events = sortEventsByParticipants(events, sortByParticipants);
     return events;
-  }, [allEvents, sortByDate, sortByParticipants, cityFilter]); // 🆕 Добавлен cityFilter
+  }, [allEvents, sortByDate, sortByParticipants, cityFilter]);
 
   const gameEvents = useMemo(() => {
     let events = getEventsByCategory(allEvents, 'game');
-    events = filterEventsByCity(events, cityFilter); // 🆕 Фильтр по городу
+    events = filterEventsByCity(events, cityFilter);
     events = sortEventsByDate(events, sortByDate);
     events = sortEventsByParticipants(events, sortByParticipants);
     return events;
-  }, [allEvents, sortByDate, sortByParticipants, cityFilter]); // 🆕 Добавлен cityFilter
+  }, [allEvents, sortByDate, sortByParticipants, cityFilter]);
 
   const tableGameEvents = useMemo(() => {
     let events = getEventsByCategory(allEvents, 'table_game');
-    events = filterEventsByCity(events, cityFilter); // 🆕 Фильтр по городу
+    events = filterEventsByCity(events, cityFilter);
     events = sortEventsByDate(events, sortByDate);
     events = sortEventsByParticipants(events, sortByParticipants);
     return events;
-  }, [allEvents, sortByDate, sortByParticipants, cityFilter]); // 🆕 Добавлен cityFilter
+  }, [allEvents, sortByDate, sortByParticipants, cityFilter]);
 
   const otherEvents = useMemo(() => {
     let events = getEventsByCategory(allEvents, 'other');
-    events = filterEventsByCity(events, cityFilter); // 🆕 Фильтр по городу
+    events = filterEventsByCity(events, cityFilter);
     events = sortEventsByDate(events, sortByDate);
     events = sortEventsByParticipants(events, sortByParticipants);
     return events;
-  }, [allEvents, sortByDate, sortByParticipants, cityFilter]); // 🆕 Добавлен cityFilter
+  }, [allEvents, sortByDate, sortByParticipants, cityFilter]); 
 
-  // 🆕 Фильтруем популярные и новые события по городу
   const popularEvents = useMemo(() => {
     return filterEventsByCity(popularEventsData, cityFilter);
   }, [popularEventsData, cityFilter]);

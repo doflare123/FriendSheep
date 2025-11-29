@@ -307,7 +307,7 @@ const EventModal: React.FC<EventModalProps> = ({
           <View style={styles.modal}>
             {isLoading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={Colors.lightBlue3} />
+                <ActivityIndicator size="large" color={Colors.lightBlue} />
                 <Text style={styles.loadingText}>Загрузка...</Text>
               </View>
             ) : (
@@ -437,7 +437,7 @@ const EventModal: React.FC<EventModalProps> = ({
                   source={require('@/assets/images/event_card/bottom_rectangle.png')}
                   style={styles.bottomBackground}
                   resizeMode="stretch"
-                  tintColor={Colors.lightBlue3}
+                  tintColor={Colors.lightBlue}
                 >
                   <View style={styles.bottomContent}>
                     {formatPublisher(sessionData?.metadata?.Country || event.publisher) && (
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 6,
     borderWidth: 2,
-    borderColor: Colors.lightBlue3,
+    borderColor: Colors.lightBlue,
   },
   title: {
     flex: 1,
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
   },
   genreBadge: {
     marginRight: 6,
-    backgroundColor: Colors.lightBlue3,
+    backgroundColor: Colors.lightBlue,
     borderRadius: 20,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
     zIndex: 10 
   },
   clickableText: {
-    color: Colors.lightBlue3,
+    color: Colors.lightBlue,
   },
   disabledButton: {
     backgroundColor: Colors.white,

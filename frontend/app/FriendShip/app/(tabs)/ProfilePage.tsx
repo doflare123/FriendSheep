@@ -61,18 +61,20 @@ const ProfilePage: React.FC = () => {
         ? await userService.getCurrentUserProfile()
         : await userService.getUserProfileById(userId);
 
+      console.log('[ProfilePage] Загруженный профиль:', profile.name);
+      
       setProfileData(profile);
 
-    const tiles = profile.tiles.map(tile => {
-      const tileMap: Record<string, TileType> = {
-        'count_all': 'all',
-        'count_films': 'movies',
-        'count_games': 'video_games',
-        'count_table': 'board_games',
-        'count_other': 'other',     
-        'spent_time': 'time',
-      };
-      return tileMap[tile] || 'all';
+      const tiles = profile.tiles.map(tile => {
+        const tileMap: Record<string, TileType> = {
+          'count_all': 'all',
+          'count_films': 'movies',
+          'count_games': 'video_games',
+          'count_table': 'board_games',
+          'count_other': 'other',     
+          'spent_time': 'time',
+        };
+        return tileMap[tile] || 'all';
       });
       setSelectedTiles(tiles);
 
@@ -82,7 +84,7 @@ const ProfilePage: React.FC = () => {
         );
         setSubscriptions(subs);
       } catch (error) {
-        console.warn('Не удалось загрузить подписки:', error);
+        console.warn('[ProfilePage] Не удалось загрузить подписки');
       }
 
     } catch (error: any) {
@@ -110,6 +112,14 @@ const ProfilePage: React.FC = () => {
 
   const handleInviteToGroup = () => {
     setInviteModalVisible(true);
+  };
+
+  const handleInviteSent = () => {
+    showToast({
+      type: 'success',
+      title: 'Успешно',
+      message: 'Приглашение отправлено пользователю',
+    });
   };
 
   const handleProfileSave = async (updatedProfile: any) => {
@@ -199,11 +209,6 @@ const ProfilePage: React.FC = () => {
 
   const handleGroupPress = (groupId: number) => {
     navigation.navigate('GroupPage', { groupId: groupId.toString() });
-  };
-
-  const handleGroupSelect = (groupId: string) => {
-    console.log('Inviting user to group:', groupId);
-    setInviteModalVisible(false);
   };
 
   if (loading) {
@@ -409,12 +414,13 @@ const ProfilePage: React.FC = () => {
           />
         </>
       )}
-
-      {!isOwnProfile && (
+      
+      {!isOwnProfile && userId && (
         <InviteToGroupModal
           visible={inviteModalVisible}
           onClose={() => setInviteModalVisible(false)}
-          onGroupSelect={handleGroupSelect}
+          userId={parseInt(userId)}
+          onInviteSent={handleInviteSent}
         />
       )}
     </SafeAreaView>

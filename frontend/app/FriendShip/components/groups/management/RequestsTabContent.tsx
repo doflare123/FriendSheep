@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   acceptAllButton: {
-    backgroundColor: Colors.lightBlue3,
+    backgroundColor: Colors.lightBlue,
     paddingHorizontal: 16,
     paddingVertical: 4,
     borderRadius: 20,

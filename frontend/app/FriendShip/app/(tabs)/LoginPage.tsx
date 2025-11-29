@@ -1,5 +1,4 @@
 import authService from '@/api/services/authService';
-import { getTokens } from '@/api/storage/tokenStorage';
 import { useToast } from '@/components/ToastContext';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
@@ -24,7 +23,9 @@ const Login = () => {
   };
 
   const handleLogin = async () => {
-    if (!email.trim()) {
+    const sanitizedEmail = email.trim().toLowerCase();
+    
+    if (!sanitizedEmail) {
       showToast({
         type: 'error',
         title: 'Ошибка',
@@ -33,7 +34,7 @@ const Login = () => {
       return;
     }
 
-    if (!validateEmail(email)) {
+    if (!validateEmail(sanitizedEmail)) {
       showToast({
         type: 'error',
         title: 'Ошибка',
@@ -54,11 +55,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-
-      await authService.login(email, password);
-
-      const savedTokens = await getTokens();
-      console.log('[Login] Токены после логина:', savedTokens ? 'СОХРАНЕНЫ' : 'НЕ СОХРАНЕНЫ');
+      await authService.login(sanitizedEmail, password);
 
       showToast({
         type: 'success',
@@ -71,8 +68,6 @@ const Login = () => {
       }, 500);
 
     } catch (error: any) {
-      console.error('[Login] ❌ Ошибка:', error);
-      
       showToast({
         type: 'error',
         title: 'Ошибка входа',

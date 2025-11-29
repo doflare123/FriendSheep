@@ -7,6 +7,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from './api/services/AuthContext';
 import CategoryPage from './app/(tabs)/CategoryPage';
 import Confirm from './app/(tabs)/ConfirmPage';
 import Done from './app/(tabs)/DonePage';
@@ -42,48 +43,50 @@ export default function App() {
     return null;
   }
   return (
-    <ToastProvider>
-      <SafeAreaProvider>
-          <NavigationContainer>
-            <Stack.Navigator
-              screenOptions={{
-                gestureEnabled: false,
-                headerShown: false,
-                animation: 'scale_from_center'
-              }}
-            > 
-              <Stack.Screen name="Register" component={Register} />
-              <Stack.Screen name="Login" component={Login} />
-              <Stack.Screen name="Confirm" component={Confirm} />
-              <Stack.Screen name="Done" component={Done} />
-              <Stack.Screen name="MainPage" component={MainPage} />
-              <Stack.Screen 
-                name="CategoryPage" 
-                component={CategoryPage}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen name="GroupsPage" component={GroupsPage} />
-              <Stack.Screen 
-                name="GroupPage" 
-                component={GroupPage}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen 
-                name="GroupManagePage" 
-                component={GroupManagePage}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen name="GroupSearchPage" component={GroupSearchPage} />
-              <Stack.Screen name="ProfilePage" component={ProfilePage} />
-              <Stack.Screen 
-                name="UserSearchPage" 
-                component={UserSearchPage}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen name="SettingsPage" component={SettingsPage} />
-            </Stack.Navigator>
-          </NavigationContainer>
-      </SafeAreaProvider>
-    </ToastProvider>   
+    <AuthProvider>
+      <ToastProvider>
+        <SafeAreaProvider>
+            <NavigationContainer>
+              <Stack.Navigator
+                screenOptions={{
+                  gestureEnabled: false,
+                  headerShown: false,
+                  animation: 'scale_from_center'
+                }}
+              > 
+                <Stack.Screen name="Register" component={Register} />
+                <Stack.Screen name="Login" component={Login} />
+                <Stack.Screen name="Confirm" component={Confirm} />
+                <Stack.Screen name="Done" component={Done} />
+                <Stack.Screen name="MainPage" component={MainPage} />
+                <Stack.Screen 
+                  name="CategoryPage" 
+                  component={CategoryPage}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen name="GroupsPage" component={GroupsPage} />
+                <Stack.Screen 
+                  name="GroupPage" 
+                  component={GroupPage}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen 
+                  name="GroupManagePage" 
+                  component={GroupManagePage}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen name="GroupSearchPage" component={GroupSearchPage} />
+                <Stack.Screen name="ProfilePage" component={ProfilePage} />
+                <Stack.Screen 
+                  name="UserSearchPage" 
+                  component={UserSearchPage}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen name="SettingsPage" component={SettingsPage} />
+              </Stack.Navigator>
+            </NavigationContainer>
+        </SafeAreaProvider>
+      </ToastProvider>   
+    </AuthProvider>
   );
 }

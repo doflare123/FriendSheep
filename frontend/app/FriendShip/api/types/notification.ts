@@ -5,6 +5,8 @@ export interface Notification {
   sendAt: string;
   viewed: boolean;
   sent: boolean;
+  groupId?: number;
+  sessionId?: number;
 }
 
 export interface GroupInvite {
@@ -26,4 +28,8 @@ export interface MarkAsViewedRequest {
 
 export interface MarkAsViewedResponse {
   [key: string]: string;
+}
+
+export interface UnreadNotificationsResponse {
+  has_unread: boolean;
 }

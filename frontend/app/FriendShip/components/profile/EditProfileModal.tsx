@@ -207,7 +207,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               source={require('@/assets/images/event_card/bottom_rectangle.png')}
               style={styles.bottomBackground}
               resizeMode="stretch"
-              tintColor={Colors.lightBlue3}
+              tintColor={Colors.lightBlue}
             >
               <View style={styles.bottomContent}>
                 <TouchableOpacity

@@ -1,10 +1,12 @@
 // eslint-disable-next-line import/no-unresolved
 import { LOCAL_IP } from "@env";
 
+const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=User';
+
 export const normalizeImageUrl = (imageUrl: string | null | undefined): string => {
-  if (!imageUrl) {
-    console.warn('[imageUtils] ⚠️ Пустой URL изображения');
-    return '';
+  if (!imageUrl || imageUrl.trim() === '') {
+    console.warn('[imageUtils] ⚠️ Пустой URL изображения - используем placeholder');
+    return PLACEHOLDER_IMAGE;
   }
  
   if (imageUrl.includes('selcloud.ru') || imageUrl.includes('selstorage.ru')) {
@@ -24,5 +26,6 @@ export const normalizeImageUrl = (imageUrl: string | null | undefined): string =
     return normalized;
   }
 
+  console.log('[imageUtils] ℹ️ URL без изменений:', imageUrl);
   return imageUrl;
 };

@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.veryLightGrey,
   },
   typeButtonSelected: {
-    backgroundColor: Colors.lightBlue3,
+    backgroundColor: Colors.lightBlue,
   },
   typeIcon: {
     width: 30,
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     color: Colors.red,
   },
   addButton: {
-    backgroundColor: Colors.lightBlue3,
+    backgroundColor: Colors.lightBlue,
     paddingVertical: 8,
     borderRadius: 20,
     alignItems: 'center',
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: Colors.lightBlue3,
+    backgroundColor: Colors.lightBlue,
     paddingVertical: 10,
     borderRadius: 25,
     alignItems: 'center',

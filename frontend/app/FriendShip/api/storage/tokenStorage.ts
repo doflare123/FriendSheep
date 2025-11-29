@@ -1,10 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { AuthTokens } from '../types/auth';
 // eslint-disable-next-line import/no-unresolved
 import { API_BASE_URL } from '@env';
 
-const ACCESS_TOKEN_KEY = '@auth_access_token';
-const REFRESH_TOKEN_KEY = '@auth_refresh_token';
+const ACCESS_TOKEN_KEY = 'auth_access_token';
+const REFRESH_TOKEN_KEY = 'auth_refresh_token';
 
 const BASE_URL = API_BASE_URL || 'http://localhost:8080/api';
 
@@ -13,31 +13,22 @@ export const saveTokens = async (
   refreshToken: string
 ): Promise<void> => {
   try {
-    await AsyncStorage.multiSet([
-      [ACCESS_TOKEN_KEY, accessToken],
-      [REFRESH_TOKEN_KEY, refreshToken],
-    ]);
+    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
+    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
   } catch (error) {
     console.error('Ошибка сохранения токенов:', error);
     throw error;
   }
-  console.log("SAVE TOKENS INPUT:", accessToken, refreshToken);
 };
 
 export const getTokens = async (): Promise<AuthTokens | null> => {
   try {
-    const values = await AsyncStorage.multiGet([
-      ACCESS_TOKEN_KEY,
-      REFRESH_TOKEN_KEY,
-    ]);
-
-    const accessToken = values[0][1];
-    const refreshToken = values[1][1];
+    const accessToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+    const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
 
     if (accessToken && refreshToken) {
       return { accessToken, refreshToken };
     }
-
     return null;
   } catch (error) {
     console.error('Ошибка получения токенов:', error);
@@ -47,7 +38,8 @@ export const getTokens = async (): Promise<AuthTokens | null> => {
 
 export const clearTokens = async (): Promise<void> => {
   try {
-    await AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY]);
+    await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
   } catch (error) {
     console.error('Ошибка очистки токенов:', error);
     throw error;
@@ -64,11 +56,9 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     const tokens = await getTokens();
     
     if (!tokens?.refreshToken) {
-      console.error('[TokenStorage] ❌ Refresh токен отсутствует');
+      console.error('[TokenStorage] Refresh токен отсутствует');
       return null;
     }
-
-    console.log('[TokenStorage] 🔄 Обновление access токена...');
 
     const response = await fetch(`${BASE_URL}/users/refresh`, {
       method: 'POST',
@@ -81,10 +71,8 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[TokenStorage] ❌ Ошибка обновления токена:', errorText);
-      
-      // Если refresh токен тоже истёк, очищаем всё
+      console.error('[TokenStorage] Ошибка обновления токена:', response.status);
+  
       if (response.status === 401) {
         await clearTokens();
       }
@@ -95,30 +83,23 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     const data = await response.json();
     
     if (!data.access_token) {
-      console.error('[TokenStorage] ❌ В ответе нет access_token');
+      console.error('[TokenStorage] В ответе нет access_token');
       return null;
     }
 
-    // Сохраняем новый access токен
-    await AsyncStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
-    
-    // Если пришёл новый refresh токен, сохраняем и его
+    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, data.access_token);
+
     if (data.refresh_token) {
-      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
+      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, data.refresh_token);
     }
 
-    console.log('[TokenStorage] ✅ Access токен успешно обновлён');
     return data.access_token;
   } catch (error) {
-    console.error('[TokenStorage] ❌ Ошибка обновления токена:', error);
+    console.error('[TokenStorage] Ошибка обновления токена:', error);
     return null;
   }
 };
 
-/**
- * Проверяет валидность access токена
- * Если истёк - автоматически обновляет
- */
 export const ensureValidToken = async (): Promise<string | null> => {
   try {
     const tokens = await getTokens();
@@ -127,11 +108,9 @@ export const ensureValidToken = async (): Promise<string | null> => {
       return null;
     }
 
-    // Здесь можно добавить проверку срока действия токена
-    // Пока просто возвращаем существующий токен
     return tokens.accessToken;
   } catch (error) {
-    console.error('[TokenStorage] ❌ Ошибка проверки токена:', error);
+    console.error('[TokenStorage] Ошибка проверки токена:', error);
     return null;
   }
 };

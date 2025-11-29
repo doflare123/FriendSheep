@@ -2,12 +2,12 @@ import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
 import {
-    ActivityIndicator,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface PrivateGroupPreviewProps {
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   requestButton: {
-    backgroundColor: Colors.lightBlue3,
+    backgroundColor: Colors.lightBlue,
     paddingVertical: 12,
     paddingHorizontal: 48,
     borderRadius: 25,

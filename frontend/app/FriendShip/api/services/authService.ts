@@ -17,7 +17,7 @@ class AuthService {
     try {
       const response = await apiClient.post<RegisterResponse>(
         '/sessions/register',
-        { email } as RegisterRequest
+        { email, timeout: 5000 } as RegisterRequest
       );
       return response.data;
     } catch (error: any) {
@@ -75,6 +75,7 @@ class AuthService {
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
       const response = await apiClient.post<LoginResponse>('/users/login', {
+        timeout: 5000,
         email,
         password,
       });

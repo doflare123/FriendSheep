@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   createButton: {
     marginHorizontal: 20,
     marginBottom: 16,
-    backgroundColor: Colors.lightBlue3,
+    backgroundColor: Colors.lightBlue,
     borderRadius: 40,
     paddingVertical: 6,
     alignItems: 'center',

@@ -1,5 +1,8 @@
 import apiClient from '@/api/apiClient';
 import { getTokens, refreshAccessToken } from '@/api/storage/tokenStorage';
+ 
+import { rateLimiter } from '@/utils/rateLimiter';
+import { validateSessionId } from '@/utils/validators';
 // eslint-disable-next-line import/no-unresolved
 import { API_BASE_URL } from '@env';
 import {
@@ -10,7 +13,6 @@ import {
 } from './sessionHelpers';
 import {
   CreateSessionData,
-  JoinSessionData,
   UpdateSessionData
 } from './sessionTypes';
 
@@ -132,32 +134,57 @@ class SessionService {
     }
   }
 
-  async joinSession(data: JoinSessionData): Promise<any> {
+  async joinSession(sessionId: number): Promise<any> {
+    const validSessionId = validateSessionId(sessionId);
+
+    // Rate limiting - максимум 5 попыток в минуту
+    const rateLimitKey = `join_session_${validSessionId}`;
+    if (!rateLimiter.canPerformAction(rateLimitKey, 5, 60000)) {
+      throw new Error('Слишком много попыток. Подождите минуту.');
+    }
+
     try {
-      console.log('[SessionService] 🚪 Присоединение к сессии:', data);
-      const response = await apiClient.post('/sessions/join', data);
-      console.log('[SessionService] ✅ Успешно присоединились к сессии');
+      console.log(`[SessionService] Вступление в событие ${validSessionId}`);
+      const response = await apiClient.post(`/sessions/${validSessionId}/join`);
       return response.data;
     } catch (error: any) {
-      console.error('[SessionService] ❌ Ошибка присоединения:', error);
-      if (error.response?.status === 409) {
-        throw new Error('Сессия заполнена или вы уже присоединились');
-      }
-      throw new Error(error.response?.data?.message || 'Ошибка присоединения к сессии');
+      console.error('[SessionService] Ошибка вступления в событие');
+      throw error;
     }
   }
 
-  async leaveSession(sessionId: number): Promise<void> {
+  private actionTimestamps: Map<string, number[]> = new Map();
+
+  private canPerformAction(key: string, maxActions: number, windowMs: number): boolean {
+    const now = Date.now();
+    const timestamps = this.actionTimestamps.get(key) || [];
+    
+    const recentTimestamps = timestamps.filter(t => now - t < windowMs);
+    
+    if (recentTimestamps.length >= maxActions) {
+      return false;
+    }
+    
+    recentTimestamps.push(now);
+    this.actionTimestamps.set(key, recentTimestamps);
+    return true;
+  }
+
+  async leaveSession(sessionId: number): Promise<any> {
+    const validSessionId = validateSessionId(sessionId);
+
+    const rateLimitKey = `leave_session_${validSessionId}`;
+    if (!rateLimiter.canPerformAction(rateLimitKey, 5, 60000)) {
+      throw new Error('Слишком много попыток. Подождите минуту.');
+    }
+
     try {
-      console.log('[SessionService] 🚪 Выход из сессии:', sessionId);
-      await apiClient.delete(`/sessions/${sessionId}/leave`);
-      console.log('[SessionService] ✅ Успешно покинули сессию');
+      console.log(`[SessionService] Выход из события ${validSessionId}`);
+      const response = await apiClient.post(`/sessions/${validSessionId}/leave`);
+      return response.data;
     } catch (error: any) {
-      console.error('[SessionService] ❌ Ошибка выхода:', error);
-      if (error.response?.status === 403) {
-        throw new Error('Вы не состоите в этой сессии');
-      }
-      throw new Error(error.response?.data?.message || 'Ошибка выхода из сессии');
+      console.error('[SessionService] Ошибка выхода из события');
+      throw error;
     }
   }
 

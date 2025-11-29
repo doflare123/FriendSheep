@@ -1,13 +1,15 @@
 import { normalizeImageUrl } from '@/utils/imageUtils';
+import { sanitizeSearchQuery } from '@/utils/searchSanitizer';
 import apiClient from '../apiClient';
 import {
-  SearchUsersResponse, // 🆕
   Subscription,
   TileSettings,
   UpdateProfileRequest,
   UpdateProfileResponse,
   UserProfile,
+  UserSearchResponse
 } from '../types/user';
+
 
 class UserService {
   async getCurrentUserProfile(): Promise<UserProfile> {
@@ -58,35 +60,62 @@ class UserService {
     }
   }
 
-  async searchUsers(query: string, page: number = 1): Promise<SearchUsersResponse> {
+  async searchUsers(query: string, page: number = 1): Promise<UserSearchResponse> {
     try {
-      console.log('[UserService] 🔍 Поиск пользователей:', { query, page });
+      const sanitizedQuery = sanitizeSearchQuery(query);
       
-      const response = await apiClient.get<SearchUsersResponse>('/users/search', {
-        params: {
-          name: query,
+      if (!sanitizedQuery || sanitizedQuery.length < 1) {
+        console.log('[UserService] ⚠️ Запрос пустой:', query);
+        return {
+          users: [],
+          total: 0,
+          has_more: false,
+          page: 1,
+        };
+      }
+
+      console.log('[UserService] Поиск пользователей:', sanitizedQuery);
+      
+      const response = await apiClient.get<UserSearchResponse>('/users/search', {
+        params: { 
+          name: sanitizedQuery,
           page: page,
         },
       });
 
-      const users = response.data.users || [];
+      console.log('[UserService] 📦 Получен ответ:', {
+        total: response.data.total,
+        users: response.data.users?.length,
+      });
 
-      const normalizedUsers = users.map(user => ({
-        ...user,
-        image: normalizeImageUrl(user.image),
-      }));
+      const normalizedUsers = (response.data.users || []).map(user => {
+        const originalImage = user.image;
+        const normalizedImage = normalizeImageUrl(user.image);
+        
+        console.log('[UserService] 🖼️ Нормализация изображения:', {
+          userId: user.id,
+          original: originalImage,
+          normalized: normalizedImage,
+          changed: originalImage !== normalizedImage,
+        });
+        
+        return {
+          ...user,
+          image: normalizedImage,
+        };
+      });
 
-      console.log('[UserService] ✅ Найдено пользователей:', normalizedUsers.length);
+      console.log('[UserService] ✅ Обработано пользователей:', normalizedUsers.length);
 
       return {
-        total: response.data.total || 0,
-        page: response.data.page || 1,
-        has_more: response.data.has_more || false,
         users: normalizedUsers,
+        total: response.data.total || 0,
+        has_more: response.data.has_more || false,
+        page: response.data.page || page,
       };
     } catch (error: any) {
-      console.error('[UserService] ❌ Ошибка поиска:', error);
-      throw this.handleError(error);
+      console.error('[UserService] ❌ Ошибка поиска пользователей:', error.message);
+      throw error;
     }
   }
 

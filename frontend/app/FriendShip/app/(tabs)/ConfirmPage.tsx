@@ -1,3 +1,4 @@
+import { useAuthContext } from '@/api/services/AuthContext';
 import authService from '@/api/services/authService';
 import InputSmall from '@/components/auth/InputSmall';
 import { useToast } from '@/components/ToastContext';
@@ -15,17 +16,30 @@ const RESEND_TIMEOUT_MINUTES = 15;
 
 type ConfirmRouteParams = {
   sessionId: string;
-  email: string;
-  username?: string;
-  password?: string;
 };
 
 const Confirm = () => {
   const navigation = useNavigation();
-  const route = useRoute<RouteProp<{ Confirm: ConfirmRouteParams }, 'Confirm'>>();
   const { showToast } = useToast();
+  const { tempRegData, setTempRegData } = useAuthContext();
+  const route = useRoute<RouteProp<{ Confirm: ConfirmRouteParams }, 'Confirm'>>();
+  
+  const { sessionId } = route.params || {};
 
-  const { sessionId, email, username, password } = route.params || {};
+  const email = tempRegData?.email || '';
+  const username = tempRegData?.username || '';
+  const password = tempRegData?.password || '';
+
+  useEffect(() => {
+    if (!tempRegData || !sessionId) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Данные регистрации не найдены',
+      });
+      navigation.navigate('Register' as never);
+    }
+  }, []);
 
   const [code, setCode] = useState('');
   const [remainingSeconds, setRemainingSeconds] = useState(RESEND_TIMEOUT_MINUTES * 60);
@@ -36,8 +50,21 @@ const Confirm = () => {
   const appState = useRef(AppState.currentState);
   const endTimeRef = useRef(Date.now() + remainingSeconds * 1000);
 
+  const [attempts, setAttempts] = useState(0);
+  const MAX_ATTEMPTS = 5;
+
   const handleConfirm = async () => {
-    const trimmedCode = code.trim().toUpperCase();
+
+    if (attempts >= MAX_ATTEMPTS) {
+      showToast({
+        type: 'error',
+        title: 'Превышено количество попыток',
+        message: 'Запросите новый код',
+      });
+      return;
+    }
+
+    const trimmedCode = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 
     if (!trimmedCode || trimmedCode.length < 6) {
       showToast({
@@ -70,8 +97,9 @@ const Confirm = () => {
 
     try {
       await authService.verifySession(sessionId, trimmedCode, 'register');
-
       await authService.createUser(email, username, password, sessionId);
+
+      setTempRegData(null)
 
       showToast({
         type: 'success',
@@ -84,6 +112,7 @@ const Confirm = () => {
       }, 1500);
 
     } catch (error: any) {
+      setAttempts(prev => prev + 1);
       const errorMessage = error.message || 'Произошла ошибка';
       
       if (errorMessage.includes('Неверный код')) {
@@ -119,6 +148,14 @@ const Confirm = () => {
       setLoading(false);
     }
   };
+  
+    useEffect(() => {
+      return () => {
+        if (navigation.isFocused()) {
+          setTempRegData(null);
+        }
+      };
+    }, []);
 
   const handleResend = async () => {
     if (!email) {

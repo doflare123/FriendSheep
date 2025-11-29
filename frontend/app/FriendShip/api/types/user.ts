@@ -49,6 +49,7 @@ export interface UserStats {
 }
 
 export interface UserProfile {
+  id: number;
   name: string;
   us: string;
   image: string;
@@ -121,9 +122,9 @@ export interface SearchUserItem {
   status: string;
 }
 
-export interface SearchUsersResponse {
+export interface UserSearchResponse {
   users: SearchUserItem[];
   total: number;
-  page: number;
   has_more: boolean;
+  page: number;
 }

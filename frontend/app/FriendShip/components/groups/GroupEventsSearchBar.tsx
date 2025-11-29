@@ -1,5 +1,5 @@
 import { Colors } from '@/constants/Colors';
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import { SortingActions, SortingState } from '@/hooks/useSearchState';
 import React, { useRef, useState } from 'react';
 import { Image, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 10,
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.black,
   },

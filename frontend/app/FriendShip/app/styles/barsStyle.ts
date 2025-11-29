@@ -1,4 +1,4 @@
-import { inter } from '@/constants/Inter';
+import { Montserrat } from '@/constants/Montserrat';
 import { StyleSheet } from 'react-native';
 import { Colors } from '../../constants/Colors';
 
@@ -39,7 +39,7 @@ const barsStyle = StyleSheet.create({
     alignSelf: 'center',
   },
   textMenu: {
-    fontFamily: inter.regular,
+    fontFamily: Montserrat.regular,
     color: Colors.lightGreyBlue,
     fontSize: 10,
   }
