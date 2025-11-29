@@ -78,7 +78,7 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
   const router = useRouter();
 
   const handleJoinGroup = async () => {
-    const accessToken = getAccesToken(router);
+    const accessToken = await getAccesToken(router);
     
     if (!accessToken) {
       showNotification(401, 'Необходимо авторизоваться', 'error');
@@ -103,7 +103,7 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
   };
 
   const handleLeaveGroup = async () => {
-    const accessToken = getAccesToken(router);
+    const accessToken = await getAccesToken(router);
     
     if (!accessToken) {
       showNotification(401, 'Необходимо авторизоваться', 'error');
@@ -134,8 +134,6 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
 
   // Преобразуем sessions в формат для CategorySection
   const eventsData = transformSessionsToEvents(groupData.sessions);
-
-  console.log("ZXCZXC", groupData.users)
 
   if (isLoading) {
     return (

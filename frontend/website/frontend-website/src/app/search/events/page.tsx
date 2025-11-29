@@ -125,7 +125,7 @@ export default function EventsSearchPage() {
     }
 
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       
       const params: any = {};
 

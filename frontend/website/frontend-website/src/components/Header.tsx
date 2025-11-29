@@ -26,7 +26,7 @@ export default function Header() {
         if (!isLoggedIn) return;
 
         try {
-            const accessToken = getAccesToken(router);
+            const accessToken = await getAccesToken(router);
             const hasNotifications = await checkNotif(accessToken);
             setHasUnreadNotifications(hasNotifications);
         } catch (error) {

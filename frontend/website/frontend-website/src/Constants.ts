@@ -4,7 +4,7 @@ import {EventCardProps} from './types/Events'
 import {SessionData, EventFullResponse} from './types/apiTypes'
 import {UserDataResponse} from './types/UserData'
 import { getUserInfo } from './api/profile/getOwnProfile';
-import { isTokenValid } from '@/api/auth';
+import { refreshAccessToken, isTokenValid, getCookie, setCookie } from '@/api/auth';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 export const convertCategoriesToIds = (categories: string[]): number[] => {
@@ -62,21 +62,40 @@ export const convertSocialContactsToString = (socialContacts: { name: string; li
         .join(', '); // Объединяем через запятую и пробел
 };
 
-export const getAccesToken = (router?: AppRouterInstance): string => {
+export const getAccesToken = async (router?: AppRouterInstance): Promise<string> => {
   const token = localStorage.getItem('access_token') || '';
+
+  // Если токен есть и валиден - возвращаем его
+  if (token && isTokenValid(token)) {
+    return token;
+  }
   
-  if (!token) {
+  // Если токен отсутствует или невалиден - пытаемся обновить
+  try {
+    const refreshToken = getCookie('refresh_token');
+    
+    if (!refreshToken) {
+      console.warn('⚠️ Refresh token отсутствует');
+      if (router) router.push('/login');
+      return '';
+    }
+    
+    console.log('🔄 Обновление токена...');
+    const tokens = await refreshAccessToken(refreshToken);
+    
+    // Сохраняем новые токены
+    localStorage.setItem('access_token', tokens.access_token);
+    setCookie('refresh_token', tokens.refresh_token, 7);
+    
+    console.log('✅ Токен успешно обновлён');
+    return tokens.access_token;
+    
+  } catch (error) {
+    console.error('❌ Ошибка обновления токена:', error);
     if (router) router.push('/login');
     return '';
   }
-  
-  if (!isTokenValid(token)) {
-    if (router) router.push('/login');
-    return '';
-  }
-  
-  return token;
-}
+};
 
 export function decodeJWT(token: string) {
   try {
@@ -167,7 +186,7 @@ export const getUserData = async (): UserDataResponse | null => {
 }
 
 export const updateUserData = async (): UserDataResponse | null => {
-  const accessToken: string = getAccesToken();
+  const accessToken: string = await getAccesToken();
   
   let UserInfo;
 

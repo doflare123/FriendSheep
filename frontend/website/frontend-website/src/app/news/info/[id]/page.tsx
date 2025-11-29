@@ -61,7 +61,7 @@ export default function NewsInfoPage() {
     if (!newsDetail || !commentText.trim()) return;
 
     // Проверка авторизации
-    const token = getAccesToken(router);
+    const token = await getAccesToken(router);
     if (!token) {
       showNotification(401, 'Необходимо авторизоваться');
       setShowCommentForm(false);

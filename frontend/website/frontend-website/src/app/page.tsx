@@ -25,7 +25,7 @@ export default function Home() {
 
   useEffect(() => {
     const loadData = async () => {
-      const token = getAccesToken();
+      const token = await getAccesToken();
       
       // Если нет токена - просто не загружаем данные
       if (!token) {

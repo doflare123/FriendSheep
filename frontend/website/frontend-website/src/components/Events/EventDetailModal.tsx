@@ -45,7 +45,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
     setIsLoading(true);
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       const response = await getEventInfo(accessToken, eventId);
       setEventData(response as EventFullResponse);
     } catch (error: any) {
@@ -64,7 +64,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
     setIsActionLoading(true);
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       const { session } = eventData;
 
       if (session.is_sub) {

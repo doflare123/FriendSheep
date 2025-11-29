@@ -125,7 +125,7 @@ export default function EventModal({
     setGroupsError(null);
     
     try {
-      const accessToken = getAccesToken(router) || '';
+      const accessToken = await getAccesToken(router) || '';
       const groupsData = await getOwnGroups(accessToken);
       
       if (groupsData.length === 0) {
@@ -152,7 +152,7 @@ export default function EventModal({
     setGroupsError(null);
     
     try {
-      const accessToken = getAccesToken(router) || '';
+      const accessToken = await getAccesToken(router) || '';
       const groupsData = await getOwnGroups(accessToken);
       setGroups(groupsData);
     } catch (error) {
@@ -169,7 +169,7 @@ export default function EventModal({
     setGenresError(null);
     
     try {
-      const accessToken = getAccesToken(router) || '';
+      const accessToken = await getAccesToken(router) || '';
       const genresData = await getGenres(accessToken);
       setGenres(genresData);
     } catch (error) {
@@ -413,7 +413,7 @@ export default function EventModal({
     setIsSaving(true);
     
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Необходима авторизация');
         return;
@@ -455,7 +455,7 @@ export default function EventModal({
     setIsSaving(true);
     
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Необходима авторизация');
         return;
@@ -522,7 +522,7 @@ export default function EventModal({
     setIsSaving(true);
     
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Необходима авторизация');
         return;

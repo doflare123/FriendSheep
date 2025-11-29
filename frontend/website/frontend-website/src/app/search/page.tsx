@@ -80,13 +80,17 @@ export default function SearchPage() {
 
   // Проверка токена при монтировании
   useEffect(() => {
-    const accessToken = getAccesToken(router);
+  const checkAuth = async () => {
+    const accessToken = await getAccesToken(router);
     if (!accessToken) {
       router.push('/login');
     } else {
       setHasAccess(true);
     }
-  }, [router]);
+  };
+  
+  checkAuth();
+}, [router]);
 
   // Обновление searchType при изменении URL параметра
   useEffect(() => {
@@ -129,7 +133,7 @@ export default function SearchPage() {
       setIsLoading(true);
       
       try {
-        const accessToken = getAccesToken(router);
+        const accessToken = await getAccesToken(router);
         
         if (searchType === 'groups') {
           const params: any = {};
@@ -238,7 +242,7 @@ export default function SearchPage() {
     setLoadingGroups(prev => new Set([...prev, groupId]));
 
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       await joinGroup(accessToken, groupId);
 
       if (isPrivate) {
