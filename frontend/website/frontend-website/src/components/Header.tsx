@@ -129,7 +129,7 @@ export default function Header() {
             <header className={styles.header}>
                 <Link href="/" className={styles.logoSection}>
                     <Image src="/logo.png" alt="Логотип" width={64} height={64} className={styles.logoImage}/>
-                    <span className={styles.logoText}>FriendShips</span>
+                    <span className={styles.logoText}>FriendShip</span>
                 </Link>
 
                 <nav className={styles.navSection}>
