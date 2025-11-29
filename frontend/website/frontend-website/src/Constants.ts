@@ -75,7 +75,10 @@ export const getAccesToken = async (router?: AppRouterInstance): Promise<string>
     const refreshToken = getCookie('refresh_token');
     
     if (!refreshToken) {
-      if (router) router.push('/login');
+      if (router) {
+        console.log("LOGIN3");
+        router.push('/login');
+      }
       return '';
     }
     
@@ -88,7 +91,10 @@ export const getAccesToken = async (router?: AppRouterInstance): Promise<string>
     return tokens.access_token;
     
   } catch (error) {
-    if (router) router.push('/login');
+    if (router) {
+      console.log("LOGIN4");
+      router.push('/login');
+    }
     return '';
   }
 };

@@ -83,6 +83,7 @@ export default function SearchPage() {
   const checkAuth = async () => {
     const accessToken = await getAccesToken(router);
     if (!accessToken) {
+      console.log("LOGIN2");
       router.push('/login');
     } else {
       setHasAccess(true);

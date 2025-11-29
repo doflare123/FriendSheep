@@ -43,7 +43,7 @@ export function setCookie(name: string, value: string, days: number = 7) {
   const expires = new Date();
   expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
   
-  document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/; secure; samesite=strict`;
+  document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/; secure; samesite=Lax`;
 }
 
 export function deleteCookie(name: string) {
@@ -80,8 +80,11 @@ export function setupAxiosInterceptors() {
             return axios(originalRequest);
           }
         } catch (refreshError) {
-          // Перенаправляем на страницу входа
-          window.location.href = '/login';
+          // ВАЖНО: редиректим ТОЛЬКО если мы НЕ на публичных страницах
+          if (!['/login', '/register', '/'].includes(window.location.pathname)) {
+            console.log("LOGIN1");
+            window.location.href = '/login';
+          }
         }
       }
       

@@ -99,6 +99,7 @@ export default function ResetPasswordNewPage() {
       
       // Небольшая задержка для отображения уведомления
       setTimeout(() => {
+        console.log("LOGIN5");
         router.push('/login');
       }, 1000);
     } catch (error: any) {
