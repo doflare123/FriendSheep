@@ -22,6 +22,9 @@ export const revalidate = 0;
 export const metadata: Metadata = {
   title: "FriendShip",
   description: "Social networking platform",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
