@@ -6,7 +6,7 @@ import { API_BASE_URL } from '@env';
 const ACCESS_TOKEN_KEY = 'auth_access_token';
 const REFRESH_TOKEN_KEY = 'auth_refresh_token';
 
-const BASE_URL = API_BASE_URL || 'http://localhost:8080/api';
+const BASE_URL = API_BASE_URL || 'https://friendsheep.ru/api';
 
 export const saveTokens = async (
   accessToken: string,

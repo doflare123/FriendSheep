@@ -1,9 +1,10 @@
 import apiClient from '@/api/apiClient';
 import { getTokens } from '@/api/storage/tokenStorage';
 import { rateLimiter } from '@/utils/rateLimiter';
+import { sanitizeSearchQuery } from '@/utils/searchSanitizer';
 import { validateGroupId, validateUserId } from '@/utils/validators';
 // eslint-disable-next-line import/no-unresolved
-import { API_BASE_URL, LOCAL_IP } from '@env';
+import { API_BASE_URL } from '@env';
 
 const BASE_URL = API_BASE_URL || 'http://localhost:8080/api';
 
@@ -508,39 +509,21 @@ class GroupService {
 
   async searchGroups(params: SearchGroupsParams): Promise<SearchGroupsResponse> {
     try {
-      console.log('[GroupService] Поиск групп с параметрами:', params);
+      console.log('[GroupService] Поиск групп');
       
       const response = await apiClient.get<SearchGroupsResponse>('/groups/search', {
         params: {
-          name: params.name || undefined,
+          name: sanitizeSearchQuery(params.name || ''),
           category: params.category || undefined,
           sort_by: params.sort_by || undefined,
           order: params.order || 'desc',
-          page: params.page || 1,
+          page: Math.max(1, Math.min(params.page || 1, 100)),
         },
       });
-      
-      console.log('[GroupService] Результаты поиска:', {
-        total: response.data.total,
-        page: response.data.page,
-        groupsCount: response.data.groups.length,
-        has_more: response.data.has_more,
-      });
 
-      const normalizedGroups = response.data.groups.map(group => ({
-        ...group,
-        image: group.image?.includes('localhost')
-          ? group.image.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
-          : group.image,
-      }));
-      
-      return {
-        ...response.data,
-        groups: normalizedGroups,
-      };
+      return response.data;
     } catch (error: any) {
-      console.error('[GroupService] Ошибка поиска групп:', error);
-      console.error('Детали ошибки:', error.response?.data);
+      console.error('[GroupService] Ошибка поиска групп');
       throw new Error(error.response?.data?.message || 'Ошибка поиска групп');
     }
   }

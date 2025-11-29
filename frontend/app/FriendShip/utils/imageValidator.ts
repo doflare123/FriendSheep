@@ -1,7 +1,4 @@
-// eslint-disable-next-line import/no-unresolved
-import { LOCAL_IP } from '@env';
-
-export const isValidImageUrl = (url: string | undefined | null): boolean => {
+ export const isValidImageUrl = (url: string | undefined | null): boolean => {
   if (!url || typeof url !== 'string') {
     return false;
   }
@@ -15,13 +12,13 @@ export const isValidImageUrl = (url: string | undefined | null): boolean => {
 
     const allowedDomains = [
       'selstorage.ru',
-      'localhost',
-      LOCAL_IP,
+      'selcloud.ru',
+      'friendsheep.ru',
     ];
     
     const hostname = parsed.hostname;
     const isAllowed = allowedDomains.some(domain => 
-      domain && hostname.includes(domain)
+      hostname.includes(domain)
     );
     
     return isAllowed;

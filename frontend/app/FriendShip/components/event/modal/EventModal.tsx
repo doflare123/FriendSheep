@@ -5,7 +5,6 @@ import { Event } from '@/components/event/EventCard';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 // eslint-disable-next-line import/no-unresolved
-import { LOCAL_IP } from '@env';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
@@ -112,16 +111,9 @@ const EventModal: React.FC<EventModalProps> = ({
   const loadSessionDetail = async () => {
     try {
       setIsLoading(true);
-      console.log('[EventModal] 📋 Загружаем детальные данные сессии:', event.id);
+      console.log('[EventModal] Загружаем детальные данные сессии');
 
       const data = await sessionService.getSessionDetail(parseInt(event.id));
-
-      if (data.session?.image_url && data.session.image_url.includes('localhost')) {
-        data.session.image_url = data.session.image_url.replace(
-          'http://localhost:8080', 
-          'http://' + LOCAL_IP + ':8080'
-        );
-      }
 
       setSessionData(data);
       setCurrentParticipants(data.session.current_users);
@@ -130,14 +122,13 @@ const EventModal: React.FC<EventModalProps> = ({
       const userIsParticipant = data.session.is_sub === true;
       setIsParticipant(userIsParticipant);
       
-      console.log('[EventModal] 👤 Статус участия (is_sub):', userIsParticipant);
-      console.log('[EventModal] ✅ Данные сессии загружены');
+      console.log('[EventModal] Данные загружены');
     } catch (error: any) {
-      console.error('[EventModal] ❌ Ошибка загрузки сессии:', error);
+      console.error('[EventModal] Ошибка загрузки:', error);
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось загрузить информацию о сессии',
+        message: error.message || 'Не удалось загрузить сессию',
       });
     } finally {
       setIsLoading(false);

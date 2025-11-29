@@ -1,4 +1,5 @@
 import authService from '@/api/services/authService';
+import { clearTokens } from '@/api/storage/tokenStorage';
 import { useToast } from '@/components/ToastContext';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
@@ -55,6 +56,9 @@ const Login = () => {
     setLoading(true);
 
     try {
+      await clearTokens();
+      console.log('[Login] ✅ Старые токены очищены');
+
       await authService.login(sanitizedEmail, password);
 
       showToast({

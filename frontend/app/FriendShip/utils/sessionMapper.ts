@@ -1,6 +1,4 @@
 import { Event } from '@/components/event/EventCard';
-// eslint-disable-next-line import/no-unresolved
-import { LOCAL_IP } from '@env';
 
 interface BackendSession {
   id: number;
@@ -20,16 +18,6 @@ interface BackendSession {
   location?: string;
   status?: string;
 }
-
-const normalizeImageUrl = (url: string): string => {
-  if (!url) return '';
-  
-  if (url.includes('localhost')) {
-    return url.replace('http://localhost:8080', `http://${LOCAL_IP}:8080`);
-  }
-  
-  return url;
-};
 
 const formatDate = (isoDate: string): string => {
   if (!isoDate) return 'Дата не указана';
@@ -93,14 +81,6 @@ export const mapBackendSessionToEvent = (
   const typePlace = mapSessionPlaceToType(session.session_place);
   const eventPlace = getEventPlace(session, metadata);
 
-  console.log('[mapBackendSessionToEvent] 🔍', session.title);
-  console.log('  - session_place:', session.session_place);
-  console.log('  - session.location:', session.location);
-  console.log('  - session.city:', session.city);
-  console.log('  - metadata?.Location:', metadata?.Location);
-  console.log('  - typePlace:', typePlace);
-  console.log('  - eventPlace:', eventPlace);
-
   return {
     id: session.id.toString(),
     title: session.title || 'Без названия',
@@ -109,7 +89,7 @@ export const mapBackendSessionToEvent = (
     currentParticipants: session.current_users || 0,
     maxParticipants: session.count_users_max || 0,
     duration: `${session.duration || 0} мин`,
-    imageUri: normalizeImageUrl(session.image_url),
+    imageUri: session.image_url || '',
     description: metadata?.Notes || 'Описание отсутствует',
     typeEvent: session.session_type || 'Не указано',
     typePlace: typePlace,

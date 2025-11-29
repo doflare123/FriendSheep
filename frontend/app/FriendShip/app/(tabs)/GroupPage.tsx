@@ -12,7 +12,6 @@ import { RootStackParamList } from '@/navigation/types';
 import { groupSessionsToEvents } from '@/utils/dataAdapters';
 import { filterActiveSessions } from '@/utils/sessionStatusHelpers';
 // eslint-disable-next-line import/no-unresolved
-import { LOCAL_IP } from '@env';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
@@ -84,69 +83,32 @@ const GroupPage = () => {
 
       let isAdmin = false;
       try {
-        console.log('[GroupPage] Проверяем права администратора...');
         await groupService.getGroupDetail(groupId);
         isAdmin = true;
-        console.log('[GroupPage] ✅ Пользователь является администратором группы');
       } catch (adminCheckError: any) {
         if (adminCheckError.response?.status === 403) {
-          console.log('[GroupPage] ❌ Пользователь не является администратором (403)');
-        } else {
-          console.warn('[GroupPage] Ошибка проверки прав админа:', adminCheckError.message);
+          console.log('[GroupPage] Пользователь не является администратором');
         }
       }
 
       try {
         const data = await groupService.getPublicGroupDetail(groupId);
 
-        if (data.image && data.image.includes('localhost')) {
-          data.image = data.image.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080');
-        }
-
-        if (data.users) {
-          data.users = data.users.map(user => ({
-            ...user,
-            image: user.image?.includes('localhost')
-              ? user.image.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
-              : user.image
-          }));
-        }
-
-        if (data.sessions) {
-          data.sessions = data.sessions.map(session => ({
-            ...session,
-            session: {
-              ...session.session,
-              image_url: session.session.image_url?.includes('localhost')
-                ? session.session.image_url.replace('http://localhost:8080', 'http://' + LOCAL_IP + ':8080')
-                : session.session.image_url
-            }
-          }));
-        }
-        
         setGroupData(data);
 
-        console.log('[GroupPage] Определяем статус пользователя...');
-        console.log('[GroupPage] Является админом:', isAdmin);
-        console.log('[GroupPage] Подписка (subscription):', data.subscription);
-
         if (isAdmin) {
-          console.log('[GroupPage] 🎯 Статус: АДМИНИСТРАТОР');
           setMembershipStatus('admin');
         } else if (data.subscription) {
-          console.log('[GroupPage] 👥 Статус: УЧАСТНИК');
           setMembershipStatus('member');
         } else {
-          console.log('[GroupPage] 🚪 Статус: НЕ УЧАСТНИК');
           setMembershipStatus('not_member');
         }
 
       } catch (publicError: any) {
-        console.error('[GroupPage] Ошибка загрузки публичных данных:', publicError);
+        console.error('[GroupPage] Ошибка загрузки:', publicError);
         
         if (publicError.response?.status === 500 && 
             publicError.response?.data?.error?.includes('приватной группе запрещен')) {
-          console.log('[GroupPage] 🔒 Это приватная группа, доступ запрещён');
           setIsPrivateGroup(true);
           setPrivateGroupName('');
         } else {
@@ -155,8 +117,8 @@ const GroupPage = () => {
       }
 
     } catch (error: any) {
-      console.error('[GroupPage] Критическая ошибка загрузки группы:', error);
-      Alert.alert('Ошибка', error.message || 'Не удалось загрузить информацию о группе');
+      console.error('[GroupPage] Критическая ошибка:', error);
+      Alert.alert('Ошибка', error.message || 'Не удалось загрузить группу');
     } finally {
       setIsLoading(false);
     }

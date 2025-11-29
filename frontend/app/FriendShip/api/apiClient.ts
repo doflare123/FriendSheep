@@ -3,7 +3,7 @@ import { clearTokens, getTokens, saveTokens } from '@/api/storage/tokenStorage';
 import { API_BASE_URL } from '@env';
 import axios, { AxiosError, AxiosInstance } from 'axios';
 
-const BASE_URL = API_BASE_URL || 'http://localhost:8080/api';
+const BASE_URL = API_BASE_URL || 'https://friendsheep.ru/api';
 
 if (__DEV__ === false && !BASE_URL.startsWith('https://')) {
   console.error('⚠️ КРИТИЧНО: Production API должен использовать HTTPS!');
