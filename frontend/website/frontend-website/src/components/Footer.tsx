@@ -24,13 +24,13 @@ const Footer: React.FC = () => {
                         <span className="text-gray-400">·</span>
                         <a href="/info/about" className="footer-link">О нас</a>
                         <span className="text-gray-400">·</span>
-                        <a href="https://www.youtube.com/watch?v=eBGIQ7ZuuiU" className="footer-link">Обратная связь</a>
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLScq8yseDrHN2dQ7eTfon6KqiohGzPAE95FRoyh8KkaFWuTB9Q/viewform?usp=dialog" className="footer-link">Обратная связь</a>
                         
                     </div>
 
                     <div className="footer-links">
                         <span className="text-gray-400">·</span>
-                        <a href="https://www.youtube.com/watch?v=eBGIQ7ZuuiU" className="footer-link">Подача заявки на подтверждение личности</a>
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLSeFJ1U2cmAUS2ddxCYduNsA8cuzzuVLSQ3-3zm0JOls_9ZQSw/viewform?usp=publish-editor" className="footer-link">Подача заявки на подтверждение личности</a>
                     </div>
                     
                     <div className="text-gray-500 mt-5">
@@ -53,25 +53,25 @@ const Footer: React.FC = () => {
                         <p className="text-gray-600">Мы в соц сетях • Поддержать нас</p>
                         <div className="flex space-x-3">
                         <SocialIcon 
-                            href="https://vk.com" 
+                            href="https://vk.com/club234284540" 
                             iconName="vk" 
                             alt="ВКонтакте" 
                             size={52}
                         />
                         <SocialIcon 
-                            href="https://t.me" 
+                            href="https://t.me/necrodwarfs" 
                             iconName="tg" 
                             alt="Telegram" 
                             size={52}
                         />
                         <SocialIcon 
-                            href="https://discord.com" 
+                            href="https://discord.gg/5wwfafRNGQ" 
                             iconName="ds" 
                             alt="Discord" 
                             size={52}
                         />
                         <SocialIcon 
-                            href="#" 
+                            href="https://www.donationalerts.com/r/necrodwarf" 
                             iconName="bs" 
                             alt="Поддержать" 
                             size={52}
