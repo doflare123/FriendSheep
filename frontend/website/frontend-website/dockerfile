@@ -3,7 +3,7 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps || npm ci
 
 # Этап 2: Сборка Next.js
 FROM node:22-alpine AS builder
@@ -12,14 +12,21 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Если используешь переменные окружения в браузере
-# ARG NEXT_PUBLIC_API_URL
-# ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Переменные окружения для сборки
+ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_API_URL=/api
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+# Проверка структуры (для отладки - можно удалить после исправления)
+RUN echo "Checking files..." && \
+    ls -la src/ && \
+    ls -la src/styles/ || true && \
+    ls -la src/styles/search/ || true
 
 RUN npm run build
 
 # Этап 3: Production образ
-FROM node:22-alpine AS runner
+FROM node:18-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV production
