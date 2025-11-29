@@ -42,17 +42,16 @@
   }
 }
 
+* {
+  color-scheme: light;
+}
+
 html,
 body {
   height: 100%;
-  color: #000000;
+  color: black;
   font-family: 'Inter', sans-serif;
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-inter);
+  background-color: white;
 }
 
 .bgPage {
@@ -69,13 +68,14 @@ body {
 
 .bgPage::before {
     content: "";
-    position: absolute;
+    position: fixed; /* Вместо absolute - делает фон статичным */
     inset: 0;
-    background: url('/bg_login.webp') repeat, 
-                linear-gradient(135deg, #4e79a7 0%, #37A2E6 100%);
-    filter: blur(4px);
+    background-image: url('/bg.png'), 
+                      linear-gradient(135deg, #4e79a7 0%, #37A2E6 100%);
+    background-size: cover; /* Растягивает/сжимает изображение */
+    background-position: center; /* Центрирует изображение */
+    background-repeat: no-repeat; /* Убирает повторение */
     z-index: -1;
-    transform: scale(1.05); /* чтобы края не обрезались */
 }
 
 .form-container {

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import NewsCard from '@/components/news/NewsCard';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import styles from '@/styles/news/newsPage.module.css';
@@ -15,7 +14,6 @@ export default function NewsPage() {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [initialized, setInitialized] = useState(false);
-  const router = useRouter();
   
   // Используем ref для предотвращения множественных запросов
   const loadingRef = useRef(false);
@@ -65,7 +63,7 @@ export default function NewsPage() {
     const handleScroll = () => {
       if (loadingRef.current || !hasMore) return;
 
-      const scrollContainer = document.querySelector(`.${styles.newsContainer}`);
+      const scrollContainer = document.querySelector(`.${styles.newsScroll}`);
       if (!scrollContainer) return;
 
       const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
@@ -78,7 +76,7 @@ export default function NewsPage() {
       }
     };
 
-    const scrollContainer = document.querySelector(`.${styles.newsContainer}`);
+    const scrollContainer = document.querySelector(`.${styles.newsScroll}`);
     if (scrollContainer) {
       scrollContainer.addEventListener('scroll', handleScroll);
       return () => scrollContainer.removeEventListener('scroll', handleScroll);
@@ -108,19 +106,21 @@ export default function NewsPage() {
   return (
     <div className="bgPage">
       <div className={styles.newsContainer}>
-        <div className={styles.newsGrid}>
-          {news.map((item) => (
-            <NewsCard
-              key={item.id}
-              newsItem={item}
-              relatedNewsIds={getRelatedNewsIds(item.id)}
-            />
-          ))}
+        <div className={styles.newsScroll}>
+          <div className={styles.newsGrid}>
+            {news.map((item) => (
+              <NewsCard
+                key={item.id}
+                newsItem={item}
+                relatedNewsIds={getRelatedNewsIds(item.id)}
+              />
+            ))}
+          </div>
+          
+          {isLoading && (
+            <LoadingIndicator text="Загружаем больше новостей..." />
+          )}
         </div>
-        
-        {isLoading && (
-          <LoadingIndicator text="Загружаем больше новостей..." />
-        )}
       </div>
     </div>
   );

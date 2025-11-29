@@ -62,7 +62,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
     const loadNotifications = async () => {
       setIsLoading(true);
       try {
-        const accessToken = getAccesToken(router);
+        const accessToken = await getAccesToken(router);
         const data = await getNotif(accessToken);
 
         const allNotifications: Notification[] = [];
@@ -159,7 +159,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
     );
 
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       await viewNotif(accessToken, id);
     } catch (error) {
       console.error('Ошибка при отметке уведомления как прочитанного:', error);
@@ -181,7 +181,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
     setProcessingIds(prev => new Set(prev).add(id));
 
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
 
       if (action === 'accept') {
         await approveInvite(accessToken, id);

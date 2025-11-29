@@ -18,26 +18,13 @@ export default function GroupsPage() {
   const [managedGroups, setManagedGroups] = useState<SmallGroup[]>([]);
   const [subscriptions, setSubscriptions] = useState<SmallGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
-
-  // Проверка авторизации
-  const checkAuth = () => {
-    const accessToken = getAccesToken(router);
-    
-    if (!accessToken) {
-      //router.push('/login');
-      return false;
-    }
-    
-    setIsAuthChecking(false);
-    return true;
-  };
 
   // Загрузка групп пользователя
   const loadUserGroups = async () => {
     try {
       setIsLoading(true);
-      const accessToken = getAccesToken(router);
+
+      const accessToken = await getAccesToken(router);
       
       if (!accessToken) {
         //router.push('/login');
@@ -65,19 +52,11 @@ export default function GroupsPage() {
     }
   };
 
-  useEffect(() => {
-    // Сначала проверяем авторизацию
-    if (checkAuth()) {
-      // Если пользователь авторизован, загружаем группы
-      loadUserGroups();
-    }
-  }, []);
-
   const handleCreateGroup = async (groupData: any) => {
     setIsCreateModalOpen(false);
 
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         //router.push('/register');
         return;
@@ -110,14 +89,9 @@ export default function GroupsPage() {
     }
   };
 
-  // Показываем загрузку пока проверяем авторизацию
-  if (isAuthChecking) {
-    return (
-      <div className='bgPage' style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <div>Проверка авторизации...</div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    loadUserGroups();
+  }, []);
 
   return (
     <div className='bgPage' style={{ display: 'flex' }}>

@@ -254,6 +254,7 @@ type GroupInf struct {
 
 type UsersGroups struct {
 	Name  string `json:"name"`
+	Us    string `json:"us"`
 	Image string `json:"image"`
 }
 
@@ -540,6 +541,7 @@ func getGroupUsers(groupID uint64) ([]UsersGroups, error) {
 	for _, groupUser := range groupUsers {
 		if groupUser.User.Name != "" {
 			userName := groupUser.User.Name
+			us := groupUser.User.Us
 			var userImage *string
 			if groupUser.User.Image != "" {
 				userImageCopy := groupUser.User.Image
@@ -548,6 +550,7 @@ func getGroupUsers(groupID uint64) ([]UsersGroups, error) {
 
 			users = append(users, UsersGroups{
 				Name:  userName,
+				Us:    us,
 				Image: *userImage,
 			})
 		}

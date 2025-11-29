@@ -120,7 +120,7 @@ const MembersManagement: React.FC<MembersManagementProps> = ({
   const removeMember = async (userId: number) => {
     setIsProcessing(true);
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Токен доступа не найден');
         return;

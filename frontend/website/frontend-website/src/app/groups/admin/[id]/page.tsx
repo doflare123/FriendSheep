@@ -21,7 +21,7 @@ const GroupAdminPage: React.FC = () => {
     useEffect(() => {
         const fetchGroupData = async () => {
         try {
-            const accessToken = getAccesToken(router);
+            const accessToken = await getAccesToken(router);
             
             if (!accessToken) {
             setError('Токен доступа не найден');

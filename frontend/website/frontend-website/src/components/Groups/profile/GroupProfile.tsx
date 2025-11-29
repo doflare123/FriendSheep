@@ -78,7 +78,7 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
   const router = useRouter();
 
   const handleJoinGroup = async () => {
-    const accessToken = getAccesToken(router);
+    const accessToken = await getAccesToken(router);
     
     if (!accessToken) {
       showNotification(401, 'Необходимо авторизоваться', 'error');
@@ -103,7 +103,7 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
   };
 
   const handleLeaveGroup = async () => {
-    const accessToken = getAccesToken(router);
+    const accessToken = await getAccesToken(router);
     
     if (!accessToken) {
       showNotification(401, 'Необходимо авторизоваться', 'error');
@@ -263,7 +263,12 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
               {groupData.users && groupData.users.length > 0 && (
                 <div className={styles.subscribersList}>
                   {groupData.users.slice(0, 6).map((user, index) => (
-                    <div key={index} className={styles.subscriberItem}>
+                    <div 
+                      key={index} 
+                      className={styles.subscriberItem}
+                      onClick={() => router.push(`/profile/${user.us}`)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <div className={styles.subscriberAvatar}>
                         <Image
                           src={user.image || "/default-avatar.png"}

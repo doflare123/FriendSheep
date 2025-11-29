@@ -4,7 +4,7 @@ import {EventCardProps} from './types/Events'
 import {SessionData, EventFullResponse} from './types/apiTypes'
 import {UserDataResponse} from './types/UserData'
 import { getUserInfo } from './api/profile/getOwnProfile';
-import { isTokenValid } from '@/api/auth';
+import { refreshAccessToken, isTokenValid, getCookie, setCookie } from '@/api/auth';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 export const convertCategoriesToIds = (categories: string[]): number[] => {
@@ -62,21 +62,36 @@ export const convertSocialContactsToString = (socialContacts: { name: string; li
         .join(', '); // Объединяем через запятую и пробел
 };
 
-export const getAccesToken = (router?: AppRouterInstance): string => {
+export const getAccesToken = async (router?: AppRouterInstance): Promise<string> => {
   const token = localStorage.getItem('access_token') || '';
+
+  // Если токен есть и валиден - возвращаем его
+  if (token && isTokenValid(token)) {
+    return token;
+  }
   
-  if (!token) {
+  // Если токен отсутствует или невалиден - пытаемся обновить
+  try {
+    const refreshToken = getCookie('refresh_token');
+    
+    if (!refreshToken) {
+      if (router) router.push('/login');
+      return '';
+    }
+    
+    const tokens = await refreshAccessToken(refreshToken);
+    
+    // Сохраняем новые токены
+    localStorage.setItem('access_token', tokens.access_token);
+    setCookie('refresh_token', tokens.refresh_token, 7);
+    
+    return tokens.access_token;
+    
+  } catch (error) {
     if (router) router.push('/login');
     return '';
   }
-  
-  if (!isTokenValid(token)) {
-    if (router) router.push('/login');
-    return '';
-  }
-  
-  return token;
-}
+};
 
 export function decodeJWT(token: string) {
   try {
@@ -167,7 +182,7 @@ export const getUserData = async (): UserDataResponse | null => {
 }
 
 export const updateUserData = async (): UserDataResponse | null => {
-  const accessToken: string = getAccesToken();
+  const accessToken: string = await getAccesToken();
   
   let UserInfo;
 
@@ -205,10 +220,8 @@ export const getSocialIcon = (name: string, link?: string, ): string => {
     return '/social/tg.png';
   } else if (lowerLink.includes('vk.com') || lowerName.includes('вконтакте') || lowerName.includes('vk')) {
     return '/social/vk.png';
-  } else if (lowerLink.includes('wa.me') || lowerLink.includes('whatsapp') || lowerName.includes('whatsapp') || lowerName.includes('wa')) {
-    return '/social/wa.png';
-  } else if (lowerLink.includes('snapchat') || lowerName.includes('snapchat') || lowerName.includes('snap')) {
-    return '/social/snap.png';
+  } else if (lowerLink.includes('max')) {
+    return '/social/max.png';
   } else {
     return '/default/soc_net.png';
   }

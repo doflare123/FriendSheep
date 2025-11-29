@@ -1,21 +1,25 @@
 .container {
   max-width: 100%;
-  margin: 0;
+  margin: 0 auto;
   padding: 20px;
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-start;
   padding-top: 40px;
 }
 
 .contentWrapper {
-  width: 100%;
+  width: 75%;
   min-height: 80%;
   display: flex;
   flex-direction: column;
   position: relative;
+  background: white;
+  border-radius: 24px;
+  padding: 40px 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .categoryHeader {
@@ -274,7 +278,6 @@
 .scrollIndicator {
   position: fixed;
   left: 50%;
-  transform: translateX(-50%);
   width: 60px;
   height: 60px;
   background: white;
@@ -285,12 +288,14 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  z-index: 100;
+  z-index: 1000;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  transform: translateX(-50%);
 }
 
 .scrollIndicator:hover {
-  background: rgba(49, 107, 194, 0.1);
+  background: white;
+  border-color: #37A2E6;
   transform: translateX(-50%) scale(1.1);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
@@ -319,14 +324,22 @@
   }
 }
 
+/* Адаптация подложки */
+@media (max-width: 1200px) {
+  .contentWrapper {
+    width: 80%;
+  }
+}
+
 @media (max-width: 1024px) {
   .container {
-    max-width: 100%;
     padding: 15px;
   }
   
   .contentWrapper {
-    padding: 20px;
+    width: 85%;
+    padding: 35px 15px;
+    border-radius: 20px;
   }
   
   .eventsGrid {
@@ -346,6 +359,12 @@
 }
 
 @media (max-width: 768px) {
+  .contentWrapper {
+    width: 90%;
+    padding: 30px 12px;
+    border-radius: 16px;
+  }
+  
   .eventsGrid {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 20px;
@@ -374,5 +393,33 @@
   
   .scrollUp {
     top: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .contentWrapper {
+    width: 95%;
+    padding: 25px 10px;
+    border-radius: 12px;
+  }
+  
+  .categoryHeader {
+    margin-left: 5%;
+  }
+  
+  .searchHeader {
+    margin-left: 5%;
+  }
+  
+  .resultsContainer {
+    padding-left: 20px;
+  }
+}
+
+@media (max-width: 360px) {
+  .contentWrapper {
+    width: 96%;
+    padding: 20px 8px;
+    border-radius: 10px;
   }
 }

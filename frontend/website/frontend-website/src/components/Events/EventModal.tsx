@@ -112,18 +112,47 @@ export default function EventModal({
   const [genresError, setGenresError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && mode === 'create') {
+      checkGroupsAndLoad();
+    } else if (isOpen) {
       loadGroups();
       loadGenres();
     }
-  }, [isOpen]);
+  }, [isOpen, mode]);
+
+  const checkGroupsAndLoad = async () => {
+    setGroupsLoading(true);
+    setGroupsError(null);
+    
+    try {
+      const accessToken = await getAccesToken(router) || '';
+      const groupsData = await getOwnGroups(accessToken);
+      
+      if (groupsData.length === 0) {
+        showNotification(400, 'У вас нет групп. Создайте группу, чтобы создавать события.');
+        onClose();
+        return;
+      }
+      
+      setGroups(groupsData);
+      loadGenres();
+    } catch (error) {
+      console.error('Ошибка загрузки групп:', error);
+      setGroupsError('Не удалось загрузить группы');
+      setGroups([]);
+      showNotification(500, 'Не удалось загрузить список групп');
+      onClose();
+    } finally {
+      setGroupsLoading(false);
+    }
+  };
 
   const loadGroups = async () => {
     setGroupsLoading(true);
     setGroupsError(null);
     
     try {
-      const accessToken = getAccesToken(router) || '';
+      const accessToken = await getAccesToken(router) || '';
       const groupsData = await getOwnGroups(accessToken);
       setGroups(groupsData);
     } catch (error) {
@@ -140,7 +169,7 @@ export default function EventModal({
     setGenresError(null);
     
     try {
-      const accessToken = getAccesToken(router) || '';
+      const accessToken = await getAccesToken(router) || '';
       const genresData = await getGenres(accessToken);
       setGenres(genresData);
     } catch (error) {
@@ -384,7 +413,7 @@ export default function EventModal({
     setIsSaving(true);
     
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Необходима авторизация');
         return;
@@ -426,7 +455,7 @@ export default function EventModal({
     setIsSaving(true);
     
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Необходима авторизация');
         return;
@@ -493,7 +522,7 @@ export default function EventModal({
     setIsSaving(true);
     
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Необходима авторизация');
         return;
@@ -1110,8 +1139,10 @@ export default function EventModal({
                         className={`${styles.input} ${validationErrors.location ? 'error' : ''}`}
                         value={formData.adress || ''}
                         placeholder="Место проведения *"
-                        disabled={true}
+                        disabled={isFieldDisabled}
                         readOnly
+                        onClick={!isFieldDisabled ? handleMapSelect : undefined}
+                        style={{ cursor: isFieldDisabled ? 'not-allowed' : 'pointer' }}
                       />
                       <button 
                         type="button"

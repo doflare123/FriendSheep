@@ -70,8 +70,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     { name: 'Discord', icon: getSocialIcon("ds") },
     { name: 'Telegram', icon: getSocialIcon("tg") },
     { name: 'VKontakte', icon: getSocialIcon("vk") },
-    { name: 'WhatsApp', icon: getSocialIcon("wa") },
-    { name: 'Snapchat', icon: getSocialIcon("snap") }
+    { name: 'Max', icon: getSocialIcon("max") }
   ];
 
   useEffect(() => {

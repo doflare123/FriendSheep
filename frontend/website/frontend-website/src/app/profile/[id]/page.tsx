@@ -38,7 +38,7 @@ export default function Page() {
 
     const loadProfile = async () => {
       try {
-        const accessToken = getAccesToken(router);
+        const accessToken = await getAccesToken(router);
         
         // Конвертируем Us в Id
         const convertedUserId = await convertUstoId(accessToken, userUs);

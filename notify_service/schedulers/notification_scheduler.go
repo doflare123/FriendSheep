@@ -168,7 +168,7 @@ func sendSessionNotification(db *gorm.DB, s sessions.Session, nt sessions.Notifi
 		Items: []TelegramItem{
 			{
 				TelegramIDs: telegramIDs,
-				ImageURL:   s.imageUrl,
+				ImageURL:    s.ImageURL,
 				Title:       "Напоминание о мероприятии",
 				Text:        text,
 			},

@@ -217,7 +217,7 @@ func GetSessions(email string, input GetSessionsInput) (*PaginatedSearchResponse
 		Preload("User").
 		Joins("JOIN groups ON sessions.group_id = groups.id").
 		Joins("LEFT JOIN group_users ON groups.id = group_users.group_id AND group_users.user_id = ?", user.ID).
-		Where("(groups.is_private = ? OR (groups.is_private = ? AND group_users.user_id IS NOT NULL))", false, true)
+		Where("(groups.is_private = ? OR (groups.is_private = ? AND group_users.user_id IS NOT NULL)) AND sessions.status_id = ?", false, true, 1)
 
 	if input.Query != nil && *input.Query != "" {
 		query = query.Where("sessions.title ILIKE ?", "%"+*input.Query+"%")

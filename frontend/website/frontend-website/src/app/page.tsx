@@ -25,7 +25,7 @@ export default function Home() {
 
   useEffect(() => {
     const loadData = async () => {
-      const token = getAccesToken();
+      const token = await getAccesToken();
       
       // Если нет токена - просто не загружаем данные
       if (!token) {
@@ -133,55 +133,57 @@ export default function Home() {
   return (
     <div className={styles.pageWrapper}>
       <div className='bgPage'>
-        {/* Сообщение для неавторизованных пользователей */}
-        {!isAuthenticated && !isLoading && (
-          <div className={styles.emptyMessage}>
-            <p>Для просмотра всех событий нужна авторизация</p>
-          </div>
-        )}
+        <div className={styles.contentWrapper}>
+          {/* Сообщение для неавторизованных пользователей */}
+          {!isAuthenticated && !isLoading && (
+            <div className={styles.emptyMessage}>
+              <p>Для просмотра всех событий нужна авторизация</p>
+            </div>
+          )}
 
-        {/* Главные категории */}
-        {mainSections.map((section, sectionIndex) => (
-          <div key={sectionIndex} className={styles.section}>
-            <CategorySection 
-              section={section} 
-              title={section.title}
-              clickable={false}
-            />
-          </div>
-        ))}
+          {/* Главные категории */}
+          {mainSections.map((section, sectionIndex) => (
+            <div key={sectionIndex} className={styles.section}>
+              <CategorySection 
+                section={section} 
+                title={section.title}
+                clickable={false}
+              />
+            </div>
+          ))}
 
-        {/* Индикатор загрузки между секциями */}
-        {isLoading && mainSections.length > 0 && (
-          <div className={styles.section}>
-            <LoadingIndicator text={loadingStage} />
-          </div>
-        )}
+          {/* Индикатор загрузки между секциями */}
+          {isLoading && mainSections.length > 0 && (
+            <div className={styles.section}>
+              <LoadingIndicator text={loadingStage} />
+            </div>
+          )}
 
-        {/* Заголовок "Категории" - показываем только если есть дополнительные секции */}
-        {additionalSections.length > 0 && (
-          <div className={styles.categoriesHeader}>
-            <h2>Категории</h2>
-          </div>
-        )}
+          {/* Заголовок "Категории" */}
+          {additionalSections.length > 0 && (
+            <div className={styles.categoriesHeader}>
+              <h2>Категории</h2>
+            </div>
+          )}
 
-        {/* Дополнительные категории */}
-        {additionalSections.map((section, sectionIndex) => (
-          <div key={sectionIndex} className={styles.section}>
-            <CategorySection 
-              section={section} 
-              title={section.title}
-              clickable={clickableCategories.includes(section.title)}
-            />
-          </div>
-        ))}
+          {/* Дополнительные категории */}
+          {additionalSections.map((section, sectionIndex) => (
+            <div key={sectionIndex} className={styles.section}>
+              <CategorySection 
+                section={section} 
+                title={section.title}
+                clickable={clickableCategories.includes(section.title)}
+              />
+            </div>
+          ))}
 
-        {/* Индикатор загрузки в начале (когда еще нет главных секций) */}
-        {isLoading && mainSections.length === 0 && isAuthenticated && (
-          <div className={styles.section}>
-            <LoadingIndicator text={loadingStage} />
-          </div>
-        )}
+          {/* Индикатор загрузки в начале */}
+          {isLoading && mainSections.length === 0 && isAuthenticated && (
+            <div className={styles.section}>
+              <LoadingIndicator text={loadingStage} />
+            </div>
+          )}
+        </div>
       </div>
       <div className={styles.footerWrapper}>
         <Footer />

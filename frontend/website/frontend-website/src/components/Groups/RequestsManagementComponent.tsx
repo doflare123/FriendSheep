@@ -34,7 +34,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
   const loadRequests = async () => {
     setIsLoading(true);
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Токен доступа не найден');
         return;
@@ -117,7 +117,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
   const acceptRequest = async (requestId: number) => {
     setIsProcessing(true);
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Токен доступа не найден');
         return;
@@ -140,7 +140,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
   const rejectRequest = async (requestId: number) => {
     setIsProcessing(true);
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Токен доступа не найден');
         return;
@@ -165,7 +165,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
     
     setIsProcessing(true);
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Токен доступа не найден');
         return;
@@ -194,7 +194,7 @@ const RequestsManagementComponent: React.FC<RequestsManagementComponentProps> = 
     
     setIsProcessing(true);
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       if (!accessToken) {
         showNotification(401, 'Токен доступа не найден');
         return;

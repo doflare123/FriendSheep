@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import styles from '../../styles/search/addUserModal.module.css';
+import styles from '../../styles/search/AddUserModal.module.css';
 import { getAccesToken } from '@/Constants';
 import { inviteGroup } from '@/api/groups/inviteGroup';
 import { getOwnGroups } from '@/api/get_owngroups';
@@ -45,7 +45,7 @@ export default function AddUserModal({ isOpen, onClose, userId }: AddUserModalPr
   const loadUserGroups = async () => {
     setIsLoading(true);
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       const groups = await getOwnGroups(accessToken);
       
       if (Array.isArray(groups)) {
@@ -102,7 +102,7 @@ export default function AddUserModal({ isOpen, onClose, userId }: AddUserModalPr
 
     setIsSubmitting(true);
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
 
       await Promise.all(
         Array.from(selectedGroups).map(groupId =>

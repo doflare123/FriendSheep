@@ -166,7 +166,82 @@
 }
 
 .footerWrapper {
-    margin-top: auto;
+    position: relative;
+    z-index: 1;
+}
+
+.contentWrapper {
+    background: white;
+    border-radius: 24px;
+    padding: 40px 20px;
+    margin: 20px auto;
+    width: 75%;
+    max-width: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Адаптивные стили для подложки */
+@media (max-width: 1200px) {
+    .contentWrapper {
+        width: 80%;
+    }
+}
+
+@media (max-width: 900px) {
+    .contentWrapper {
+        border-radius: 20px;
+        padding: 35px 15px;
+        margin: 15px auto;
+        width: 85%;
+    }
+    
+    .sectionTitle {
+        font-size: 26px;
+        padding: 11px 22px;
+    }
+}
+
+@media (max-width: 768px) {
+    .contentWrapper {
+        border-radius: 16px;
+        padding: 30px 12px;
+        margin: 12px auto;
+        width: 90%;
+    }
+    
+    .sectionTitle {
+        font-size: 24px;
+        padding: 10px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .contentWrapper {
+        border-radius: 12px;
+        padding: 25px 10px;
+        margin: 10px auto;
+        width: 95%;
+    }
+    
+    .sectionTitle {
+        font-size: 20px;
+        padding: 8px 16px;
+        border-radius: 10px;
+    }
+}
+
+@media (max-width: 360px) {
+    .contentWrapper {
+        border-radius: 10px;
+        padding: 20px 8px;
+        margin: 8px auto;
+        width: 96%;
+    }
+    
+    .sectionTitle {
+        font-size: 18px;
+        padding: 6px 12px;
+    }
 }
 
 /* Средние планшеты и небольшие ноутбуки (до 1024px) */

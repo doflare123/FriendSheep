@@ -184,7 +184,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       return;
     }
 
-    const accessToken = getAccesToken(router);
+    const accessToken = await getAccesToken(router);
     if (!accessToken) {
       console.error("❌ Нет accessToken");
       showNotification(401, "Нет токена доступа");

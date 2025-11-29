@@ -12,7 +12,7 @@ const FormContainer: React.FC<FormContainerProps> = ({
     title, 
     children, 
     onSubmit,
-    className = "page-wrapper",
+    className = "bgPage",
     conteinerSize = "max-w-2xl"
 }) => {
     return (

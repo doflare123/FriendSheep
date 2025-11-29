@@ -43,11 +43,11 @@ const GroupInfoSection: React.FC<{
     setIsLoading(true);
 
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       
       // Формируем начальные данные для сравнения
       const initialData = {
-        name: groupData?.name,
+        name: groupData?.nвввввввame,
         description: groupData?.description,
         small_description: groupData?.small_description || '',
         city: groupData?.city,
@@ -179,7 +179,7 @@ const GroupInfoSection: React.FC<{
     setIsLoading(true);
 
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       
       await delGroup(accessToken, parseInt(groupId));
       

@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
@@ -21,14 +23,14 @@ interface User {
 }
 
 interface Group {
-  category: string[];
+  category: string[] | null;
   count: number;
   description: string;
   id: number;
   image: string;
-  name: string;
   isPrivate?: boolean;
   createdAt?: string;
+  name: string;
 }
 
 interface UsersResponse {
@@ -78,13 +80,17 @@ export default function SearchPage() {
 
   // Проверка токена при монтировании
   useEffect(() => {
-    const accessToken = getAccesToken(router);
+  const checkAuth = async () => {
+    const accessToken = await getAccesToken(router);
     if (!accessToken) {
       router.push('/login');
     } else {
       setHasAccess(true);
     }
-  }, [router]);
+  };
+  
+  checkAuth();
+}, [router]);
 
   // Обновление searchType при изменении URL параметра
   useEffect(() => {
@@ -127,7 +133,7 @@ export default function SearchPage() {
       setIsLoading(true);
       
       try {
-        const accessToken = getAccesToken(router);
+        const accessToken = await getAccesToken(router);
         
         if (searchType === 'groups') {
           const params: any = {};
@@ -236,7 +242,7 @@ export default function SearchPage() {
     setLoadingGroups(prev => new Set([...prev, groupId]));
 
     try {
-      const accessToken = getAccesToken(router);
+      const accessToken = await getAccesToken(router);
       await joinGroup(accessToken, groupId);
 
       if (isPrivate) {
@@ -516,22 +522,24 @@ export default function SearchPage() {
                                     style={{ cursor: 'pointer' }}
                                   >
                                     {group.name}
-                                    <span className={styles.groupIcons}>
-                                      {group.category.map((cat, index) => {
-                                        const engCategories = convertCategRuToEng([cat]);
-                                        const engCat = engCategories[0] || 'other';
-                                        return (
-                                          <Image
-                                            key={index}
-                                            src={getCategoryIcon(engCat)}
-                                            alt={cat}
-                                            width={16}
-                                            height={16}
-                                            className={styles.categoryIcon}
-                                          />
-                                        );
-                                      })}
-                                    </span>
+                                    {group.category && group.category.length > 0 && (
+                                      <span className={styles.groupIcons}>
+                                        {group.category.map((cat, index) => {
+                                          const engCategories = convertCategRuToEng([cat]);
+                                          const engCat = engCategories[0] || 'other';
+                                          return (
+                                            <Image
+                                              key={index}
+                                              src={getCategoryIcon(engCat)}
+                                              alt={cat}
+                                              width={16}
+                                              height={16}
+                                              className={styles.categoryIcon}
+                                            />
+                                          );
+                                        })}
+                                      </span>
+                                    )}
                                   </h3>
                                 </div>
                                 

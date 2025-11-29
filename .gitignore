@@ -14,3 +14,9 @@ bot/package-lock.json
 bot/.env
 notify_service/.env
 notify_service/.env
+.env
+docker/certbot/
+nginx/
+nginx/.htpasswd
+nginx/.htpasswd
+nginx/nginx.conf.full
