@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useSearchParams, useRouter } from 'next/navigation';
 import { registerSession } from '../../../api/register_sessions';
 import { confirm_code } from '../../../api/confirm_code';

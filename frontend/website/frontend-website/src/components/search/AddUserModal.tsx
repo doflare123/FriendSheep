@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import styles from '../../styles/search/addUserModal.module.css';
+import styles from '../../styles/search/AddUserModal.module.css';
 import { getAccesToken } from '@/Constants';
 import { inviteGroup } from '@/api/groups/inviteGroup';
 import { getOwnGroups } from '@/api/get_owngroups';

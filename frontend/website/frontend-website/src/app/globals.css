@@ -68,14 +68,14 @@ body {
 
 .bgPage::before {
     content: "";
-    position: absolute;
+    position: fixed; /* Вместо absolute - делает фон статичным */
     inset: 0;
-    background-image: url('/bg.webp'), 
+    background-image: url('/bg.png'), 
                       linear-gradient(135deg, #4e79a7 0%, #37A2E6 100%);
-    filter: blur(4px);
-    opacity: 0.5;
+    background-size: cover; /* Растягивает/сжимает изображение */
+    background-position: center; /* Центрирует изображение */
+    background-repeat: no-repeat; /* Убирает повторение */
     z-index: -1;
-    transform: scale(1.05);
 }
 
 .form-container {

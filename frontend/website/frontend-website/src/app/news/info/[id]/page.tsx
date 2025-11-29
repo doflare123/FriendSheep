@@ -1,15 +1,16 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import NewsDetailCard from '@/components/news/NewsDetailCard';
 import CommentsList from '@/components/news/CommentsList';
 import CommentForm from '@/components/news/CommentForm';
 import RelatedNews from '@/components/news/RelatedNews';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import styles from '@/styles/news/newsInfo.module.css';
-import { NewsDetail, Comment } from '@/types/news';
+import { NewsDetail } from '@/types/news';
 import { getNewsInfo } from '@/api/news/GetNewsInfo';
 import { addNewsComment } from '@/api/news/addNewsComment';
 import { showNotification } from '@/utils';

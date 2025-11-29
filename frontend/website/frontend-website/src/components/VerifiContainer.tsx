@@ -12,7 +12,7 @@ const VerifiContainer: React.FC<VerifiContainerProps> = ({
 	title,
 	children,
 	onSubmit,
-	className = "page-wrapper",
+	className = "bgPage",
 }) => {
 	return (
 		<div className={className}>

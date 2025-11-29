@@ -1,7 +1,9 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import Image from 'next/image';
 import styles from '../../../styles/search/eventsSearch.module.css';
 import EventCard from '../../../components/Events/EventCard';
@@ -22,6 +24,7 @@ const categoryPatterns: Record<string, string> = {
 };
 
 export default function EventsSearchPage() {
+  const router = useRouter();
   const searchParams = useSearchParams()
   const initialCategory = searchParams?.get("category") || '';
   const initialPattern = searchParams?.get("pattern") || '';
