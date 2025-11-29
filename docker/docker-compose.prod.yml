@@ -1,14 +1,185 @@
+version: '3.8'
+
 services:
+  # Redis
+  redis:
+    image: redis:alpine
+    container_name: friendsheep_redis
+    restart: unless-stopped
+    networks:
+      - appnet
+    # Порты НЕ открываем наружу - только внутри сети
+
+  # MongoDB
+  mongo:
+    image: mongo:7
+    container_name: friendsheep_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - appnet
+    # Порты НЕ открываем наружу
+
+  # PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: friendsheep_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: FriendSheep
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - appnet
+    # Порты НЕ открываем наружу
+
+  # Adminer (для управления PostgreSQL) - только через Nginx с авторизацией
+  adminer:
+    image: adminer:latest
+    container_name: friendsheep_adminer
+    restart: unless-stopped
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      - db
+    networks:
+      - appnet
+    # Порты НЕ открываем наружу
+
+  # Mongo Express (для управления MongoDB) - только через Nginx с авторизацией
+  mongo-express:
+    image: mongo-express:latest
+    container_name: friendsheep_mongo_express
+    restart: unless-stopped
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${ADMIN_PANEL_USER}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${ADMIN_PANEL_PASSWORD}
+    depends_on:
+      - mongo
+    networks:
+      - appnet
+    # Порты НЕ открываем наружу
+
+  # Backend (Go API)
   backend:
     build:
       context: ../backend
       dockerfile: Dockerfile.prod
-    ports:
-      - "8080:8080"
+    container_name: friendsheep_backend
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - ../.env
+      - PORT=8080
+      - APP_ENV=production
     depends_on:
       - redis
       - mongo
       - db
+    networks:
+      - appnet
+    # Порты НЕ открываем наружу
+
+  # Telegram Bot
+  telegram-bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: friendsheep_bot
     restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PORT=3000
+      - BACKEND_API_BASE_URL=http://backend:8080
+    depends_on:
+      - backend
+    networks:
+      - appnet
+    # Порты НЕ открываем наружу
+
+  # Notify Service
+  notify-service:
+    build:
+      context: ./notify_service
+      dockerfile: Dockerfile
+    container_name: friendsheep_notify
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PORT=8080
+      - URL_BOT=http://telegram-bot:3000/internal/broadcast
+      - FRIENDSHIP_URL=http://backend:8080
+    depends_on:
+      - db
+      - telegram-bot
+      - backend
+    networks:
+      - appnet
+    # Порты НЕ открываем наружу
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ../frontend/website/frontend-website
+      dockerfile: Dockerfile.prod
+    container_name: friendsheep_frontend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=/api
+    depends_on:
+      - backend
+    networks:
+      - appnet
+    # Порты НЕ открываем наружу
+
+  # Nginx - единственный контейнер с портами наружу
+  nginx:
+    image: nginx:alpine
+    container_name: friendsheep_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - frontend
+      - backend
+      - adminer
+      - mongo-express
+    networks:
+      - appnet
+
+  # Certbot для SSL
+  certbot:
+    image: certbot/certbot:latest
+    container_name: friendsheep_certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  mongo_data:
+  postgres_data:
+
+networks:
+  appnet:
+    driver: bridge
