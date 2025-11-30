@@ -22,15 +22,15 @@ export async function getUserInfo(accessToken: string): Promise<UserDataResponse
     const data = response.data;
 
     // Конвертация сырых данных
-    const recent_sessions: EventCardProps[] = data.recent_sessions.map((s: RawSession) =>
-      mapServerSessionToEvent(s)
-    );
+    //const recent_sessions: EventCardProps[] = data.recent_sessions.map((s: RawSession) =>
+      //mapServerSessionToEvent(s)
+    //);
 
-    const upcoming_sessions: EventCardProps[] = data.upcoming_sessions.map((s: RawSession) =>
-      mapServerSessionToEvent(s)
-    );
+    // const upcoming_sessions: EventCardProps[] = data.upcoming_sessions.map((s: RawSession) =>
+    //   mapServerSessionToEvent(s)
+    // );
 
-    return mapRawUserDataToUserData({...data, recent_sessions, upcoming_sessions});
+    return mapRawUserDataToUserData({...data});
   } catch (error: any) {
     console.error('Ошибка при получении информации о пользователе:', error);
 

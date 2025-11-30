@@ -1,15 +1,18 @@
 export interface RawSession {
-  city?: string;
-  current_users: number;
-  end_time: string | null;
-  genres: string[];
   id: number;
-  image_url: string;
-  location: string; // произвольная строка: адрес или ссылка
-  max_users: number;
-  start_time: string;
-  status: string;
   title: string;
+  start_time: string;
+  end_time: string | null;
+  current_users: number;
+  max_users: number;
+  image_url: string;
+  status: string;
+  type_session: string;   
+  category_session: string;
+  location: string;  
+  genres: string[];
+  city?: string;
+  date?: string;
 }
 
 

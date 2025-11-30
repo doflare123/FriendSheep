@@ -234,21 +234,50 @@ export const getSocialIcon = (name: string, link?: string, ): string => {
 };
 
 export function mapServerSessionToEvent(session: RawSession): EventCardProps {
+  // Определяем тип сессии через convertCategRuToEng
+  const getEventType = (categorySession?: string): 'games' | 'movies' | 'board' | 'other' => {
+    if (!categorySession) return 'other';
+    const types = convertCategRuToEng([categorySession]);
+    return types.length > 0 ? types[0] : 'other';
+  };
+
+  // Определяем локацию (онлайн/офлайн) из type_session
+  const getLocation = (typeSession?: string): 'online' | 'offline' => {
+    if (!typeSession) return 'offline';
+    const normalized = typeSession.toLowerCase();
+    return normalized === 'онлайн' ? 'online' : 'offline';
+  };
+
+  // Вычисляем длительность
+  const getDuration = (startTime: string, endTime?: string | null): string | undefined => {
+    if (!endTime) return undefined;
+    
+    try {
+      const start = new Date(startTime);
+      const end = new Date(endTime);
+      const diffMs = end.getTime() - start.getTime();
+      const diffMinutes = Math.floor(diffMs / 60000);
+      
+      return diffMinutes > 0 ? String(diffMinutes) : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
   return {
     id: session.id,
-    type: 'other',
-    image: session.image_url ?? '',
-    date: session.start_time ?? '',
-    end_time: session.end_time ?? undefined,
-    title: session.title ?? '',
-    genres: session.genres ?? [],
-    participants: session.current_users ?? 0,
-    maxParticipants: session.max_users ?? 0,
-    // остальные фронтовые поля — оставляем пустыми/дефолтными
-    duration: undefined,
-    location: typeof session.location === 'string' && session.location.toLowerCase() === 'online' ? 'online' : 'offline',
-    adress: session.location ?? '',
-    city: session.city ?? '',
+    type: getEventType(session.category_session),
+    image: session.image_url || '',
+    date: session.start_time || '',
+    end_time: session.end_time || undefined,
+    title: session.title || '',
+    genres: session.genres || [],
+    participants: session.current_users || 0,
+    maxParticipants: session.max_users || 0,
+    duration: getDuration(session.start_time, session.end_time),
+    location: getLocation(session.type_session),
+    adress: session.location || '',
+    city: session.city || undefined,
     scale: undefined,
     isEditMode: undefined,
     onEdit: undefined,
@@ -260,7 +289,6 @@ export function mapRawUserDataToUserData(raw: RawUserDataResponse): UserDataResp
   const recent_sessions = (raw.recent_sessions || []).map(mapServerSessionToEvent);
   const upcoming_sessions = (raw.upcoming_sessions || []).map(mapServerSessionToEvent);
 
-  // Прямо возвращаем объект, приведя тип к UserDataResponse — поля совпадают по семантике.
   return {
     data_register: formatDate(raw.data_register),
     enterprise: raw.enterprise,
