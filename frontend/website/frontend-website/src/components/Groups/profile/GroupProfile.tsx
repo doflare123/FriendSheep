@@ -6,7 +6,7 @@ import styles from '../../../styles/Groups/profile/GroupProfile.module.css';
 import CategorySection from '../../Events/CategorySection';
 import { SectionData, EventCardProps } from '../../../types/Events';
 import { GroupProfileProps, GroupData, Contact, SessionWithMetadata } from '../../../types/Groups';
-import {getCategoryIcon, getSocialIcon, getAccesToken} from '../../../Constants'
+import {getCategoryIcon, getSocialIcon, getAccesToken, formatDate, convertCategRuToEng} from '../../../Constants'
 import {joinGroup} from '@/api/groups/joinGroup';
 import {leaveGroup} from '@/api/groups/leaveGroup';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -27,49 +27,17 @@ const transformSessionsToEvents = (sessions: SessionWithMetadata[]): SectionData
       genres: sessionItem.metadata.genres || [],
       participants: sessionItem.session.current_users,
       maxParticipants: sessionItem.session.count_users_max,
-      duration: formatDuration(sessionItem.session.duration),
+      duration: sessionItem.session.duration,
       location: sessionItem.session.session_place === 'online' ? 'online' : 'offline'
     }))
   };
 };
 
 // Функция для преобразования типа события
-const getEventType = (sessionType: string): EventCardProps['type'] => {
-  const lowerType = sessionType.toLowerCase();
-  
-  if (lowerType.includes('game') || lowerType.includes('игр')) {
-    return 'games';
-  } else if (lowerType.includes('movie') || lowerType.includes('film') || lowerType.includes('кино') || lowerType.includes('фильм')) {
-    return 'movies';
-  } else if (lowerType.includes('board') || lowerType.includes('настольн')) {
-    return 'board';
-  } else {
-    return 'other';
-  }
-};
-
-// Функция для форматирования даты
-const formatDate = (dateString: string): string => {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', { 
-      day: 'numeric', 
-      month: 'short' 
-    });
-  } catch {
-    return dateString;
-  }
-};
-
-// Функция для форматирования длительности
-const formatDuration = (duration: number): string => {
-  if (duration < 60) {
-    return `${duration} мин`;
-  } else {
-    const hours = Math.floor(duration / 60);
-    const minutes = duration % 60;
-    return minutes > 0 ? `${hours}ч ${minutes}м` : `${hours} часа`;
-  }
+const getEventType = (categorySession?: string): 'games' | 'movies' | 'board' | 'other' => {
+  if (!categorySession) return 'other';
+  const types = convertCategRuToEng([categorySession]);
+  return types.length > 0 ? types[0] : 'other';
 };
 
 const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {

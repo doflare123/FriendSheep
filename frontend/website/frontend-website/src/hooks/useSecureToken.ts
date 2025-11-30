@@ -33,6 +33,7 @@ export const useSecureToken = (): string => {
       if (!accessToken) {
         console.warn('⚠️ Access токен отсутствует, редирект на /login');
         logout();
+        console.log("LOGIN7");
         router.push('/login');
         return;
       }
@@ -54,6 +55,7 @@ export const useSecureToken = (): string => {
       } else {
         console.warn('❌ Не удалось обновить токен, редирект на /login');
         logout();
+        console.log("LOGIN8");
         router.push('/login');
       }
     };

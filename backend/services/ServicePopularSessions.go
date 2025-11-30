@@ -12,8 +12,6 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/robfig/cron/v3"
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 const (
@@ -181,7 +179,6 @@ func fetchPopularSessionsFromDB() ([]PopularSessionResponse, error) {
 
 	var recruitmentStatus sessions.Status
 	if err := dbConn.Where("status = ?", "Набор").First(&recruitmentStatus).Error; err != nil {
-		dbConn.Rollback()
 		return nil, fmt.Errorf("статус 'Набор' не найден: %v", err)
 	}
 
@@ -220,7 +217,7 @@ func fetchPopularSessionsFromDB() ([]PopularSessionResponse, error) {
 		sessionIDs[i] = session.ID
 	}
 
-	metadataMap, err := getSessionsMetadata(sessionIDs)
+	metadataMap, err := db.GetSessionsMetadata(sessionIDs)
 	if err != nil {
 		log.Printf("Предупреждение: ошибка получения метаданных из MongoDB: %v", err)
 		metadataMap = make(map[uint]*sessions.SessionMetadata)
@@ -264,44 +261,4 @@ func fetchPopularSessionsFromDB() ([]PopularSessionResponse, error) {
 	})
 
 	return result, nil
-}
-
-func getSessionsMetadata(sessionIDs []uint) (map[uint]*sessions.SessionMetadata, error) {
-	mongoClient := db.GetMongoDB()
-	if mongoClient == nil {
-		return make(map[uint]*sessions.SessionMetadata), nil
-	}
-
-	collection := db.Database().Collection("session_metadata")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	sessionIDsInterface := make([]interface{}, len(sessionIDs))
-	for i, id := range sessionIDs {
-		sessionIDsInterface[i] = id
-	}
-
-	filter := bson.M{
-		"session_id": bson.M{"$in": sessionIDsInterface},
-	}
-
-	cursor, err := collection.Find(ctx, filter)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return make(map[uint]*sessions.SessionMetadata), nil
-		}
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	metadataMap := make(map[uint]*sessions.SessionMetadata)
-	for cursor.Next(ctx) {
-		var metadata sessions.SessionMetadata
-		if err := cursor.Decode(&metadata); err != nil {
-			continue
-		}
-		metadataMap[metadata.SessionID] = &metadata
-	}
-
-	return metadataMap, cursor.Err()
 }

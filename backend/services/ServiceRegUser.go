@@ -190,7 +190,7 @@ func CreateSessionRegister(email string) (*models.SessionRegResponse, error) {
 				<p>Чтобы завершить регистрацию, введите следующий код подтверждения:</p>
 				<div class="code">%s</div>
 				<p>Код действителен <b>10 минут</b>. Если вы не запрашивали регистрацию, просто игнорируйте это письмо.</p>
-				<div class="footer">© %d Ваш сервис</div>
+				<div class="footer">© %d FriendShip</div>
 			</div>
 		</body>
 		</html>

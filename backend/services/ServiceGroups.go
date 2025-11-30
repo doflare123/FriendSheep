@@ -565,7 +565,7 @@ func getGroupSessions(groupID uint64) ([]SessionDetailResponse, error) {
 	err := db.GetDB().
 		Preload("SessionType").
 		Preload("SessionPlace").
-		Where("group_id = ?", groupID).
+		Where("group_id = ? AND status_id = 1", groupID).
 		Order("start_time ASC").
 		Find(&Gsessions).Error
 
