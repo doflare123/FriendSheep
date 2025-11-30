@@ -209,7 +209,7 @@ export const getCategoryIcon = (category: string): string => {
     return '/events/games.png';
   } else if (lowerCategory.includes('movies') || lowerCategory.includes('фильмы')) {
     return '/events/movies.png';
-  } else if (lowerCategory.includes('boards') || lowerCategory.includes('настолки') || lowerCategory.includes('настольные игры')) {
+  } else if (lowerCategory.includes('boards') || lowerCategory.includes('board') || lowerCategory.includes('настолки') || lowerCategory.includes('настольные игры')) {
     return '/events/board.png';
   } else {
     return '/events/other.png'; // default
@@ -219,17 +219,32 @@ export const getCategoryIcon = (category: string): string => {
 export const getSocialIcon = (name: string, link?: string, ): string => {
   const lowerLink = (link|| " ").toLowerCase();
   const lowerName = name.toLowerCase();
-  
+
   if (lowerLink.includes('discord') || lowerName.includes('discord') || lowerName.includes('ds')) {
     return '/social/ds.png';
   } else if (lowerLink.includes('t.me') || lowerLink.includes('telegram') || lowerName.includes('telegram') || lowerName.includes('tg')) {
     return '/social/tg.png';
   } else if (lowerLink.includes('vk.com') || lowerName.includes('вконтакте') || lowerName.includes('vk')) {
     return '/social/vk.png';
-  } else if (lowerLink.includes('max')) {
+  } else if (lowerName.includes('max')) {
     return '/social/max.png';
   } else {
     return '/default/soc_net.png';
+  }
+};
+
+export const getDuration = (startTime: string, endTime?: string | null): string | undefined => {
+  if (!endTime) return undefined;
+  
+  try {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const diffMs = end.getTime() - start.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+    
+    return diffMinutes > 0 ? String(diffMinutes) : undefined;
+  } catch {
+    return undefined;
   }
 };
 
@@ -248,27 +263,12 @@ export function mapServerSessionToEvent(session: RawSession): EventCardProps {
     return normalized === 'онлайн' ? 'online' : 'offline';
   };
 
-  // Вычисляем длительность
-  const getDuration = (startTime: string, endTime?: string | null): string | undefined => {
-    if (!endTime) return undefined;
-    
-    try {
-      const start = new Date(startTime);
-      const end = new Date(endTime);
-      const diffMs = end.getTime() - start.getTime();
-      const diffMinutes = Math.floor(diffMs / 60000);
-      
-      return diffMinutes > 0 ? String(diffMinutes) : undefined;
-    } catch {
-      return undefined;
-    }
-  };
 
   return {
     id: session.id,
     type: getEventType(session.category_session),
     image: session.image_url || '',
-    date: session.start_time || '',
+    date: formatDate(session.start_time) || '',
     end_time: session.end_time || undefined,
     title: session.title || '',
     genres: session.genres || [],
