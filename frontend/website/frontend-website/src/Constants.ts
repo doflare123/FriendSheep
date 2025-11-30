@@ -226,7 +226,7 @@ export const getSocialIcon = (name: string, link?: string, ): string => {
     return '/social/tg.png';
   } else if (lowerLink.includes('vk.com') || lowerName.includes('вконтакте') || lowerName.includes('vk')) {
     return '/social/vk.png';
-  } else if (lowerName.includes('max')) {
+  } else if (lowerName.includes('max') || lowerLink.includes('max')) {
     return '/social/max.png';
   } else {
     return '/default/soc_net.png';
