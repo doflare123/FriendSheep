@@ -118,6 +118,37 @@ class AuthService {
     }
   }
 
+  async requestPasswordReset(email: string): Promise<{ session_id: string }> {
+    try {
+      const response = await apiClient.post<{ session_id: string }>(
+        '/users/request-reset',
+        { email }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  async confirmPasswordReset(
+    email: string,
+    sessionId: string,
+    code: string,
+    newPassword: string
+  ): Promise<any> {
+    try {
+      const response = await apiClient.post('/users/confirm-reset', {
+        email,
+        session_id: sessionId,
+        code,
+        password: newPassword,
+      });
+      return response.data;
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
   private handleError(error: any): Error {
     if (error.response) {
       const status = error.response.status;

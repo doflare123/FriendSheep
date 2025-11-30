@@ -134,22 +134,36 @@ class SessionService {
     }
   }
 
-  async joinSession(sessionId: number): Promise<any> {
-    const validSessionId = validateSessionId(sessionId);
+  async joinSession(params: { group_id: number; session_id: number }): Promise<any> {
+    const validSessionId = validateSessionId(params.session_id);
 
-    // Rate limiting - максимум 5 попыток в минуту
     const rateLimitKey = `join_session_${validSessionId}`;
     if (!rateLimiter.canPerformAction(rateLimitKey, 5, 60000)) {
       throw new Error('Слишком много попыток. Подождите минуту.');
     }
 
     try {
-      console.log(`[SessionService] Вступление в событие ${validSessionId}`);
-      const response = await apiClient.post(`/sessions/${validSessionId}/join`);
+      console.log(`[SessionService] Вступление в событие ${validSessionId} в группе ${params.group_id}`);
+      
+      const response = await apiClient.post('/sessions/join', {
+        group_id: params.group_id,
+        session_id: validSessionId
+      });
+      
+      console.log('[SessionService] ✅ Успешно присоединились к сессии');
       return response.data;
     } catch (error: any) {
-      console.error('[SessionService] Ошибка вступления в событие');
-      throw error;
+      console.error('[SessionService] ❌ Ошибка вступления в событие:', error);
+      console.error('[SessionService] Детали ошибки:', error.response?.data);
+
+      if (error.response?.status === 404) {
+        throw new Error('Сессия или пользователь не найдены');
+      }
+      if (error.response?.status === 409) {
+        throw new Error('Сессия заполнена или вы уже присоединились');
+      }
+      
+      throw new Error(error.response?.data?.message || error.response?.data?.error || 'Не удалось присоединиться к сессии');
     }
   }
 

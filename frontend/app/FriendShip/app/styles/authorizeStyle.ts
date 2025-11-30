@@ -62,10 +62,10 @@ const authorizeStyle = StyleSheet.create({
     color: Colors.lightBlue,
   },
   terms: {
-    marginTop: 12,
     fontFamily: Montserrat.regular,
     fontSize: 12,
     color: Colors.lightGrey,
+    marginBottom: 12,
   },
   doneImage:{
     width: 60,

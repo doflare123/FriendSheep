@@ -1,6 +1,8 @@
 export type RootStackParamList = {
   Register: undefined;
   Login: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: undefined;
   Confirm: undefined;
   Done: undefined;
   MainPage: { searchQuery?: string } | undefined;

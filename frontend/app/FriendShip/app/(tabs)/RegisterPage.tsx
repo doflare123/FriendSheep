@@ -1,6 +1,7 @@
 import { useAuthContext } from '@/api/services/AuthContext';
 import authService from '@/api/services/authService';
 import { useToast } from '@/components/ToastContext';
+import { Colors } from '@/constants/Colors';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { ActivityIndicator, Linking, Text, TouchableOpacity, View } from 'react-native';
@@ -153,7 +154,7 @@ const Register = () => {
           <Text
             style={authorizeStyle.link}
             onPress={() =>
-              openURL('https://www.youtube.com/@adventurekabanchikov')
+              openURL('https://friendsheep.ru/info/privacy')
             }
           >
             Пользовательского соглашения
@@ -163,7 +164,7 @@ const Register = () => {
             style={authorizeStyle.link}
             onPress={() =>
               openURL(
-                'https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1',
+                'https://friendsheep.ru/info/privacy',
               )
             }
           >
@@ -180,7 +181,7 @@ const Register = () => {
         {loading && (
           <ActivityIndicator 
             size="large" 
-            color="#0000ff" 
+            color={Colors.blue}
             style={{ marginTop: 16 }} 
           />
         )}

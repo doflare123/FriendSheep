@@ -1,6 +1,6 @@
 import barsStyle from '@/app/styles/barsStyle';
 import { Colors } from '@/constants/Colors';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import React from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -9,6 +9,19 @@ const BottomBar = () => {
   const route = useRoute();
   const currentRoute = route.name;
   const isActive = (routeName: string) => currentRoute === routeName;
+
+  const handleProfilePress = () => {
+    if (currentRoute === 'ProfilePage') {
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'ProfilePage' }],
+        })
+      );
+    } else {
+      navigation.navigate('ProfilePage' as never);
+    }
+  };
   
   return (
     <View style={styles.container}>
@@ -29,7 +42,7 @@ const BottomBar = () => {
       {/* <TouchableOpacity style={barsStyle.menu}>
           <Image style={barsStyle.iconsMenu} source={require("@/assets/images/bottom_bar/news.png")} />
       </TouchableOpacity> */}
-      <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('ProfilePage' as never)}>
+      <TouchableOpacity style={barsStyle.menu} onPress={handleProfilePress}>
           <Image style={[barsStyle.iconsMenu, {width: 25, height: 25}, (isActive('ProfilePage') || isActive('UserSearchPage')) && { tintColor: Colors.darkGrey }]} source={require("@/assets/images/bottom_bar/profile.png")} />
       </TouchableOpacity>
     </View>

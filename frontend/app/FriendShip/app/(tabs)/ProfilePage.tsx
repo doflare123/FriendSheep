@@ -319,25 +319,6 @@ const ProfilePage: React.FC = () => {
           )}
         </CategorySection>
 
-        {subscriptions.length > 0 && (
-          <CategorySection title="Подписки:" marginBottom={16}>
-            <View style={styles.subscriptionsContainer}>
-              {subscriptions.map((sub) => (
-                <TouchableOpacity 
-                  key={sub.id}
-                  onPress={() => handleGroupPress(sub.id)}
-                  activeOpacity={0.7}
-                >
-                  <Image 
-                    source={{ uri: sub.image }} 
-                    style={styles.subscriptionImage} 
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-          </CategorySection>
-        )}
-
         <CategorySection 
           title="Сессии:" 
           customActionButton={{
@@ -363,6 +344,25 @@ const ProfilePage: React.FC = () => {
             </Text>
           )}
         </CategorySection>
+
+        {subscriptions.length > 0 && (
+          <CategorySection title="Подписки:" marginBottom={16}>
+            <View style={styles.subscriptionsContainer}>
+              {subscriptions.map((sub) => (
+                <TouchableOpacity 
+                  key={sub.id}
+                  onPress={() => handleGroupPress(sub.id)}
+                  activeOpacity={0.7}
+                >
+                  <Image 
+                    source={{ uri: sub.image }} 
+                    style={styles.subscriptionImage} 
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </CategorySection>
+        )}
 
         {(profileData.user_stats.count_all > 0 || 
           profileData.user_stats.count_films > 0 || 

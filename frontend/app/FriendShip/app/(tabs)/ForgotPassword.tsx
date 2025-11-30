@@ -1,5 +1,4 @@
 import authService from '@/api/services/authService';
-import { clearTokens } from '@/api/storage/tokenStorage';
 import { useToast } from '@/components/ToastContext';
 import { Colors } from '@/constants/Colors';
 import { useNavigation } from '@react-navigation/native';
@@ -11,11 +10,10 @@ import Input from '../../components/auth/Input';
 import Logo from '../../components/auth/Logo';
 import authorizeStyle from '../styles/authorizeStyle';
 
-const Login = () => {
+const ForgotPassword = () => {
   const navigation = useNavigation();
   const { showToast } = useToast();
   
-  const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +22,7 @@ const Login = () => {
     return emailRegex.test(email);
   };
 
-  const handleLogin = async () => {
+  const handleRequestReset = async () => {
     const sanitizedEmail = email.trim().toLowerCase();
     
     if (!sanitizedEmail) {
@@ -45,38 +43,26 @@ const Login = () => {
       return;
     }
 
-    if (!password.trim()) {
-      showToast({
-        type: 'error',
-        title: 'Ошибка',
-        message: 'Введите пароль',
-      });
-      return;
-    }
-
     setLoading(true);
 
     try {
-      await clearTokens();
-      console.log('[Login] ✅ Старые токены очищены');
-
-      await authService.login(sanitizedEmail, password);
+      const response = await authService.requestPasswordReset(sanitizedEmail);
 
       showToast({
         type: 'success',
         title: 'Успешно!',
-        message: 'Вы вошли в систему',
+        message: 'Код для сброса пароля отправлен на почту',
       });
 
-      setTimeout(() => {
-        navigation.navigate('MainPage' as never);
-      }, 500);
-
+      (navigation.navigate as any)('ResetPassword', {
+        sessionId: response.session_id,
+        email: sanitizedEmail,
+      });
     } catch (error: any) {
       showToast({
         type: 'error',
-        title: 'Ошибка входа',
-        message: error.message || 'Не удалось войти в систему',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось отправить код',
       });
     } finally {
       setLoading(false);
@@ -87,7 +73,7 @@ const Login = () => {
     <View style={authorizeStyle.container}>
       <View style={authorizeStyle.topContainer}>
         <Logo />
-        <Text style={authorizeStyle.title}>Вход</Text>
+        <Text style={authorizeStyle.title}>Восстановление пароля</Text>
       </View>
 
       <KeyboardAwareScrollView
@@ -97,7 +83,7 @@ const Login = () => {
         extraScrollHeight={20}
         showsVerticalScrollIndicator={false}>
 
-        <Text style={authorizeStyle.label}>Почта</Text>
+        <Text style={authorizeStyle.label}>Email</Text>
         <Input
           placeholder="user_email@gmail.com"
           value={email}
@@ -107,43 +93,33 @@ const Login = () => {
           editable={!loading}
         />
 
-        <Text style={authorizeStyle.label}>Пароль</Text>
-        <Input
-          placeholder="Пароль"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          editable={!loading}
-        />
+        <Text style={authorizeStyle.terms}>
+          Мы отправим код подтверждения на указанный email.
+          После этого вы сможете установить новый пароль.
+        </Text>
 
-        <View style={authorizeStyle.account}>
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('ForgotPassword' as never)}
-            disabled={loading}
-          >
-            <Text style={authorizeStyle.password}>Забыли пароль?</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('Register' as never)}
-            disabled={loading}
-          >
-            <Text>Нет аккаунта?</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Button 
-          title={loading ? 'Вход...' : 'Войти'} 
-          onPress={handleLogin}
+        <Button
+          title={loading ? 'Отправка...' : 'Отправить код'}
+          onPress={handleRequestReset}
           disabled={loading}
         />
 
         {loading && (
           <ActivityIndicator 
             size="large" 
-            color={Colors.blue} 
+            color={Colors.blue}
             style={{ marginTop: 16 }} 
           />
         )}
+
+        <View style={[authorizeStyle.account, {marginTop: 20}]}>
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()}
+            disabled={loading}
+          >
+            <Text>Вернуться к входу</Text>
+          </TouchableOpacity>
+        </View>
       </KeyboardAwareScrollView>
 
       <Text style={authorizeStyle.footer}>©NecroDwarf</Text>
@@ -151,4 +127,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default ForgotPassword;

@@ -24,6 +24,8 @@ const PUBLIC_ENDPOINTS = [
   '/sessions/register',
   '/sessions/verify',
   '/users/login',
+  '/users/request-reset',
+  '/users/confirm-reset',
 ];
 
 const isPublicEndpoint = (url?: string): boolean => {

@@ -94,9 +94,10 @@ export interface PublicGroupResponse {
   creater: string;
   subscription: boolean;
   users: {
-    id: number;
+    id?: number;
     name: string;
     image: string;
+    us: string;
   }[];
   sessions: {
     session: {

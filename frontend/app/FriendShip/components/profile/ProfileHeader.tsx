@@ -45,6 +45,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const handleTelegramPress = () => {
     if (telegramLink) {
       Linking.openURL(telegramLink);
+    } else {
+      Linking.openURL('https://t.me/FriendShipNotify_bot');
     }
   };
 
@@ -102,14 +104,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <View style={styles.headerInfo}>
           <View style={styles.nameRow}>
             <Text style={styles.profileName}>{name}</Text>
-            {telegramLink && (
-              <TouchableOpacity onPress={handleTelegramPress}>
-                <Image 
-                  source={require('@/assets/images/profile/telegram.png')} 
-                  style={styles.telegramIcon}
-                />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity onPress={handleTelegramPress}>
+              <Image 
+                source={require('@/assets/images/profile/telegram.png')} 
+                style={[
+                  styles.telegramIcon,
+                  !telegramLink && styles.telegramIconInactive
+                ]}
+              />
+            </TouchableOpacity>
           </View>
           <Text style={styles.profileUs}>{username}</Text>
           <Text style={styles.description}>{description}</Text>
@@ -210,6 +213,10 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     resizeMode: 'contain',
+  },
+  telegramIconInactive: {
+    tintColor: Colors.lightGrey,
+    opacity: 0.5,
   },
   profileUs: {
     fontFamily: Montserrat.regular,

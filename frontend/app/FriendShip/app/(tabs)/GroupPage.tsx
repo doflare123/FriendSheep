@@ -11,7 +11,7 @@ import { useSearchState } from '@/hooks/useSearchState';
 import { RootStackParamList } from '@/navigation/types';
 import { groupSessionsToEvents } from '@/utils/dataAdapters';
 import { filterActiveSessions } from '@/utils/sessionStatusHelpers';
-// eslint-disable-next-line import/no-unresolved
+ 
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
@@ -173,6 +173,11 @@ const GroupPage = () => {
         Alert.alert('Ошибка', 'Не удалось открыть ссылку');
       });
     }
+  };
+
+  const handleUserPress = (userId: string) => {
+    console.log('[GroupPage] Переход на профиль пользователя, userId:', userId);
+    navigation.navigate('ProfilePage', { userId });
   };
 
   const getContactIcon = (contactName: string, contactLink?: string) => {
@@ -388,31 +393,50 @@ const GroupPage = () => {
           </TouchableOpacity>
         </CategorySection>
 
-        <CategorySection title={`Участники: ${groupData.count_members || groupData.users?.length || 0}`}>
-          {groupData.users && groupData.users.length > 0 ? (
-            <View style={styles.membersContainer}>
-              {groupData.users.map((user, index) => (
-                <View key={`member-${index}`} style={styles.memberItem}>
-                  <Image 
-                    source={{ uri: user.image }} 
-                    style={styles.memberImage} 
-                  />
-                </View>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Пока нет участников</Text>
-            </View>
-          )}
-        </CategorySection>
-
         <CategorySection title="Сессии:">
           {formattedSessions && formattedSessions.length > 0 ? (
             <EventCarousel events={formattedSessions} />
           ) : (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>Пока нет активных сессий</Text>
+            </View>
+          )}
+        </CategorySection>
+
+        <CategorySection title={`Участники: ${groupData.count_members || groupData.users?.length || 0}`}>
+          {groupData.users && groupData.users.length > 0 ? (
+            <View style={styles.membersContainer}>
+              {groupData.users.map((user, index) => {
+                const userId = user.id 
+                  ? user.id.toString()
+                  : (user.us && user.us.startsWith('user'))
+                    ? user.us.replace('user', '')
+                    : null;
+
+                return (
+                  <TouchableOpacity 
+                    key={`member-${index}`} 
+                    style={styles.memberItem}
+                    onPress={() => {
+                      if (userId) {
+                        handleUserPress(userId);
+                      } else {
+                        Alert.alert('Недоступно', 'Профиль этого пользователя недоступен');
+                      }
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Image 
+                      source={{ uri: user.image }} 
+                      style={styles.memberImage} 
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Пока нет участников</Text>
             </View>
           )}
         </CategorySection>
