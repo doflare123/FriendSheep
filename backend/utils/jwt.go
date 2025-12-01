@@ -47,7 +47,7 @@ func GenerateTokenPair(id int, email, name, us, image string) (TokenPair, error)
 		"Email":    email,
 		"Us":       us,
 		"Username": name,
-		"Image":    image, // Добавляем Image и в refresh токен
+		"Image":    image,
 		"exp":      now.Add(30 * 24 * time.Hour).Unix(),
 		"iat":      now.Unix(),
 		"typ":      "refresh",
@@ -72,7 +72,6 @@ func RefreshTokens(refreshTokenString string, findUser UserFinder) (TokenPair, e
 	}
 
 	token, err := jwt.Parse(refreshTokenString, func(token *jwt.Token) (interface{}, error) {
-		// Проверка типа подписи
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("неподдерживаемый метод подписи: %v", token.Header["alg"])
 		}
@@ -88,21 +87,20 @@ func RefreshTokens(refreshTokenString string, findUser UserFinder) (TokenPair, e
 		return TokenPair{}, fmt.Errorf("невалидный refresh токен")
 	}
 
-	// Правильное извлечение типа токена
 	if typ, ok := claims["typ"].(string); !ok || typ != "refresh" {
 		return TokenPair{}, fmt.Errorf("токен не является refresh токеном")
 	}
 
-	// Правильное извлечение значений из claims
 	email, okEmail := claims["Email"].(string)
 	if !okEmail {
 		return TokenPair{}, fmt.Errorf("неверный формат Email в claims")
 	}
 
-	id, okEmail := claims["Id"].(int)
-	if !okEmail {
-		return TokenPair{}, fmt.Errorf("неверный формат Email в claims")
+	idFloat, okId := claims["Id"].(float64)
+	if !okId {
+		return TokenPair{}, fmt.Errorf("неверный формат Id в claims")
 	}
+	id := int(idFloat)
 
 	user, err := findUser(email)
 	if err != nil {
@@ -119,7 +117,6 @@ func ParseJWT(tokenString string) (string, error) {
 	}
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Проверка типа подписи
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("неподдерживаемый метод подписи: %v", token.Header["alg"])
 		}
@@ -135,7 +132,6 @@ func ParseJWT(tokenString string) (string, error) {
 		return "", fmt.Errorf("некорректные claims")
 	}
 
-	// Правильное извлечение email
 	email, ok := claims["Email"].(string)
 	if !ok {
 		return "", fmt.Errorf("email не найден в токене")
