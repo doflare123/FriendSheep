@@ -39,7 +39,7 @@ const authorizeStyle = StyleSheet.create({
   },
   label: {
     fontFamily: Montserrat.regular,
-    fontSize: 17,
+    fontSize: 16,
     marginBottom: 4,
   },
   hintLabel: {
@@ -54,7 +54,8 @@ const authorizeStyle = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: -8,
+    marginTop: -4,
+    marginBottom: 4
   },
   link: {
     fontFamily: Montserrat.regular,
@@ -74,9 +75,19 @@ const authorizeStyle = StyleSheet.create({
     alignSelf: 'center'
   },
   password:{
+    fontFamily: Montserrat.regular,
     color: Colors.lightBlue2,
-    fontSize: 12
-  }
+    fontSize: 12,
+    marginTop: -4,
+    marginBottom: 4
+  },
+  passwordValidation:{
+    fontFamily: Montserrat.regular,
+    fontSize: 12,
+    color: Colors.red,
+    marginTop: -10,
+    marginBottom: 8
+  },
 });
 
 export default authorizeStyle;

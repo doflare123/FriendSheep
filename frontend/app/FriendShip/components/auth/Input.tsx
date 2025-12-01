@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
   },
   input: {
     color: Colors.black,
-    borderWidth: 3,
+    borderWidth: 2.5,
     borderColor: Colors.blue3,
     borderRadius: 12,
     padding: 6,

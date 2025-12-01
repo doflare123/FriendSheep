@@ -3,7 +3,7 @@ import { clearTokens } from '@/api/storage/tokenStorage';
 import { useToast } from '@/components/ToastContext';
 import { Colors } from '@/constants/Colors';
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Button from '../../components/auth/Button';
@@ -18,6 +18,10 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const hasRussianChars = useMemo(() => {
+    return /[а-яА-ЯёЁ]/.test(password);
+  }, [password]);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -116,6 +120,12 @@ const Login = () => {
           editable={!loading}
         />
 
+        {hasRussianChars && (
+          <Text style={[authorizeStyle.passwordValidation, {color: Colors.orange}]}>
+            Включена русская раскладка!
+          </Text>
+        )}
+
         <View style={authorizeStyle.account}>
           <TouchableOpacity 
             onPress={() => navigation.navigate('ForgotPassword' as never)}
@@ -127,7 +137,7 @@ const Login = () => {
             onPress={() => navigation.navigate('Register' as never)}
             disabled={loading}
           >
-            <Text>Нет аккаунта?</Text>
+            <Text style={authorizeStyle.account}>Нет аккаунта?</Text>
           </TouchableOpacity>
         </View>
 

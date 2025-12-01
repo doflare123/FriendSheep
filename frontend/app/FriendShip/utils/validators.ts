@@ -57,3 +57,52 @@ export const validateNotificationData = (notification: any): any => {
     createdAt: notification.createdAt || new Date().toISOString(),
   };
 };
+
+export interface PasswordValidationResult {
+  isValid: boolean;
+  missingRequirements: string[];
+}
+
+export const validatePassword = (password: string): PasswordValidationResult => {
+  if (!password) return { isValid: false, missingRequirements: [] };
+
+  const requirements = [];
+  
+  if (password.length < 6) requirements.push('минимум 6 символов');
+  if (!/[A-Z]/.test(password)) requirements.push('заглавная буква');
+  if (!/[a-z]/.test(password)) requirements.push('строчная буква');
+  if (!/\d/.test(password)) requirements.push('цифра');
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) requirements.push('спецсимвол');
+  if (/[а-яА-ЯёЁ]/.test(password)) requirements.push('только латиница');
+
+  return {
+    isValid: requirements.length === 0,
+    missingRequirements: requirements,
+  };
+};
+
+export const hasRussianChars = (text: string): boolean => {
+  return /[а-яА-ЯёЁ]/.test(text);
+};
+
+export interface CodeValidationResult {
+  isValid: boolean;
+  hasInvalidChars: boolean;
+  filtered: string;
+}
+
+export const validateConfirmationCode = (code: string): CodeValidationResult => {
+  const filtered = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const hasInvalidChars = code !== filtered;
+  const isValidLength = filtered.length === 6;
+  
+  return {
+    isValid: isValidLength && !hasInvalidChars,
+    hasInvalidChars,
+    filtered,
+  };
+};
+
+export const filterConfirmationCode = (text: string, maxLength: number = 6): string => {
+  return text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, maxLength);
+};

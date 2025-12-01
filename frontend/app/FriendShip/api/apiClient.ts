@@ -60,7 +60,6 @@ apiClient.interceptors.request.use(
 
     if (tokens?.accessToken) {
       config.headers.Authorization = `Bearer ${tokens.accessToken}`;
-      console.log('[API] → Authorization добавлен');
     } else {
       console.warn('[API] ⚠ Токен отсутствует');
     }

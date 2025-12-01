@@ -51,21 +51,41 @@ const ProfilePage: React.FC = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [selectedTiles, setSelectedTiles] = useState<TileType[]>([]);
 
-  const isOwnProfile = !userId;
+  const [isOwnProfile, setIsOwnProfile] = useState(!userId);
+  const [currentUserUsername, setCurrentUserUsername] = useState<string | null>(null);
 
   const loadProfileData = useCallback(async () => {
     try {
       setLoading(true);
 
-      const profile = isOwnProfile
-        ? await userService.getCurrentUserProfile()
+      let currentProfile: UserProfile | null = null;
+      
+      if (!currentUserUsername) {
+        currentProfile = await userService.getCurrentUserProfile();
+        setCurrentUserUsername(currentProfile.us);
+        console.log('[ProfilePage] 🔍 Текущий username:', currentProfile.us);
+      }
+
+      const myUsername = currentProfile?.us || currentUserUsername;
+      const isViewingOwnProfile = !userId || userId === myUsername;
+      setIsOwnProfile(isViewingOwnProfile);
+      
+      console.log('[ProfilePage] 🔍 Запрошенный userId:', userId);
+      console.log('[ProfilePage] 🔍 Это свой профиль:', isViewingOwnProfile);
+
+      const profile = isViewingOwnProfile
+        ? (currentProfile || await userService.getCurrentUserProfile())
         : await userService.getUserProfileById(userId);
 
-      console.log('[ProfilePage] Загруженный профиль:', profile.name);
+      console.log('[ProfilePage] Загруженный профиль:', profile.name, '(свой:', isViewingOwnProfile, ')');
+
+      if (!profile || !profile.name || !profile.tiles) {
+        throw new Error('Получены некорректные данные профиля');
+      }
       
       setProfileData(profile);
 
-      const tiles = profile.tiles.map(tile => {
+      const tiles = (profile.tiles || []).map(tile => {
         const tileMap: Record<string, TileType> = {
           'count_all': 'all',
           'count_films': 'movies',
@@ -79,24 +99,29 @@ const ProfilePage: React.FC = () => {
       setSelectedTiles(tiles);
 
       try {
-        const subs = await userService.getUserSubscriptions(
-          userId ? parseInt(userId) : undefined
-        );
+        const subsUserId = isViewingOwnProfile 
+          ? undefined 
+          : (typeof profile.id === 'number' ? profile.id : parseInt(userId));
+          
+        const subs = await userService.getUserSubscriptions(subsUserId);
         setSubscriptions(subs);
       } catch (error) {
         console.warn('[ProfilePage] Не удалось загрузить подписки');
       }
 
     } catch (error: any) {
+      console.error('[ProfilePage] ❌ Ошибка загрузки профиля:', error);
       showToast({
         type: 'error',
         title: 'Ошибка',
         message: error.message || 'Не удалось загрузить профиль',
       });
+
+      navigation.goBack();
     } finally {
       setLoading(false);
     }
-  }, [userId, isOwnProfile, showToast]);
+  }, [userId, currentUserUsername, showToast, navigation]);
 
   useEffect(() => {
     loadProfileData();

@@ -133,7 +133,7 @@ const CategorySearchBar: React.FC<CategorySearchBarProps> = ({
               </>
             )}
 
-            <Text style={[styles.dropdownTitle, { marginTop: showCategoryFilter ? 12 : 0 }]}>
+            <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
               Сортировка по дате
             </Text>
             {['none', 'asc', 'desc'].map((order) => (

@@ -32,7 +32,7 @@ const StatisticsChart: React.FC<StatisticsChartProps> = ({
               population: item.percentage,
               color: item.color,
               legendFontColor: item.legendFontColor,
-              legendFontSize: 11,
+              legendFontSize: 9,
               legendFontFamily: Montserrat.regular,
             }))}
             width={Dimensions.get('window').width - 60}

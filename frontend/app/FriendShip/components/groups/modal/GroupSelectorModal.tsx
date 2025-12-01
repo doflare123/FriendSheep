@@ -146,6 +146,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: Colors.lightGrey,
   },
@@ -155,8 +156,6 @@ const styles = StyleSheet.create({
     color: Colors.black,
   },
   closeButton: {
-    width: 30,
-    height: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },

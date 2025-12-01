@@ -24,6 +24,7 @@ import {
   View
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import DescriptionModal from './DescriptionModal';
 import YandexMapModal from './YandexMapModal';
 
 const screenHeight = Dimensions.get("window").height;
@@ -76,6 +77,8 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   const [mapModalVisible, setMapModalVisible] = useState(false);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const [descriptionModalVisible, setDescriptionModalVisible] = useState(false);
 
   useEffect(() => {
     if (editMode && initialData && visible) {
@@ -303,6 +306,23 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
     );
   };
 
+  const handleAgeRatingChange = (text: string) => {
+    if (text === '' || text === '+') {
+      setAgeRating('');
+      return;
+    }
+
+    const digitsOnly = text.replace(/\D/g, '');
+
+    if (!digitsOnly) {
+      setAgeRating('');
+      return;
+    }
+
+    const limited = digitsOnly.slice(0, 2);
+    setAgeRating(limited + '+');
+  };
+
   const handleMapPress = () => {
     if (eventType === 'offline') {
       setMapModalVisible(true);
@@ -337,6 +357,11 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
 
     if (!selectedCategory) {
       Alert.alert('Ошибка', 'Выберите категорию события');
+      return false;
+    }
+
+    if (selectedGenres.length === 0) {
+      Alert.alert('Ошибка', 'Выберите хотя бы один жанр');
       return false;
     }
 
@@ -456,20 +481,6 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
             scrollEnabled={!isLoading}
           >
             <View style={styles.header}>
-              {editMode && (
-                <TouchableOpacity 
-                  style={styles.deleteButton} 
-                  onPress={handleDeletePress}
-                  disabled={isLoading}
-                >
-                  <Image
-                    style={styles.deleteIcon}
-                    source={require('@/assets/images/groups/delete.png')}
-                    tintColor={Colors.red}
-                  />
-                </TouchableOpacity>
-              )}
-              
               <Text style={styles.title}>
                 {editMode ? 'Редактирование события' : 'Создание события'}
               </Text>
@@ -514,23 +525,45 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                   placeholderTextColor={Colors.grey}
                   value={eventName}
                   onChangeText={setEventName}
-                  maxLength={100}
+                  maxLength={40}
                   editable={!isLoading}
                 />
               </View>
+              {eventName.length > 0 && (
+                <Text style={styles.charCounter}>
+                  {eventName.length} / 40
+                </Text>
+              )}
 
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Описание"
-                placeholderTextColor={Colors.grey}
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-                maxLength={500}
-                editable={!isLoading}
-              />
+              <View style={styles.descriptionContainer}>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Описание"
+                  placeholderTextColor={Colors.grey}
+                  value={description}
+                  onChangeText={setDescription}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  maxLength={500}
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  style={styles.expandButton}
+                  onPress={() => setDescriptionModalVisible(true)}
+                  disabled={isLoading}
+                >
+                  <Image
+                    source={require('@/assets/images/event_card/back.png')}
+                    style={styles.expandIcon}
+                  />
+                </TouchableOpacity>
+              </View>
+              {description.length > 0 && (
+                <Text style={styles.charCounter}>
+                  {description.length} / 500
+                </Text>
+              )}
 
               {!editMode ? (
                 <CategorySelector
@@ -568,7 +601,6 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               <GenreSelector
                 selected={selectedGenres}
                 onToggle={handleGenreToggle}
-                genres={availableGenres.length > 0 ? availableGenres : undefined}
               />
 
               <TextInput
@@ -597,7 +629,8 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                   placeholder="Ограничение (12+)"
                   placeholderTextColor={Colors.grey}
                   value={ageRating}
-                  onChangeText={setAgeRating}
+                  onChangeText={handleAgeRatingChange}
+                  keyboardType="numeric"
                   maxLength={3}
                   editable={!isLoading}
                 />
@@ -609,7 +642,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
 
               <View style={styles.rowContainer}>
                 <TouchableOpacity 
-                  style={[styles.dateButton, { flex: 1, marginRight: 8 }]}
+                  style={[styles.dateButton, { flex: 1, marginRight: 6 }]}
                   onPress={() => !isLoading && setDatePickerVisibility(true)}
                   disabled={isLoading}
                 >
@@ -704,19 +737,35 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               tintColor={Colors.lightBlue}
             >
               <View style={styles.bottomContent}>
-                <TouchableOpacity 
-                  style={[styles.createButton, isLoading && styles.createButtonDisabled]} 
-                  onPress={handleSubmit}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color={Colors.blue3} />
-                  ) : (
-                    <Text style={styles.createButtonText}>
-                      {editMode ? 'Сохранить изменения' : 'Создать событие'}
-                    </Text>
+                <View style={styles.buttonsRow}>
+                  {editMode && (
+                    <TouchableOpacity 
+                      style={[styles.deleteButtonBottom, isLoading && styles.buttonDisabled]} 
+                      onPress={handleDeletePress}
+                      disabled={isLoading}
+                    >
+                      <Text style={styles.deleteButtonText}>Удалить</Text>
+                    </TouchableOpacity>
                   )}
-                </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={[
+                      styles.createButton, 
+                      isLoading && styles.buttonDisabled,
+                      editMode && styles.createButtonWithDelete
+                    ]} 
+                    onPress={handleSubmit}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator size="small" color={Colors.blue3} />
+                    ) : (
+                      <Text style={styles.createButtonText}>
+                        {editMode ? 'Сохранить' : 'Создать событие'}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
             </ImageBackground>
           </ScrollView>
@@ -728,10 +777,17 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
         title="Загрузить данные с Кинопоиска?"
         message={eventName 
           ? `Будет выполнен поиск фильма "${eventName}" и автоматическое заполнение полей формы.`
-          : 'Будет выполнен поиск по названию фильма и автоматическое заполнение полей формы.'
+          : 'Будет выполнен поиск по названию фильма и автоматическое заполнение полей формы'
         }
         onConfirm={handleKinopoiskConfirm}
         onCancel={() => setKinopoiskModalVisible(false)}
+      />
+
+      <DescriptionModal
+        visible={descriptionModalVisible}
+        onClose={() => setDescriptionModalVisible(false)}
+        description={description}
+        onChangeDescription={setDescription}
       />
 
       <YandexMapModal
@@ -744,7 +800,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
       <ConfirmationModal
         visible={showDeleteModal}
         title="Удалить событие?"
-        message="Это действие нельзя отменить. Событие будет удалено безвозвратно."
+        message="Это действие нельзя отменить. Событие будет удалено безвозвратно"
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />
@@ -768,7 +824,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 15,
     paddingHorizontal: 16,
     backgroundColor: Colors.white,
@@ -778,7 +833,7 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.bold,
     fontSize: 18,
     color: Colors.black,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   closeButton: {
     position: 'absolute',
@@ -864,7 +919,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: Colors.grey,
-    paddingVertical: 8,
+    paddingVertical: 9,
     marginBottom: 16,
   },
   dateText: {
@@ -877,7 +932,6 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     resizeMode: 'contain',
-    marginLeft: 10,
   },
   placeContainer: {
     flexDirection: 'row',
@@ -943,16 +997,41 @@ const styles = StyleSheet.create({
   bottomContent: {
     padding: 16,
   },
-  createButton: {
+  buttonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  deleteButtonBottom: {
+    flex: 1,
     backgroundColor: Colors.white,
-    marginHorizontal: 60,
     paddingVertical: 8,
+    paddingHorizontal: 24,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
   },
-  createButtonDisabled: {
+  deleteButtonText: {
+    fontFamily: Montserrat.bold,
+    fontSize: 16,
+    color: Colors.red,
+  },
+  createButton: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    paddingVertical: 8,
+    paddingHorizontal: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  createButtonWithDelete: {
+    paddingHorizontal: 24,
+  },
+  buttonDisabled: {
     opacity: 0.6,
   },
   createButtonText: {
@@ -972,15 +1051,32 @@ const styles = StyleSheet.create({
     color: Colors.black,
     marginBottom: 8,
   },
-  deleteButton: {
-    position: 'absolute',
-    left: 16,
-    zIndex: 1,
+  charCounter: {
+    fontFamily: Montserrat.regular,
+    fontSize: 12,
+    color: Colors.grey,
+    marginTop: -12,
+    marginBottom: 12,
   },
-  deleteIcon: {
-    width: 26,
-    height: 26,
-    resizeMode: 'contain',
+  descriptionContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  expandButton: {
+    position: 'absolute',
+    right: 0,
+    bottom: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expandIcon: {
+    width: 20,
+    height: 20,
+    tintColor: Colors.grey,
+    transform: [{ rotate: '90deg' }],
   },
 });
 

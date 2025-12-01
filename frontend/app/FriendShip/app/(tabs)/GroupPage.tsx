@@ -175,9 +175,12 @@ const GroupPage = () => {
     }
   };
 
-  const handleUserPress = (userId: string) => {
-    console.log('[GroupPage] Переход на профиль пользователя, userId:', userId);
-    navigation.navigate('ProfilePage', { userId });
+  const handleUserPress = (username: string) => {
+    console.log('🔍 [GroupPage] handleUserPress вызван');
+    console.log('🔍 [GroupPage] username:', username);
+    console.log('🔍 [GroupPage] тип:', typeof username);
+    
+    navigation.navigate('ProfilePage', { userId: username });
   };
 
   const getContactIcon = (contactName: string, contactLink?: string) => {
@@ -406,30 +409,21 @@ const GroupPage = () => {
         <CategorySection title={`Участники: ${groupData.count_members || groupData.users?.length || 0}`}>
           {groupData.users && groupData.users.length > 0 ? (
             <View style={styles.membersContainer}>
-              {groupData.users.map((user, index) => {
-                const userId = user.id 
-                  ? user.id.toString()
-                  : (user.us && user.us.startsWith('user'))
-                    ? user.us.replace('user', '')
-                    : null;
-
-                return (
-                  <TouchableOpacity 
-                    key={`member-${index}`} 
-                    style={styles.memberItem}
-                    onPress={() => {
-                      if (userId) {
-                        handleUserPress(userId);
-                      } else {
-                        Alert.alert('Недоступно', 'Профиль этого пользователя недоступен');
-                      }
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Image 
-                      source={{ uri: user.image }} 
-                      style={styles.memberImage} 
-                    />
+                {groupData.users.map((user, index) => {
+                  console.log('👤 [GroupPage] user:', user);
+                  console.log('👤 [GroupPage] user.us:', user.us);
+                  
+                  return (
+                    <TouchableOpacity 
+                      key={`member-${index}`} 
+                      style={styles.memberItem}
+                      onPress={() => handleUserPress(user.us)}
+                      activeOpacity={0.7}
+                    >
+                      <Image 
+                        source={{ uri: user.image }} 
+                        style={styles.memberImage} 
+                      />
                   </TouchableOpacity>
                 );
               })}

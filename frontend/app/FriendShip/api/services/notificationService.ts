@@ -52,7 +52,6 @@ class NotificationService {
   async checkUnreadNotifications(): Promise<UnreadNotificationsResponse> {
     try {
       const response = await apiClient.get<boolean>('/users/notify/inf');
-      console.log('[NotificationService] Проверка непросмотренных уведомлений');
       return { has_unread: response.data };
     } catch (error: any) {
       console.error('[NotificationService] Ошибка проверки уведомлений:', error);

@@ -141,7 +141,7 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
           >
             <View style={styles.checkboxRow}>
               <View style={[styles.checkboxCircle, isPrivate && styles.checkboxSelected]} />
-              <Text style={styles.checkboxLabel}>Эта группа приватная?</Text>
+              <Text style={styles.checkboxLabel}>Приватная группа</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     width: 35,
     height: 35,
     borderRadius: 8,
-    backgroundColor: Colors.lightGrey,
+    backgroundColor: Colors.lightLightGrey,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,

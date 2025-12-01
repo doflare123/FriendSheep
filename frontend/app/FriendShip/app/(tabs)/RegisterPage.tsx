@@ -2,8 +2,9 @@ import { useAuthContext } from '@/api/services/AuthContext';
 import authService from '@/api/services/authService';
 import { useToast } from '@/components/ToastContext';
 import { Colors } from '@/constants/Colors';
+import { hasRussianChars, validatePassword } from '@/utils/validators';
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Button from '../../components/auth/Button';
@@ -21,15 +22,18 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const passwordValidation = useMemo(() => validatePassword(password), [password]);
+  const showRussianWarning = useMemo(() => hasRussianChars(password), [password]);
+
   const openURL = (url: string) => {
     Linking.openURL(url).catch(err =>
       console.error('Не удалось открыть ссылку:', err),
     );
-  };
-
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
   };
 
   const handleRegister = async () => {
@@ -62,11 +66,11 @@ const Register = () => {
       return;
     }
 
-    if (!password.trim() || password.length < 6) {
+    if (!passwordValidation.isValid) {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: 'Пароль должен содержать минимум 6 символов',
+        message: 'Пароль не соответствует требованиям',
       });
       return;
     }
@@ -130,6 +134,12 @@ const Register = () => {
           editable={!loading}
         />
 
+        {password.length > 0 && !passwordValidation.isValid && (
+          <Text style={authorizeStyle.passwordValidation}>
+            Необходимо: {passwordValidation.missingRequirements.join(', ')}
+          </Text>
+        )}
+
         <Text style={authorizeStyle.label}>Почта</Text>
         <Input
           placeholder="user_email@gmail.com"
@@ -145,7 +155,7 @@ const Register = () => {
             onPress={() => navigation.navigate('Login' as never)}
             disabled={loading}
           >
-            <Text>Есть аккаунт?</Text>
+            <Text style={authorizeStyle.account}>Есть аккаунт?</Text>
           </TouchableOpacity>
         </View>
 
@@ -175,7 +185,7 @@ const Register = () => {
         <Button
           title={loading ? 'Отправка...' : 'Зарегистрироваться'}
           onPress={handleRegister}
-          disabled={loading}
+          disabled={loading || !passwordValidation.isValid}
         />
 
         {loading && (

@@ -95,7 +95,7 @@ const ForgotPassword = () => {
 
         <Text style={authorizeStyle.terms}>
           Мы отправим код подтверждения на указанный email.
-          После этого вы сможете установить новый пароль.
+          После этого вы сможете установить новый пароль
         </Text>
 
         <Button
@@ -117,7 +117,7 @@ const ForgotPassword = () => {
             onPress={() => navigation.goBack()}
             disabled={loading}
           >
-            <Text>Вернуться к входу</Text>
+            <Text style={authorizeStyle.account}>Вернуться к входу</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>

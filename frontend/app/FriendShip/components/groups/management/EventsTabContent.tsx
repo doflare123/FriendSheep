@@ -92,6 +92,8 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
         <Text style={styles.createButtonText}>Создать новое событие</Text>
       </TouchableOpacity>
 
+      <Text style={styles.hintText}>Для редактирования события нажмите на него</Text>
+
       <FlatList
         data={filteredAndSortedEvents}
         keyExtractor={(item) => item.id}
@@ -120,12 +122,12 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    marginBottom: 4,
     backgroundColor: Colors.white,
   },
   createButton: {
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 8,
     backgroundColor: Colors.lightBlue,
     borderRadius: 40,
     paddingVertical: 6,
@@ -160,6 +162,13 @@ const styles = StyleSheet.create({
     color: Colors.grey,
     textAlign: 'center',
   },
+  hintText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 12,
+    color: Colors.grey,
+    textAlign: 'center',
+    marginBottom: 8,
+  }
 });
 
 export default EventsTabContent;

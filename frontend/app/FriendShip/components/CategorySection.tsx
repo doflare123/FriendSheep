@@ -109,7 +109,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
           {showArrow && onArrowPress && (
             <TouchableOpacity onPress={onArrowPress}>
               <Image
-                source={require('../assets/images/arrow.png')}
+                source={require('../assets/images/more.png')}
                 style={{ resizeMode: 'contain', width: 30, height: 30 }}
               />
             </TouchableOpacity>

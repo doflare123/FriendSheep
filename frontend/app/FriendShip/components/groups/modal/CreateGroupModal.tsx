@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     width: 35,
     height: 35,
     borderRadius: 8,
-    backgroundColor: Colors.lightGrey,
+    backgroundColor: Colors.lightLightGrey,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -525,6 +525,7 @@ const styles = StyleSheet.create({
   },
   bottomBackground: {
     width: "100%",
+    marginTop: -2
   },
   bottomContent: {
     padding: 16,

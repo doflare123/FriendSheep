@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   categoryButton: {
     width: 40,
     height: 40,
-    backgroundColor: Colors.lightGrey,
+    backgroundColor: Colors.lightLightGrey,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
