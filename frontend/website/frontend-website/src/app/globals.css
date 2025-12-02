@@ -18,7 +18,7 @@
 }
 
 :root {
-  --background: #ffffff;
+  --background: var(--color-bg-primary);
   --foreground: #171717;
 
   /* Меняешь здесь на нужный шрифт */
@@ -71,7 +71,7 @@ body {
     position: fixed; /* Вместо absolute - делает фон статичным */
     inset: 0;
     background-image: url('/bg.png'), 
-                      linear-gradient(135deg, #4e79a7 0%, #37A2E6 100%);
+                      linear-gradient(135deg, #4e79a7 0%, var(--color-primary-blue) 100%);
     background-size: cover; /* Растягивает/сжимает изображение */
     background-position: center; /* Центрирует изображение */
     background-repeat: no-repeat; /* Убирает повторение */
@@ -79,7 +79,7 @@ body {
 }
 
 .form-container {
-  @apply bg-white rounded-2xl p-10 w-[50vw] font-inter border-2 border-[#316BC2] min-h-[475px] text-2xl;
+  @apply bg-white rounded-2xl p-10 w-[50vw] font-inter border-2 border-[var(--color-primary-blue-dark)] min-h-[475px] text-2xl;
 }
 
 .page-wrapper {
@@ -91,7 +91,7 @@ body {
 }
 
 .heading-title {
-  @apply text-5xl text-center text-[#37A2E6] mb-6;
+  @apply text-5xl text-center text-[var(--color-primary-blue)] mb-6;
 }
 
 .label-style {
@@ -99,11 +99,11 @@ body {
 }
 
 .input-style {
-  @apply w-full rounded-lg border-2 border-[#316BC2] p-3 text-xl text-black;
+  @apply w-full rounded-lg border-2 border-[var(--color-primary-blue-dark)] p-3 text-xl text-black;
 }
 
 .button-primary {
-  @apply w-[80%] block mx-auto rounded-lg bg-[#37A2E6] border-2 border-[#316BC2] text-white py-3 hover:bg-[#2d93d5] transition mt-5;
+  @apply w-[80%] block mx-auto rounded-lg bg-[var(--color-primary-blue)] border-2 border-[var(--color-primary-blue-dark)] text-white py-3 hover:bg-[var(--color-primary-blue)] transition mt-5;
 }
 
 .link-small-note {
@@ -116,7 +116,7 @@ body {
 }
 
 .footer-link {
-  @apply hover:text-[#37A2E6] transition-colors cursor-pointer;
+  @apply hover:text-[var(--color-primary-blue)] transition-colors cursor-pointer;
 }
 
 .social-icon {
@@ -124,11 +124,11 @@ body {
 }
 
 .error {
-  border-color: #ff4444 !important;
+  border-color: var(--color-danger) !important;
 }
 
 .errorMessage {
-  color: #ff4444;
+  color: var(--color-danger);
   font-size: 12px;
   margin-top: 4px;
   display: block;

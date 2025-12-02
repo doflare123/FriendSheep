@@ -3,7 +3,7 @@ import Image from 'next/image';
 
 const Footer: React.FC = () => {
     return (
-        <footer className="bg-white border-t-2 border-[#316BC2] py-8 px-6 font-inter text-xl">
+        <footer className="bg-white border-t-2 border-[var(--color-primary-blue-dark)] py-8 px-6 font-inter text-xl">
             <div className="max-w-[120rem] mx-auto flex justify-between items-start md:flex-row flex-col md:space-y-0 space-y-6">
                 {/* Левая часть */}
                 <div className="flex flex-col space-y-2 -mt-6">
@@ -15,8 +15,8 @@ const Footer: React.FC = () => {
                         height={64} 
                         className="rounded-[1.0rem] ml-4" 
                         />
-                        <h3 className="text-2xl font-semibold text-[#37A2E6]">FriendShip</h3>
-                        <div className="w-150 h-0.5 bg-[#316BC2]"></div>
+                        <h3 className="text-2xl font-semibold text-[var(--color-primary-blue)]">FriendShip</h3>
+                        <div className="w-150 h-0.5 bg-[var(--color-primary-blue-dark)]"></div>
                     </div>
                     
                     <div className="footer-links">

@@ -63,8 +63,8 @@
     height: 40px;
     border-radius: 50%;
     background: white;
-    border: 2px solid #316BC2;
-    color: #316BC2;
+    border: 2px solid var(--color-primary-blue-dark);
+    color: var(--color-primary-blue-dark);
     font-size: 20px;
     font-weight: bold;
     cursor: pointer;
@@ -89,10 +89,10 @@
 
 .emptyGroupsMessage {
     text-align: center;
-    color: #666;
+    color: var(--color-text-primary);
     font-size: 32px;
     padding: 60px 20px;
-    background: rgba(255, 255, 255, 0.8);
+    background: var(--color-bg-primary);
     margin: 0 20px;
     display: flex;
     align-items: center;

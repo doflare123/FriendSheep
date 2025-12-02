@@ -574,7 +574,7 @@ export default function SearchPage() {
                         <div style={{ 
                           textAlign: 'center', 
                           padding: '60px 20px', 
-                          color: '#666',
+                          color: 'var(--color-text-primary)',
                           fontSize: '18px'
                         }}>
                           Групп не найдено
@@ -626,7 +626,7 @@ export default function SearchPage() {
                         <div style={{ 
                           textAlign: 'center', 
                           padding: '60px 20px', 
-                          color: '#666',
+                          color: 'var(--color-text-primary)',
                           fontSize: '18px'
                         }}>
                           Пользователей не найдено

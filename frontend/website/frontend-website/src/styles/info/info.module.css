@@ -54,14 +54,14 @@
 }
 
 .markdownContent code {
-  background-color: #f4f4f4;
+  background-color: var(--color-bg-primary);
   padding: 0.2rem 0.4rem;
   border-radius: 3px;
   font-family: monospace;
 }
 
 .markdownContent pre {
-  background-color: #f4f4f4;
+  background-color: var(--color-bg-primary);
   padding: 1rem;
   border-radius: 5px;
   overflow-x: auto;
@@ -74,7 +74,7 @@
 }
 
 .markdownContent a {
-  color: #0070f3;
+  color: var(--color-primary-blue);
   text-decoration: none;
 }
 

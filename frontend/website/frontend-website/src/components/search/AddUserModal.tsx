@@ -154,7 +154,7 @@ export default function AddUserModal({ isOpen, onClose, userId }: AddUserModalPr
           <div style={{ 
             textAlign: 'center', 
             padding: '60px 20px', 
-            color: '#666',
+            color: 'var(--color-text-primary)',
             fontSize: '16px'
           }}>
             У вас пока нет групп для приглашения

@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-medium);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -20,7 +20,7 @@
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-xxl);
 }
 
 .header {
@@ -28,13 +28,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px 16px 24px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .title {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -69,7 +69,7 @@
     black calc(100% - 20px), 
     transparent 100%);
   scrollbar-width: thin;
-  scrollbar-color: #37A2E6 transparent;
+  scrollbar-color: var(--color-primary-blue) transparent;
 }
 
 .groupsList::-webkit-scrollbar {
@@ -81,19 +81,19 @@
 }
 
 .groupsList::-webkit-scrollbar-thumb {
-  background: #37A2E6;
+  background: var(--color-primary-blue);
   border-radius: 2px;
 }
 
 .groupsList::-webkit-scrollbar-thumb:hover {
-  background: #2a8bc7;
+  background: var(--color-primary-blue);
 }
 
 .groupItem {
   display: flex;
   align-items: center;
   padding: 12px;
-  border: 2px solid #ccc; /* Серая обводка по умолчанию */
+  border: 2px solid var(--color-border-gray); /* Серая обводка по умолчанию */
   border-radius: 12px;
   margin-bottom: 8px;
   cursor: pointer;
@@ -106,14 +106,14 @@
 }
 
 .groupItem:hover {
-  border-color: #999; /* Более темная серая при наведении */
-  background: rgba(0, 0, 0, 0.02);
+  border-color: var(--color-text-muted); /* Более темная серая при наведении */
+  background: var(--overlay-lighter);
   transform: translateY(-1px);
 }
 
 .selectedGroup {
-  border-color: #37A2E6 !important; /* Голубая обводка только при выборе */
-  background: rgba(55, 162, 230, 0.1) !important;
+  border-color: var(--color-primary-blue) !important; /* Голубая обводка только при выборе */
+  background: var(--overlay-blue) !important;
 }
 
 .groupContent {
@@ -145,7 +145,7 @@
 .groupName {
   font-size: 16px;
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
   text-align: center;
   word-wrap: break-word;
@@ -163,7 +163,7 @@
   display: flex;
   gap: 12px;
   padding: 16px 24px 20px 24px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .cancelButton {
@@ -171,7 +171,7 @@
   padding: 12px 16px;
   background: transparent;
   color: black;
-  border: 2px solid #ddd;
+  border: 2px solid var(--color-border-gray);
   border-radius: 8px;
   font-size: 16px;
   font-weight: 500;
@@ -180,14 +180,14 @@
 }
 
 .cancelButton:hover {
-  border-color: #bbb;
-  color: #333;
+  border-color: var(--color-border-gray);
+  color: var(--color-text-primary);
 }
 
 .submitButton {
   flex: 1;
   padding: 12px 16px;
-  background: #37A2E6;
+  background: var(--color-primary-blue);
   color: white;
   border: none;
   border-radius: 8px;
@@ -198,16 +198,16 @@
 }
 
 .submitButton:hover {
-  background: #2a8bc7;
+  background: var(--color-primary-blue);
 }
 
 .disabledButton {
-  background: #ccc !important;
+  background: var(--color-border-gray) !important;
   cursor: not-allowed !important;
 }
 
 .disabledButton:hover {
-  background: #ccc !important;
+  background: var(--color-border-gray) !important;
 }
 
 /* Анимация появления */

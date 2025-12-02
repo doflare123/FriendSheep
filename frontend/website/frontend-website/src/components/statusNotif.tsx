@@ -121,9 +121,9 @@ function NotifItem({
   };
 
   const borderColor = {
-    error: "#E6374B",
-    warning: "#FF6A00",
-    success: "#51A732",
+    error: "var(--color-danger)",
+    warning: "var(--color-warning)",
+    success: "var(--color-success)",
   }[type];
 
   return (

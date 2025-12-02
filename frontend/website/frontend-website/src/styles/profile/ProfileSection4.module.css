@@ -1,5 +1,5 @@
 .eventsSection {
-  border: 2px solid #37A2E6;
+  border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   padding: 20px;
   grid-row: 2;
@@ -46,7 +46,7 @@
 }
 
 .active {
-  box-shadow: 0 0 0 2px #37A2E6;
+  box-shadow: 0 0 0 2px var(--color-primary-blue);
 }
 
 .content {

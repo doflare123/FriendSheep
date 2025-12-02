@@ -2,7 +2,7 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  background: #FFFFFF;
+  background: var(--color-bg-primary);
   border-radius: 16px;
   padding: 20px;
   display: grid;
@@ -45,9 +45,9 @@
 
 .joinButton {
   width: 100%;
-  background: #37A2E6;
-  color: #FFFFFF;
-  border: 2px solid #316BC2;
+  background: var(--color-primary-blue);
+  color: var(--color-bg-primary);
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 18px;
   margin-top: 10%;
   margin-bottom: 8%;
@@ -59,13 +59,13 @@
 }
 
 .joinButton:hover {
-  background: #2d93d5;
+  background: var(--color-primary-blue);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(55, 162, 230, 0.3);
+  box-shadow: var(--shadow-blue);
 }
 
 .contactsSection {
-  border: 2px solid #37A2E6;
+  border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   padding: 12px;
   flex: 1;
@@ -78,7 +78,7 @@
 .contactsSection h3 {
   font-size: 18px;
   margin-bottom: 12px;
-  color: #000000;
+  color: var(--color-text-primary);
   flex-shrink: 0;
 }
 
@@ -102,7 +102,7 @@
 }
 
 .contactItem:hover {
-  background: #f5f5f5;
+  background: var(--color-bg-primary);
 }
 
 .contactIconWrapper {
@@ -119,7 +119,7 @@
 
 .contactName {
   font-size: 16px;
-  color: #000000;
+  color: var(--color-text-primary);
 }
 
 /* Правая секция */
@@ -159,7 +159,7 @@
 .groupName {
   font-size: 28px;
   font-weight: 700;
-  color: #000000;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -175,13 +175,13 @@
 
 .groupLocation {
   font-size: 22px;
-  color: #000000;
+  color: var(--color-text-primary);
   margin: 0;
   flex-shrink: 0;
 }
 
 .descriptionSection {
-  border: 2px solid #37A2E6;
+  border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   padding: 12px;
   flex: 1;
@@ -193,19 +193,19 @@
 .descriptionLabel {
   font-size: 20px;
   font-weight: 400;
-  color: #000000;
+  color: var(--color-text-primary);
   margin: 0 0 8px 0;
 }
 
 .descriptionText {
   font-size: 16px;
-  color: #000000;
+  color: var(--color-text-primary);
   margin: 0;
   line-height: 1.4;
 }
 
 .subscribersSection {
-  border: 2px solid #37A2E6;
+  border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   padding: 12px;
   display: flex;
@@ -217,7 +217,7 @@
 .subscribersSection h3 {
   font-size: 22px;
   margin-bottom: 42px;
-  color: #000000;
+  color: var(--color-text-primary);
   flex-shrink: 0;
 }
 
@@ -250,7 +250,7 @@
 
 .subscriberName {
   font-size: 14px;
-  color: #000000;
+  color: var(--color-text-primary);
   width: 100%;
   max-width: 80px;
   overflow: hidden;
@@ -269,7 +269,7 @@
 }
 
 .eventsSection {
-  border: 2px solid #37A2E6;
+  border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   padding: 12px;
   flex-shrink: 0;
@@ -282,7 +282,7 @@
 .eventsSection h3 {
   font-size: 28px;
   margin-bottom: 12px;
-  color: #000000;
+  color: var(--color-text-primary);
   flex-shrink: 0;
 }
 
@@ -319,7 +319,7 @@
 }
 
 .noEventsText {
-  color: #999999;
+  color: var(--color-text-muted);
   font-size: 32px;
   margin: 0;
   text-align: center;
@@ -446,9 +446,9 @@
 
 .leaveButton {
   width: 100%;
-  background: #E6374B;
-  color: #FFFFFF;
-  border: 2px solid #C42E3F;
+  background: var(--color-danger);
+  color: var(--color-bg-primary);
+  border: 2px solid var(--color-danger-dark);
   border-radius: 18px;
   margin-top: 10%;
   margin-bottom: 8%;
@@ -460,9 +460,9 @@
 }
 
 .leaveButton:hover {
-  background: #d32f42;
+  background: var(--color-danger-dark);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(230, 55, 75, 0.3);
+  box-shadow: var(--shadow-danger);
 }
 
 .leaveButton:disabled,
@@ -474,11 +474,11 @@
 
 .leaveButton:disabled:hover,
 .joinButton:disabled:hover {
-  background: #E6374B;
+  background: var(--color-danger);
   transform: none;
   box-shadow: none;
 }
 
 .joinButton:disabled:hover {
-  background: #37A2E6;
+  background: var(--color-primary-blue);
 }

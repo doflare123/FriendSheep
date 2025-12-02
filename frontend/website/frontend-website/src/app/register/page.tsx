@@ -197,7 +197,7 @@ export default function RegisterPage() {
             </div>
 
             <LinkNote>
-                <FormLink href="/login" color="#000000">
+                <FormLink href="/login" color="var(--color-text-primary)">
                     Есть аккаунт?
                 </FormLink>
             </LinkNote>

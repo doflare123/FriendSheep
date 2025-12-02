@@ -1,5 +1,5 @@
 .subscriptionsSection {
-  border: 2px solid #37A2E6;
+  border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   padding: 20px;
   grid-row: 2;
@@ -43,7 +43,7 @@
     black calc(100% - 20px),
     transparent 100%);
   scrollbar-width: thin;
-  scrollbar-color: #37A2E6 transparent;
+  scrollbar-color: var(--color-primary-blue) transparent;
 }
 
 .groupsList::-webkit-scrollbar {
@@ -55,19 +55,19 @@
 }
 
 .groupsList::-webkit-scrollbar-thumb {
-  background: #37A2E6;
+  background: var(--color-primary-blue);
   border-radius: 2px;
 }
 
 .groupsList::-webkit-scrollbar-thumb:hover {
-  background: #2a8bc7;
+  background: var(--color-primary-blue);
 }
 
 .groupItem {
   display: flex;
   align-items: center;
   padding: 12px;
-  border: 2px solid #37A2E6;
+  border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   margin-bottom: 8px;
   cursor: pointer;
@@ -125,7 +125,7 @@
 
 .memberCount {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -138,9 +138,9 @@
   cursor: pointer;
   font-size: 18px;
   font-weight: bold;
-  color: #316BC2;
+  color: var(--color-primary-blue-dark);
   background: white;
-  border: 3px solid #316BC2;
+  border: 3px solid var(--color-primary-blue-dark);
   border-radius: 50%;
   width: 36px;
   height: 36px;
@@ -152,7 +152,7 @@
 }
 
 .scrollArrow:hover {
-  background: #f0f7ff;
+  background: var(--color-bg-hover);
 }
 
 .topArrow {

@@ -531,7 +531,7 @@ export default function EventsSearchPage() {
                   <div style={{ 
                     textAlign: 'center', 
                     padding: '60px 20px', 
-                    color: '#666',
+                    color: 'var(--color-text-primary)',
                     fontSize: '18px'
                   }}>
                     Событий не найдено
@@ -545,7 +545,7 @@ export default function EventsSearchPage() {
                   onClick={scrollToTop}
                   aria-label="Прокрутить вверх"
                 >
-                  <span style={{ fontSize: '20px', color: '#316BC2' }}>↑</span>
+                  <span style={{ fontSize: '20px', color: 'var(--color-primary-blue-dark)' }}>↑</span>
                 </button>
               )}
               
@@ -555,7 +555,7 @@ export default function EventsSearchPage() {
                   onClick={scrollToBottom}
                   aria-label="Прокрутить вниз"
                 >
-                  <span style={{ fontSize: '20px', color: '#316BC2' }}>↓</span>
+                  <span style={{ fontSize: '20px', color: 'var(--color-primary-blue-dark)' }}>↓</span>
                 </button>
               )}
             </>

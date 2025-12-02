@@ -104,7 +104,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
       // Обновляем текущую страницу принудительно
       if (typeof window !== 'undefined') {
-        window.location.reload();
+        //window.location.reload();
       }
     } catch (error: any) {
       console.error('Ошибка при присоединении/отписке:', error);

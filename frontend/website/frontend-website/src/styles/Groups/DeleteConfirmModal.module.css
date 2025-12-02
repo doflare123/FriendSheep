@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--overlay-medium);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -28,7 +28,7 @@
   border-radius: 16px;
   width: 90%;
   max-width: 500px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-xl);
   animation: slideUp 0.3s ease-out;
 }
 
@@ -48,7 +48,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px 24px 16px 24px;
-  border-bottom: 2px solid #f0f0f0;
+  border-bottom: 2px solid var(--color-bg-hover);
 }
 
 .modalHeader h3 {
@@ -62,7 +62,7 @@
   background: none;
   border: none;
   font-size: 32px;
-  color: #999;
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -74,7 +74,7 @@
 }
 
 .closeButton:hover {
-  color: #E6374B;
+  color: var(--color-danger);
 }
 
 .modalBody {
@@ -84,14 +84,14 @@
 .warningText {
   font-size: 16px;
   font-weight: 600;
-  color: #E6374B;
+  color: var(--color-danger);
   margin: 0 0 12px 0;
   line-height: 1.5;
 }
 
 .infoText {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-primary);
   margin: 0;
   line-height: 1.5;
 }
@@ -121,23 +121,23 @@
 }
 
 .cancelButton {
-  background-color: #f0f0f0;
+  background-color: var(--color-bg-hover);
   color: #000;
 }
 
 .cancelButton:hover {
-  background-color: #e0e0e0;
+  background-color: var(--color-border-light);
 }
 
 .deleteButton {
-  background-color: #E6374B;
-  color: #FFFFFF;
+  background-color: var(--color-danger);
+  color: var(--color-bg-primary);
 }
 
 .deleteButton:hover {
-  background-color: #d32636;
+  background-color: var(--color-danger-dark);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(230, 55, 75, 0.3);
+  box-shadow: var(--shadow-danger);
 }
 
 /* Адаптивность */

@@ -16,7 +16,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onSubmit }
         style={{
           background: 'white',
           borderRadius: '20px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+          boxShadow: 'var(--shadow-xl)'
         }}
       >
         <div className={styles.modalHeader}>

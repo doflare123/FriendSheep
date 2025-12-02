@@ -154,7 +154,7 @@ export default function LoginPage() {
           Забыли пароль?
         </FormLink>
       }>
-        <FormLink href="/register" color="#000000">
+        <FormLink href="/register" color="var(--color-text-primary)">
           Нет аккаунта?
         </FormLink>
       </LinkNote>

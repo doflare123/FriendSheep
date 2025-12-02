@@ -6,7 +6,7 @@
   bottom: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--overlay-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -23,7 +23,7 @@
   height: 775px;
   width: 100%;
   position: relative;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-xxl);
   font-family: 'Inter', sans-serif;
   display: flex;
   flex-direction: column;
@@ -43,7 +43,7 @@
 }
 
 .closeButton:hover {
-  background: #f0f0f0;
+  background: var(--color-bg-hover);
 }
 
 .modalContent {
@@ -66,25 +66,25 @@
 }
 
 .modalContent::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--scrollbar-track);
   border-radius: 4px;
   /* Отступ сверху для трека скроллбара */
   margin-top: 8px;
 }
 
 .modalContent::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 .modalContent::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Для Firefox */
 .modalContent {
   scrollbar-width: thin;
-  scrollbar-color: #c1c1c1 #f1f1f1;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .leftColumn,
@@ -124,14 +124,14 @@
 .label {
   font-weight: 500;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 /* Стили для инпутов без обводки (с подчеркиванием) */
 .input {
   padding: 8px 0;
   border: none;
-  border-bottom: 2px solid #316BC2;
+  border-bottom: 2px solid var(--color-primary-blue-dark);
   background: transparent;
   font-size: 14px;
   transition: border-color 0.2s ease;
@@ -140,13 +140,13 @@
 
 .input:focus {
   outline: none;
-  border-bottom-color: #2e5aa3;
+  border-bottom-color: var(--color-primary-blue-dark);
 }
 
 /* Стили для описания (с обводкой) */
 .textarea {
   padding: 12px 16px;
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 8px;
   font-size: 14px;
   transition: border-color 0.2s ease;
@@ -157,13 +157,13 @@
 
 .textarea:focus {
   outline: none;
-  border-color: #2e5aa3;
+  border-color: var(--color-primary-blue-dark);
 }
 
 /* Стили для селекта групп */
 .select {
   padding: 12px 16px;
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 16px;
   font-size: 14px;
   transition: border-color 0.2s ease;
@@ -173,7 +173,7 @@
 
 .select:focus {
   outline: none;
-  border-color: #2e5aa3;
+  border-color: var(--color-primary-blue-dark);
 }
 
 .titleRow {
@@ -217,7 +217,7 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: #565555;
+  background: var(--color-bg-gray-dark);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -225,7 +225,7 @@
 }
 
 .categoryItem.selected {
-  background: #37A2E6;
+  background: var(--color-primary-blue);
 }
 
 .categoryItem:hover {
@@ -235,7 +235,7 @@
 .genreButton {
   padding: 12px 16px;
   background: transparent;
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 20px;
   cursor: pointer;
   font-size: 14px;
@@ -244,7 +244,7 @@
 }
 
 .genreButton:hover {
-  border-color: #2e5aa3;
+  border-color: var(--color-primary-blue-dark);
 }
 
 .genreSelector {
@@ -253,7 +253,7 @@
   left: 0;
   right: 0;
   background: white;
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 16px;
   max-height: 200px;
   overflow-y: auto;
@@ -268,17 +268,17 @@
 }
 
 .genreSelector::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--scrollbar-track);
   border-radius: 3px;
 }
 
 .genreSelector::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
 .genreSelector::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--scrollbar-thumb-hover);
 }
 
 .genreOption {
@@ -293,7 +293,7 @@
 }
 
 .genreOption:hover {
-  background: #f5f5f5;
+  background: var(--color-bg-primary);
 }
 
 .genreOption input[type="checkbox"] {
@@ -315,7 +315,7 @@
   width: 66px;
   height: 66px;
   border-radius: 50%;
-  border: 3px solid #316BC2;
+  border: 3px solid var(--color-primary-blue-dark);
   background: white;
   cursor: pointer;
   display: flex;
@@ -326,11 +326,11 @@
 }
 
 .onlineButton.online {
-  border-color: #316BC2;
+  border-color: var(--color-primary-blue-dark);
 }
 
 .onlineButton.offline {
-  border-color: #316BC2;
+  border-color: var(--color-primary-blue-dark);
 }
 
 .mapButton {
@@ -341,7 +341,7 @@
   width: 32px;
   height: 32px;
   background: white;
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -351,7 +351,7 @@
 }
 
 .mapButton:hover {
-  background: #f5f5f5;
+  background: var(--color-bg-primary);
 }
 
 .imageUpload {
@@ -368,7 +368,7 @@
   justify-content: center;
   gap: 8px;
   padding: 20px;
-  background: #D9D9D9;
+  background: var(--color-bg-primary);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -378,12 +378,12 @@
 }
 
 .uploadLabel:hover {
-  background: #cfcfcf;
+  background: var(--color-bg-primary);
 }
 
 .uploadLabel span {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-primary);
 }
 
 .imagePreview {
@@ -406,12 +406,12 @@
   align-items: center;
   gap: 16px;
   padding-top: 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border-light);
   margin-top: auto;
 }
 
 .saveButton {
-  background: #37A2E6;
+  background: var(--color-primary-blue);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -423,11 +423,11 @@
 }
 
 .saveButton:hover {
-  background: #2e8cc7;
+  background: var(--color-primary-blue);
 }
 
 .deleteButton {
-  background: #E6374B;
+  background: var(--color-danger);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -439,11 +439,11 @@
 }
 
 .deleteButton:hover {
-  background: #d12a3d;
+  background: var(--color-danger-dark);
 }
 
 .searchButton:hover:not(:disabled) {
-  background: #2e8cc7;
+  background: var(--color-primary-blue);
 }
 
 .searchButton:disabled {
@@ -454,18 +454,18 @@
 .searchResults {
   max-height: 150px;
   overflow-y: auto;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .searchResultItem {
   padding: 12px 20px;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-bg-hover);
   transition: background-color 0.2s ease;
 }
 
 .searchResultItem:hover {
-  background: #f5f5f5;
+  background: var(--color-bg-primary);
 }
 
 .searchResultItem:last-child {
@@ -475,13 +475,13 @@
 .searchResultItem strong {
   display: block;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .searchResultItem span {
   display: block;
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-primary);
   margin-top: 2px;
 }
 
@@ -493,20 +493,20 @@
 
 .mapModalFooter {
   padding: 16px 20px;
-  border-top: 1px solid #e0e0e0;
-  background: #f8f9fa;
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-bg-primary);
 }
 
 .mapModalFooter p {
   margin: 0;
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-primary);
   text-align: center;
 }
 
 /* Новые стили для работы с API групп */
 .errorMessage {
-  color: #E6374B;
+  color: var(--color-danger);
   font-size: 12px;
   margin-top: 5px;
   display: flex;
@@ -515,7 +515,7 @@
 }
 
 .retryButton {
-  background: #37A2E6;
+  background: var(--color-primary-blue);
   color: white;
   border: none;
   padding: 2px 8px;
@@ -526,18 +526,18 @@
 }
 
 .retryButton:hover {
-  background: #2e8cc7;
+  background: var(--color-primary-blue);
 }
 
 .retryButton:disabled {
-  background: #95a5a6;
+  background: var(--color-text-muted);
   cursor: not-allowed;
 }
 
 /* Состояние загрузки для селекта групп */
 .select:disabled {
-  background-color: #f8f9fa;
-  color: #6c757d;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-disabled);
   cursor: not-allowed;
 }
 
@@ -549,7 +549,7 @@
   width: 16px;
   height: 16px;
   border: 2px solid #f3f3f3;
-  border-top: 2px solid #37A2E6;
+  border-top: 2px solid var(--color-primary-blue);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

@@ -24,17 +24,17 @@
 }
 
 .contentContainer::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: var(--scrollbar-track);
     border-radius: 10px;
 }
 
 .contentContainer::-webkit-scrollbar-thumb {
-    background: #37A2E6;
+    background: var(--color-primary-blue);
     border-radius: 10px;
 }
 
 .contentContainer::-webkit-scrollbar-thumb:hover {
-    background: #2d93d5;
+    background: var(--color-primary-blue);
 }
 
 .section {
@@ -64,7 +64,7 @@
 }
 
 .sectionTitle {
-    color: #000000;
+    color: var(--color-text-primary);
     font-size: 24px;
     font-weight: 600;
     margin: 0;

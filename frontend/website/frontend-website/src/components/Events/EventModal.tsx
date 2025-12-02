@@ -906,7 +906,7 @@ export default function EventModal({
                   )}
                   <span style={{ 
                     fontSize: '12px', 
-                    color: '#999',
+                    color: 'var(--color-text-muted)',
                     marginLeft: 'auto',
                     marginTop: '4px'
                   }}>
@@ -931,7 +931,7 @@ export default function EventModal({
                   )}
                   <span style={{ 
                     fontSize: '12px', 
-                    color: '#999',
+                    color: 'var(--color-text-muted)',
                     marginLeft: 'auto'
                   }}>
                     {description.length}/{VALIDATION_RULES.description.max}

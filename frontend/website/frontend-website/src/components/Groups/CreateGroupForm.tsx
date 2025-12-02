@@ -297,7 +297,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                 {errors.name && <span className={styles.errorMessage}>{errors.name}</span>}
                 <span style={{ 
                   fontSize: '12px', 
-                  color: '#999',
+                  color: 'var(--color-text-muted)',
                   marginLeft: 'auto',
                   marginTop: '4px'
                 }}>
@@ -320,7 +320,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                 {errors.shortDescription && <span className={styles.errorMessage}>{errors.shortDescription}</span>}
                 <span style={{ 
                   fontSize: '12px', 
-                  color: '#999',
+                  color: 'var(--color-text-muted)',
                   marginLeft: 'auto',
                   marginTop: '4px'
                 }}>
@@ -343,7 +343,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                 {errors.description && <span className={styles.errorMessage}>{errors.description}</span>}
                 <span style={{ 
                   fontSize: '12px', 
-                  color: '#999',
+                  color: 'var(--color-text-muted)',
                   marginLeft: 'auto',
                   marginTop: '4px'
                 }}>

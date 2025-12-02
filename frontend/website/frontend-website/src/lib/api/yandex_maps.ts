@@ -69,7 +69,7 @@ export class YandexMapsAPI {
       balloonContent: 'Выбранное место'
     }, {
       draggable: true,
-      iconColor: '#37A2E6'
+      iconColor: 'var(--color-primary-blue)'
     });
 
     this.currentMap.geoObjects.add(this.currentPlacemark);

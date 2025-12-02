@@ -135,7 +135,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   }, []);
 
   // Цвета для диаграммы
-  const chartColors = ['#316BC2', '#1E5CB9', '#1851A6', '#134693', '#0D3E86', '#0A3677'];
+  const chartColors = ['var(--color-primary-blue-dark)', '#1E5CB9', '#1851A6', '#134693', '#0D3E86', '#0A3677'];
 
   // Все доступные типы плиток
   const availableTiles = ['count_all', 'count_films', 'count_games', 'count_other', 'count_table', 'spent_time'];

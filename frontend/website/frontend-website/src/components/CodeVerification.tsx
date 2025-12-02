@@ -260,7 +260,7 @@ export default function CodeVerification({
                         inputMode="text"
                         maxLength={1}
                         className={`w-16 h-17 border-2 rounded-lg text-center text-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 ${
-                            errors.code ? 'border-[#ff4444]' : 'border-[#316BC2]'
+                            errors.code ? 'border-[var(--color-danger)]' : 'border-[var(--color-primary-blue-dark)]'
                         }`}
                         value={val}
                         onChange={(e) => handleChange(index, e.target.value)}

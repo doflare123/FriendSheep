@@ -1,0 +1,71 @@
+/* Светлая тема (по умолчанию) */
+:root {
+    /* СИНИЕ ЦВЕТА */
+    --color-primary-blue: #37A2E6;
+    --color-primary-blue-dark: #316BC2;
+
+    /* КРАСНЫЕ ЦВЕТА */
+    --color-danger: #E6374B;
+    --color-danger-dark: #C41E3A;
+
+    /* ЗЕЛЁНЫЕ ЦВЕТА */
+    --color-success: #51A732;
+    --color-success-dark: #418529;
+
+    /* ОРАНЖЕВЫЕ ЦВЕТА */
+    --color-warning: #FF6A00;
+    --color-warning-dark: #CC5500;
+
+    /* ТЕКСТОВЫЕ ЦВЕТА */
+    --color-text-primary: #000000;
+    --color-text-muted: #999999;
+    --color-text-disabled: #CCCCCC;
+
+    /* ФОНОВЫЕ ЦВЕТА */
+    --color-bg-primary: #FFFFFF;
+    --color-bg-gray-dark: #565555;
+    --color-bg-hover: #F0F0F0;
+    --color-bg-selected: #E8F4F8;
+
+    /* ЦВЕТА ГРАНИЦ */
+    --color-border-light: #E0E0E0;
+    --color-border-gray: #CCCCCC;
+
+    /* СКРОЛЛБАР */
+    --scrollbar-track: #FFFFFF;
+    --scrollbar-thumb: #CCCCCC;
+    --scrollbar-thumb-hover: #999999;
+
+    /* ТЕНИ (на основе rgba основных цветов) */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 10px 30px rgba(0, 0, 0, 0.3);
+    --shadow-xxl: 0 20px 60px rgba(0, 0, 0, 0.3);
+    --shadow-blue: 0 4px 12px rgba(55, 162, 230, 0.3);
+    --shadow-blue-light: 0 4px 12px rgba(55, 162, 230, 0.2);
+    --shadow-danger: 0 4px 12px rgba(230, 55, 75, 0.3);
+    --shadow-text: 1px 1px 2px rgba(0, 0, 0, 0.3);
+
+    /* Дополнительные специфичные тени */
+    --shadow-avatar: 0 2px 6px rgba(0, 0, 0, 0.2);
+    --shadow-icon-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-notification-dropdown: 0 8px 32px rgba(0, 0, 0, 0.12);
+    --shadow-profile: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --shadow-card-hover: 0 8px 20px rgba(0, 0, 0, 0.15);
+
+    /* ОВЕРЛЕИ (на основе rgba основных цветов) */
+    --overlay-dark: rgba(0, 0, 0, 0.7);
+    --overlay-medium: rgba(0, 0, 0, 0.5);
+    --overlay-light: rgba(0, 0, 0, 0.05);
+    --overlay-lighter: rgba(0, 0, 0, 0.02);
+    --overlay-blue: rgba(55, 162, 230, 0.1); /* Заменяет: rgba(55, 162, 230, 0.1), var(--overlay-blue), var(--overlay-blue), var(--overlay-blue) */
+    --overlay-blue-focus: rgba(55, 162, 230, 0.2); /* Заменяет: rgba(55, 162, 230, 0.2) */
+    --overlay-tooltip: rgba(0, 0, 0, 0.9);
+
+    /* ПРОЧИЕ ЦВЕТА */
+    --color-red-badge: #E6374B; /* Использует основной красный */
+
+    /* ГРАДИЕНТЫ */
+    --gradient-pink: linear-gradient(135deg, #ffa8d4, #ffb3e6); /* Остался без изменений */
+}

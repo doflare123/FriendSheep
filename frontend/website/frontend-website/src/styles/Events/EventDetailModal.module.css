@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--overlay-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -26,8 +26,8 @@
   overflow: hidden;
   position: relative;
   animation: slideUp 0.3s ease-out;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  border: 2px solid #316BC2;
+  box-shadow: var(--shadow-xxl);
+  border: 2px solid var(--color-primary-blue-dark);
   display: flex;
   flex-direction: column;
 }
@@ -63,7 +63,7 @@
 }
 
 .closeButton:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--overlay-light);
 }
 
 .eventImageContainer {
@@ -72,7 +72,7 @@
   border-radius: 16px;
   overflow: hidden;
   height: 150px;
-  background: linear-gradient(135deg, #ffa8d4, #ffb3e6);
+  background: var(--gradient-pink);
   flex-shrink: 0;
 }
 
@@ -85,7 +85,7 @@
   top: 12px;
   right: 12px;
   background: white;
-  border: 2px solid #37A2E6;
+  border: 2px solid var(--color-primary-blue);
   border-radius: 50%;
   width: 35px;
   height: 35px;
@@ -110,7 +110,7 @@
 }
 
 .dateValue {
-  background: #37A2E6;
+  background: var(--color-primary-blue);
   color: white;
   padding: 4px 10px;
   border-radius: 12px;
@@ -137,7 +137,7 @@
   margin: 0;
   font-size: 12px;
   line-height: 1.4;
-  color: #333;
+  color: var(--color-text-primary);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -169,7 +169,7 @@
 }
 
 .genreTag {
-  background: #37A2E6;
+  background: var(--color-primary-blue);
   color: white;
   padding: 6px 12px;
   border-radius: 16px;
@@ -180,7 +180,7 @@
 .publisherInfo {
   margin: 0 24px 12px 24px;
   padding: 16px;
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 16px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -234,16 +234,16 @@
 }
 
 .publisherValue.underlined:hover {
-  color: #316BC2;
+  color: var(--color-primary-blue-dark);
 }
 
 .joinButton {
   width: 50%;
   margin: 16px auto;
   padding: 12px;
-  background: #37A2E6;
+  background: var(--color-primary-blue);
   color: white;
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 16px;
   font-size: 14px;
   font-weight: 600;
@@ -255,7 +255,7 @@
 }
 
 .joinButton:hover {
-  background: #3A8EEF;
+  background: var(--color-primary-blue);
   transform: translateY(-1px);
 }
 
@@ -273,7 +273,7 @@
 }
 
 .creatorButton:hover {
-  background: #37A2E6;
+  background: var(--color-primary-blue);
   transform: none;
   outline: none;
 }
@@ -284,7 +284,7 @@
   bottom: 110%;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.9);
+  background: var(--overlay-tooltip);
   color: white;
   padding: 8px 12px;
   border-radius: 8px;
@@ -311,17 +311,17 @@
 }
 
 .modalContainer::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--scrollbar-track);
   border-radius: 4px;
 }
 
 .modalContainer::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 .modalContainer::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Анимации */
@@ -652,12 +652,12 @@
 }
 
 .leaveButton {
-  background: #E6374B !important;
-  border-color: #C41E3A !important;
+  background: var(--color-danger) !important;
+  border-color: var(--color-danger-dark) !important;
 }
 
 .leaveButton:hover {
-  background: #D32F43 !important;
+  background: var(--color-danger-dark) !important;
 }
 
 .joinButton:disabled {

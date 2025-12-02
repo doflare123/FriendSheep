@@ -12,7 +12,7 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background-color: #2196f3;
+    background-color: var(--color-primary-blue);
     position: relative;
 }
 
