@@ -30,10 +30,11 @@ type S3Storage interface {
 }
 
 type SelectelS3 struct {
-	client   *s3.Client
-	bucket   string
-	endpoint string
-	region   string
+	client      *s3.Client
+	bucket      string
+	endpoint    string
+	region      string
+	containerID string
 }
 
 func NewSelectelS3(conf *conf.Config, logger logger.Logger) (S3Storage, error) {
@@ -55,10 +56,11 @@ func NewSelectelS3(conf *conf.Config, logger logger.Logger) (S3Storage, error) {
 	})
 
 	return &SelectelS3{
-		client:   client,
-		bucket:   conf.S3.Bucket,
-		endpoint: conf.S3.Endpoint,
-		region:   conf.S3.Region,
+		client:      client,
+		bucket:      conf.S3.Bucket,
+		endpoint:    conf.S3.Endpoint,
+		region:      conf.S3.Region,
+		containerID: conf.S3.ContainerId,
 	}, nil
 }
 
@@ -80,7 +82,6 @@ func (s *SelectelS3) UploadFile(ctx context.Context, file multipart.File, header
 		Key:         aws.String(key),
 		Body:        bytes.NewReader(jpegData),
 		ContentType: aws.String("image/jpeg"),
-		ACL:         "public-read",
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload file: %w", err)
@@ -129,7 +130,7 @@ func (s *SelectelS3) DeleteFile(ctx context.Context, fileURL string) error {
 }
 
 func (s *SelectelS3) GetFileURL(fileName string) string {
-	return fmt.Sprintf("%s/%s/%s", s.endpoint, s.bucket, fileName)
+	return fmt.Sprintf("https://%s.selstorage.ru/%s", s.containerID, fileName)
 }
 
 func (s *SelectelS3) extractKeyFromURL(fileURL string) (string, error) {

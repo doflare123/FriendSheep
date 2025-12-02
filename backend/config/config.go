@@ -19,6 +19,8 @@ type Config struct {
 	Redis    RedisConfig    `mapstructure:",squash"`
 
 	S3 S3Storage `mapstructure:",squash"`
+
+	Upload Upload `mapstructure:",squash"`
 }
 
 type EmailConfig struct {
@@ -54,6 +56,10 @@ type S3Storage struct {
 	Region      string `mapstructure:"S3_REGION"`
 	ContainerId string `mapstructure:"S3_CONTID"`
 	Bucket      string `mapstructure:"S3_BUCKET"`
+}
+
+type Upload struct {
+	MaxImageSize int `mapstructure:"MAX_IMAGE_SIZE"`
 }
 
 func NewConfig() *Config {

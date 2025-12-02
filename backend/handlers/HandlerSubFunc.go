@@ -1,11 +1,25 @@
 package handlers
 
 import (
-	"friendship/middlewares"
+	service "friendship/services/sub"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
+
+type SubHandler interface {
+	ChangePhoto(c *gin.Context)
+}
+
+type subHandler struct {
+	imgService service.ImgService
+}
+
+func NewSubHandler(imgService service.ImgService) SubHandler {
+	return &subHandler{
+		imgService: imgService,
+	}
+}
 
 // ChangePhoto godoc
 // @Summary      Загрузка фотографии
@@ -19,39 +33,19 @@ import (
 // @Failure      401  {object}  map[string]string "Пользователь не авторизован"
 // @Failure      500  {object}  map[string]string "Внутренняя ошибка сервера"
 // @Security     BearerAuth
-// @Router       /api/admin/groups/UploadPhoto [post]
-func ChangePhoto(c *gin.Context) {
-	_, exists := c.Get("email")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "не найден email в контексте"})
-		return
-	}
-
+// @Router       /api/v2/sub/UploadImg [post]
+func (h *subHandler) ChangePhoto(c *gin.Context) {
 	header, err := c.FormFile("image")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Не удалось получить файл: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка загрузки изображения"})
 		return
 	}
 
-	if err := middlewares.ValidateImageMIME(header); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неподдерживаемый тип файла", "details": err.Error()})
-		return
-	}
-	const maxFileSize = 10 * 1024 * 1024 // 10MB
-	if header.Size > maxFileSize {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл слишком большой, максимум 10MB"})
-		return
-	}
-	file, err := header.Open()
+	url, err := h.imgService.UploadImg(c.Request.Context(), header, "photos")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "не удалось открыть изображение"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer file.Close()
-	imageURL, err := middlewares.UploadImage(file, header.Filename, "groups")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки изображения: " + err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"image": imageURL})
+
+	c.JSON(http.StatusOK, gin.H{"image": url})
 }

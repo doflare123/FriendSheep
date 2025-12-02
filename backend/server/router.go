@@ -5,6 +5,7 @@ import (
 	"friendship/routes"
 	"friendship/services"
 	"friendship/services/register"
+	"friendship/services/sub"
 )
 
 func (s *Server) initRouters() {
@@ -15,4 +16,8 @@ func (s *Server) initRouters() {
 	regsrv := register.NewRegisterSrv(s.logger, s.sessionStore, s.postgres, s.cfg)
 	regH := handlers.NewRegisterHandler(regsrv)
 	routes.RegisterRegRoutes(s.engine, regH)
+	//саб функции
+	imgsrv := sub.NewImgService(s.logger, s.S3, s.validators.Image)
+	subH := handlers.NewSubHandler(imgsrv)
+	routes.RegisterSubRoutes(s.engine, subH)
 }

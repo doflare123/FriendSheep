@@ -8,6 +8,7 @@ import (
 	"friendship/models"
 	"friendship/repository"
 	session "friendship/sessions"
+	"friendship/validator"
 	"log"
 	"net/http"
 
@@ -25,6 +26,7 @@ type Server struct {
 	S3           storage.S3Storage
 	mongo        repository.MongoRepository
 	sessionStore session.SessionStore
+	validators   *validator.Validator
 	cfg          config.Config
 }
 
@@ -57,6 +59,7 @@ func InitServer() (*Server, error) {
 		logger.Error("Error connect S3: %s", err)
 	}
 	logger.Info("S3 initialized")
+	validator := validator.NewValidator(conf)
 	r := gin.Default()
 	// r.Use(cors.New(cors.Config{
 	// 	AllowOrigins:     []string{"http://localhost:3000"},
@@ -79,6 +82,7 @@ func InitServer() (*Server, error) {
 		mongo:        mongo,
 		sessionStore: sessionStore,
 		cfg:          *conf,
+		validators:   validator,
 	}
 	s.initRouters()
 	logger.Info("Server init")
