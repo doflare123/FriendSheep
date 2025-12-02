@@ -38,7 +38,7 @@
   stroke-width: 2px;
   stroke-dasharray: 1;
   stroke-dashoffset: 0;
-  animation: dashAnim 15s linear forwards;
+  animation: dashAnim 3s linear forwards;
 }
 
 @keyframes dashAnim {

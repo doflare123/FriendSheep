@@ -63,8 +63,6 @@ export default function StatusNotif() {
   );
 }
 
-// ... остальной код NotifItem без изменений
-
 function NotifItem({
   id,
   code,
@@ -79,9 +77,9 @@ function NotifItem({
     setTimeout(onClose, 300);
   }, [onClose]);
 
-  // Автозакрытие
+  // Автозакрытие через 3 секунды
   useEffect(() => {
-    const timer = setTimeout(handleClose, 15000);
+    const timer = setTimeout(handleClose, 3000);
     return () => clearTimeout(timer);
   }, [handleClose]);
 

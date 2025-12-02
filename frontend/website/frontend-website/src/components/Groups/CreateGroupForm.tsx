@@ -74,6 +74,11 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   ];
 
   useEffect(() => {
+    console.log('initialData changed:', {
+      imagePreview: initialData?.imagePreview,
+      selectedImage: selectedImage,
+      selectedImageFile: selectedImageFile
+    });
     if (initialData) {
       const newCategories = Array.isArray(initialData.categories) ? [...initialData.categories] : [];
       

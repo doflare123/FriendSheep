@@ -130,6 +130,9 @@ export default function Home() {
     loadData();
   }, []);
 
+  // Проверяем, есть ли хоть какие-то события
+  const hasAnyEvents = mainSections.length > 0 || additionalSections.length > 0;
+
   return (
     <div className={styles.pageWrapper}>
       <div className='bgPage'>
@@ -138,6 +141,13 @@ export default function Home() {
           {!isAuthenticated && !isLoading && (
             <div className={styles.emptyMessage}>
               <p>Для просмотра всех событий нужна авторизация</p>
+            </div>
+          )}
+
+          {/* Сообщение для авторизованных пользователей без событий */}
+          {isAuthenticated && !isLoading && !hasAnyEvents && (
+            <div className={styles.emptyMessage}>
+              <p>Пока нет никаких событий</p>
             </div>
           )}
 

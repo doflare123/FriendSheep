@@ -6,25 +6,43 @@ class NotificationManager {
   private container: HTMLDivElement | null = null;
   private root: ReturnType<typeof createRoot> | null = null;
   private initialized = false;
+  private isInitializing = false;
 
-  private init() {
+  private async init() {
     if (this.initialized) {
       console.log("Manager already initialized");
       return;
     }
     
+    if (this.isInitializing) {
+      console.log("Manager is initializing, waiting...");
+      // Ждем пока инициализация завершится
+      while (this.isInitializing) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      return;
+    }
+    
     console.log("Initializing manager");
+    this.isInitializing = true;
+    
     this.container = document.createElement("div");
     this.container.id = "notif-root";
     document.body.appendChild(this.container);
     this.root = createRoot(this.container);
     this.root.render(<StatusNotif />);
+    
+    // Даем время React на монтирование компонента и регистрацию слушателя
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
     this.initialized = true;
+    this.isInitializing = false;
+    console.log("Manager initialized");
   }
 
-  show(code: number, description: string, type?: NotifProps["type"]) {
+  async show(code: number, description: string, type?: NotifProps["type"]) {
     console.log("showNotification called with:", code, description);
-    this.init();
+    await this.init();
 
     let resolvedType: NotifProps["type"];
     if (type) {

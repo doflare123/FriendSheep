@@ -263,6 +263,48 @@
   transform: translateY(0);
 }
 
+.creatorButton {
+  cursor: default;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.creatorButton:hover {
+  background: #37A2E6;
+  transform: none;
+  outline: none;
+}
+
+.creatorButton:hover::after {
+  content: 'Создатель мероприятия не может его покинуть';
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10000;
+  animation: tooltipFadeIn 0.2s ease;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 /* Стили скроллбара для модального окна */
 .modalContainer::-webkit-scrollbar {
   width: 8px;

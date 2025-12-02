@@ -133,7 +133,9 @@ export default function Header() {
                 </Link>
 
                 <nav className={styles.navSection}>
-                    <Link href="/groups" className={styles.navLink}>Группы</Link>
+                    {isLoggedIn && (
+                        <Link href="/groups" className={styles.navLink}>Группы</Link>
+                    )}
                     <Link href="/news" className={styles.navLink}>Новости</Link>
                     
                     {isLoggedIn && (

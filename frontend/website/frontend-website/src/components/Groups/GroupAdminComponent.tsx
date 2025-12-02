@@ -47,7 +47,7 @@ const GroupInfoSection: React.FC<{
       
       // Формируем начальные данные для сравнения
       const initialData = {
-        name: groupData?.nвввввввame,
+        name: groupData?.name,
         description: groupData?.description,
         small_description: groupData?.small_description || '',
         city: groupData?.city,
@@ -137,13 +137,15 @@ const GroupInfoSection: React.FC<{
       if (onGroupDataUpdate) {
         const updatedData: Partial<GroupData> = {};
         
+        console.log("ZZZ", changedFields);
+
         if (changedFields.name !== undefined) updatedData.name = changedFields.name;
         if (changedFields.description !== undefined) updatedData.description = changedFields.description;
         if (changedFields.small_description !== undefined) updatedData.small_description = changedFields.small_description;
         if (changedFields.city !== undefined) updatedData.city = changedFields.city;
         if (changedFields.isPrivate !== undefined) updatedData.private = changedFields.isPrivate;
         if (changedFields.categories !== undefined) updatedData.categories = changedFields.categories;
-        if (changedFields.image !== undefined) updatedData.image = changedFields.image;
+        if (changedFields.image !== undefined && changedFields.image !== null) updatedData.image = changedFields.image;
         if (changedFields.contacts !== undefined) {
           // Парсим строку контактов обратно в массив объектов
           if (changedFields.contacts.trim()) {
