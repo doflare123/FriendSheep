@@ -1,6 +1,7 @@
 import EventModal from '@/components/event/modal/EventModal';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { formatDuration } from '@/utils/formatDuration';
 import { formatTitle } from "@/utils/formatTitle";
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -208,13 +209,13 @@ const EventCard: React.FC<Event> = ({
                 />
               </View>
 
-              <View style={styles.metaRow}>
-                <Text style={styles.metaText}>{duration}</Text>
-                <Image
-                  source={require("@/assets/images/event_card/duration.png")}
-                  style={styles.metaIcon}
-                />
-              </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaText}>{formatDuration(duration.replace(' мин', ''))}</Text>
+              <Image
+                source={require("@/assets/images/event_card/duration.png")}
+                style={styles.metaIcon}
+              />
+            </View>
             </View>
           </View>
         </TouchableOpacity>

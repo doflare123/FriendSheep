@@ -4,7 +4,8 @@ import { useToast } from '@/components/ToastContext';
 import { Event } from '@/components/event/EventCard';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
-// eslint-disable-next-line import/no-unresolved
+import { formatDuration } from '@/utils/formatDuration';
+ 
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
@@ -358,7 +359,7 @@ const EventModal: React.FC<EventModalProps> = ({
                     </View>
                     <View style={{ flexDirection: 'row' }}>
                       <Text style={styles.value}>
-                        {sessionData?.session?.duration || event.duration.replace(' мин', '')} мин
+                        {formatDuration(sessionData?.session?.duration || event.duration.replace(' мин', ''))}
                       </Text>
                       <Image
                         source={require('@/assets/images/event_card/duration.png')}
@@ -372,6 +373,8 @@ const EventModal: React.FC<EventModalProps> = ({
                       />
                     </View>
                   </View>
+
+                  <Text style={styles.hint}>(указано местное время)</Text>
 
                   <Text style={styles.label}>Жанры:</Text>
                   <View style={styles.genres}>
@@ -637,6 +640,13 @@ const styles = StyleSheet.create({
   disabledButton: {
     backgroundColor: Colors.white,
   },
+  hint: {
+    fontFamily: Montserrat.regular,
+    fontSize: 10,
+    marginTop: -10,
+    color: Colors.darkGrey,
+    marginBottom: 4
+  }
 });
 
 export default EventModal;
