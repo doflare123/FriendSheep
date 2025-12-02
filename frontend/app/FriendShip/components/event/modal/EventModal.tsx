@@ -1,3 +1,4 @@
+import groupService from '@/api/services/groupService';
 import sessionService from '@/api/services/session/sessionService';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { useToast } from '@/components/ToastContext';
@@ -122,8 +123,15 @@ const EventModal: React.FC<EventModalProps> = ({
 
       const userIsParticipant = data.session.is_sub === true;
       setIsParticipant(userIsParticipant);
-      
-      console.log('[EventModal] Данные загружены');
+
+      try {
+        await groupService.getGroupDetail(data.session.group_id);
+        setIsCreator(userIsParticipant);
+        console.log('[EventModal] ✅ Админ группы, считаем создателем события');
+      } catch (error) {
+        console.log('[EventModal] ⚠️ Не админ группы');
+        setIsCreator(false);
+      }
     } catch (error: any) {
       console.error('[EventModal] Ошибка загрузки:', error);
       showToast({
@@ -137,7 +145,7 @@ const EventModal: React.FC<EventModalProps> = ({
   };
 
   const handleJoinLeave = async () => {
-    if (isParticipant && currentParticipants === 1) {
+    if (isCreator) {
       showToast({
         type: 'error',
         title: 'Действие недоступно',
@@ -228,12 +236,12 @@ const EventModal: React.FC<EventModalProps> = ({
 
   const getButtonText = () => {
     if (isProcessing) return 'Загрузка...';
-    if (isParticipant && currentParticipants === 1) return 'Вы создатель';
+    if (isCreator) return 'Вы создатель';
     return isParticipant ? 'Покинуть' : 'Присоединиться';
   };
 
   const getButtonStyle = () => {
-    if (isParticipant && currentParticipants === 1) return styles.disabledButton;
+    if (isCreator) return styles.disabledButton;
     return isParticipant ? styles.leaveButton : styles.joinButton;
   };
 

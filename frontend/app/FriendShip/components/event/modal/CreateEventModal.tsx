@@ -168,9 +168,9 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   }, [editMode, initialData, visible]);
 
   const categories = [
-    { id: 'movie', label: 'Фильм', icon: require('@/assets/images/event_card/movie.png') },
-    { id: 'game', label: 'Игра', icon: require('@/assets/images/event_card/game.png') },
-    { id: 'table_game', label: 'Настолка', icon: require('@/assets/images/event_card/table_game.png') },
+    { id: 'movie', label: 'Медиа', icon: require('@/assets/images/event_card/movie.png') },
+    { id: 'game', label: 'Видеоигры', icon: require('@/assets/images/event_card/game.png') },
+    { id: 'table_game', label: 'Настолки', icon: require('@/assets/images/event_card/table_game.png') },
     { id: 'other', label: 'Другое', icon: require('@/assets/images/event_card/other.png') },
   ];
 

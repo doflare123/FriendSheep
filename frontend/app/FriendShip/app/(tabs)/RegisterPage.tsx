@@ -185,7 +185,7 @@ const Register = () => {
         <Button
           title={loading ? 'Отправка...' : 'Зарегистрироваться'}
           onPress={handleRegister}
-          disabled={loading || !passwordValidation.isValid}
+          disabled={loading}
         />
 
         {loading && (

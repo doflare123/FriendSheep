@@ -119,7 +119,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
                   Участники:  {participantsCount}
                 </Text>
                 <Image
-                  source={require('@/assets/images/event_card/person2.png')}
+                  source={require('@/assets/images/event_card/person.png')}
                   style={styles.personIcon}
                 />
               </View>
@@ -198,6 +198,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     resizeMode: 'contain',
+    marginTop: -4
   },
   description: {
     width: 200,

@@ -3,6 +3,7 @@ import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { GroupSearchActions, GroupSearchState } from '@/hooks/useGroupSearchState';
 import { SortingActions, SortingState } from '@/hooks/useSearchState';
+import { getCategoryDisplayName } from '@/utils/categoryMapping';
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -87,7 +88,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                         <View style={styles.radioInnerSquare} />
                       )}
                     </View>
-                    <Text style={styles.radioLabel}>{cat}</Text>
+                    <Text style={styles.radioLabel}>{getCategoryDisplayName(cat)}</Text>
                   </TouchableOpacity>
                 ))}
 

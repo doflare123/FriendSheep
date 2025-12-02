@@ -4,6 +4,7 @@ import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
 import PageHeader from '@/components/PageHeader';
 import EditProfileModal from '@/components/profile/EditProfileModal';
+import FavoriteGenres from '@/components/profile/FavoriteGenres';
 import InviteToGroupModal from '@/components/profile/InviteToGroupModal';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileStats from '@/components/profile/ProfileStats';
@@ -283,7 +284,53 @@ const ProfilePage: React.FC = () => {
     }));
   };
 
+  const generateCategoryStatistics = () => {
+    if (!profileData) return [];
+    
+    const categoryData = [
+      { 
+        key: 'movies', 
+        name: 'Медиа', 
+        count: profileData.user_stats.count_films 
+      },
+      { 
+        key: 'video_games', 
+        name: 'Видеоигры', 
+        count: profileData.user_stats.count_games 
+      },
+      { 
+        key: 'board_games', 
+        name: 'Настольные игры', 
+        count: profileData.user_stats.count_table_games 
+      },
+      { 
+        key: 'other', 
+        name: 'Другое', 
+        count: profileData.user_stats.count_another 
+      },
+    ].filter(cat => cat.count > 0);
+    
+    const total = categoryData.reduce((sum, cat) => sum + cat.count, 0);
+    
+    if (total === 0) return [];
+    
+    const colors: Record<string, string> = {
+      'movies': '#FF6B6B',
+      'video_games': '#4ECDC4',
+      'board_games': '#45B7D1',
+      'other': '#FFA07A',
+    };
+    
+    return categoryData.map((cat) => ({
+      name: cat.name,
+      percentage: Math.round((cat.count / total) * 100),
+      color: colors[cat.key] || '#95E1D3',
+      legendFontColor: '#000'
+    }));
+  };
+
   const statisticsData = generateUserStatistics();
+  const categoryStatisticsData = generateCategoryStatistics();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -320,28 +367,7 @@ const ProfilePage: React.FC = () => {
         />
 
         <CategorySection title="Любимые жанры:" marginBottom={16}>
-          {profileData.popular_genres && profileData.popular_genres.length > 0 ? (
-            <View style={styles.genresContainer}>
-              <View style={styles.genresColumn}>
-                {profileData.popular_genres.slice(0, 5).map((genre, index) => (
-                  <Text key={index} style={styles.genreItem}>
-                    {index + 1}. {genre.name} - {genre.count}
-                  </Text>
-                ))}
-              </View>
-              <View style={styles.genresColumn}>
-                {profileData.popular_genres.slice(5).map((genre, index) => (
-                  <Text key={index} style={styles.genreItem}>
-                    {index + 6}. {genre.name} - {genre.count}
-                  </Text>
-                ))}
-              </View>
-            </View>
-          ) : (
-            <Text style={styles.emptyText}>
-              Пока нет любимых жанров
-            </Text>
-          )}
+          <FavoriteGenres genres={profileData.popular_genres || []} />
         </CategorySection>
 
         <CategorySection 
@@ -394,7 +420,8 @@ const ProfilePage: React.FC = () => {
           profileData.user_stats.count_games > 0) && (
           <>
             <StatisticsChart 
-              statisticsData={statisticsData}
+              genresData={statisticsData}
+              categoriesData={categoryStatisticsData}
             />
 
             <StatisticsBottomBars
@@ -475,21 +502,6 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.red,
-  },
-  genresContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
-    marginBottom: 8
-  },
-  genresColumn: {
-    flex: 1,
-  },
-  genreItem: {
-    fontFamily: Montserrat.regular,
-    fontSize: 16,
-    color: Colors.black,
-    marginBottom: 2,
   },
   subscriptionsContainer: {
     flexDirection: 'row',

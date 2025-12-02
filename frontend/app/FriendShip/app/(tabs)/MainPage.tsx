@@ -304,13 +304,13 @@ const MainPage = () => {
 
               {gameEvents.length > 0 && (
                 <CategorySection
-                  title="Игры:"
+                  title="Видеоигры:"
                   events={addOnPressToEvents(gameEvents)}
                   showArrow
                   onArrowPress={() =>
                     navigateToCategory(
                       'game',
-                      'Игры',
+                      'Видеоигры',
                       require('../../assets/images/category/games-pattern.png')
                     )
                   }

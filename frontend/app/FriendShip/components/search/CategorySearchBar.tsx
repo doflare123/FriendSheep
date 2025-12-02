@@ -2,6 +2,7 @@ import barsStyle from '@/app/styles/barsStyle';
 import CityFilterInput from '@/components/filters/CityFilterInput';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { getCategoryDisplayName } from '@/utils/categoryMapping';
 import React, { useRef, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -127,7 +128,7 @@ const CategorySearchBar: React.FC<CategorySearchBarProps> = ({
                     <View style={styles.radioCircleEmpty}>
                       {checkedCategories.includes(cat) && <View style={styles.radioInnerCircle} />}
                     </View>
-                    <Text style={styles.radioLabel}>{cat}</Text>
+                    <Text style={styles.radioLabel}>{getCategoryDisplayName(cat)}</Text>
                   </TouchableOpacity>
                 ))}
               </>

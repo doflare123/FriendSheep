@@ -58,6 +58,11 @@ const TileSelectionModal: React.FC<TileSelectionModalProps> = ({
     { id: 'time', title: `Часов - ${stats.time}`, icon: require('@/assets/images/profile/hours.png') },
   ];
 
+  const sortedTileOptions = [
+    ...localSelectedTiles.map(id => tileOptions.find(t => t.id === id)!).filter(Boolean),
+    ...tileOptions.filter(t => !localSelectedTiles.includes(t.id))
+  ];
+
   const handleTilePress = (tileId: TileType) => {
     setLocalSelectedTiles((prev) => {
       const index = prev.indexOf(tileId);
@@ -101,30 +106,86 @@ const TileSelectionModal: React.FC<TileSelectionModalProps> = ({
               </Text>
 
               <View style={styles.tilesGrid}>
-                {tileOptions.map((tile) => {
-                  const selectionNumber = getTileSelectionNumber(tile.id);
-                  const isSelected = selectionNumber !== null;
+                <View style={styles.row}>
+                  {sortedTileOptions.slice(0, 2).map((tile) => {
+                    const selectionNumber = getTileSelectionNumber(tile.id);
+                    const isSelected = selectionNumber !== null;
 
-                  return (
-                    <TouchableOpacity
-                      key={tile.id}
-                      style={styles.tile}
-                      onPress={() => handleTilePress(tile.id)}
-                      activeOpacity={0.7}
-                    >
-                      <Image source={tile.icon} style={styles.tileIcon} />
-                      <Text style={styles.tileText}>{tile.title}</Text>
-                      
-                      {isSelected && (
-                        <View style={styles.selectionBadge}>
-                          <Text style={styles.selectionBadgeText}>
-                            {selectionNumber}
-                          </Text>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
+                    return (
+                      <TouchableOpacity
+                        key={tile.id}
+                        style={styles.tile}
+                        onPress={() => handleTilePress(tile.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Image source={tile.icon} style={styles.tileIcon} />
+                        <Text style={styles.tileText}>{tile.title}</Text>
+                        
+                        {isSelected && (
+                          <View style={styles.selectionBadge}>
+                            <Text style={styles.selectionBadgeText}>
+                              {selectionNumber}
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <View style={styles.row}>
+                  {sortedTileOptions.slice(2, 4).map((tile) => {
+                    const selectionNumber = getTileSelectionNumber(tile.id);
+                    const isSelected = selectionNumber !== null;
+
+                    return (
+                      <TouchableOpacity
+                        key={tile.id}
+                        style={styles.tile}
+                        onPress={() => handleTilePress(tile.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Image source={tile.icon} style={styles.tileIcon} />
+                        <Text style={styles.tileText}>{tile.title}</Text>
+                        
+                        {isSelected && (
+                          <View style={styles.selectionBadge}>
+                            <Text style={styles.selectionBadgeText}>
+                              {selectionNumber}
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <View style={styles.row}>
+                  {sortedTileOptions.slice(4, 6).map((tile) => {
+                    const selectionNumber = getTileSelectionNumber(tile.id);
+                    const isSelected = selectionNumber !== null;
+
+                    return (
+                      <TouchableOpacity
+                        key={tile.id}
+                        style={styles.tile}
+                        onPress={() => handleTilePress(tile.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Image source={tile.icon} style={styles.tileIcon} />
+                        <Text style={styles.tileText}>{tile.title}</Text>
+                        
+                        {isSelected && (
+                          <View style={styles.selectionBadge}>
+                            <Text style={styles.selectionBadgeText}>
+                              {selectionNumber}
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
 
               <TouchableOpacity 
@@ -157,8 +218,8 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.white,
     borderRadius: 24,
-    padding: 24,
-    maxWidth: 300,
+    padding: 16,
+    maxWidth: 340,
   },
   title: {
     fontFamily: Montserrat.bold,
@@ -171,37 +232,41 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: 8,
     marginBottom: 24,
-    marginHorizontal: 8
+    marginHorizontal: 8,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 8,
   },
   tile: {
+    flex: 1,
     backgroundColor: Colors.lightBlue2,
     borderRadius: 40,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'center',
     gap: 6,
-    width: '100%',
   },
   tileIcon: {
-    width: 30,
-    height: 30,
-    resizeMode: 'contain'
+    width: 22,
+    height: 22,
+    resizeMode: 'contain',
   },
   tileText: {
     fontFamily: Montserrat.regular,
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.black,
+    flex: 1,
   },
   selectionBadge: {
     position: 'absolute',
-    top: 6,
-    right: 12,
+    top: -6,
+    right: -2,
     backgroundColor: Colors.white,
-    borderRadius: 40,
-    width: 35,
-    height: 35,
+    borderRadius: 20,
+    width: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -209,7 +274,7 @@ const styles = StyleSheet.create({
   },
   selectionBadgeText: {
     fontFamily: Montserrat.bold,
-    fontSize: 16,
+    fontSize: 10,
     color: Colors.lightBlue2,
   },
   confirmButton: {
@@ -223,9 +288,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.white,
   },
-  confirmButtonDisabled:{
-    backgroundColor: Colors.lightBlack
-  }
+  confirmButtonDisabled: {
+    backgroundColor: Colors.lightBlack,
+  },
 });
 
 export default TileSelectionModal;

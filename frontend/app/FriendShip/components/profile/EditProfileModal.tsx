@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   },
   bottomBackground: {
     width: "100%",
-    marginTop: -1
+    marginTop: -2
   },
   bottomContent: {
     padding: 16,

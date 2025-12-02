@@ -204,7 +204,7 @@ const EventCard: React.FC<Event> = ({
                   Участники: {currentParticipants}/{maxParticipants}
                 </Text>
                 <Image
-                  source={require("@/assets/images/event_card/person2.png")}
+                  source={require("@/assets/images/event_card/person.png")}
                   style={styles.metaIcon}
                 />
               </View>

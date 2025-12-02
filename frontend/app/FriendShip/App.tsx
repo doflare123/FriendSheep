@@ -1,6 +1,6 @@
 import ProfilePage from '@/app/(tabs)/ProfilePage';
 import { ToastProvider } from '@/components/ToastContext';
-import { Montserrat_400Regular, Montserrat_700Bold, useFonts } from '@expo-google-fonts/montserrat';
+import { Montserrat_200ExtraLight, Montserrat_300Light, Montserrat_400Regular, Montserrat_500Medium, Montserrat_600SemiBold, Montserrat_700Bold, useFonts } from '@expo-google-fonts/montserrat';
 import { MontserratAlternates_500Medium } from '@expo-google-fonts/montserrat-alternates';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -32,7 +32,11 @@ export default function App() {
   const [fontsLoaded] = useFonts({
     Montserrat_400Regular,
     Montserrat_700Bold,
-    MontserratAlternates_500Medium
+    MontserratAlternates_500Medium,
+    Montserrat_500Medium,
+    Montserrat_600SemiBold,
+    Montserrat_300Light,
+    Montserrat_200ExtraLight
   });
   
   useEffect(() => {
