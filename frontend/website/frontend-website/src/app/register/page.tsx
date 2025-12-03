@@ -16,11 +16,13 @@ export default function RegisterPage() {
     const [email, setEmail] = useState('');
     const [userName, setUserName] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState({
         email: '',
         userName: '',
         password: '',
+        confirmPassword: '',
         general: ''
     });
     const router = useRouter();
@@ -30,12 +32,15 @@ export default function RegisterPage() {
             email: '',
             userName: '',
             password: '',
+            confirmPassword: '',
             general: ''
         };
 
         // Валидация email
         if (!email.trim()) {
             newErrors.email = 'Поле "Почта" обязательно для заполнения';
+        } else if (!email.includes('@') || !email.includes('.')) {
+            newErrors.email = 'Email должен содержать символы @ и .';
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             newErrors.email = 'Введите корректный email адрес';
         }
@@ -52,6 +57,8 @@ export default function RegisterPage() {
         // Валидация пароля
         if (!password.trim()) {
             newErrors.password = 'Поле "Пароль" обязательно для заполнения';
+        } else if (/[А-Яа-яЁё]/.test(password)) {
+            newErrors.password = 'Пароль не должен содержать русские буквы';
         } else {
             const isValidPassword =
                 password.length >= 10 &&
@@ -64,8 +71,15 @@ export default function RegisterPage() {
             }
         }
 
+        // Валидация подтверждения пароля
+        if (!confirmPassword.trim()) {
+            newErrors.confirmPassword = 'Поле "Подтверждение пароля" обязательно для заполнения';
+        } else if (password !== confirmPassword) {
+            newErrors.confirmPassword = 'Пароли не совпадают';
+        }
+
         setErrors(newErrors);
-        return !newErrors.email && !newErrors.userName && !newErrors.password;
+        return !newErrors.email && !newErrors.userName && !newErrors.password && !newErrors.confirmPassword;
     };
 
     const clearErrors = () => {
@@ -73,6 +87,7 @@ export default function RegisterPage() {
             email: '',
             userName: '',
             password: '',
+            confirmPassword: '',
             general: ''
         });
     };
@@ -95,6 +110,13 @@ export default function RegisterPage() {
         setPassword(e.target.value);
         if (errors.password) {
             setErrors(prev => ({ ...prev, password: '' }));
+        }
+    };
+
+    const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setConfirmPassword(e.target.value);
+        if (errors.confirmPassword) {
+            setErrors(prev => ({ ...prev, confirmPassword: '' }));
         }
     };
 
@@ -176,6 +198,23 @@ export default function RegisterPage() {
                 />
                 {errors.password && (
                     <span className="errorMessage">{errors.password}</span>
+                )}
+            </div>
+
+            <div>
+                <FormInput
+                    id="confirmPassword"
+                    label="Подтверждение пароля"
+                    type="password"
+                    placeholder="Подтвердите пароль"
+                    value={confirmPassword}
+                    onChange={handleConfirmPasswordChange}
+                    required
+                    disabled={isLoading}
+                    className={errors.confirmPassword ? 'error' : ''}
+                />
+                {errors.confirmPassword && (
+                    <span className="errorMessage">{errors.confirmPassword}</span>
                 )}
             </div>
 
