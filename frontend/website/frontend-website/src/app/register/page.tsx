@@ -170,28 +170,33 @@ export default function RegisterPage() {
         
             <div>
                 <FormInput
-                    id="username"
-                    label="Имя пользователя"
-                    placeholder="Имя пользователя"
-                    value={userName}
-                    onChange={handleUserNameChange}
+                    id="email"
+                    name="email"
+                    label="Почта"
+                    type="email"
+                    placeholder="user_email@gmail.com"
+                    value={email}
+                    onChange={handleEmailChange}
+                    autoComplete="email"
                     required
                     disabled={isLoading}
-                    className={errors.userName ? 'error' : ''}
+                    className={errors.email ? 'error' : ''}
                 />
-                {errors.userName && (
-                    <span className="errorMessage">{errors.userName}</span>
+                {errors.email && (
+                    <span className="errorMessage">{errors.email}</span>
                 )}
             </div>
 
             <div>
                 <FormInput
                     id="password"
+                    name="password"
                     label="Пароль"
                     type="password"
                     placeholder="Пароль"
                     value={password}
                     onChange={handlePasswordChange}
+                    autoComplete="new-password"
                     required
                     disabled={isLoading}
                     className={errors.password ? 'error' : ''}
@@ -204,11 +209,13 @@ export default function RegisterPage() {
             <div>
                 <FormInput
                     id="confirmPassword"
+                    name="confirm-password"
                     label="Подтверждение пароля"
                     type="password"
                     placeholder="Подтвердите пароль"
                     value={confirmPassword}
                     onChange={handleConfirmPasswordChange}
+                    autoComplete="new-password"
                     required
                     disabled={isLoading}
                     className={errors.confirmPassword ? 'error' : ''}
@@ -220,18 +227,19 @@ export default function RegisterPage() {
 
             <div>
                 <FormInput
-                    id="email"
-                    label="Почта"
-                    type="email"
-                    placeholder="user_email@gmail.com"
-                    value={email}
-                    onChange={handleEmailChange}
+                    id="username"
+                    name="username"
+                    label="Имя пользователя"
+                    placeholder="Имя пользователя"
+                    value={userName}
+                    onChange={handleUserNameChange}
+                    autoComplete="off"
                     required
                     disabled={isLoading}
-                    className={errors.email ? 'error' : ''}
+                    className={errors.userName ? 'error' : ''}
                 />
-                {errors.email && (
-                    <span className="errorMessage">{errors.email}</span>
+                {errors.userName && (
+                    <span className="errorMessage">{errors.userName}</span>
                 )}
             </div>
 
