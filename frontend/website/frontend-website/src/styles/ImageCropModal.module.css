@@ -1,0 +1,180 @@
+/* Оверлей модального окна */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--overlay-dark);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+/* Контейнер модального окна */
+.modal {
+  background: var(--color-bg-primary);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: var(--shadow-xl);
+}
+
+/* Заголовок */
+.title {
+  margin: 0 0 15px 0;
+  text-align: center;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* Canvas для предпросмотра */
+.canvas {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  cursor: grab;
+  border: 2px solid var(--color-primary-blue);
+  border-radius: 8px;
+  display: block;
+}
+
+.canvasDragging {
+  cursor: grabbing;
+}
+
+/* Контейнер для кнопок масштабирования */
+.zoomControls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 15px 0;
+}
+
+/* Кнопки масштабирования */
+.zoomButton {
+  padding: 10px 20px;
+  background: var(--color-primary-blue);
+  color: var(--color-bg-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.zoomButton:hover {
+  background: var(--color-primary-blue-dark);
+  box-shadow: var(--shadow-blue);
+}
+
+.zoomButton:active {
+  transform: scale(0.95);
+}
+
+/* Группа основных кнопок */
+.buttonGroup {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Кнопка сохранения */
+.saveButton {
+  flex: 1;
+  padding: 12px;
+  background: var(--color-success);
+  color: var(--color-bg-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.saveButton:hover {
+  background: var(--color-success-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.saveButton:active {
+  transform: scale(0.98);
+}
+
+/* Кнопка отмены */
+.cancelButton {
+  flex: 1;
+  padding: 12px;
+  background: var(--color-danger);
+  color: var(--color-bg-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.cancelButton:hover {
+  background: var(--color-danger-dark);
+  box-shadow: var(--shadow-danger);
+}
+
+.cancelButton:active {
+  transform: scale(0.98);
+}
+
+/* Подсказка */
+.hint {
+  margin: 10px 0 0 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+/* Адаптивность */
+@media (max-width: 600px) {
+  .modal {
+    width: 95%;
+    padding: 15px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .zoomButton {
+    padding: 8px 16px;
+    font-size: 16px;
+  }
+
+  .saveButton,
+  .cancelButton {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .hint {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 400px) {
+  .buttonGroup {
+    flex-direction: column;
+  }
+
+  .zoomControls {
+    gap: 8px;
+  }
+
+  .zoomButton {
+    padding: 6px 14px;
+  }
+}

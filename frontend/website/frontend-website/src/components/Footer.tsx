@@ -65,7 +65,7 @@ const Footer: React.FC = () => {
                             size={52}
                         />
                         <SocialIcon 
-                            href="https://discord.gg/5wwfafRNGQ" 
+                            href="https://discord.gg/V94MaRe4tk" 
                             iconName="ds" 
                             alt="Discord" 
                             size={52}

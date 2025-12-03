@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import styles from '../../styles/Events/EventModal.module.css';
 import MapModal from './MapModal';
+import ImageCropModal from '@/components/ImageCropModal';
 import { EventCardProps } from '../../types/Events';
 import { GroupData } from '../../types/Groups';
 import { kinopoiskAPI, PlaceInfo } from '../../lib/api';
@@ -33,7 +34,6 @@ const CATEGORIES = [
   { id: 'other', icon: getCategoryIcon("other") }
 ];
 
-// Константы для валидации
 const VALIDATION_RULES = {
   title: { min: 5, max: 40 },
   description: { min: 5, max: 300 }
@@ -110,6 +110,10 @@ export default function EventModal({
   const [genres, setGenres] = useState<string[]>([]);
   const [genresLoading, setGenresLoading] = useState(false);
   const [genresError, setGenresError] = useState<string | null>(null);
+
+  // Новые состояния для ImageCropModal
+  const [showImageCropModal, setShowImageCropModal] = useState(false);
+  const [tempImageFile, setTempImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (isOpen && mode === 'create') {
@@ -262,7 +266,7 @@ export default function EventModal({
         participants: 0,
         maxParticipants: 0,
         genres: [],
-        image: ''
+        image: '/default/event_card.jpg'
       };
       setFormData(defaultData);
       setOriginalData(defaultData);
@@ -290,7 +294,6 @@ export default function EventModal({
   const validateForm = (): boolean => {
     const errors: ValidationErrors = {};
 
-    // Валидация названия
     if (!formData.title || formData.title.trim() === '') {
       errors.title = 'Название обязательно для заполнения';
     } else if (formData.title.trim().length < VALIDATION_RULES.title.min) {
@@ -299,7 +302,6 @@ export default function EventModal({
       errors.title = `Название не должно превышать ${VALIDATION_RULES.title.max} символов`;
     }
 
-    // Валидация описания (если заполнено)
     if (description && description.trim() !== '') {
       if (description.trim().length < VALIDATION_RULES.description.min) {
         errors.description = `Описание должно содержать минимум ${VALIDATION_RULES.description.min} символов`;
@@ -321,7 +323,7 @@ export default function EventModal({
         errors.selectedGroup = 'Необходимо выбрать группу';
       }
 
-      if (!imageFile && !kinopoiskImageUrl && !formData.image) {
+      if (!imageFile && !kinopoiskImageUrl && (!formData.image || formData.image === '/default/event_card.jpg')) {
         errors.image = 'Необходимо загрузить изображение';
       }
 
@@ -470,17 +472,13 @@ export default function EventModal({
       
       const fieldsString = buildFieldsString();
 
-      // ИЗМЕНЕНИЕ: Определяем URL изображения для передачи
       let imageToSend: string | undefined;
       
       if (imageFile) {
-        // Если загружен локальный файл - сначала загружаем на сервер и получаем URL
         imageToSend = await getImage(accessToken, imageFile);
       } else if (kinopoiskImageUrl) {
-        // Если получена ссылка с Кинопоиска - передаем URL напрямую
         imageToSend = kinopoiskImageUrl;
-      } else if (formData.image) {
-        // Если есть существующее изображение
+      } else if (formData.image && formData.image !== '/default/event_card.jpg') {
         imageToSend = formData.image;
       }
 
@@ -500,7 +498,7 @@ export default function EventModal({
         undefined,
         ageLimit || undefined,
         description || undefined,
-        imageToSend // Передаем URL строку
+        imageToSend
       );
 
       showNotification(200, 'Событие успешно создано!');
@@ -533,17 +531,13 @@ export default function EventModal({
         return;
       }
 
-      // ИЗМЕНЕНИЕ: Определяем URL изображения
       let imageUrl: string | undefined = undefined;
       
       if (imageFile) {
-        // Загружаем локальный файл и получаем URL
         imageUrl = await getImage(accessToken, imageFile);
       } else if (kinopoiskImageUrl && kinopoiskImageUrl !== originalData.image) {
-        // Используем URL с Кинопоиска напрямую
         imageUrl = kinopoiskImageUrl;
       }
-      // Если ничего не изменилось - imageUrl останется undefined
 
       const updatedTitle = formData.title !== originalData.title ? formData.title : undefined;
       const updatedMaxParticipants = formData.maxParticipants !== originalData.maxParticipants 
@@ -588,7 +582,7 @@ export default function EventModal({
         finalYear,
         updatedMaxParticipants,
         updatedDuration,
-        imageUrl, // Передаем URL строку (или undefined)
+        imageUrl,
         updatedStartTime,
         updatedTitle,
         updatedAgeLimit,
@@ -767,18 +761,36 @@ export default function EventModal({
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setImageFile(file);
-      setKinopoiskImageUrl(null);
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFormData(prev => ({ ...prev, image: e.target?.result as string }));
-        if (validationErrors.image) {
-          setValidationErrors(prev => ({ ...prev, image: undefined }));
-        }
-      };
-      reader.readAsDataURL(file);
+      setTempImageFile(file);
+      setShowImageCropModal(true);
     }
+  };
+
+  const handleImageCropSave = (blob: Blob) => {
+    const file = new File([blob], tempImageFile?.name || 'cropped-image.jpg', {
+      type: 'image/jpeg',
+      lastModified: Date.now(),
+    });
+    
+    setImageFile(file);
+    setKinopoiskImageUrl(null);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setFormData(prev => ({ ...prev, image: e.target?.result as string }));
+      if (validationErrors.image) {
+        setValidationErrors(prev => ({ ...prev, image: undefined }));
+      }
+    };
+    reader.readAsDataURL(file);
+    
+    setShowImageCropModal(false);
+    setTempImageFile(null);
+  };
+
+  const handleImageCropCancel = () => {
+    setShowImageCropModal(false);
+    setTempImageFile(null);
   };
 
   const handleOnlineToggle = () => {
@@ -867,7 +879,8 @@ export default function EventModal({
   }
 
   return (
-    <div className={styles.modalOverlay} onClick={handleOverlayClick}>
+    <>
+      <div className={styles.modalOverlay} onClick={handleOverlayClick}>
         <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
           <button className={styles.closeButton} onClick={onClose}>
             <Image src="/icons/close.png" alt="Закрыть" width={24} height={24} />
@@ -1188,12 +1201,11 @@ export default function EventModal({
                   className={`${styles.uploadLabel} ${validationErrors.image ? 'error' : ''}`}
                 >
                   {formData.image ? (
-                    <div className={styles.imagePreview}>
+                    <div className={styles.imagePreviewLong}>
                       <Image 
                         src={formData.image} 
                         alt="Preview" 
-                        width={360} 
-                        height={360}
+                        fill
                         style={{ objectFit: 'cover' }}
                       />
                     </div>
@@ -1224,10 +1236,23 @@ export default function EventModal({
         </div>
 
         <MapModal
-            isOpen={showMapModal}
-            onClose={() => setShowMapModal(false)}
-            onPlaceSelected={handlePlaceSelected}
+          isOpen={showMapModal}
+          onClose={() => setShowMapModal(false)}
+          onPlaceSelected={handlePlaceSelected}
         />
       </div>
+
+      {showImageCropModal && tempImageFile && (
+        <ImageCropModal
+          imageFile={tempImageFile}
+          onSave={handleImageCropSave}
+          onCancel={handleImageCropCancel}
+          title="Настройте изображение события"
+          cropShape="rectangle"
+          aspectRatio={2.25}
+          finalSize={600}
+        />
+      )}
+    </>
   );
 }
