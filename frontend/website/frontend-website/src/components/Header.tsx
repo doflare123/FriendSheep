@@ -81,7 +81,7 @@ export default function Header() {
                         
                         faviconRef.current!.href = canvas.toDataURL('image/png');
                     };
-                    img.src = '/logo.png';
+                    img.src = '/favicon.ico';
                 }
             }
         } else {
@@ -90,7 +90,7 @@ export default function Header() {
             
             // Возвращаем оригинальный favicon
             if (faviconRef.current) {
-                faviconRef.current.href = '/logo.png';
+                faviconRef.current.href = '/favicon.ico';
             }
         }
     };
@@ -120,8 +120,8 @@ export default function Header() {
                 if ('Notification' in window && Notification.permission === 'granted') {
                     new Notification('FriendShip', {
                         body: 'У вас новое уведомление!',
-                        icon: '/logo.png',
-                        badge: '/logo.png'
+                        icon: '/favicon.ico',
+                        badge: '/favicon.ico'
                     });
                 }
             }
