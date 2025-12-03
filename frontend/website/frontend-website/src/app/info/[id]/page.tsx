@@ -21,10 +21,6 @@ export default async function InfoPage({ params }: { params: Promise<{ id: strin
             </article>
           </div>
         </div>
-        
-        <div className={styles.footerWrapper}>
-          <Footer />
-        </div>
       </div>
     );
   } catch (error) {
