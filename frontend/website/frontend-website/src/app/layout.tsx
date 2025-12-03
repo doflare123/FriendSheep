@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import styles from '@/styles/Footer.module.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import StatusNotif from "@/components/statusNotif";
 import '@/styles/themes.css';
@@ -35,6 +37,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <Header />
           <main className="flex-1">{children}</main>
+          <div className={styles.footerWrapper}>
+            <Footer />
+          </div>
         </AuthProvider>
       </body>
     </html>

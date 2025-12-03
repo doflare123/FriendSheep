@@ -165,11 +165,6 @@
     color: var(--color-bg-gray-dark);
 }
 
-.footerWrapper {
-    position: relative;
-    z-index: 1;
-}
-
 .contentWrapper {
     background: white;
     border-radius: 24px;
