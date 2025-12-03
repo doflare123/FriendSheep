@@ -72,6 +72,12 @@ const Footer: React.FC = () => {
                             size={52}
                         />
                         <SocialIcon 
+                            href="https://www.youtube.com/@CmapnepTV" 
+                            iconName="yt" 
+                            alt="YouTube" 
+                            size={52}
+                        />
+                        <SocialIcon 
                             href="https://www.donationalerts.com/r/necrodwarf" 
                             iconName="bs" 
                             alt="Поддержать" 

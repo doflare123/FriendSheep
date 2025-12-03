@@ -228,6 +228,8 @@ export const getSocialIcon = (name: string, link?: string, ): string => {
     return '/social/vk.png';
   } else if (lowerName.includes('max') || lowerLink.includes('max')) {
     return '/social/max.png';
+    } else if (lowerName.includes('youtube') || lowerLink.includes('youtube.com')) {
+    return '/social/yt.png';
   } else {
     return '/default/soc_net.png';
   }
