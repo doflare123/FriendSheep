@@ -7,14 +7,37 @@ import NotificationDropdown from './NotificationDropdown';
 import EventModal from './Events/EventModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { checkNotif } from '@/api/notification/checkNotif';
+import { getNotif } from '@/api/notification/getNotif';
 import { getAccesToken } from '@/Constants';
 import styles from '../styles/Header.module.css';
+
+interface Notification {
+    id: number;
+    sendAt: string;
+    sent: boolean;
+    text: string;
+    type: string;
+    viewed: boolean;
+}
+
+interface Invite {
+    createdAt: string;
+    groupId: number;
+    groupName: string;
+    id: number;
+    status: string;
+}
+
+interface NotificationResponse {
+    invites: Invite[];
+    notifications: Notification[];
+}
 
 export default function Header() {
     const { isLoggedIn, userData, logout, isLoading } = useAuth();
     const [showNotifications, setShowNotifications] = useState(false);
     const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [showSearchMenu, setShowSearchMenu] = useState(false);
     const router = useRouter();
@@ -22,16 +45,12 @@ export default function Header() {
     const searchMenuTimeoutRef = useRef<NodeJS.Timeout>();
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const originalTitleRef = useRef<string>('');
-    const faviconRef = useRef<HTMLLinkElement | null>(null);
 
     // Инициализация звука и сохранение оригинального title
     useEffect(() => {
-        audioRef.current = new Audio('/notification-sound.mp3'); // Добавьте звуковой файл в public
+        audioRef.current = new Audio('/notification-sound.mp3');
         audioRef.current.volume = 0.5;
         originalTitleRef.current = document.title;
-        
-        // Находим favicon
-        faviconRef.current = document.querySelector("link[rel*='icon']");
         
         return () => {
             if (audioRef.current) {
@@ -41,57 +60,15 @@ export default function Header() {
         };
     }, []);
 
-    // Обновление favicon и title
-    const updateBrowserIndicators = (hasNotifications: boolean, notificationCount: number = 1) => {
-        if (hasNotifications) {
-            // Обновляем title с текстом и числом уведомлений
-            const countText = notificationCount > 1 ? `${notificationCount} новых сообщения` : '1 новое сообщение';
+    // Обновление title вкладки
+    const updateBrowserTitle = (count: number) => {
+        if (count > 0) {
+            const countText = count === 1 
+                ? '1 непрочитанное уведомление' 
+                : `${count} непрочитанных уведомлений`;
             document.title = `${countText} • FriendShip`;
-            
-            // Создаём favicon с красным badge
-            if (faviconRef.current) {
-                const canvas = document.createElement('canvas');
-                canvas.width = 32;
-                canvas.height = 32;
-                const ctx = canvas.getContext('2d');
-                
-                if (ctx) {
-                    const img = new Image();
-                    img.onload = () => {
-                        // Рисуем оригинальную иконку
-                        ctx.drawImage(img, 0, 0, 32, 32);
-                        
-                        // Рисуем красный кружок с белой обводкой
-                        ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 2;
-                        ctx.fillStyle = '#ff3b30';
-                        ctx.beginPath();
-                        ctx.arc(24, 8, 7, 0, 2 * Math.PI);
-                        ctx.fill();
-                        ctx.stroke();
-                        
-                        // Добавляем число внутри кружка (если <= 9)
-                        if (notificationCount <= 9) {
-                            ctx.fillStyle = '#ffffff';
-                            ctx.font = 'bold 12px Arial';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-                            ctx.fillText(notificationCount.toString(), 24, 8);
-                        }
-                        
-                        faviconRef.current!.href = canvas.toDataURL('image/png');
-                    };
-                    img.src = '/favicon.ico';
-                }
-            }
         } else {
-            // Возвращаем оригинальный title
             document.title = originalTitleRef.current;
-            
-            // Возвращаем оригинальный favicon
-            if (faviconRef.current) {
-                faviconRef.current.href = '/favicon.ico';
-            }
         }
     };
 
@@ -110,26 +87,35 @@ export default function Header() {
 
         try {
             const accessToken = await getAccesToken(router);
-            const hasNotifications = await checkNotif(accessToken);
+            const data: NotificationResponse = await getNotif(accessToken);
             
-            // Если появилось новое уведомление
-            if (hasNotifications && !hasUnreadNotifications) {
+            // Подсчитываем непрочитанные уведомления и непринятые приглашения
+            const unreadNotifications = data.notifications?.filter(n => !n.viewed).length || 0;
+            const pendingInvites = data.invites?.filter(i => i.status === 'pending').length || 0;
+            const totalUnread = unreadNotifications + pendingInvites;
+            
+            // Если количество непрочитанных увеличилось - новое уведомление
+            if (totalUnread > unreadCount) {
                 playNotificationSound();
                 
                 // Показываем системное уведомление (если есть разрешение)
                 if ('Notification' in window && Notification.permission === 'granted') {
+                    const newCount = totalUnread - unreadCount;
+                    const notificationText = newCount === 1 
+                        ? 'У вас новое уведомление!' 
+                        : `У вас ${newCount} новых уведомлений!`;
+                    
                     new Notification('FriendShip', {
-                        body: 'У вас новое уведомление!',
-                        icon: '/favicon.ico',
-                        badge: '/favicon.ico'
+                        body: notificationText,
+                        icon: '/logo.png',
+                        badge: '/logo.png'
                     });
                 }
             }
             
-            setHasUnreadNotifications(hasNotifications);
-            // TODO: Если API возвращает количество уведомлений, передайте его вторым параметром
-            // Например: updateBrowserIndicators(hasNotifications, notificationCount);
-            updateBrowserIndicators(hasNotifications, 1);
+            setUnreadCount(totalUnread);
+            setHasUnreadNotifications(totalUnread > 0);
+            updateBrowserTitle(totalUnread);
         } catch (error) {
             console.error('Ошибка проверки уведомлений:', error);
         }
@@ -150,7 +136,9 @@ export default function Header() {
             return () => clearInterval(interval);
         } else {
             // Сбрасываем индикаторы при выходе
-            updateBrowserIndicators(false);
+            setUnreadCount(0);
+            setHasUnreadNotifications(false);
+            updateBrowserTitle(0);
         }
     }, [isLoggedIn]);
 
