@@ -21,17 +21,17 @@ const Footer: React.FC = () => {
                     </div>
                     
                     <div className="footer-links">
-                        <a href="/info/privacy" className="footer-link">Политика конфиденциальности</a>
+                        <a href="/info/privacy" className="footer-link" target="_blank" rel="noopener noreferrer">Политика конфиденциальности</a>
                         <span className="text-gray-400">·</span>
-                        <a href="/info/about" className="footer-link">О нас</a>
+                        <a href="/info/about" className="footer-link" target="_blank" rel="noopener noreferrer">О нас</a>
                         <span className="text-gray-400">·</span>
-                        <a href="https://docs.google.com/forms/d/e/1FAIpQLScq8yseDrHN2dQ7eTfon6KqiohGzPAE95FRoyh8KkaFWuTB9Q/viewform?usp=dialog" className="footer-link">Обратная связь</a>
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLScq8yseDrHN2dQ7eTfon6KqiohGzPAE95FRoyh8KkaFWuTB9Q/viewform?usp=dialog" className="footer-link" target="_blank" rel="noopener noreferrer">Обратная связь</a>
                         
                     </div>
 
                     <div className="footer-links">
                         <span className="text-gray-400">·</span>
-                        <a href="https://docs.google.com/forms/d/e/1FAIpQLSeFJ1U2cmAUS2ddxCYduNsA8cuzzuVLSQ3-3zm0JOls_9ZQSw/viewform?usp=publish-editor" className="footer-link">Подача заявки на подтверждение личности</a>
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLSeFJ1U2cmAUS2ddxCYduNsA8cuzzuVLSQ3-3zm0JOls_9ZQSw/viewform?usp=publish-editor" className="footer-link" target="_blank" rel="noopener noreferrer">Подача заявки на подтверждение личности</a>
                     </div>
                     
                     <div className="text-gray-500 mt-5">

@@ -212,7 +212,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
         {/* Информация о дате и времени */}
         <div className={styles.eventInfo}>
           <div className={styles.dateInfo}>
-            <span className={styles.dateValue}>Дата проведения: {formatDate(session.start_time)}</span>
+            <span className={styles.dateValue} title="По местному времени">Дата проведения: {formatDate(session.start_time)}</span>
           </div>
           <div className={styles.durationInfo}>
             <span>{formatDuration(session.duration)}</span>

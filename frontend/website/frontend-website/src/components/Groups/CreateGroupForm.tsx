@@ -62,8 +62,8 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   };
 
   const categories = [
-    { id: 'movies', name: 'Фильмы', icon: getCategoryIcon("movies") },
-    { id: 'games', name: 'Игры', icon: getCategoryIcon("games") },
+    { id: 'movies', name: 'Медиа', icon: getCategoryIcon("movies") },
+    { id: 'games', name: 'Видеоигры', icon: getCategoryIcon("games") },
     { id: 'board', name: 'Настолки', icon: getCategoryIcon("boards") },
     { id: 'other', name: 'Другое', icon: getCategoryIcon("other") }
   ];

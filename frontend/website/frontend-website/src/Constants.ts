@@ -193,7 +193,7 @@ export const updateUserData = async (): UserDataResponse | null => {
   let UserInfo;
 
   try {
-    UserInfo = getUserInfo(accessToken);
+    UserInfo = await getUserInfo(accessToken); // Добавил await!
     localStorage.setItem('userData', JSON.stringify(UserInfo));
   } catch (error) {
     console.error('Ошибка сохранения в localStorage:', error);

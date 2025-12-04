@@ -53,7 +53,7 @@ const EventCard: React.FC<EventCardProps> = ({
                     <div className='typeIcon'>
                         <Image src={getCategoryIcon(type)} alt={type} width={20} height={20} />
                     </div>
-                    <div className='cardDate'>{date}</div>
+                    <div className='cardDate' title="По местному времени">{date}</div>
 
                     {location === 'offline' && (
                         <div className='cityBadge'>

@@ -470,19 +470,21 @@ export default function SearchPage() {
               >
                 <div className={`${styles.toggleSide} ${searchType === 'groups' ? styles.active : styles.inactive}`}>
                   <Image 
-                    src='/icons/persons.png'
+                    src='/icons/groups.png'
                     alt='Groups' 
                     width={20} 
                     height={20} 
+                    title="Группы"
                   />
                 </div>
                 <div className={styles.toggleDivider} />
                 <div className={`${styles.toggleSide} ${searchType === 'users' ? styles.active : styles.inactive}`}>
                   <Image 
-                    src='/icons/groups.png'
+                    src='/icons/persons.png'
                     alt='Users' 
                     width={30} 
                     height={30} 
+                    title="Люди"
                   />
                 </div>
               </button>

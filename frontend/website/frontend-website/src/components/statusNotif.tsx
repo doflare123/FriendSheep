@@ -14,55 +14,6 @@ export type NotifProps = {
 
 let idCounter = 0;
 
-export default function StatusNotif() {
-  const [notifs, setNotifs] = useState<NotifProps[]>([]);
-  const mountCount = useRef(0);
-
-  useEffect(() => {
-    mountCount.current++;
-    console.log(`StatusNotif mounted (mount #${mountCount.current})`);
-    
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as Omit<NotifProps, "id">;
-      const newNotif = { ...detail, id: ++idCounter };
-      
-      console.log(`Event handler called (mount #${mountCount.current}), adding notif:`, newNotif.id);
-      
-      setNotifs((prev) => {
-        console.log(`Previous notifs count: ${prev.length}, adding notif ${newNotif.id}`);
-        return [...prev, newNotif];
-      });
-    };
-    
-    console.log(`Adding event listener (mount #${mountCount.current})`);
-    window.addEventListener("push-notif", handler);
-    
-    return () => {
-      console.log(`Removing event listener (mount #${mountCount.current})`);
-      window.removeEventListener("push-notif", handler);
-    };
-  }, []);
-
-  const removeNotif = useCallback((id: number) => {
-    console.log("Removing notif:", id);
-    setNotifs((prev) => prev.filter((n) => n.id !== id));
-  }, []);
-
-  console.log("StatusNotif render, notifs count:", notifs.length);
-
-  return (
-    <div className={styles.container}>
-      {notifs.map((notif) => (
-        <NotifItem 
-          key={notif.id} 
-          {...notif} 
-          onClose={() => removeNotif(notif.id)} 
-        />
-      ))}
-    </div>
-  );
-}
-
 function NotifItem({
   id,
   code,
@@ -71,17 +22,26 @@ function NotifItem({
   onClose,
 }: NotifProps & { onClose: () => void }) {
   const [closing, setClosing] = useState(false);
+  const onCloseRef = useRef(onClose);
 
-  const handleClose = useCallback(() => {
-    setClosing(true);
-    setTimeout(onClose, 300);
+  // Обновляем ref при изменении onClose
+  useEffect(() => {
+    onCloseRef.current = onClose;
   }, [onClose]);
+
+  const handleClose = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setClosing(true);
+    setTimeout(() => onCloseRef.current(), 300);
+  }, []); // Пустой массив зависимостей!
 
   // Автозакрытие через 3 секунды
   useEffect(() => {
-    const timer = setTimeout(handleClose, 3000);
+    const timer = setTimeout(() => handleClose(), 3000);
     return () => clearTimeout(timer);
-  }, [handleClose]);
+  }, []); // Пустой массив зависимостей!
 
   // Свайп
   useEffect(() => {
@@ -130,7 +90,6 @@ function NotifItem({
     <div
       id={`notif-${id}`}
       className={`${styles.notif} ${closing ? styles.closing : ""}`}
-      onClick={handleClose}
     >
       <svg className={styles.progress} xmlns="http://www.w3.org/2000/svg">
         <rect
@@ -146,6 +105,16 @@ function NotifItem({
           vectorEffect="non-scaling-stroke"
         />
       </svg>
+      
+      <button className={styles.closeButton} onClick={handleClose}>
+        <Image 
+          src="/icons/close.png" 
+          alt="Закрыть" 
+          width={16} 
+          height={16}
+        />
+      </button>
+
       <Image src={iconMap[type]} alt={type} width={24} height={24} />
       <div className={styles.content}>
         <strong className={styles.title}>{titleMap[type]}</strong>

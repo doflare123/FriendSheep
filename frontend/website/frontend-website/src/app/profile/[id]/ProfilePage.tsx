@@ -64,7 +64,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [showUpArrow, setShowUpArrow] = useState(false);
   const [showDownArrow, setShowDownArrow] = useState(false);
-  const [activeTab, setActiveTab] = useState<'recent' | 'upcoming'>('recent');
+  const [activeTab, setActiveTab] = useState<'recent' | 'upcoming'>('upcoming');
   const [isOwnProfile, setOwnProfile] = useState(params.isOwn || false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
@@ -729,21 +729,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               <div className={section4Styles.buttonsGroup}>
                 <button
                   type="button"
-                  className={`${section4Styles.tabButton} ${activeTab === 'recent' ? section4Styles.active : ''}`}
-                  onClick={() => setActiveTab('recent')}
-                  aria-pressed={activeTab === 'recent'}
-                  title="Завершенные события"
-                >
-                  <Image
-                    src="/profile/recent_sessions.png"
-                    alt="Завершённые"
-                    width={32}
-                    height={32}
-                  />
-                </button>
-
-                <button
-                  type="button"
                   className={`${section4Styles.tabButton} ${activeTab === 'upcoming' ? section4Styles.active : ''}`}
                   onClick={() => setActiveTab('upcoming')}
                   aria-pressed={activeTab === 'upcoming'}
@@ -752,6 +737,21 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   <Image
                     src="/profile/upcoming_sessions.png"
                     alt="Будущие"
+                    width={32}
+                    height={32}
+                  />
+                </button>
+
+                <button
+                  type="button"
+                  className={`${section4Styles.tabButton} ${activeTab === 'recent' ? section4Styles.active : ''}`}
+                  onClick={() => setActiveTab('recent')}
+                  aria-pressed={activeTab === 'recent'}
+                  title="Завершенные события"
+                >
+                  <Image
+                    src="/profile/recent_sessions.png"
+                    alt="Завершённые"
                     width={32}
                     height={32}
                   />

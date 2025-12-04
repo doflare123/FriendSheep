@@ -118,7 +118,7 @@ export default function GroupsPage() {
             <GroupsScroll 
               groups={managedGroups} 
               emptyMessage="У вас еще нет групп под управлением"
-              actionType="manage"
+              actionType="subscribe"
             />
           )}
         </div>

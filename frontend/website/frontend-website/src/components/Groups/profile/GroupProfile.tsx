@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import styles from '../../../styles/Groups/profile/GroupProfile.module.css';
 import CategorySection from '../../Events/CategorySection';
 import { SectionData, EventCardProps } from '../../../types/Events';
 import { GroupProfileProps, GroupData, Contact, SessionWithMetadata } from '../../../types/Groups';
-import {getCategoryIcon, getSocialIcon, getAccesToken, formatDate, convertCategRuToEng} from '../../../Constants'
+import {getCategoryIcon, getSocialIcon, getAccesToken, formatDate, convertCategRuToEng, getUserData} from '../../../Constants'
 import {joinGroup} from '@/api/groups/joinGroup';
 import {leaveGroup} from '@/api/groups/leaveGroup';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -43,7 +43,20 @@ const getEventType = (categorySession?: string): 'games' | 'movies' | 'board' | 
 const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(groupData.subscription);
+  const [isOwner, setIsOwner] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const checkOwnership = async () => {
+      const userData = await getUserData();
+      console.log(userData, groupData)
+      if (userData && groupData.creater) {
+        setIsOwner(userData.us === groupData.creater);
+      }
+    };
+    
+    checkOwnership();
+  }, [groupData.creater]);
 
   const handleJoinGroup = async () => {
     const accessToken = await getAccesToken(router);
@@ -95,6 +108,10 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
     }
   };
 
+  const handleManageGroup = () => {
+    router.push(`/groups/admin/${groupData.id}`);
+  };
+
   const handleContactClick = (contact: Contact) => {
     console.log(`Переход по ссылке: ${contact.link}`);
     window.open(contact.link, '_blank');
@@ -127,8 +144,16 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
             />
           </div>
 
-          {/* Кнопка присоединиться/отписаться */}
-          {isSubscribed ? (
+          {/* Кнопка управления/присоединиться/отписаться */}
+          {isOwner ? (
+            <button 
+              className={styles.joinButton} 
+              onClick={handleManageGroup}
+              disabled={isLoading}
+            >
+              Управлять
+            </button>
+          ) : isSubscribed ? (
             <button 
               className={styles.leaveButton} 
               onClick={handleLeaveGroup}

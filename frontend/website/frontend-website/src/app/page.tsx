@@ -96,8 +96,8 @@ export default function Home() {
 
       // 4. Загружаем события по категориям
       const categories = [
-        { name: 'Фильмы', key: 'movies', pattern: '/events/new_bg.png' },
-        { name: 'Игры', key: 'games', pattern: '/events/game_bg.png' },
+        { name: 'Медиа', key: 'movies', pattern: '/events/new_bg.png' },
+        { name: 'Видеоигры', key: 'games', pattern: '/events/game_bg.png' },
         { name: 'Настольные игры', key: 'board', pattern: '/events/board_bg.png' },
         { name: 'Другое', key: 'other', pattern: '/events/other_bg.png' }
       ];
