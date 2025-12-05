@@ -1,4 +1,4 @@
-import groupService from '@/api/services/groupService';
+import groupService from '@/api/services/group/groupService';
 import notificationService from '@/api/services/notificationService';
 import { GroupInvite, Notification } from '@/api/types/notification';
 import { useToast } from '@/components/ToastContext';

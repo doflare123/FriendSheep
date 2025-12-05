@@ -1,4 +1,4 @@
-import { PublicGroupResponse } from '@/api/services/groupService';
+import { PublicGroupResponse } from '@/api/services/group/groupService';
 import { Session } from '@/api/types/user';
 
 export const publicGroupSessionsToSessions = (

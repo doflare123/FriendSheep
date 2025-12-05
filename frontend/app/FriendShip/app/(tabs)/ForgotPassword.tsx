@@ -2,7 +2,7 @@ import authService from '@/api/services/authService';
 import { useToast } from '@/components/ToastContext';
 import { Colors } from '@/constants/Colors';
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Button from '../../components/auth/Button';
@@ -21,6 +21,11 @@ const ForgotPassword = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
+
+  const isEmailValid = useMemo(() => {
+    if (email.length === 0) return true;
+    return validateEmail(email.trim().toLowerCase());
+  }, [email]);
 
   const handleRequestReset = async () => {
     const sanitizedEmail = email.trim().toLowerCase();
@@ -54,8 +59,9 @@ const ForgotPassword = () => {
         message: 'Код для сброса пароля отправлен на почту',
       });
 
-      (navigation.navigate as any)('ResetPassword', {
+      (navigation.navigate as any)('Confirm', {
         sessionId: response.session_id,
+        type: 'reset',
         email: sanitizedEmail,
       });
     } catch (error: any) {
@@ -91,7 +97,14 @@ const ForgotPassword = () => {
           keyboardType="email-address"
           autoCapitalize="none"
           editable={!loading}
+          isValid={isEmailValid}
         />
+
+        {email.length > 0 && !isEmailValid && (
+          <Text style={authorizeStyle.passwordValidation}>
+            Введите корректный email (должен содержать @ и домен)
+          </Text>
+        )}
 
         <Text style={authorizeStyle.terms}>
           Мы отправим код подтверждения на указанный email.
@@ -101,7 +114,7 @@ const ForgotPassword = () => {
         <Button
           title={loading ? 'Отправка...' : 'Отправить код'}
           onPress={handleRequestReset}
-          disabled={loading}
+          disabled={loading || !isEmailValid || email.length === 0}
         />
 
         {loading && (

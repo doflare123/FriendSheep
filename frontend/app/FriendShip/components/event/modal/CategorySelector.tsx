@@ -23,7 +23,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
   
   return (
     <View>
-      <Text style={styles.sectionLabel}>Выберите категорию:</Text>
+      <Text style={styles.sectionLabel}>Выберите категорию *</Text>
       <View style={styles.categoriesContainer}>
         {categories.map((category) => {
           const isSelected = selected === category.id;

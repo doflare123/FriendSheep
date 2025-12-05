@@ -3,11 +3,20 @@ import { Montserrat } from '@/constants/Montserrat';
 import React from 'react';
 import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
 
-const Input = (props: TextInputProps) => (
+interface InputProps extends TextInputProps {
+  isValid?: boolean;
+  borderColor?: string;
+}
+
+const Input = ({ isValid = true, borderColor, ...props }: InputProps) => (
   <View style={styles.container}>
     <TextInput
       {...props}
-      style={styles.input}
+      style={[
+        styles.input,
+        !isValid && styles.inputInvalid,
+        borderColor && { borderColor }
+      ]}
       placeholderTextColor={Colors.lightGrey}
     />
   </View>
@@ -25,6 +34,9 @@ const styles = StyleSheet.create({
     padding: 6,
     fontFamily: Montserrat.regular,
     fontSize: 16,
+  },
+  inputInvalid: {
+    borderColor: Colors.red,
   },
 });
 

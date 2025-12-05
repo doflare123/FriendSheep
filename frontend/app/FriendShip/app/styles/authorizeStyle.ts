@@ -13,7 +13,6 @@ const authorizeStyle = StyleSheet.create({
   topContainer: {
     alignItems: 'center',
     marginTop: 60,
-    marginBottom: 20,
   },
   scrollContent: {
     flexGrow: 1,
@@ -40,7 +39,7 @@ const authorizeStyle = StyleSheet.create({
   label: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   hintLabel: {
     fontFamily: Montserrat.regular,

@@ -1,6 +1,8 @@
-import groupService from '@/api/services/groupService';
+import groupService from '@/api/services/group/groupService';
+import DescriptionModal from '@/components/event/modal/DescriptionModal';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { validateFullDescription, validateGroupName, validateShortDescription } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import {
@@ -18,6 +20,7 @@ import {
   View
 } from 'react-native';
 import ContactsModal, { Contact } from './ContactsModal';
+
 const screenHeight = Dimensions.get("window").height;
 
 interface CreateGroupModalProps {
@@ -42,6 +45,8 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [contactsModalVisible, setContactsModalVisible] = useState(false);
+  const [shortDescModalVisible, setShortDescModalVisible] = useState(false);
+  const [fullDescModalVisible, setFullDescModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -88,6 +93,20 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
     }
   };
 
+  const isFormValid = (): boolean => {
+    const nameValidation = validateGroupName(groupName);
+    const shortDescValidation = validateShortDescription(shortDescription);
+    const fullDescValidation = validateFullDescription(fullDescription);
+    
+    return !!(
+      nameValidation.isValid &&
+      shortDescValidation.isValid &&
+      fullDescValidation.isValid &&
+      selectedCategories.length > 0 &&
+      selectedImage
+    );
+  };
+
   const handleCreate = async () => {
     if (!groupName.trim()) {
       Alert.alert('Ошибка', 'Введите название группы');
@@ -112,7 +131,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
 
     setIsLoading(true);
 
-  try {
+    try {
       const categoryIds = selectedCategories.map(catId => CATEGORY_IDS[catId]);
 
       const groupData = {
@@ -193,42 +212,87 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
               </View>
 
               <View style={styles.content}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Название"
-                  placeholderTextColor={Colors.grey}
-                  value={groupName}
-                  onChangeText={setGroupName}
-                  maxLength={50}
-                  editable={!isLoading}
-                />
+                <View style={styles.fieldContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Название *"
+                    placeholderTextColor={Colors.grey}
+                    value={groupName}
+                    onChangeText={setGroupName}
+                    maxLength={40}
+                    editable={!isLoading}
+                  />
+                  {groupName.length > 0 && (
+                    <Text style={styles.charCounter}>
+                      {groupName.length} / 40 {groupName.length < 5 && '(мин. 5)'}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={styles.fieldContainer}>
+                  <View style={styles.inputWithButtonContainer}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Краткое описание *"
+                      placeholderTextColor={Colors.grey}
+                      value={shortDescription}
+                      onChangeText={setShortDescription}
+                      maxLength={50}
+                      editable={!isLoading}
+                    />
+                    <TouchableOpacity
+                      style={styles.expandButton}
+                      onPress={() => setShortDescModalVisible(true)}
+                      disabled={isLoading}
+                    >
+                      <Image
+                        source={require('@/assets/images/event_card/back.png')}
+                        style={styles.expandIcon}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {shortDescription.length > 0 && (
+                    <Text style={styles.charCounter}>
+                      {shortDescription.length} / 50 {shortDescription.length < 5 && '(мин. 5)'}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={styles.fieldContainer}>
+                  <View style={styles.textAreaContainer}>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      placeholder="Полное описание *"
+                      placeholderTextColor={Colors.grey}
+                      value={fullDescription}
+                      onChangeText={setFullDescription}
+                      multiline
+                      numberOfLines={6}
+                      textAlignVertical="top"
+                      maxLength={300}
+                      editable={!isLoading}
+                    />
+                    <TouchableOpacity
+                      style={styles.expandButtonTextArea}
+                      onPress={() => setFullDescModalVisible(true)}
+                      disabled={isLoading}
+                    >
+                      <Image
+                        source={require('@/assets/images/event_card/back.png')}
+                        style={styles.expandIcon}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {fullDescription.length > 0 && (
+                    <Text style={styles.charCounter}>
+                      {fullDescription.length} / 300 {fullDescription.length < 5 && '(мин. 5)'}
+                    </Text>
+                  )}
+                </View>
 
                 <TextInput
                   style={styles.input}
-                  placeholder="Краткое описание"
-                  placeholderTextColor={Colors.grey}
-                  value={shortDescription}
-                  onChangeText={setShortDescription}
-                  maxLength={100}
-                  editable={!isLoading}
-                />
-
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="Описание"
-                  placeholderTextColor={Colors.grey}
-                  value={fullDescription}
-                  onChangeText={setFullDescription}
-                  multiline
-                  numberOfLines={6}
-                  textAlignVertical="top"
-                  maxLength={500}
-                  editable={!isLoading}
-                />
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="Город (необязательно)"
+                  placeholder="Город"
                   placeholderTextColor={Colors.grey}
                   value={city}
                   onChangeText={setCity}
@@ -251,7 +315,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
 
                 <View style={styles.categoriesAndImageSection}>
                   <View style={styles.leftSection}>
-                    <Text style={styles.sectionLabel}>Категории:</Text>
+                    <Text style={styles.sectionLabel}>Категории *</Text>
                     <View style={styles.categoriesContainer}>
                       {categories.map((category) => (
                         <TouchableOpacity
@@ -268,31 +332,31 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                       ))}
                     </View>
 
-                  <Text style={styles.sectionLabel}>Контакты:</Text>
-                  <View style={styles.contactsContainer}>
-                    <TouchableOpacity
-                      style={styles.contactButton}
-                      onPress={() => setContactsModalVisible(true)}
-                      disabled={isLoading}
-                    >
-                      <Image 
-                        source={require('@/assets/images/groups/contacts/add_contact.png')} 
-                        style={styles.contactIcon} 
-                      />
-                    </TouchableOpacity>
-                    
-                    {selectedContacts
-                      .filter(c => c.link && c.link.trim() !== '')
-                      .map((contact, index) => (
-                        <View key={`${contact.id}-${index}`} style={styles.selectedContactItem}>
-                          <Image 
-                            source={contact.icon} 
-                            style={styles.contactIcon} 
-                          />
-                        </View>
-                      ))}
+                    <Text style={styles.sectionLabel}>Контакты:</Text>
+                    <View style={styles.contactsContainer}>
+                      <TouchableOpacity
+                        style={styles.contactButton}
+                        onPress={() => setContactsModalVisible(true)}
+                        disabled={isLoading}
+                      >
+                        <Image 
+                          source={require('@/assets/images/groups/contacts/add_contact.png')} 
+                          style={styles.contactIcon} 
+                        />
+                      </TouchableOpacity>
+                      
+                      {selectedContacts
+                        .filter(c => c.link && c.link.trim() !== '')
+                        .map((contact, index) => (
+                          <View key={`${contact.id}-${index}`} style={styles.selectedContactItem}>
+                            <Image 
+                              source={contact.icon} 
+                              style={styles.contactIcon} 
+                            />
+                          </View>
+                        ))}
+                    </View>
                   </View>
-                </View>
                               
                   <TouchableOpacity 
                     style={styles.imageUpload}
@@ -310,6 +374,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                           source={require('@/assets/images/groups/upload_image.png')} 
                           style={styles.uploadIcon}
                         />
+                        <Text style={styles.uploadText}>Загрузите{'\n'}изображение *</Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -324,9 +389,12 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
               >
                 <View style={styles.bottomContent}>
                   <TouchableOpacity
-                    style={[styles.createButton, isLoading && styles.createButtonDisabled]}
+                    style={[
+                      styles.createButton, 
+                      (!isFormValid() || isLoading) && styles.createButtonDisabled
+                    ]}
                     onPress={handleCreate}
-                    disabled={isLoading}
+                    disabled={!isFormValid() || isLoading}
                   >
                     {isLoading ? (
                       <ActivityIndicator color={Colors.blue3} />
@@ -345,6 +413,26 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
         visible={contactsModalVisible}
         onClose={() => setContactsModalVisible(false)}
         onSave={handleContactsSave}
+      />
+
+      <DescriptionModal
+        visible={shortDescModalVisible}
+        onClose={() => setShortDescModalVisible(false)}
+        description={shortDescription}
+        onChangeDescription={setShortDescription}
+        maxLength={50}
+        title="Краткое описание"
+        placeholder="Введите краткое описание группы..."
+      />
+
+      <DescriptionModal
+        visible={fullDescModalVisible}
+        onClose={() => setFullDescModalVisible(false)}
+        description={fullDescription}
+        onChangeDescription={setFullDescription}
+        maxLength={300}
+        title="Полное описание"
+        placeholder="Введите полное описание группы..."
       />
     </>
   );
@@ -389,27 +477,67 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 16,
   },
+  fieldContainer: {
+    marginBottom: 16,
+  },
+  inputWithButtonContainer: {
+    position: 'relative',
+  },
   input: {
     borderBottomWidth: 1,
     borderBottomColor: Colors.grey,
     paddingVertical: 4,
     paddingHorizontal: 0,
-    marginBottom: 16,
     fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.black,
+  },
+  textAreaContainer: {
+    position: 'relative',
   },
   textArea: {
     borderWidth: 1,
     borderColor: Colors.grey,
     borderRadius: 8,
     padding: 16,
+    paddingRight: 48,
     minHeight: 120,
+    borderBottomWidth: 1,
+  },
+  charCounter: {
+    fontFamily: Montserrat.regular,
+    fontSize: 12,
+    color: Colors.grey,
+    marginTop: 4,
+  },
+  expandButton: {
+    position: 'absolute',
+    right: 0,
+    bottom: 4,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expandButtonTextArea: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expandIcon: {
+    width: 18,
+    height: 18,
+    tintColor: Colors.grey,
+    transform: [{ rotate: '90deg' }],
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginVertical: 10,
   },
   checkbox: {
     marginRight: 8,
@@ -503,7 +631,7 @@ const styles = StyleSheet.create({
   uploadPlaceholder: {
     width: 150,
     height: 150,
-    borderRadius: 120,
+    borderRadius: 75,
     backgroundColor: Colors.lightLightGrey,
     justifyContent: 'center',
     alignItems: 'center',
@@ -516,6 +644,13 @@ const styles = StyleSheet.create({
     height: 40,
     resizeMode: 'contain',
     tintColor: Colors.grey,
+  },
+  uploadText: {
+    fontFamily: Montserrat.bold,
+    fontSize: 12,
+    color: Colors.grey,
+    marginTop: 8,
+    textAlign: 'center',
   },
   selectedImage: {
     width: 150,

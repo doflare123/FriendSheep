@@ -1,4 +1,4 @@
-import { PublicGroupResponse } from '@/api/services/groupService';
+import { PublicGroupResponse } from '@/api/services/group/groupService';
 import { Session, SessionInfo } from '@/api/types/user';
 import { formatSessionDate, sessionTypeToCategory } from '@/hooks/groups/groupManageHelpers';
 import { normalizeImageUrl } from '@/utils/imageUtils';

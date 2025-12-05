@@ -1,4 +1,5 @@
-import groupService, { GroupDetailResponse } from '@/api/services/groupService';
+import groupService from '@/api/services/group/groupService';
+import type { GroupDetailResponse } from '@/api/services/group/groupTypes';
 import { Contact } from '@/components/groups/modal/ContactsModal';
 import { useState } from 'react';
 import { Alert } from 'react-native';

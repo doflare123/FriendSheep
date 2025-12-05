@@ -1,4 +1,5 @@
-import groupService, { SimpleGroupRequest } from '@/api/services/groupService';
+import type { SimpleGroupRequest } from '@/api/services/group';
+import { groupRequestService } from '@/api/services/group';
 import { useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import { normalizeImageUrl } from './groupManageHelpers';
@@ -17,7 +18,7 @@ export function useGroupRequests(groupId: string) {
   const loadGroupRequests = async () => {
     try {
       setIsLoadingRequests(true);
-      const requests = await groupService.getGroupRequests(parseInt(groupId));
+      const requests = await groupRequestService.getGroupRequests(parseInt(groupId));
       setGroupRequests(requests);
     } catch (error: any) {
       console.error('[useGroupRequests] Ошибка загрузки заявок:', error);
@@ -42,7 +43,7 @@ export function useGroupRequests(groupId: string) {
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
-      await groupService.approveRequest(parseInt(requestId));
+      await groupRequestService.approveRequest(parseInt(requestId));
       Alert.alert('Успешно', 'Заявка принята!');
       await loadGroupRequests();
     } catch (error: any) {
@@ -52,7 +53,7 @@ export function useGroupRequests(groupId: string) {
 
   const handleRejectRequest = async (requestId: string) => {
     try {
-      await groupService.rejectRequest(parseInt(requestId));
+      await groupRequestService.rejectRequest(parseInt(requestId));
       Alert.alert('Успешно', 'Заявка отклонена!');
       await loadGroupRequests();
     } catch (error: any) {
@@ -91,10 +92,10 @@ export function useGroupRequests(groupId: string) {
   const confirmAction = async () => {
     try {
       if (confirmationModal.action === 'acceptAll') {
-        await groupService.approveAllRequests(parseInt(groupId));
+        await groupRequestService.approveAllRequests(parseInt(groupId));
         Alert.alert('Успешно', 'Все заявки приняты!');
       } else if (confirmationModal.action === 'rejectAll') {
-        await groupService.rejectAllRequests(parseInt(groupId));
+        await groupRequestService.rejectAllRequests(parseInt(groupId));
         Alert.alert('Успешно', 'Все заявки отклонены!');
       }
       await loadGroupRequests();

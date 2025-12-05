@@ -1,10 +1,10 @@
 import authService from '@/api/services/authService';
 import { useToast } from '@/components/ToastContext';
 import { Colors } from '@/constants/Colors';
-import { filterConfirmationCode, hasRussianChars, validateConfirmationCode, validatePassword } from '@/utils/validators';
+import { hasRussianChars, validatePassword } from '@/utils/validators';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Button from '../../components/auth/Button';
 import Input from '../../components/auth/Input';
@@ -14,6 +14,7 @@ import authorizeStyle from '../styles/authorizeStyle';
 interface RouteParams {
   sessionId: string;
   email: string;
+  code: string;
 }
 
 const ResetPassword = () => {
@@ -21,41 +22,16 @@ const ResetPassword = () => {
   const route = useRoute();
   const { showToast } = useToast();
   
-  const { sessionId, email } = route.params as RouteParams;
+  const { sessionId, email, code } = route.params as RouteParams;
   
-  const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
 
   const passwordValidation = useMemo(() => validatePassword(newPassword), [newPassword]);
   const showRussianWarning = useMemo(() => hasRussianChars(newPassword), [newPassword]);
-  const codeValidation = useMemo(() => validateConfirmationCode(code), [code]);
-
-  const handleCodeChange = (text: string) => {
-    setCode(filterConfirmationCode(text, 6));
-  };
 
   const handleResetPassword = async () => {
-    if (!code.trim()) {
-      showToast({
-        type: 'error',
-        title: 'Ошибка',
-        message: 'Введите код подтверждения',
-      });
-      return;
-    }
-
-    if (!codeValidation.isValid) {
-      showToast({
-        type: 'error',
-        title: 'Ошибка',
-        message: 'Код должен содержать 6 символов (только латинские буквы и цифры)',
-      });
-      return;
-    }
-
     if (!passwordValidation.isValid) {
       showToast({
         type: 'error',
@@ -77,10 +53,15 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
+      console.log('[ResetPassword] Confirming password reset...');
+      console.log('[ResetPassword] Email:', email);
+      console.log('[ResetPassword] SessionId:', sessionId);
+      console.log('[ResetPassword] Code:', code);
+
       await authService.confirmPasswordReset(
         email,
         sessionId,
-        code.trim(),
+        code,
         newPassword
       );
 
@@ -90,39 +71,17 @@ const ResetPassword = () => {
         message: 'Пароль успешно изменен',
       });
 
-      navigation.navigate('Login' as never);
+      setTimeout(() => {
+        navigation.navigate('Login' as never);
+      }, 1500);
     } catch (error: any) {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось сбросить пароль',
+        message: error.message || 'Не удалось изменить пароль',
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleResendCode = async () => {
-    setResendLoading(true);
-
-    try {
-      const response = await authService.requestPasswordReset(email);
-
-      showToast({
-        type: 'success',
-        title: 'Код отправлен',
-        message: 'Новый код отправлен на вашу почту',
-      });
-
-      (navigation.setParams as any)({ sessionId: response.session_id });
-    } catch (error: any) {
-      showToast({
-        type: 'error',
-        title: 'Ошибка',
-        message: error.message || 'Не удалось отправить код повторно',
-      });
-    } finally {
-      setResendLoading(false);
     }
   };
 
@@ -141,33 +100,18 @@ const ResetPassword = () => {
         showsVerticalScrollIndicator={false}>
 
         <Text style={authorizeStyle.terms}>
-          Код подтверждения отправлен на {email}
+          Установите новый пароль для {email}
         </Text>
-
-        <Text style={authorizeStyle.label}>Код подтверждения</Text>
-        <Input
-          placeholder="6 символов"
-          value={code}
-          onChangeText={handleCodeChange}
-          keyboardType="default"
-          autoCapitalize="characters"
-          maxLength={6}
-          editable={!loading}
-        />
-
-        {code.length > 0 && !codeValidation.hasInvalidChars && code.length < 6 && (
-          <Text style={authorizeStyle.passwordValidation}>
-            Введите ещё {6 - code.length} {code.length === 5 ? 'символ' : 'символа'}
-          </Text>
-        )}
 
         <Text style={authorizeStyle.label}>Новый пароль</Text>
         <Input
-          placeholder="Минимум 6 символов"
+          placeholder="Минимум 10 символов"
           secureTextEntry
           value={newPassword}
           onChangeText={setNewPassword}
           editable={!loading}
+          isValid={newPassword.length === 0 || (passwordValidation.isValid && !showRussianWarning)}
+          borderColor={showRussianWarning ? Colors.orange : undefined}
         />
 
         {showRussianWarning && (
@@ -189,6 +133,7 @@ const ResetPassword = () => {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           editable={!loading}
+          isValid={confirmPassword.length === 0 || newPassword === confirmPassword}
         />
 
         {confirmPassword.length > 0 && newPassword !== confirmPassword && (
@@ -197,31 +142,13 @@ const ResetPassword = () => {
           </Text>
         )}
 
-        <View style={[authorizeStyle.account, {justifyContent: 'space-between'}]}>
-          <TouchableOpacity 
-            onPress={handleResendCode}
-            disabled={loading || resendLoading}
-          >
-            <Text style={authorizeStyle.password}>
-              {resendLoading ? 'Отправка...' : 'Отправить код повторно'}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()}
-            disabled={loading}
-          >
-            <Text style={authorizeStyle.password}>Изменить email</Text>
-          </TouchableOpacity>
-        </View>
-
         <Button
-          title={loading ? 'Сохранение...' : 'Сбросить пароль'}
+          title={loading ? 'Сохранение...' : 'Сохранить пароль'}
           onPress={handleResetPassword}
-          disabled={loading || resendLoading || !passwordValidation.isValid || !codeValidation.isValid || newPassword !== confirmPassword}
+          disabled={loading || !passwordValidation.isValid || newPassword !== confirmPassword}
         />
 
-        {(loading || resendLoading) && (
+        {loading && (
           <ActivityIndicator 
             size="large" 
             color={Colors.blue} 

@@ -1,4 +1,5 @@
-import groupService, { PublicGroupResponse } from '@/api/services/groupService';
+import { groupMemberService } from '@/api/services/group';
+import groupService, { PublicGroupResponse } from '@/api/services/group/groupService';
 import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -72,6 +73,7 @@ const GroupPage = () => {
   const [privateGroupName, setPrivateGroupName] = useState<string>('');
   const { sortingState, sortingActions } = useSearchState();
   const [confirmLeaveModalVisible, setConfirmLeaveModalVisible] = useState(false);
+  const [requestStatus, setRequestStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
   const navigation = useNavigation<GroupManagePageNavigationProp>();
 
   const loadGroupData = async () => {
@@ -143,8 +145,14 @@ const GroupPage = () => {
       const result = await groupService.joinGroup(parseInt(groupId));
       
       console.log('[GroupPage] Результат вступления:', result);
-      Alert.alert('Успешно', result.message);
       
+      if (result.joined) {
+        setRequestStatus('approved');
+      } else {
+        setRequestStatus('pending');
+      }
+      
+      Alert.alert('Успешно', result.message);
       await loadGroupData();
       
     } catch (error: any) {
@@ -153,6 +161,7 @@ const GroupPage = () => {
       const errorMessage = error.response?.data?.error || error.message || '';
       
       if (errorMessage.includes('заявка уже отправлена')) {
+        setRequestStatus('pending');
         Alert.alert(
           'Заявка уже отправлена',
           'Ваша заявка на вступление уже находится на рассмотрении у администратора группы.'
@@ -256,7 +265,7 @@ const GroupPage = () => {
       console.log('[GroupPage] 🔍 Попытка покинуть группу, groupId:', groupId);
       console.log('[GroupPage] 🔍 Тип groupId:', typeof groupId);
       
-      await groupService.leaveGroup(parseInt(groupId));
+      await groupMemberService.leaveGroup(parseInt(groupId));
       
       Alert.alert('Успешно', 'Вы покинули группу');
       await loadGroupData();
@@ -279,7 +288,7 @@ const GroupPage = () => {
       case 'pending':
         return 'Заявка отправлена';
       case 'not_member':
-        return 'Подать заявку';
+        return 'Присоединиться';
       default:
         return 'Присоединиться';
     }
@@ -321,6 +330,7 @@ const GroupPage = () => {
           groupName={privateGroupName}
           onRequestJoin={handlePrivateGroupRequestJoin}
           isProcessing={isProcessing}
+          requestStatus={requestStatus}
         />
         <BottomBar />
       </SafeAreaView>
@@ -361,7 +371,9 @@ const GroupPage = () => {
           <View style={{ flexDirection: 'column', flex: 1 }}>
             <View style={styles.headerInfo}>
               <Text style={styles.groupName}>{groupData.name}</Text>
-              <Text style={styles.location}>{groupData.city}</Text>
+              {groupData.city && groupData.city.trim() !== '' && (
+                <Text style={styles.location}>{groupData.city}</Text>
+              )}
               <View style={styles.categoriesContainer}>
                 {mappedCategories.map((category, index) => (
                   <Image

@@ -156,8 +156,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   groupImage: {
-    width: 130,
-    height: 130,
+    width: 110,
+    height: 110,
     borderRadius: 100,
     resizeMode: 'contain',
     marginRight: 12,

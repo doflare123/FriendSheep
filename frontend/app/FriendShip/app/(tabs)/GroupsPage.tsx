@@ -1,4 +1,4 @@
-import groupService from '@/api/services/groupService';
+import groupService from '@/api/services/group/groupService';
 import userService from '@/api/services/userService';
 import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';

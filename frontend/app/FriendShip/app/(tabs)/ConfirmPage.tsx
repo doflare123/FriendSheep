@@ -1,5 +1,5 @@
-import { useAuthContext } from '@/api/services/AuthContext';
 import authService from '@/api/services/authService';
+import { useAuthContext } from '@/components/auth/AuthContext';
 import InputSmall from '@/components/auth/InputSmall';
 import { useToast } from '@/components/ToastContext';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -16,6 +16,8 @@ const RESEND_TIMEOUT_MINUTES = 15;
 
 type ConfirmRouteParams = {
   sessionId: string;
+  type: 'register' | 'reset';
+  email?: string;
 };
 
 const Confirm = () => {
@@ -24,20 +26,27 @@ const Confirm = () => {
   const { tempRegData, setTempRegData } = useAuthContext();
   const route = useRoute<RouteProp<{ Confirm: ConfirmRouteParams }, 'Confirm'>>();
   
-  const { sessionId } = route.params || {};
+  const { sessionId, type = 'register', email: routeEmail } = route.params || {};
 
-  const email = tempRegData?.email || '';
+  const email = type === 'register' ? (tempRegData?.email || '') : (routeEmail || '');
   const username = tempRegData?.username || '';
   const password = tempRegData?.password || '';
 
   useEffect(() => {
-    if (!tempRegData || !sessionId) {
+    if (type === 'register' && (!tempRegData || !sessionId)) {
       showToast({
         type: 'error',
         title: 'Ошибка',
         message: 'Данные регистрации не найдены',
       });
       navigation.navigate('Register' as never);
+    } else if (type === 'reset' && (!sessionId || !routeEmail)) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Данные для сброса пароля не найдены',
+      });
+      navigation.navigate('ForgotPassword' as never);
     }
   }, []);
 
@@ -54,7 +63,6 @@ const Confirm = () => {
   const MAX_ATTEMPTS = 5;
 
   const handleConfirm = async () => {
-
     if (attempts >= MAX_ATTEMPTS) {
       showToast({
         type: 'error',
@@ -84,36 +92,79 @@ const Confirm = () => {
       return;
     }
 
-    if (!username || !password) {
-      showToast({
-        type: 'error',
-        title: 'Ошибка',
-        message: 'Отсутствуют данные регистрации',
-      });
-      return;
-    }
-
     setLoading(true);
 
     try {
-      await authService.verifySession(sessionId, trimmedCode, 'register');
-      await authService.createUser(email, username, password, sessionId);
+      if (type === 'register') {
+        if (!username || !password) {
+          showToast({
+            type: 'error',
+            title: 'Ошибка',
+            message: 'Отсутствуют данные регистрации',
+          });
+          setLoading(false);
+          return;
+        }
 
-      setTempRegData(null)
+        console.log('[Confirm] Starting registration process...');
+        console.log('[Confirm] Email:', email);
+        console.log('[Confirm] Username:', username);
+        console.log('[Confirm] SessionId:', sessionId);
+        console.log('[Confirm] Code:', trimmedCode);
 
-      showToast({
-        type: 'success',
-        title: 'Регистрация завершена!',
-        message: 'Пожалуйста, войдите в систему',
-      });
+        console.log('[Confirm] Step 1: Verifying session...');
+        const verifyResponse = await authService.verifySession(sessionId, trimmedCode, 'register');
+        console.log('[Confirm] Verify response:', verifyResponse);
 
-      setTimeout(() => {
-        navigation.navigate('Login' as never);
-      }, 1500);
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        console.log('[Confirm] Step 2: Creating user...');
+        await authService.createUser(email, username, password, sessionId);
+        console.log('[Confirm] User created successfully!');
+
+        setTempRegData(null);
+
+        showToast({
+          type: 'success',
+          title: 'Регистрация завершена!',
+          message: 'Пожалуйста, войдите в систему',
+        });
+
+        setTimeout(() => {
+          navigation.navigate('Login' as never);
+        }, 1500);
+
+      } else if (type === 'reset') {
+        console.log('[Confirm] Password reset - verifying code...');
+        console.log('[Confirm] Email:', email);
+        console.log('[Confirm] SessionId:', sessionId);
+        console.log('[Confirm] Code:', trimmedCode);
+
+        const verifyResponse = await authService.verifySession(sessionId, trimmedCode, 'reset_password');
+        console.log('[Confirm] Verify response:', verifyResponse);
+
+        showToast({
+          type: 'success',
+          title: 'Код подтвержден!',
+          message: 'Теперь установите новый пароль',
+        });
+
+        setTimeout(() => {
+          (navigation.navigate as any)('ResetPassword', {
+            sessionId,
+            email,
+            code: trimmedCode,
+          });
+        }, 1000);
+      }
 
     } catch (error: any) {
       setAttempts(prev => prev + 1);
       const errorMessage = error.message || 'Произошла ошибка';
+      
+      console.error('[Confirm] Error during confirmation:', error);
+      console.error('[Confirm] Error message:', errorMessage);
+      console.error('[Confirm] Current attempts:', attempts + 1);
       
       if (errorMessage.includes('Неверный код')) {
         showToast({
@@ -140,7 +191,7 @@ const Confirm = () => {
       } else {
         showToast({
           type: 'error',
-          title: 'Ошибка регистрации',
+          title: type === 'register' ? 'Ошибка регистрации' : 'Ошибка сброса пароля',
           message: errorMessage,
         });
       }
@@ -149,13 +200,13 @@ const Confirm = () => {
     }
   };
   
-    useEffect(() => {
-      return () => {
-        if (navigation.isFocused()) {
-          setTempRegData(null);
-        }
-      };
-    }, []);
+  useEffect(() => {
+    return () => {
+      if (navigation.isFocused() && type === 'register') {
+        setTempRegData(null);
+      }
+    };
+  }, []);
 
   const handleResend = async () => {
     if (!email) {
@@ -170,7 +221,13 @@ const Confirm = () => {
     setResending(true);
 
     try {
-      await authService.resendCode(email);
+      let response;
+      
+      if (type === 'register') {
+        response = await authService.resendCode(email);
+      } else {
+        response = await authService.requestPasswordReset(email);
+      }
 
       showToast({
         type: 'success',
@@ -184,6 +241,7 @@ const Confirm = () => {
       setResendAvailable(false);
       
       setCode('');
+      setAttempts(0);
     } catch (error: any) {
       showToast({
         type: 'error',
@@ -227,11 +285,22 @@ const Confirm = () => {
   const user_email_name = emailParts[0] || 'unknown';
   const user_email_domain = emailParts[1] || 'gmail.com';
 
+  const getTitle = () => {
+    return type === 'register' ? 'Код подтверждения' : 'Подтверждение сброса';
+  };
+
+  const getButtonTitle = () => {
+    if (loading) {
+      return type === 'register' ? 'Регистрация...' : 'Проверка...';
+    }
+    return type === 'register' ? 'Подтвердить' : 'Продолжить';
+  };
+
   return (
     <View style={authorizeStyle.container}>
       <View style={[authorizeStyle.topContainer, { marginBottom: 0 }]}>
         <Logo />
-        <Text style={authorizeStyle.title}>Код подтверждения</Text>
+        <Text style={authorizeStyle.title}>{getTitle()}</Text>
         <PointAnimation />
       </View>
 
@@ -255,6 +324,12 @@ const Confirm = () => {
           length={6}
         />
 
+        {attempts >= MAX_ATTEMPTS && (
+          <Text style={[authorizeStyle.hintLabel, { color: Colors.red, marginBottom: 10 }]}>
+            Превышено количество попыток. Запросите новый код.
+          </Text>
+        )}
+
         {!resendAvailable ? (
           <Text style={authorizeStyle.hintLabel}>
             Повторно код можно отправить через {minutes}:{seconds.toString().padStart(2, '0')}
@@ -270,16 +345,28 @@ const Confirm = () => {
           </TouchableOpacity>
         )}
 
+        {type === 'reset' && (
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('ForgotPassword' as never)}
+            disabled={loading || resending}
+            style={{ marginTop: 10 }}
+          >
+            <Text style={[authorizeStyle.hintLabel, { color: Colors.lightBlue }]}>
+              Изменить email
+            </Text>
+          </TouchableOpacity>
+        )}
+
         <Button 
-          title={loading ? 'Регистрация...' : 'Подтвердить'} 
+          title={getButtonTitle()} 
           onPress={handleConfirm}
-          disabled={loading || resending || code.length < 6}
+          disabled={loading || resending || code.length < 6 || attempts >= MAX_ATTEMPTS}
         />
 
         {(loading || resending) && (
           <ActivityIndicator 
             size="large" 
-            color="#0000ff" 
+            color={Colors.blue} 
             style={{ marginTop: 16 }} 
           />
         )}

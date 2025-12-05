@@ -16,7 +16,7 @@ const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json; charset=utf-8',
   },
 });
 
@@ -28,13 +28,12 @@ const PUBLIC_ENDPOINTS = [
   '/users/confirm-reset',
 ];
 
-const isPublicEndpoint = (url?: string): boolean => {
+const isPublicEndpoint = (url?: string, method?: string): boolean => {
   if (!url) return false;
 
+  if (url === '/users' && method?.toUpperCase() === 'POST') return true;
+
   return PUBLIC_ENDPOINTS.some(endpoint => {
-    if (endpoint === '/users') {
-      return url === '/users' || url.startsWith('/users?');
-    }
     return url.includes(endpoint);
   });
 };
@@ -50,7 +49,7 @@ apiClient.interceptors.request.use(
 
     console.log(`\n[API] → ${config.method?.toUpperCase()} ${config.url}`);
 
-    if (isPublicEndpoint(config.url)) {
+    if (isPublicEndpoint(config.url, config.method)) {
       console.log('[API] Публичный endpoint');
       return config;
     }
@@ -80,7 +79,6 @@ const processQueue = (token: string | null) => {
   refreshQueue = [];
 };
 
-
 apiClient.interceptors.response.use(
   (response) => {
     requestCounter--;
@@ -90,7 +88,7 @@ apiClient.interceptors.response.use(
     requestCounter--;
     const originalRequest: any = error.config;
 
-    if (error.response?.status !== 401 || isPublicEndpoint(originalRequest?.url)) {
+    if (error.response?.status !== 401 || isPublicEndpoint(originalRequest?.url, originalRequest?.method)) {
       return Promise.reject(error);
     }
 

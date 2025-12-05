@@ -1,4 +1,4 @@
-import groupService from '@/api/services/groupService';
+import groupService from '@/api/services/group/groupService';
 import sessionService from '@/api/services/session/sessionService';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { useToast } from '@/components/ToastContext';

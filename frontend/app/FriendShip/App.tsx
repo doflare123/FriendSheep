@@ -7,7 +7,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AuthProvider } from './api/services/AuthContext';
 import CategoryPage from './app/(tabs)/CategoryPage';
 import Confirm from './app/(tabs)/ConfirmPage';
 import Done from './app/(tabs)/DonePage';
@@ -22,11 +21,65 @@ import Register from './app/(tabs)/RegisterPage';
 import ResetPassword from './app/(tabs)/ResetPassword';
 import SettingsPage from './app/(tabs)/SettingsPage';
 import UserSearchPage from './app/(tabs)/UserSearchPage';
+import { AuthProvider, useAuthContext } from './components/auth/AuthContext';
 import { RootStackParamList } from './navigation/types';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 SplashScreen.preventAutoHideAsync();
+
+function RootNavigator() {
+  const { isAuthenticated } = useAuthContext();
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        gestureEnabled: false,
+        headerShown: false,
+        animation: 'scale_from_center'
+      }}
+    >
+      {isAuthenticated ? (
+        <>
+          <Stack.Screen name="MainPage" component={MainPage} />
+          <Stack.Screen 
+            name="CategoryPage" 
+            component={CategoryPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="GroupsPage" component={GroupsPage} />
+          <Stack.Screen 
+            name="GroupPage" 
+            component={GroupPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="GroupManagePage" 
+            component={GroupManagePage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="GroupSearchPage" component={GroupSearchPage} />
+          <Stack.Screen name="ProfilePage" component={ProfilePage} />
+          <Stack.Screen 
+            name="UserSearchPage" 
+            component={UserSearchPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="SettingsPage" component={SettingsPage} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="Register" component={Register} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+          <Stack.Screen name="ResetPassword" component={ResetPassword} />
+          <Stack.Screen name="Confirm" component={Confirm} />
+          <Stack.Screen name="Done" component={Done} />
+        </>
+      )}
+    </Stack.Navigator>
+  );
+}
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -48,51 +101,14 @@ export default function App() {
   if (!fontsLoaded) {
     return null;
   }
+
   return (
     <AuthProvider>
       <ToastProvider>
         <SafeAreaProvider>
-            <NavigationContainer>
-              <Stack.Navigator
-                screenOptions={{
-                  gestureEnabled: false,
-                  headerShown: false,
-                  animation: 'scale_from_center'
-                }}
-              > 
-                <Stack.Screen name="Register" component={Register} />
-                <Stack.Screen name="Login" component={Login} />
-                <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-                <Stack.Screen name="ResetPassword" component={ResetPassword} />
-                <Stack.Screen name="Confirm" component={Confirm} />
-                <Stack.Screen name="Done" component={Done} />
-                <Stack.Screen name="MainPage" component={MainPage} />
-                <Stack.Screen 
-                  name="CategoryPage" 
-                  component={CategoryPage}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen name="GroupsPage" component={GroupsPage} />
-                <Stack.Screen 
-                  name="GroupPage" 
-                  component={GroupPage}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen 
-                  name="GroupManagePage" 
-                  component={GroupManagePage}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen name="GroupSearchPage" component={GroupSearchPage} />
-                <Stack.Screen name="ProfilePage" component={ProfilePage} />
-                <Stack.Screen 
-                  name="UserSearchPage" 
-                  component={UserSearchPage}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen name="SettingsPage" component={SettingsPage} />
-              </Stack.Navigator>
-            </NavigationContainer>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
         </SafeAreaProvider>
       </ToastProvider>   
     </AuthProvider>

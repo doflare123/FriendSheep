@@ -1,4 +1,5 @@
-import groupService, { SearchGroupItem, SearchGroupsParams } from '@/api/services/groupService';
+import type { SearchGroupItem, SearchGroupsParams } from '@/api/services/group';
+import { groupSearchService } from '@/api/services/group';
 import { useCallback, useState } from 'react';
 import { GroupCategory } from './useGroupSearchState';
 
@@ -56,7 +57,7 @@ export const useGroupSearch = () => {
 
       console.log('[useGroupSearch] Выполняем поиск:', params);
 
-      const response = await groupService.searchGroups(params);
+      const response = await groupSearchService.searchGroups(params);
 
       if (append) {
         setGroups(prev => [...prev, ...response.groups]);

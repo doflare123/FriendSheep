@@ -1,4 +1,4 @@
-import groupService, { AdminGroup } from '@/api/services/groupService';
+import groupService, { AdminGroup } from '@/api/services/group/groupService';
 import GroupCard, { GroupCategory } from '@/components/groups/GroupCard';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';

@@ -1,4 +1,5 @@
-import groupService, { GroupSubscriber } from '@/api/services/groupService';
+import groupMemberService from '@/api/services/group/groupMemberService';
+import type { GroupSubscriber } from '@/api/services/group/groupTypes';
 import { useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import { normalizeImageUrl } from './groupManageHelpers';
@@ -36,7 +37,7 @@ export function useGroupSubscribers(groupId: string, subscribers: GroupSubscribe
     try {
       setIsProcessingSubscriber(true);
       
-      await groupService.removeMember(parseInt(groupId), parseInt(removeMemberModal.userId));
+      await groupMemberService.removeMember(parseInt(groupId), parseInt(removeMemberModal.userId));
       
       Alert.alert('Успешно', 'Участник удалён из группы');
       setRemoveMemberModal({ visible: false, userId: '', userName: '' });

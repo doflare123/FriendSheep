@@ -100,11 +100,11 @@ class UserService {
         };
       }
 
-      console.log('[UserService] Поиск пользователей:', sanitizedQuery);
+      console.log('[UserService] Поиск пользователей по username:', sanitizedQuery);
       
       const response = await apiClient.get<UserSearchResponse>('/users/search', {
         params: { 
-          name: sanitizedQuery,
+          us: sanitizedQuery,
           page: page,
         },
       });

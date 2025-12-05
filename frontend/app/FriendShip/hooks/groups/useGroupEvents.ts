@@ -1,4 +1,4 @@
-import { GroupDetailResponse } from '@/api/services/groupService';
+import type { GroupDetailResponse } from '@/api/services/group/groupTypes';
 import { CreateSessionData, UpdateSessionData } from '@/api/services/session';
 import sessionService from '@/api/services/session/sessionService';
 import { useMemo, useState } from 'react';

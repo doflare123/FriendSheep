@@ -1,5 +1,6 @@
 import authService from '@/api/services/authService';
 import { clearTokens } from '@/api/storage/tokenStorage';
+import { useAuthContext } from '@/components/auth/AuthContext';
 import { useToast } from '@/components/ToastContext';
 import { Colors } from '@/constants/Colors';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +15,7 @@ import authorizeStyle from '../styles/authorizeStyle';
 const Login = () => {
   const navigation = useNavigation();
   const { showToast } = useToast();
+  const { setIsAuthenticated } = useAuthContext();
   
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
@@ -27,6 +29,11 @@ const Login = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
+
+  const isEmailValid = useMemo(() => {
+    if (email.length === 0) return true;
+    return validateEmail(email.trim().toLowerCase());
+  }, [email]);
 
   const handleLogin = async () => {
     const sanitizedEmail = email.trim().toLowerCase();
@@ -66,15 +73,15 @@ const Login = () => {
 
       await authService.login(sanitizedEmail, password);
 
+      console.log('[Login] ✅ Успешная авторизация');
+
+      setIsAuthenticated(true);
+
       showToast({
         type: 'success',
         title: 'Успешно!',
         message: 'Вы вошли в систему',
       });
-
-      setTimeout(() => {
-        navigation.navigate('MainPage' as never);
-      }, 500);
 
     } catch (error: any) {
       showToast({
@@ -109,7 +116,14 @@ const Login = () => {
           keyboardType="email-address"
           autoCapitalize="none"
           editable={!loading}
+          isValid={isEmailValid}
         />
+
+        {email.length > 0 && !isEmailValid && (
+          <Text style={authorizeStyle.passwordValidation}>
+            Введите корректный email (должен содержать @ и домен)
+          </Text>
+        )}
 
         <Text style={authorizeStyle.label}>Пароль</Text>
         <Input
@@ -118,6 +132,7 @@ const Login = () => {
           value={password}
           onChangeText={setPassword}
           editable={!loading}
+          borderColor={hasRussianChars ? Colors.orange : undefined}
         />
 
         {hasRussianChars && (
@@ -144,7 +159,7 @@ const Login = () => {
         <Button 
           title={loading ? 'Вход...' : 'Войти'} 
           onPress={handleLogin}
-          disabled={loading}
+          disabled={loading || !isEmailValid || email.length === 0}
         />
 
         {loading && (

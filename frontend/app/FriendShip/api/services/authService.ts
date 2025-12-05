@@ -10,6 +10,8 @@ import {
   VerifySessionResponse
 } from '../types/auth';
 
+const BASE_URL = 'https://friendsheep.ru/api';
+
 class AuthService {
   async createRegistrationSession(
     email: string
@@ -52,14 +54,57 @@ class AuthService {
     sessionId: string
   ): Promise<any> {
     try {
-      const response = await apiClient.post('/users', {
+      const payload = {
         email,
         name,
         password,
         session_id: sessionId,
+      };
+      
+      console.log('[AuthService] Creating user with fetch');
+      console.log('[AuthService] Payload:', JSON.stringify(payload));
+      
+      const response = await fetch(`${BASE_URL}/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(payload),
       });
-      return response.data;
+      
+      console.log('[AuthService] Response status:', response.status);
+      
+      const responseText = await response.text();
+      console.log('[AuthService] Response text:', responseText);
+      
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch {
+          errorData = { error: responseText };
+        }
+        
+        const error: any = new Error('Request failed');
+        error.response = {
+          status: response.status,
+          data: errorData,
+        };
+        throw error;
+      }
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        data = { message: 'User created successfully' };
+      }
+      
+      console.log('[AuthService] User created successfully');
+      return data;
     } catch (error: any) {
+      console.error('[AuthService] Error:', error);
       throw this.handleError(error);
     }
   }
@@ -90,7 +135,6 @@ class AuthService {
       throw this.handleError(error);
     }
   }
-
 
   async refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
     try {
@@ -149,21 +193,44 @@ class AuthService {
     }
   }
 
+  async changePassword(email: string, newPassword: string): Promise<any> {
+    try {
+      const response = await apiClient.post('/users/change-password', {
+        email,
+        password: newPassword,
+      });
+      return response.data;
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
   private handleError(error: any): Error {
     if (error.response) {
       const status = error.response.status;
       const data: ErrorResponse = error.response.data;
 
-      const errorMessage =
-        Object.values(data).join(', ') || 'Произошла ошибка';
+      let errorMessage: string;
+      
+      if (typeof data === 'string') {
+        errorMessage = data;
+      } else if (typeof data === 'object' && data !== null) {
+        errorMessage = Object.values(data).join(', ') || 'Произошла ошибка';
+      } else {
+        errorMessage = 'Произошла ошибка';
+      }
 
       switch (status) {
         case 400:
-          return new Error(`Неверные данные: ${errorMessage}`);
+          return new Error(`${errorMessage}`);
         case 401:
           return new Error('Неверный код подтверждения или пароль');
         case 404:
           return new Error('Сессия не найдена или истекла');
+        case 409:
+          return new Error(`${errorMessage}`);
+        case 422:
+          return new Error(`${errorMessage}`);
         case 429:
           return new Error('Слишком много попыток. Попробуйте позже');
         case 500:

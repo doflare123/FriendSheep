@@ -5,18 +5,28 @@ import { API_BASE_URL } from '@env';
 
 const ACCESS_TOKEN_KEY = 'auth_access_token';
 const REFRESH_TOKEN_KEY = 'auth_refresh_token';
+const TOKEN_TIMESTAMP_KEY = 'auth_token_timestamp';
 
 const BASE_URL = API_BASE_URL || 'https://friendsheep.ru/api';
+const REFRESH_INTERVAL = 15 * 60 * 1000;
+
+let refreshTimerId: number | null = null;
 
 export const saveTokens = async (
   accessToken: string,
   refreshToken: string
 ): Promise<void> => {
   try {
+    const timestamp = Date.now().toString();
     await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
     await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+    await SecureStore.setItemAsync(TOKEN_TIMESTAMP_KEY, timestamp);
+    
+    console.log('[TokenStorage] Токены сохранены');
+
+    startTokenRefreshTimer();
   } catch (error) {
-    console.error('Ошибка сохранения токенов:', error);
+    console.error('[TokenStorage] Ошибка сохранения токенов:', error);
     throw error;
   }
 };
@@ -31,7 +41,7 @@ export const getTokens = async (): Promise<AuthTokens | null> => {
     }
     return null;
   } catch (error) {
-    console.error('Ошибка получения токенов:', error);
+    console.error('[TokenStorage] Ошибка получения токенов:', error);
     return null;
   }
 };
@@ -40,8 +50,13 @@ export const clearTokens = async (): Promise<void> => {
   try {
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    await SecureStore.deleteItemAsync(TOKEN_TIMESTAMP_KEY);
+
+    stopTokenRefreshTimer();
+    
+    console.log('[TokenStorage] Токены очищены');
   } catch (error) {
-    console.error('Ошибка очистки токенов:', error);
+    console.error('[TokenStorage] Ошибка очистки токенов:', error);
     throw error;
   }
 };
@@ -57,8 +72,11 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     
     if (!tokens?.refreshToken) {
       console.error('[TokenStorage] Refresh токен отсутствует');
+      stopTokenRefreshTimer();
       return null;
     }
+
+    console.log('[TokenStorage] 🔄 Обновление токена...');
 
     const response = await fetch(`${BASE_URL}/users/refresh`, {
       method: 'POST',
@@ -71,7 +89,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     });
 
     if (!response.ok) {
-      console.error('[TokenStorage] Ошибка обновления токена:', response.status);
+      console.error('[TokenStorage] ❌ Ошибка обновления токена:', response.status);
   
       if (response.status === 401) {
         await clearTokens();
@@ -87,11 +105,9 @@ export const refreshAccessToken = async (): Promise<string | null> => {
       return null;
     }
 
-    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, data.access_token);
-
-    if (data.refresh_token) {
-      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, data.refresh_token);
-    }
+    await saveTokens(data.access_token, data.refresh_token || tokens.refreshToken);
+    
+    console.log('[TokenStorage] ✅ Токен успешно обновлен');
 
     return data.access_token;
   } catch (error) {
@@ -108,9 +124,53 @@ export const ensureValidToken = async (): Promise<string | null> => {
       return null;
     }
 
+    const timestampStr = await SecureStore.getItemAsync(TOKEN_TIMESTAMP_KEY);
+    if (timestampStr) {
+      const timestamp = parseInt(timestampStr);
+      const elapsed = Date.now() - timestamp;
+
+      if (elapsed > REFRESH_INTERVAL) {
+        console.log('[TokenStorage] Токен устарел, обновляем...');
+        const newToken = await refreshAccessToken();
+        return newToken || tokens.accessToken;
+      }
+    }
+
     return tokens.accessToken;
   } catch (error) {
     console.error('[TokenStorage] Ошибка проверки токена:', error);
     return null;
+  }
+};
+
+const startTokenRefreshTimer = () => {
+  stopTokenRefreshTimer();
+  
+  console.log('[TokenStorage] ⏰ Запущен таймер автообновления токена (каждые 15 минут)');
+
+  refreshTimerId = setInterval(async () => {
+    console.log('[TokenStorage] ⏰ Время обновления токена');
+    const newToken = await refreshAccessToken();
+    
+    if (!newToken) {
+      console.error('[TokenStorage] ❌ Не удалось обновить токен автоматически');
+      stopTokenRefreshTimer();
+    }
+  }, REFRESH_INTERVAL) as unknown as number;
+};
+
+const stopTokenRefreshTimer = () => {
+  if (refreshTimerId !== null) {
+    clearInterval(refreshTimerId);
+    refreshTimerId = null;
+    console.log('[TokenStorage] ⏰ Таймер автообновления остановлен');
+  }
+};
+
+export const initializeTokenRefresh = async () => {
+  const tokens = await getTokens();
+  if (tokens) {
+    console.log('[TokenStorage] Найдены сохраненные токены, запускаем автообновление');
+    startTokenRefreshTimer();
   }
 };

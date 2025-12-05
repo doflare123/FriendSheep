@@ -469,6 +469,21 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
 
   const showKinopoiskButton = selectedCategory === 'movie' && !editMode;
 
+  const isFormValid = (): boolean => {
+    return !!(
+      eventName.trim() &&
+      selectedCategory &&
+      selectedGenres.length > 0 &&
+      duration &&
+      !isNaN(parseInt(duration)) &&
+      maxParticipants &&
+      !isNaN(parseInt(maxParticipants)) &&
+      parseInt(maxParticipants) >= 1 &&
+      (eventType === 'online' || eventPlace.trim()) &&
+      (editMode || imageFile)
+    );
+  };
+
   return (
     <Modal visible={visible} animationType="fade" transparent>
       <View style={styles.overlay}>
@@ -531,7 +546,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               </View>
               {eventName.length > 0 && (
                 <Text style={styles.charCounter}>
-                  {eventName.length} / 40
+                  {eventName.length} / 40 {eventName.length < 5 && '(мин. 5)'}
                 </Text>
               )}
 
@@ -561,7 +576,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               </View>
               {description.length > 0 && (
                 <Text style={styles.charCounter}>
-                  {description.length} / 500
+                  {description.length} / 500 {description.length < 5 && '(мин. 5)'}
                 </Text>
               )}
 
@@ -748,23 +763,23 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                     </TouchableOpacity>
                   )}
                   
-                  <TouchableOpacity 
-                    style={[
-                      styles.createButton, 
-                      isLoading && styles.buttonDisabled,
-                      editMode && styles.createButtonWithDelete
-                    ]} 
-                    onPress={handleSubmit}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator size="small" color={Colors.blue3} />
-                    ) : (
-                      <Text style={styles.createButtonText}>
-                        {editMode ? 'Сохранить' : 'Создать событие'}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.createButton, 
+                    (!isFormValid() || isLoading) && styles.buttonDisabled,
+                    editMode && styles.createButtonWithDelete
+                  ]} 
+                  onPress={handleSubmit}
+                  disabled={!isFormValid() || isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color={Colors.blue3} />
+                  ) : (
+                    <Text style={styles.createButtonText}>
+                      {editMode ? 'Сохранить' : 'Создать событие'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
                 </View>
               </View>
             </ImageBackground>

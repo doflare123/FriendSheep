@@ -1,4 +1,4 @@
-import groupService from '@/api/services/groupService';
+import groupService from '@/api/services/group/groupService';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useNavigation } from '@react-navigation/native';
