@@ -177,7 +177,7 @@
 
 .resultsContainer {
   margin-bottom: 30px;
-  height: 480px;
+  min-height: 480px;
   display: flex;
   flex-direction: column;
 }
@@ -187,7 +187,6 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  flex: 1;
 }
 
 .groupItem {
@@ -326,6 +325,14 @@
   background: var(--color-warning-dark) !important;
 }
 
+.creatorButton {
+  background: var(--color-primary-blue-dark) !important;
+}
+
+.creatorButton:hover {
+  background: var(--color-primary-blue-dark) !important;
+}
+
 .memberCount {
   font-size: 14px;
   color: black;
@@ -337,7 +344,6 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  flex: 1;
 }
 
 .userItem {
@@ -500,8 +506,7 @@
   }
 
   .resultsContainer {
-    height: auto;
-    min-height: 400px;
+    height: 400px;
   }
   
   .groupItem,
