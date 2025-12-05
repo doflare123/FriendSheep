@@ -133,11 +133,6 @@ func sendSessionNotification(db *gorm.DB, s sessions.Session, nt sessions.Notifi
 		}
 	}
 
-	if len(telegramIDs) == 0 {
-		log.Printf("No Telegram IDs found for session %d\n", s.ID)
-		return
-	}
-
 	notifyTypeText := map[string]string{
 		"24_hours": "24 часа",
 		"6_hours":  "6 часов",
@@ -162,6 +157,11 @@ func sendSessionNotification(db *gorm.DB, s sessions.Session, nt sessions.Notifi
 	}
 	if err := db.Create(&notif).Error; err != nil {
 		log.Println("Error creating notification:", err)
+	}
+
+	if len(telegramIDs) == 0 {
+		log.Printf("No Telegram IDs found for session %d\n", s.ID)
+		return
 	}
 
 	msg := TelegramMessage{
