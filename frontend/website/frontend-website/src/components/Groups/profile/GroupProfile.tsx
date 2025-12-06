@@ -4,11 +4,13 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import styles from '../../../styles/Groups/profile/GroupProfile.module.css';
 import CategorySection from '../../Events/CategorySection';
+import SocialIcon from '@/components/SocialIcon';
 import { SectionData, EventCardProps } from '../../../types/Events';
 import { GroupProfileProps, GroupData, Contact, SessionWithMetadata } from '../../../types/Groups';
-import {getCategoryIcon, getSocialIcon, getAccesToken, formatDate, convertCategRuToEng, getUserData} from '../../../Constants'
+import {getCategoryIcon, getAccesToken, formatDate, convertCategRuToEng} from '../../../Constants'
 import {joinGroup} from '@/api/groups/joinGroup';
 import {leaveGroup} from '@/api/groups/leaveGroup';
+import {getOwnGroups} from '@/api/get_owngroups';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import { showNotification } from '@/utils';
 import { useRouter } from 'next/navigation';
@@ -48,15 +50,27 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
 
   useEffect(() => {
     const checkOwnership = async () => {
-      const userData = await getUserData();
-      console.log(userData, groupData)
-      if (userData && groupData.creater) {
-        setIsOwner(userData.us === groupData.creater);
+      try {
+        const accessToken = await getAccesToken(router);
+        
+        if (!accessToken) {
+          setIsOwner(false);
+          return;
+        }
+
+        const ownGroups = await getOwnGroups(accessToken);
+        
+        // Проверяем, есть ли текущая группа в списке групп, где пользователь админ
+        const isAdmin = ownGroups.some((group: any) => group.id === groupData.id);
+        setIsOwner(isAdmin);
+      } catch (error) {
+        console.error('Ошибка при проверке владения группой:', error);
+        setIsOwner(false);
       }
     };
     
     checkOwnership();
-  }, [groupData.creater]);
+  }, [groupData.id, router]);
 
   const handleJoinGroup = async () => {
     const accessToken = await getAccesToken(router);
@@ -110,11 +124,6 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
 
   const handleManageGroup = () => {
     router.push(`/groups/admin/${groupData.id}`);
-  };
-
-  const handleContactClick = (contact: Contact) => {
-    console.log(`Переход по ссылке: ${contact.link}`);
-    window.open(contact.link, '_blank');
   };
 
   // Преобразуем sessions в формат для CategorySection
@@ -176,30 +185,21 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
             <h3>Наши контакты:</h3>
             <div className={styles.contactsList}>
               {groupData.contacts && groupData.contacts.length > 0 ? (
-                groupData.contacts.map((contact, index) => {
-                  const iconPath = getSocialIcon(contact.link, contact.name);
-                  // Убеждаемся, что путь начинается с одного слэша
-                  const normalizedPath = iconPath.startsWith('/') ? iconPath : `/${iconPath}`;
-                  
-                  return (
-                    <div 
-                      key={index} 
-                      className={styles.contactItem}
-                      onClick={() => handleContactClick(contact)}
-                    >
-                      <div className={styles.contactIconWrapper}>
-                        <Image 
-                          src={normalizedPath}
-                          alt={contact.name}
-                          width={52}
-                          height={52}
-                          className={styles.contactIcon}
-                        />
-                      </div>
-                      <span className={styles.contactName}>{contact.name}</span>
+                groupData.contacts.map((contact, index) => (
+                  <div 
+                    key={index} 
+                    className={styles.contactItem}
+                  >
+                    <div className={styles.contactIconWrapper}>
+                      <SocialIcon
+                        href={contact.link}
+                        alt={contact.name}
+                        size={52}
+                      />
                     </div>
-                  );
-                })
+                    <span className={styles.contactName}>{contact.name}</span>
+                  </div>
+                ))
               ) : (
                 <p className={styles.noContactsText}>Контакты не указаны</p>
               )}

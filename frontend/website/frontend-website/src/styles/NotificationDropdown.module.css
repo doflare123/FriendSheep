@@ -48,6 +48,9 @@
   font-weight: 500;
   color: var(--color-bg-gray-dark);
   font-family: 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .notificationList {
@@ -208,6 +211,25 @@
 
 .notificationList::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+.telegramWarning {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.botLink {
+  color: var(--color-primary-blue);
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.botLink:hover {
+  text-decoration: underline;
+  color: var(--color-primary-blue-dark);
 }
 
 /* Для Firefox - с закруглением */

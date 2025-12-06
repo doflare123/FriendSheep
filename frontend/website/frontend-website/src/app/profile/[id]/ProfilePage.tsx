@@ -764,7 +764,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
             {(() => {
               const sessions = isOwnProfile 
                 ? (activeTab === 'recent' ? profileData.recent_sessions : profileData.upcoming_sessions)
-                : profileData.recent_sessions;
+                : profileData.upcoming_sessions;
               
               const hasEvents = sessions && sessions.length > 0;
               

@@ -55,31 +55,26 @@ const Footer: React.FC = () => {
                         <div className="flex space-x-3">
                         <SocialIcon 
                             href="https://vk.com/club234284540" 
-                            iconName="vk" 
                             alt="ВКонтакте" 
                             size={52}
                         />
                         <SocialIcon 
                             href="https://t.me/necrodwarfs" 
-                            iconName="tg" 
                             alt="Telegram" 
                             size={52}
                         />
                         <SocialIcon 
                             href="https://discord.gg/V94MaRe4tk" 
-                            iconName="ds" 
                             alt="Discord" 
                             size={52}
                         />
                         <SocialIcon 
                             href="https://www.youtube.com/@CmapnepTV" 
-                            iconName="yt" 
                             alt="YouTube" 
                             size={52}
                         />
                         <SocialIcon 
                             href="https://www.donationalerts.com/r/necrodwarf" 
-                            iconName="bs" 
                             alt="Поддержать" 
                             size={52}
                         />

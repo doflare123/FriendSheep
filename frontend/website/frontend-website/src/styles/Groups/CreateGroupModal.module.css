@@ -395,6 +395,21 @@ div.modalOverlay .modalContent {
     display: block;
 }
 
+.socialIconWrapper {
+  display: inline-block;
+}
+
+.socialIconWrapper :global(.social-icon) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.socialIconWrapper :global(.social-icon:hover) {
+  transform: scale(1.1);
+}
+
 /* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
     .modalContent {

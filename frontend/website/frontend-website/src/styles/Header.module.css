@@ -221,6 +221,32 @@
   font-size: 1rem;
 }
 
+.telegramBadge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  background-color: var(--color-bg-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.notificationBadge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-danger);
+  border-radius: 50%;
+  display: block;
+  z-index: 2; /* Красный кружок выше серого телеграма */
+}
+
 /* Адаптивность для средних планшетов (до 1100px) */
 @media (max-width: 1100px) {
   .username {

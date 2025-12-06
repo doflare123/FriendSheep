@@ -8,7 +8,7 @@ import EventModal from './Events/EventModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getNotif } from '@/api/notification/getNotif';
-import { getAccesToken } from '@/Constants';
+import { getAccesToken, getUserData } from '@/Constants';
 import styles from '../styles/Header.module.css';
 
 interface Notification {
@@ -40,6 +40,7 @@ export default function Header() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [showSearchMenu, setShowSearchMenu] = useState(false);
+    const [hasTelegramLink, setHasTelegramLink] = useState(true);
     const router = useRouter();
     const searchMenuRef = useRef<HTMLDivElement>(null);
     const searchMenuTimeoutRef = useRef<NodeJS.Timeout>();
@@ -59,6 +60,18 @@ export default function Header() {
             }
         };
     }, []);
+
+    // Проверка привязки телеграма
+    useEffect(() => {
+        const checkTelegramLink = async () => {
+            if (isLoggedIn) {
+                const userData = await getUserData();
+                setHasTelegramLink(userData?.telegram_link || false);
+            }
+        };
+
+        checkTelegramLink();
+    }, [isLoggedIn]);
 
     // Обновление title вкладки
     const updateBrowserTitle = (count: number) => {
@@ -304,11 +317,22 @@ export default function Header() {
                                         width={24} 
                                         height={24}
                                     />
+                                    {!hasTelegramLink && (
+                                        <div className={styles.telegramBadge}>
+                                            <Image 
+                                                src="/social/tg_grey.png"
+                                                alt="Telegram не привязан"
+                                                width={12}
+                                                height={12}
+                                            />
+                                        </div>
+                                    )}
                                 </button>
                                 
                                 {showNotifications && (
                                     <NotificationDropdown 
                                         onClose={() => setShowNotifications(false)}
+                                        hasTelegramLink={hasTelegramLink}
                                     />
                                 )}
                             </div>

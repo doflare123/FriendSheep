@@ -5,9 +5,10 @@ import Image from 'next/image';
 import SocialContactsModal from './SocialContactsModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import ImageCropModal from '@/components/ImageCropModal';
+import SocialIcon from '@/components/SocialIcon';
 import { GroupData } from '../../types/Groups';
 import styles from '../../styles/Groups/CreateGroupModal.module.css';
-import { getCategoryIcon, getSocialIcon } from '../../Constants';
+import { getCategoryIcon } from '../../Constants';
 
 interface CreateGroupFormProps {
   onSubmit: (groupData: any) => void;
@@ -66,13 +67,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     { id: 'games', name: 'Видеоигры', icon: getCategoryIcon("games") },
     { id: 'board', name: 'Настолки', icon: getCategoryIcon("boards") },
     { id: 'other', name: 'Другое', icon: getCategoryIcon("other") }
-  ];
-
-  const baseSocialNetworks = [
-    { name: 'Discord', icon: getSocialIcon("ds") },
-    { name: 'Telegram', icon: getSocialIcon("tg") },
-    { name: 'VKontakte', icon: getSocialIcon("vk") },
-    { name: 'Max', icon: getSocialIcon("max") }
   ];
 
   useEffect(() => {
@@ -229,17 +223,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     }));
   };
 
-  const handleSocialIconClick = (link: string) => {
-    if (link) {
-      window.open(link, '_blank');
-    }
-  };
-
-  const getBaseSocialIcon = (name: string) => {
-    const baseSocial = baseSocialNetworks.find(social => social.name === name);
-    return baseSocial ? baseSocial.icon : '/default/soc_net.png';
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -369,17 +352,11 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
               <label className={styles.formLabel}>Контакты</label>
               <div className={styles.socialIcons}>
                 {formData.socialContacts.map((contact, index) => (
-                  <div
-                    key={index}
-                    className={styles.socialIcon}
-                    title={`${contact.name}: ${contact.link}`}
-                    onClick={() => handleSocialIconClick(contact.link)}
-                  >
-                    <Image
-                      src={getBaseSocialIcon(contact.name)}
+                  <div key={index} className={styles.socialIconWrapper}>
+                    <SocialIcon
+                      href={contact.link}
                       alt={contact.name}
-                      width={50}
-                      height={50}
+                      size={50}
                     />
                   </div>
                 ))}
