@@ -219,8 +219,8 @@
   padding-right: 8px;
   padding-left: 80px;
   position: relative;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
   
   mask: linear-gradient(
     to bottom,
@@ -239,7 +239,20 @@
 }
 
 .resultsContainer::-webkit-scrollbar {
-  display: none;
+  width: 6px;
+}
+
+.resultsContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.resultsContainer::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.resultsContainer::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .eventsGrid {
@@ -275,46 +288,6 @@
   animation: spin 1s linear infinite;
 }
 
-.scrollIndicator {
-  position: fixed;
-  left: 50%;
-  width: 60px;
-  height: 60px;
-  background: white;
-  border: 2px solid var(--color-primary-blue-dark);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 1000;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  transform: translateX(-50%);
-}
-
-.scrollIndicator:hover {
-  background: white;
-  border-color: var(--color-primary-blue);
-  transform: translateX(-50%) scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-.scrollDown {
-  bottom: 30px;
-}
-
-.scrollUp {
-  top: 100px;
-}
-
-.scrollIndicator span {
-  font-size: 28px !important;
-  color: var(--color-primary-blue-dark);
-  font-weight: bold;
-  line-height: 1;
-}
-
 @keyframes spin {
   0% { 
     transform: rotate(0deg); 
@@ -347,15 +320,6 @@
     gap: 25px;
     padding: 15px;
   }
-  
-  .scrollIndicator {
-    width: 50px;
-    height: 50px;
-  }
-  
-  .scrollIndicator span {
-    font-size: 24px !important;
-  }
 }
 
 @media (max-width: 768px) {
@@ -380,19 +344,6 @@
   
   .searchHeader {
     gap: 15px;
-  }
-  
-  .scrollIndicator {
-    width: 45px;
-    height: 45px;
-  }
-  
-  .scrollIndicator span {
-    font-size: 22px !important;
-  }
-  
-  .scrollUp {
-    top: 150px;
   }
 }
 

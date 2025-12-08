@@ -10,6 +10,7 @@ export default function CompleteReg() {
     const router = useRouter();
 
     const handleSubmit = () => {
+        console.log("Complete move to Login")
         router.push(`/login`);
     }
 

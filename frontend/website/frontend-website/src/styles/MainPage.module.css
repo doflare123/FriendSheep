@@ -74,7 +74,7 @@
 .scrollButton {
     position: absolute;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-25%);
     width: 40px;
     height: 40px;
     border-radius: 50%;

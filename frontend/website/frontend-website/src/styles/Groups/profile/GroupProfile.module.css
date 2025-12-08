@@ -1,6 +1,6 @@
 .mainContainer {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1500px;
   margin: 0 auto;
   background: var(--color-bg-primary);
   border-radius: 16px;
@@ -300,10 +300,10 @@
 /* Масштабирование CategorySection внутри eventsContent */
 .eventsContent > div {
   transform: scale(0.75);
-  margin-left: 3%;
+  margin-left: 1%;
   margin-top: 5px;
   transform-origin: top left;
-  width: 125%; /* Компенсируем уменьшение от scale(0.5) */
+  width: 130%; /* Компенсируем уменьшение от scale(0.5) */
   height: 175%; /* Компенсируем уменьшение от scale(0.5) */
 }
 

@@ -44,8 +44,6 @@ export default function EventsSearchPage() {
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [canScrollUp, setCanScrollUp] = useState(false);
-  const [canScrollDown, setCanScrollDown] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   
@@ -74,15 +72,6 @@ export default function EventsSearchPage() {
     } else {
       setCurrentCategory('');
       setCurrentPattern('');
-    }
-  };
-
-  // Проверка возможности прокрутки
-  const checkScrollButtons = () => {
-    if (containerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-      setCanScrollUp(scrollTop > 0);
-      setCanScrollDown(scrollTop < scrollHeight - clientHeight - 1);
     }
   };
 
@@ -252,8 +241,6 @@ export default function EventsSearchPage() {
   // Бесконечный скролл
   useEffect(() => {
     const handleScroll = () => {
-      checkScrollButtons();
-      
       if (containerRef.current) {
         const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
         
@@ -266,27 +253,10 @@ export default function EventsSearchPage() {
     const container = containerRef.current;
     if (container) {
       container.addEventListener('scroll', handleScroll);
-      checkScrollButtons();
       
       return () => container.removeEventListener('scroll', handleScroll);
     }
   }, [loadMoreEvents, isLoading, hasMore]);
-
-  // Функции прокрутки
-  const scrollToTop = () => {
-    if (containerRef.current) {
-      containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const scrollToBottom = () => {
-    if (containerRef.current) {
-      containerRef.current.scrollTo({ 
-        top: containerRef.current.scrollHeight, 
-        behavior: 'smooth' 
-      });
-    }
-  };
 
   // Обработчик выбора города
   const handleCitySelect = (city: string) => {
@@ -508,57 +478,35 @@ export default function EventsSearchPage() {
               <LoadingIndicator text="Загрузка событий..." />
             </div>
           ) : (
-            <>
-              <div className={styles.resultsContainer} ref={containerRef}>
-                {events.length > 0 ? (
-                  <>
-                    <div className={styles.eventsGrid}>
-                      {events.map((event) => (
-                        <div key={`${event.id}-${event.groupId}`} className={styles.eventWrapper}>
-                          <EventCard {...event} />
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {isLoading && (
-                      <div className={styles.loadingIndicator}>
-                        <div className={styles.spinner}></div>
-                        <span>Загружаем больше событий...</span>
+            <div className={styles.resultsContainer} ref={containerRef}>
+              {events.length > 0 ? (
+                <>
+                  <div className={styles.eventsGrid}>
+                    {events.map((event) => (
+                      <div key={`${event.id}-${event.groupId}`} className={styles.eventWrapper}>
+                        <EventCard {...event} />
                       </div>
-                    )}
-                  </>
-                ) : (
-                  <div style={{ 
-                    textAlign: 'center', 
-                    padding: '60px 20px', 
-                    color: 'var(--color-text-primary)',
-                    fontSize: '18px'
-                  }}>
-                    Событий не найдено
+                    ))}
                   </div>
-                )}
-              </div>
-
-              {canScrollUp && events.length > 0 && (
-                <button 
-                  className={`${styles.scrollIndicator} ${styles.scrollUp}`}
-                  onClick={scrollToTop}
-                  aria-label="Прокрутить вверх"
-                >
-                  <span style={{ fontSize: '20px', color: 'var(--color-primary-blue-dark)' }}>↑</span>
-                </button>
+                  
+                  {isLoading && (
+                    <div className={styles.loadingIndicator}>
+                      <div className={styles.spinner}></div>
+                      <span>Загружаем больше событий...</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '60px 20px', 
+                  color: 'var(--color-text-primary)',
+                  fontSize: '18px'
+                }}>
+                  Событий не найдено
+                </div>
               )}
-              
-              {canScrollDown && events.length > 0 && (
-                <button 
-                  className={`${styles.scrollIndicator} ${styles.scrollDown}`}
-                  onClick={scrollToBottom}
-                  aria-label="Прокрутить вниз"
-                >
-                  <span style={{ fontSize: '20px', color: 'var(--color-primary-blue-dark)' }}>↓</span>
-                </button>
-              )}
-            </>
+            </div>
           )}
         </div>
       </div>

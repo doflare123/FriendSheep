@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {EventCardProps} from "../../types/Events";
-import '../../styles/EventCard.css';
+import styles from '../../styles/EventCard.module.css';
 import Image from "next/image";
 import {getCategoryIcon, convertMinutesToReadableTime} from '../../Constants';
 import EventDetailModal from './EventDetailModal';
@@ -24,11 +24,9 @@ const EventCard: React.FC<EventCardProps> = ({
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleButtonClick = () => {
-        //showNotification(300, "Страница не найденааааааааааааааааааааааааааааааааааааааАаааааааааааааааааааааааааааааааааааааааааААААААААААААААААААААААААААААААААААААААААААААА");
         if (isEditMode && onEdit) {
             onEdit(id);
         } else {
-            // Открываем модальное окно с подробностями события
             setIsModalOpen(true);
             console.log('Открываем подробности события:', id);
         }
@@ -40,57 +38,55 @@ const EventCard: React.FC<EventCardProps> = ({
 
     const handleJoin = () => {
         console.log('Присоединиться к событию:', id);
-        // Здесь будет логика присоединения к событию
     };
 
     console.log("Title", title);
 
     return (
         <>
-            <div className='eventCard'>
-                <div className='cardImage'>
+            <div className={styles.eventCard}>
+                <div className={styles.cardImage}>
                     <img src={image || "/default/event_card.jpg"} alt={title} />
-                    <div className='typeIcon'>
+                    <div className={styles.typeIcon}>
                         <Image src={getCategoryIcon(type)} alt={type} width={20} height={20} />
                     </div>
-                    <div className='cardDate' title="По местному времени">{date}</div>
+                    <div className={styles.cardDate} title="По местному времени">{date}</div>
 
                     {location === 'offline' && (
-                        <div className='cityBadge'>
+                        <div className={styles.cityBadge}>
                             <span>{city || 'Калининград'}</span>
                         </div>
                     )}
                 </div>
-                <div className='locationIcon'>
+                <div className={styles.locationIcon}>
                     <Image src={`/events/${location}.png`} alt={location} width={20} height={20} />
                 </div>
-                <div className='cardContent'>
-                    <h3 className='cardTitle'>{title}</h3>
-                    <div className='cardGenres'>
-                        <span className='genresLabel'>Жанры:</span>
+                <div className={styles.cardContent}>
+                    <h3 className={styles.cardTitle}>{title}</h3>
+                    <div className={styles.cardGenres}>
+                        <span className={styles.genresLabel}>Жанры:</span>
                         {genres.map((genre, index) => (
-                            <span key={index} className='genre'>{genre}</span>
+                            <span key={index} className={styles.genre}>{genre}</span>
                         ))}
                     </div>
-                    <div className='cardMeta'>
-                        <span className='cardParticipants'>
+                    <div className={styles.cardMeta}>
+                        <span className={styles.cardParticipants}>
                             Участников: {participants}/{maxParticipants}
-                            <Image src="/events/person.png" alt="person" width={16} height={16} className="personIcon" />
+                            <Image src="/events/person.png" alt="person" width={16} height={16} className={styles.personIcon} />
                         </span>
                         {duration && (
-                            <span className='cardDuration'>
+                            <span className={styles.cardDuration}>
                                 {convertMinutesToReadableTime(duration)}
-                                <Image src="/events/clock.png" alt="clock" width={16} height={16} className="clockIcon" />
+                                <Image src="/events/clock.png" alt="clock" width={16} height={16} className={styles.clockIcon} />
                             </span>
                         )}
                     </div>
-                    <button className='detailsButton' onClick={handleButtonClick}>
+                    <button className={styles.detailsButton} onClick={handleButtonClick}>
                         {isEditMode ? 'Редактировать' : 'Узнать подробнее'}
                     </button>
                 </div>
             </div>
 
-            {/* Модальное окно с подробностями события */}
             <EventDetailModal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}

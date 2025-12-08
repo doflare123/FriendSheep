@@ -85,7 +85,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 4px; /* Было 8px, уменьшили до 4px */
 }
 
 .nameWrapper {
@@ -199,7 +199,7 @@
 
 .userStatusContainer {
   position: relative;
-  margin-top: 12px;
+  margin-top: 4px; /* Было 12px, уменьшили до 4px */
 }
 
 .userStatus {
@@ -291,8 +291,8 @@
 }
 
 .userUsContainer {
-  margin-top: 4px;
-  margin-bottom: 8px;
+  margin-top: 0; /* Было 4px, убрали */
+  margin-bottom: 4px; /* Было 8px, уменьшили до 4px */
 }
 
 .userUs {

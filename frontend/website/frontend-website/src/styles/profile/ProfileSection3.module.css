@@ -43,11 +43,11 @@
     black calc(100% - 20px),
     transparent 100%);
   scrollbar-width: thin;
-  scrollbar-color: var(--color-primary-blue) transparent;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
 }
 
 .groupsList::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .groupsList::-webkit-scrollbar-track {
@@ -55,12 +55,12 @@
 }
 
 .groupsList::-webkit-scrollbar-thumb {
-  background: var(--color-primary-blue);
-  border-radius: 2px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
 }
 
 .groupsList::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary-blue);
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .groupItem {
@@ -129,36 +129,4 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.scrollArrow {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  cursor: pointer;
-  font-size: 18px;
-  font-weight: bold;
-  color: var(--color-primary-blue-dark);
-  background: white;
-  border: 3px solid var(--color-primary-blue-dark);
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s ease;
-  z-index: 10;
-}
-
-.scrollArrow:hover {
-  background: var(--color-bg-hover);
-}
-
-.topArrow {
-  top: -18px;
-}
-
-.bottomArrow {
-  bottom: -18px;
 }
