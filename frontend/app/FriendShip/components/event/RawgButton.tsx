@@ -1,0 +1,59 @@
+import { Colors } from '@/constants/Colors';
+import React from 'react';
+import { ActivityIndicator, Image, StyleSheet, TouchableOpacity } from 'react-native';
+
+interface RawgButtonProps {
+  onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}
+
+const RawgButton: React.FC<RawgButtonProps> = ({
+  onPress,
+  disabled = false,
+  loading = false,
+}) => {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.button,
+        (disabled || loading) && styles.buttonDisabled
+      ]}
+      onPress={onPress}
+      disabled={disabled || loading}
+      activeOpacity={0.7}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={Colors.lightBlue} />
+      ) : (
+        <Image
+          source={require('@/assets/images/event_card/game.png')}
+          style={styles.icon}
+          resizeMode="contain"
+        />
+      )}
+    </TouchableOpacity>
+  );
+};
+
+const styles = StyleSheet.create({
+  button: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    backgroundColor: Colors.lightBlue,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  icon: {
+    width: 24,
+    height: 24,
+    tintColor: Colors.white,
+  },
+});
+
+export default RawgButton;

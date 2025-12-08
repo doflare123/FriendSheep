@@ -1,7 +1,9 @@
 import kinopoiskService from '@/api/services/kinopoisk/kinopoiskService';
+import rawgService from '@/api/services/rawg/rawgService';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { Event } from '@/components/event/EventCard';
 import KinopoiskButton from '@/components/event/KinopoiskButton';
+import RawgButton from '@/components/event/RawgButton';
 import CategorySelector from '@/components/event/modal/CategorySelector';
 import EventTypeSelector from '@/components/event/modal/EventTypeSelector';
 import GenreSelector from '@/components/event/modal/GenreSelector';
@@ -73,6 +75,9 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
 
   const [kinopoiskModalVisible, setKinopoiskModalVisible] = useState(false);
   const [isLoadingKinopoisk, setIsLoadingKinopoisk] = useState(false);
+
+  const [rawgModalVisible, setRawgModalVisible] = useState(false);
+  const [isLoadingRawg, setIsLoadingRawg] = useState(false);
 
   const [mapModalVisible, setMapModalVisible] = useState(false);
 
@@ -282,6 +287,65 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
     }
   };
 
+  const handleRawgButtonPress = () => {
+    if (!eventName.trim()) {
+      Alert.alert('Ошибка', 'Сначала введите название игры');
+      return;
+    }
+    setRawgModalVisible(true);
+  };
+
+  const handleRawgConfirm = async () => {
+    try {
+      setIsLoadingRawg(true);
+      console.log('[CreateEditEventModal] 🎮 Загрузка данных с RAWG для:', eventName);
+
+      const autoFillData = await rawgService.getAutoFillData(eventName);
+
+      if (!autoFillData) {
+        Alert.alert(
+          'Не найдено',
+          'Игра с таким названием не найдена на RAWG. Попробуйте изменить название.'
+        );
+        setRawgModalVisible(false);
+        setIsLoadingRawg(false);
+        return;
+      }
+
+      console.log('[CreateEditEventModal] ✅ Автозаполнение данными:', autoFillData);
+      
+      setDescription(autoFillData.description);
+      setSelectedGenres(autoFillData.genres);
+      setPublisher(autoFillData.publisher);
+      setPublishYear(autoFillData.year.toString());
+      setAgeRating(autoFillData.ageRating);
+      setDuration(autoFillData.duration.toString());
+
+      if (autoFillData.imageUrl) {
+        setEventImage(autoFillData.imageUrl);
+
+        const filename = `rawg_${Date.now()}.jpg`;
+        setImageFile({
+          uri: autoFillData.imageUrl,
+          name: filename,
+          type: 'image/jpeg',
+        });
+      }
+
+      setRawgModalVisible(false);
+      Alert.alert('Успешно', 'Данные загружены с RAWG!');
+    } catch (error: any) {
+      console.error('[CreateEditEventModal] ❌ Ошибка загрузки с RAWG:', error);
+      Alert.alert(
+        'Ошибка',
+        error.message || 'Не удалось загрузить данные с RAWG'
+      );
+    } finally {
+      setIsLoadingRawg(false);
+      setRawgModalVisible(false);
+    }
+  };
+
   const formatDateToRFC3339 = (date: Date): string => {
     const timezoneOffset = -date.getTimezoneOffset();
     const sign = timezoneOffset >= 0 ? '+' : '-';
@@ -468,6 +532,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   }, [selectedCategory]);
 
   const showKinopoiskButton = selectedCategory === 'movie' && !editMode;
+  const showRawgButton = selectedCategory === 'game' && !editMode;
 
   const isFormValid = (): boolean => {
     return !!(
@@ -513,19 +578,21 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            {(isLoading || isLoadingKinopoisk) && (
+            {(isLoading || isLoadingKinopoisk || isLoadingRawg) && (
               <View style={styles.loadingOverlay}>
                 <ActivityIndicator size="large" color={Colors.lightBlue} />
                 <Text style={styles.loadingText}>
                   {isLoadingKinopoisk 
                     ? 'Загрузка данных с Кинопоиска...' 
+                    : isLoadingRawg
+                    ? 'Загрузка данных с RAWG...'
                     : editMode ? 'Сохранение изменений...' : 'Создание события...'
                   }
                 </Text>
               </View>
             )}
 
-            <View style={[styles.content, (isLoading || isLoadingKinopoisk) && styles.contentDisabled]}>
+            <View style={[styles.content, (isLoading || isLoadingKinopoisk || isLoadingRawg) && styles.contentDisabled]}>
               <View style={styles.nameInputContainer}>
                 {showKinopoiskButton && (
                   <KinopoiskButton
@@ -534,8 +601,15 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                     loading={isLoadingKinopoisk}
                   />
                 )}
+                {showRawgButton && (
+                  <RawgButton
+                    onPress={handleRawgButtonPress}
+                    disabled={isLoading || !eventName.trim()}
+                    loading={isLoadingRawg}
+                  />
+                )}
                 <TextInput
-                  style={[styles.input, showKinopoiskButton && styles.inputWithButton]}
+                  style={[styles.input, (showKinopoiskButton || showRawgButton) && styles.inputWithButton]}
                   placeholder="Название *"
                   placeholderTextColor={Colors.grey}
                   value={eventName}
@@ -796,6 +870,17 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
         }
         onConfirm={handleKinopoiskConfirm}
         onCancel={() => setKinopoiskModalVisible(false)}
+      />
+
+      <ConfirmationModal
+        visible={rawgModalVisible}
+        title="Загрузить данные с RAWG?"
+        message={eventName 
+          ? `Будет выполнен поиск игры "${eventName}" и автоматическое заполнение полей формы.`
+          : 'Будет выполнен поиск по названию игры и автоматическое заполнение полей формы'
+        }
+        onConfirm={handleRawgConfirm}
+        onCancel={() => setRawgModalVisible(false)}
       />
 
       <DescriptionModal
