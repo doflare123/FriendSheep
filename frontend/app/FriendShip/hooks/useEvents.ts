@@ -74,57 +74,85 @@ export const useEvents = (sortingState: SortingState) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadSessions = async () => {
+  const loadSessions = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      console.log('[useEvents] 🚀 Загрузка всех событий...');
+
+      const popularResponse = await sessionService.getPopularSessions();
+      const popularSessions = popularResponse?.sessions || [];
+      
+      console.log('[useEvents] 📊 Популярные сессии от API:', 
+        popularSessions.map((s: any) => ({ 
+          id: s.id, 
+          title: s.title, 
+          current_users: s.current_users 
+        }))
+      );
+      
+      const mappedPopular = mapBackendSessionsToEvents(popularSessions);
+      const filteredPopular = filterActiveEvents(mappedPopular);
+      
+      console.log('[useEvents] 🔍 Популярные события после маппинга:', 
+        filteredPopular.map(e => ({ 
+          id: e.id, 
+          title: e.title, 
+          participants: e.currentParticipants 
+        }))
+      );
+
+      console.log('[useEvents] ✅ Популярные события загружены:', filteredPopular.length);
+
       try {
-        setIsLoading(true);
-        setError(null);
+        const newResponse = await sessionService.getNewSessions();
+        const newSessions = newResponse?.sessions || [];
+        const mappedNew = mapBackendSessionsToEvents(newSessions);
 
-        console.log('[useEvents] 🚀 Загрузка всех событий...');
-
-        const popularResponse = await sessionService.getPopularSessions();
-        const popularSessions = popularResponse?.sessions || [];
-        const mappedPopular = mapBackendSessionsToEvents(popularSessions);
-
-        const filteredPopular = filterActiveEvents(mappedPopular);
-        setPopularEventsData(filteredPopular);
-
-        console.log('[useEvents] ✅ Популярные события загружены:', filteredPopular.length);
-
-        try {
-          const newResponse = await sessionService.getNewSessions();
-          const newSessions = newResponse?.sessions || [];
-          const mappedNew = mapBackendSessionsToEvents(newSessions);
-
-          const filteredNew = filterActiveEvents(mappedNew);
-          setNewEventsData(filteredNew);
-          console.log('[useEvents] ✅ Новые события загружены:', filteredNew.length);
-        } catch (newError) {
-          console.log('[useEvents] ⚠️ Эндпоинт для новых событий недоступен');
-          setNewEventsData([]);
-        }
-
-        try {
-          const allResponse = await sessionService.getAllSessions();
-          const allSessions = allResponse?.sessions || [];
-          const mappedAll = mapBackendSessionsToEvents(allSessions);
-
-          const filteredAll = filterActiveEvents(mappedAll);
-          setAllEvents(filteredAll);
-          console.log('[useEvents] ✅ Все события загружены:', filteredAll.length);
-        } catch (allError) {
-          console.log('[useEvents] ⚠️ Эндпоинт для всех событий недоступен');
-          setAllEvents([]);
-        }
-
-      } catch (error: any) {
-        console.error('[useEvents] ❌ Ошибка загрузки событий:', error);
-        setError(error.message || 'Не удалось загрузить события');
-      } finally {
-        setIsLoading(false);
+        const filteredNew = filterActiveEvents(mappedNew);
+        setNewEventsData(filteredNew);
+        console.log('[useEvents] ✅ Новые события загружены:', filteredNew.length);
+      } catch (newError) {
+        console.log('[useEvents] ⚠️ Эндпоинт для новых событий недоступен');
+        setNewEventsData([]);
       }
-    };
 
+      try {
+        const allResponse = await sessionService.getAllSessions();
+        const allSessions = allResponse?.sessions || [];
+        const mappedAll = mapBackendSessionsToEvents(allSessions);
+
+        const filteredAll = filterActiveEvents(mappedAll);
+        setAllEvents(filteredAll);
+
+        const updatedPopular = filteredPopular.map(popularEvent => {
+          const freshEvent = filteredAll.find(e => e.id === popularEvent.id);
+          if (freshEvent) {
+            console.log(`[useEvents] 🔄 Обновляем популярное событие ${popularEvent.title}: ${popularEvent.currentParticipants} → ${freshEvent.currentParticipants}`);
+            return freshEvent;
+          }
+          return popularEvent;
+        });
+        
+        setPopularEventsData(updatedPopular);
+        
+        console.log('[useEvents] ✅ Все события загружены:', filteredAll.length);
+      } catch (allError) {
+        console.log('[useEvents] ⚠️ Эндпоинт для всех событий недоступен');
+        setAllEvents([]);
+        setPopularEventsData(filteredPopular);
+      }
+
+    } catch (error: any) {
+      console.error('[useEvents] ❌ Ошибка загрузки событий:', error);
+      setError(error.message || 'Не удалось загрузить события');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadSessions();
   }, []);
 
@@ -190,5 +218,6 @@ export const useEvents = (sortingState: SortingState) => {
     searchResults,
     isLoading,
     error,
+    refreshEvents: loadSessions,
   };
 };

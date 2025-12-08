@@ -154,7 +154,7 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
   };
 
   const confirmRemoveContact = () => {
-    if (contactToDelete !== null && contacts.length > 1) {
+    if (contactToDelete !== null) {
       setContacts(prev => prev.filter((_, i) => i !== contactToDelete));
     }
     setDeleteConfirmVisible(false);

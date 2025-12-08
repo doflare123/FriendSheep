@@ -117,9 +117,7 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
     await loadNotifications();
   };
 
-  const hasTelegramLink = userProfile?.telegram_link && 
-                          userProfile.telegram_link.trim() !== '' &&
-                          userProfile.telegram_link !== 'https://t.me/FriendShipNotify_bot';
+  const hasTelegramLink = userProfile?.telegram_link === true;
 
   return (
     <View style={styles.container}>

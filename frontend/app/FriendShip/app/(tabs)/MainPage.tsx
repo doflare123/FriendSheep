@@ -50,6 +50,7 @@ const MainPage = () => {
     searchResults,
     isLoading,
     error,
+    refreshEvents,
   } = useEvents(sortingState);
 
   useEffect(() => {
@@ -76,6 +77,7 @@ const MainPage = () => {
         setSelectedEvent(event);
         setModalVisible(true);
       },
+      onSessionUpdate: refreshEvents,
     }));
 
   const navigateToCategory = (
@@ -377,6 +379,7 @@ const MainPage = () => {
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
           event={selectedEvent}
+          onSessionUpdate={refreshEvents}
         />
       )}
     </SafeAreaView>

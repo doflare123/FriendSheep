@@ -26,6 +26,7 @@ export interface Event {
   group: string;
   onPress?: () => void;
   onSessionUpdate?: () => void;
+  calendarEventId?: string;
   highlightedTitle?: {
     before: string;
     match: string;
@@ -79,10 +80,15 @@ const EventCard: React.FC<Event> = ({
   group,
   highlightedTitle,
   onSessionUpdate,
+  calendarEventId,
   ...eventData
 }) => {
   const [placeTextWidth, setPlaceTextWidth] = React.useState(0);
   const [modalVisible, setModalVisible] = useState(false);
+
+  const handleModalClose = () => {
+    setModalVisible(false);
+  };
 
   const handleCardPress = () => {
     if (onPress) {
@@ -90,10 +96,6 @@ const EventCard: React.FC<Event> = ({
     } else {
       setModalVisible(true);
     }
-  };
-
-  const handleModalClose = () => {
-    setModalVisible(false);
   };
 
   const renderTitle = () => {

@@ -27,6 +27,7 @@
     "expo": "~53.0.0",
     "expo-asset": "~12.0.10",
     "expo-blur": "~15.0.7",
+    "expo-calendar": "~14.1.4",
     "expo-constants": "~18.0.10",
     "expo-font": "~14.0.9",
     "expo-haptics": "~15.0.7",

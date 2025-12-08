@@ -1,4 +1,6 @@
-import groupService, { AdminGroup } from '@/api/services/group/groupService';
+import groupMemberService from '@/api/services/group/groupMemberService';
+import groupService from '@/api/services/group/groupService';
+import { AdminGroup } from '@/api/services/group/groupTypes';
 import GroupCard, { GroupCategory } from '@/components/groups/GroupCard';
 import { useToast } from '@/components/ToastContext';
 import { Colors } from '@/constants/Colors';
@@ -77,7 +79,7 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
       setSending(true);
       console.log('[InviteToGroupModal] 📨 Отправка приглашения:', { groupId, userId });
       
-      const result = await groupService.sendInviteToUser(groupId, userId);
+      const result = await groupMemberService.sendInviteToUser(groupId, userId);
       
       console.log('[InviteToGroupModal] ✅ Результат:', result);
       

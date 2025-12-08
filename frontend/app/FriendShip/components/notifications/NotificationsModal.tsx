@@ -1,4 +1,4 @@
-import groupService from '@/api/services/group/groupService';
+import groupMemberService from '@/api/services/group/groupMemberService';
 import notificationService from '@/api/services/notificationService';
 import { GroupInvite, Notification } from '@/api/types/notification';
 import { useToast } from '@/components/ToastContext';
@@ -69,7 +69,7 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
 
   const handleAcceptInvite = async (inviteId: number, groupId: number) => {
     try {
-      await groupService.respondToInvite(inviteId.toString(), 'accepted');
+      await groupMemberService.respondToInvite(inviteId.toString(), 'accepted');
 
       onUpdateInvites(invites.filter((inv) => inv.id !== inviteId));
       
@@ -89,7 +89,7 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
 
   const handleRejectInvite = async (inviteId: number) => {
     try {
-      await groupService.respondToInvite(inviteId.toString(), 'rejected');
+      await groupMemberService.respondToInvite(inviteId.toString(), 'rejected');
 
       onUpdateInvites(invites.filter((inv) => inv.id !== inviteId));
       
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
   notificationItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginVertical: 16,
   },
   iconWrapper: {
     width: 48,

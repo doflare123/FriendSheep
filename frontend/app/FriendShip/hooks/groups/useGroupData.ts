@@ -6,7 +6,7 @@ import { Alert } from 'react-native';
 import { getContactType, normalizeImageUrl } from './groupManageHelpers';
 import { CATEGORY_IDS, CATEGORY_MAPPING } from './groupManageTypes';
 
-type ContactIconType = 'discord' | 'vk' | 'telegram' | 'twitch' | 'youtube' | 'whatsapp' | 'max';
+type ContactIconType = 'discord' | 'vk' | 'telegram' | 'twitch' | 'youtube' | 'max';
 
 const contactIcons = {
   discord: require('@/assets/images/groups/contacts/discord.png'),
@@ -14,7 +14,6 @@ const contactIcons = {
   telegram: require('@/assets/images/groups/contacts/telegram.png'),
   twitch: require('@/assets/images/groups/contacts/twitch.png'),
   youtube: require('@/assets/images/groups/contacts/youtube.png'),
-  whatsapp: require('@/assets/images/groups/contacts/whatsapp.png'),
   max: require('@/assets/images/groups/contacts/max.png'),
 };
 

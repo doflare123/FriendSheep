@@ -5,6 +5,7 @@ import { rateLimiter } from '@/utils/rateLimiter';
 import { validateSessionId } from '@/utils/validators';
 // eslint-disable-next-line import/no-unresolved
 import { API_BASE_URL } from '@env';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   buildSessionFormData,
   downloadImage,
@@ -194,7 +195,8 @@ class SessionService {
 
     try {
       console.log(`[SessionService] Выход из события ${validSessionId}`);
-      const response = await apiClient.post(`/sessions/${validSessionId}/leave`);
+      const response = await apiClient.delete(`/sessions/${validSessionId}/leave`);
+      console.log('[SessionService] ✅ Успешно покинули сессию');
       return response.data;
     } catch (error: any) {
       console.error('[SessionService] Ошибка выхода из события');
@@ -304,6 +306,50 @@ class SessionService {
     } catch (error: any) {
       console.error('[SessionService] ❌ Ошибка загрузки всех сессий:', error);
       throw new Error(error.response?.data?.message || 'Ошибка загрузки сессий');
+    }
+  }
+
+  async saveCalendarEventId(sessionId: number, calendarEventId: string): Promise<void> {
+    try {
+      console.log('[SessionService] 💾 Сохранение calendarEventId:', calendarEventId);
+      
+      await AsyncStorage.setItem(
+        `calendar_event_${sessionId}`, 
+        calendarEventId
+      );
+      
+      console.log('[SessionService] ✅ calendarEventId сохранён');
+    } catch (error: any) {
+      console.error('[SessionService] ❌ Ошибка сохранения calendarEventId:', error);
+      throw error;
+    }
+  }
+
+  async getCalendarEventId(sessionId: number): Promise<string | null> {
+    try {
+      console.log('[SessionService] 📖 Загрузка calendarEventId для сессии:', sessionId);
+      
+      const calendarEventId = await AsyncStorage.getItem(
+        `calendar_event_${sessionId}`
+      );
+      
+      console.log('[SessionService] ✅ calendarEventId загружен:', calendarEventId);
+      return calendarEventId;
+    } catch (error: any) {
+      console.error('[SessionService] ❌ Ошибка загрузки calendarEventId:', error);
+      return null;
+    }
+  }
+
+  async removeCalendarEventId(sessionId: number): Promise<void> {
+    try {
+      console.log('[SessionService] 🗑️ Удаление calendarEventId для сессии:', sessionId);
+      
+      await AsyncStorage.removeItem(`calendar_event_${sessionId}`);
+      
+      console.log('[SessionService] ✅ calendarEventId удалён');
+    } catch (error: any) {
+      console.error('[SessionService] ❌ Ошибка удаления calendarEventId:', error);
     }
   }
 }

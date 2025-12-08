@@ -5,6 +5,7 @@ import { useToast } from '@/components/ToastContext';
 import { Event } from '@/components/event/EventCard';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { addEventToCalendar, removeEventFromCalendar } from '@/utils/calendarHelper';
 import { formatDuration } from '@/utils/formatDuration';
  
 import { useNavigation } from '@react-navigation/native';
@@ -18,6 +19,7 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -100,6 +102,10 @@ const EventModal: React.FC<EventModalProps> = ({
   const [showLinkConfirmation, setShowLinkConfirmation] = useState(false);
   const [pendingLink, setPendingLink] = useState<string>('');
 
+  const [addToCalendar, setAddToCalendar] = useState(false);
+  const [calendarEventId, setCalendarEventId] = useState<string | undefined>(event.calendarEventId);
+  
+
   useEffect(() => {
     if (visible) {
       loadSessionDetail();
@@ -107,6 +113,7 @@ const EventModal: React.FC<EventModalProps> = ({
       setSessionData(null);
       setIsParticipant(false);
       setShowLeaveConfirmation(false);
+      setAddToCalendar(false);
     }
   }, [visible, event.id]);
 
@@ -123,6 +130,19 @@ const EventModal: React.FC<EventModalProps> = ({
 
       const userIsParticipant = data.session.is_sub === true;
       setIsParticipant(userIsParticipant);
+
+      if (userIsParticipant) {
+        try {
+          const savedCalendarEventId = await sessionService.getCalendarEventId(parseInt(event.id));
+          if (savedCalendarEventId) {
+            setCalendarEventId(savedCalendarEventId);
+            setAddToCalendar(true);
+            console.log('[EventModal] ✅ Найден сохранённый calendarEventId:', savedCalendarEventId);
+          }
+        } catch (calError) {
+          console.log('[EventModal] ⚠️ Не удалось загрузить calendarEventId:', calError);
+        }
+      }
 
       try {
         await groupService.getGroupDetail(data.session.group_id);
@@ -144,6 +164,20 @@ const EventModal: React.FC<EventModalProps> = ({
     }
   };
 
+  const parseEventDate = (dateString: string): Date => {
+    const [datePart, timePart] = dateString.split(' ');
+    const [day, month, year] = datePart.split('.');
+    const [hours, minutes] = timePart ? timePart.split(':') : ['0', '0'];
+    
+    return new Date(
+      parseInt(year),
+      parseInt(month) - 1,
+      parseInt(day),
+      parseInt(hours),
+      parseInt(minutes)
+    );
+  };
+
   const handleJoinLeave = async () => {
     if (isCreator) {
       showToast({
@@ -158,6 +192,70 @@ const EventModal: React.FC<EventModalProps> = ({
       setShowLeaveConfirmation(true);
     } else {
       await handleJoin();
+    }
+  };
+
+  const handleAddToCalendarToggle = async (value: boolean) => {
+    if (!sessionData) return;
+
+    try {
+      if (value) {
+        console.log('[EventModal] 📅 Добавление события в календарь');
+        
+        const startDate = new Date(sessionData.session.start_time);
+        const durationMinutes = sessionData.session.duration;
+        const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+
+        console.log('[EventModal] 📅 Дата начала:', startDate.toISOString());
+        console.log('[EventModal] 📅 Дата окончания:', endDate.toISOString());
+
+        const eventId = await addEventToCalendar({
+          title: sessionData.session.title,
+          location: sessionData.session.session_place === 'Оффлайн' 
+            ? (sessionData.metadata?.Location || event.eventPlace)
+            : undefined,
+          startDate,
+          endDate,
+          notes: sessionData.metadata?.Notes || event.description,
+          groupName: event.group,
+        });
+
+        setCalendarEventId(eventId);
+        setAddToCalendar(true);
+
+        await sessionService.saveCalendarEventId(parseInt(event.id), eventId);
+
+        showToast({
+          type: 'success',
+          title: 'Успешно',
+          message: 'Событие добавлено в календарь',
+        });
+
+      } else {
+        if (calendarEventId) {
+          console.log('[EventModal] 🗑️ Удаление события из календаря');
+          await removeEventFromCalendar(calendarEventId);
+          await sessionService.removeCalendarEventId(parseInt(event.id));
+          
+          setCalendarEventId(undefined);
+          setAddToCalendar(false);
+
+          showToast({
+            type: 'success',
+            title: 'Готово',
+            message: 'Событие удалено из календаря',
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error('[EventModal] ❌ Ошибка работы с календарём:', error);
+      setAddToCalendar(!value);
+      
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: error.message || 'Не удалось обновить календарь',
+      });
     }
   };
 
@@ -208,6 +306,17 @@ const EventModal: React.FC<EventModalProps> = ({
 
       await sessionService.leaveSession(parseInt(event.id));
 
+      if (calendarEventId) {
+        try {
+          await removeEventFromCalendar(calendarEventId);
+          await sessionService.removeCalendarEventId(parseInt(event.id));
+          setCalendarEventId(undefined);
+          setAddToCalendar(false);
+        } catch (calError) {
+          console.error('[EventModal] Ошибка удаления из календаря:', calError);
+        }
+      }
+
       setIsParticipant(false);
       setCurrentParticipants(prev => Math.max(0, prev - 1));
 
@@ -244,7 +353,6 @@ const EventModal: React.FC<EventModalProps> = ({
     if (isCreator) return styles.disabledButton;
     return isParticipant ? styles.leaveButton : styles.joinButton;
   };
-
 
   const formatDateTime = (isoDate?: string) => {
     if (!isoDate) return 'Дата не указана';
@@ -433,6 +541,25 @@ const EventModal: React.FC<EventModalProps> = ({
                       />
                     </View>
                   </View>
+
+                  {isParticipant && (
+                    <View style={styles.calendarSection}>
+                      <View style={styles.calendarRow}>
+                        <View style={styles.calendarInfo}>
+                          <Text style={styles.calendarLabel}>Добавить в календарь</Text>
+                          <Text style={styles.calendarHint}>
+                            Событие будет добавлено в ваш календарь
+                          </Text>
+                        </View>
+                        <Switch
+                          value={addToCalendar}
+                          onValueChange={handleAddToCalendarToggle}
+                          trackColor={{ false: Colors.lightGrey, true: Colors.lightBlue }}
+                          thumbColor={addToCalendar ? Colors.white : Colors.white}
+                        />
+                      </View>
+                    </View>
+                  )}
                 </View>
 
                 <ImageBackground
@@ -488,7 +615,7 @@ const EventModal: React.FC<EventModalProps> = ({
       <ConfirmationModal
         visible={showLeaveConfirmation}
         title="Покинуть сессию?"
-        message="Вы уверены, что хотите покинуть эту сессию?"
+        message="Вы уверены, что хотите покинуть эту сессию? Событие также будет удалено из календаря."
         onConfirm={handleLeave}
         onCancel={() => setShowLeaveConfirmation(false)}
       />
@@ -611,6 +738,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 8,
+  },
+  calendarSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.lightGrey,
+  },
+  calendarRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  calendarInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  calendarLabel: {
+    fontFamily: Montserrat.bold,
+    fontSize: 14,
+    color: Colors.black,
+    marginBottom: 4,
+  },
+  calendarHint: {
+    fontFamily: Montserrat.regular,
+    fontSize: 11,
+    color: Colors.grey,
   },
   bottomBackground: {
     width: "100%",

@@ -56,7 +56,6 @@ const contactIcons: Record<string, any> = {
   telegram: require('@/assets/images/groups/contacts/telegram.png'),
   twitch: require('@/assets/images/groups/contacts/twitch.png'),
   youtube: require('@/assets/images/groups/contacts/youtube.png'),
-  whatsapp: require('@/assets/images/groups/contacts/whatsapp.png'),
   max: require('@/assets/images/groups/contacts/max.png'),
   default: require('@/assets/images/groups/contacts/default.png'),
 };
@@ -213,9 +212,6 @@ const GroupPage = () => {
     }
     if (lowerLink.includes('youtube.com') || lowerLink.includes('youtu.be')) {
       return contactIcons.youtube;
-    }
-    if (lowerLink.includes('wa.me') || lowerLink.includes('whatsapp')) {
-      return contactIcons.whatsapp;
     }
     if (lowerLink.includes('max.ru')) {
       return contactIcons.max;

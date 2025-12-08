@@ -308,7 +308,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                   >
                     <View style={{flexDirection: 'row', alignItems: 'center'}}>
                       <View style={[styles.checkboxCircle, isPrivate && styles.checkboxSelected]} />
-                      <Text style={styles.checkboxLabel}>Эта группа приватная?</Text>
+                      <Text style={styles.checkboxLabel}>Приватная группа</Text>
                     </View>
                   </TouchableOpacity>
                 </View>
