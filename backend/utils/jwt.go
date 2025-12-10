@@ -2,138 +2,133 @@ package utils
 
 import (
 	"fmt"
-	"friendship/models"
-	"friendship/models/dto"
-	"friendship/repository"
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
+
+type JWTUtils struct {
+	secretKey            string
+	accessTokenDuration  time.Duration
+	refreshTokenDuration time.Duration
+}
+
+func NewJWTUtils(secretKey string) *JWTUtils {
+	return &JWTUtils{
+		secretKey:            secretKey,
+		accessTokenDuration:  20 * time.Minute,
+		refreshTokenDuration: 30 * 24 * time.Hour,
+	}
+}
 
 type TokenPair struct {
 	AccessToken  string
 	RefreshToken string
 }
 
-type UserFinder func(email string) (*models.User, error)
+type Claims struct {
+	UserID   uint   `json:"id"`
+	Username string `json:"username"`
+	Us       string `json:"us"`
+	Image    string `json:"image"`
+	Type     string `json:"typ,omitempty"`
+	jwt.RegisteredClaims
+}
 
-func GenerateTokenPair(id uint, name, us, image string) (dto.AuthResponse, error) {
-	secretKey := os.Getenv("SECRET_KEY_JWT")
-	if len(secretKey) == 0 {
-		return dto.AuthResponse{}, fmt.Errorf("пустой секретный ключ")
+func (j *JWTUtils) GenerateTokenPair(id uint, username, us, image string) (TokenPair, error) {
+	if j.secretKey == "" {
+		return TokenPair{}, fmt.Errorf("пустой секретный ключ")
 	}
 
 	now := time.Now()
 
-	// Access токен (20 минут жизни)
-	accessClaims := jwt.MapClaims{
-		"id":       id,
-		"Us":       us,
-		"Username": name,
-		"Image":    image,
-		"exp":      now.Add(20 * time.Minute).Unix(),
-		"iat":      now.Unix(),
+	// Access токен
+	accessClaims := Claims{
+		UserID:   id,
+		Username: username,
+		Us:       us,
+		Image:    image,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(j.accessTokenDuration)),
+			IssuedAt:  jwt.NewNumericDate(now),
+		},
 	}
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
-	accessString, err := accessToken.SignedString([]byte(secretKey))
+	accessString, err := accessToken.SignedString([]byte(j.secretKey))
 	if err != nil {
-		return dto.AuthResponse{}, err
+		return TokenPair{}, fmt.Errorf("ошибка создания access токена: %w", err)
 	}
 
-	// Refresh токен (30 дней жизни)
-	refreshClaims := jwt.MapClaims{
-		"id":       id,
-		"Us":       us,
-		"Username": name,
-		"Image":    image, // Добавляем Image и в refresh токен
-		"exp":      now.Add(30 * 24 * time.Hour).Unix(),
-		"iat":      now.Unix(),
-		"typ":      "refresh",
+	// Refresh токен
+	refreshClaims := Claims{
+		UserID:   id,
+		Username: username,
+		Us:       us,
+		Image:    image,
+		Type:     "refresh",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(j.refreshTokenDuration)),
+			IssuedAt:  jwt.NewNumericDate(now),
+		},
 	}
 
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
-	refreshString, err := refreshToken.SignedString([]byte(secretKey))
+	refreshString, err := refreshToken.SignedString([]byte(j.secretKey))
 	if err != nil {
-		return dto.AuthResponse{}, err
+		return TokenPair{}, fmt.Errorf("ошибка создания refresh токена: %w", err)
 	}
 
-	return dto.AuthResponse{
+	return TokenPair{
 		AccessToken:  accessString,
 		RefreshToken: refreshString,
 	}, nil
 }
 
-func RefreshTokens(refreshTokenString string, findUser dto.UserDto, rep repository.PostgresRepository, secretKey string) (dto.AuthResponse, error) {
-	if len(secretKey) == 0 {
-		return dto.AuthResponse{}, fmt.Errorf("пустой секретный ключ")
-	}
-
-	token, err := jwt.Parse(refreshTokenString, func(token *jwt.Token) (interface{}, error) {
-		// Проверка типа подписи
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("неподдерживаемый метод подписи: %v", token.Header["alg"])
-		}
-		return []byte(secretKey), nil
-	})
-
-	if err != nil {
-		return dto.AuthResponse{}, fmt.Errorf("невалидный refresh токен: %w", err)
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || !token.Valid {
-		return dto.AuthResponse{}, fmt.Errorf("невалидный refresh токен")
-	}
-
-	// Правильное извлечение типа токена
-	if typ, ok := claims["typ"].(string); !ok || typ != "refresh" {
-		return dto.AuthResponse{}, fmt.Errorf("токен не является refresh токеном")
-	}
-
-	// Правильное извлечение значений из claims
-	id, okEmail := claims["id"].(uint)
-	if !okEmail {
-		return dto.AuthResponse{}, fmt.Errorf("неверный формат Email в claims")
-	}
-
-	user, err := new(models.User).FindUserByID(id, rep)
-	if err != nil {
-		return dto.AuthResponse{}, err
-	}
-
-	return GenerateTokenPair(id, user.Username, user.Us, user.Image)
+func (j *JWTUtils) ParseAccessToken(tokenString string) (*Claims, error) {
+	return j.parseToken(tokenString, false)
 }
 
-func ParseJWT(tokenString string) (*uint, error) {
-	secretKey := os.Getenv("SECRET_KEY_JWT")
-	if secretKey == "" {
-		return nil, fmt.Errorf("секретный ключ JWT не найден в переменных окружения")
+func (j *JWTUtils) ParseRefreshToken(tokenString string) (uint, error) {
+	claims, err := j.parseToken(tokenString, true)
+	if err != nil {
+		return 0, err
+	}
+	return claims.UserID, nil
+}
+
+func (j *JWTUtils) parseToken(tokenString string, isRefresh bool) (*Claims, error) {
+	if j.secretKey == "" {
+		return nil, fmt.Errorf("секретный ключ не установлен")
 	}
 
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Проверка типа подписи
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("неподдерживаемый метод подписи: %v", token.Header["alg"])
 		}
-		return []byte(secretKey), nil
+		return []byte(j.secretKey), nil
 	})
 
-	if err != nil || !token.Valid {
-		return nil, fmt.Errorf("некорректный токен: %v", err)
+	if err != nil {
+		return nil, fmt.Errorf("невалидный токен: %w", err)
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, fmt.Errorf("некорректные claims")
+	claims, ok := token.Claims.(*Claims)
+	if !ok || !token.Valid {
+		return nil, fmt.Errorf("невалидные claims")
 	}
 
-	// Правильное извлечение email
-	id, ok := claims["id"].(uint)
-	if !ok {
-		return nil, fmt.Errorf("email не найден в токене")
+	if isRefresh && claims.Type != "refresh" {
+		return nil, fmt.Errorf("токен не является refresh токеном")
+	}
+	if !isRefresh && claims.Type == "refresh" {
+		return nil, fmt.Errorf("нельзя использовать refresh токен как access токен")
 	}
 
-	return &id, nil
+	return claims, nil
+}
+
+func (j *JWTUtils) ValidateToken(tokenString string) error {
+	_, err := j.ParseAccessToken(tokenString)
+	return err
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"friendship/models/dto"
 	"friendship/services"
 	"net/http"
 
@@ -8,6 +9,7 @@ import (
 )
 
 type AuthHandler interface {
+	Login(c *gin.Context)
 	RefreshToken(c *gin.Context)
 }
 
@@ -36,20 +38,75 @@ type AuthResponse struct {
 	AdminGroups  []services.AdminGroupResponse `json:"admin_groups"`
 }
 
+// AuthUser godoc
+// @Summary      Аутентификация пользователя
+// @Description  Проверяет email и пароль, возвращает access и refresh токены
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        user  body      RefreshRequest  true  "Данные пользователя"
+// @Success      200   {object}  AuthResponse  "Токены успешно созданы"
+// @Failure      400   {object}  map[string]string  "Некорректный JSON или параметры"
+// @Failure      401   {object}  map[string]string  "Неверный пароль"
+// @Failure      404   {object}  map[string]string  "Пользователь не найден"
+// @Failure      500   {object}  map[string]string  "Ошибка сервера"
+// @Router       /api/v2/auth/refresh [get]
 func (h *authHandler) RefreshToken(c *gin.Context) {
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный JSON"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "invalid_request",
+			Message: "Refresh токен обязателен",
+		})
 		return
 	}
-	tokensPair, err := h.srv.RefreshTokens(req.RefreshToken)
+
+	authRes, err := h.srv.RefreshTokens(req.RefreshToken)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Error:   "invalid_refresh_token",
+			Message: "Невалидный или истекший refresh токен",
+		})
+		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  tokensPair.AccessToken,
-		"refresh_token": tokensPair.RefreshToken,
-	})
+
+	c.JSON(http.StatusOK, authRes)
+}
+
+// AuthUser godoc
+// @Summary      Аутентификация пользователя
+// @Description  Проверяет email и пароль, возвращает access и refresh токены
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        user  body      UserRequest  true  "Данные пользователя"
+// @Success      200   {object}  AuthResponse  "Токены успешно созданы"
+// @Failure      400   {object}  map[string]string  "Некорректный JSON или параметры"
+// @Failure      401   {object}  map[string]string  "Неверный пароль"
+// @Failure      404   {object}  map[string]string  "Пользователь не найден"
+// @Failure      500   {object}  map[string]string  "Ошибка сервера"
+// @Router       /api/v2/auth/login [post]
+func (h *authHandler) Login(c *gin.Context) {
+	var req UserRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "invalid_request",
+			Message: "Некорректный формат данных. Проверьте email и пароль",
+		})
+		return
+	}
+	authRes, err := h.srv.Login(req.Email, req.Password)
+
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Error:   "authentication_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, authRes)
 }
 
 // AuthUser godoc

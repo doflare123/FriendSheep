@@ -38,6 +38,14 @@ func (u *User) FindUserByEmail(email string, rep repository.PostgresRepository) 
 	return *convertUser(user), nil
 }
 
+func (u *User) FindUserByEmailPassword(email string, rep repository.PostgresRepository) (User, error) {
+	var user User
+	if err := rep.Where("email = ?", email).First(&user).Error; err != nil {
+		return user, err
+	}
+	return user, nil
+}
+
 func (u *User) FindUserByID(id uint, rep repository.PostgresRepository) (dto.UserDto, error) {
 	var user User
 	if err := rep.Where("id = ?", id).First(&user).Error; err != nil {

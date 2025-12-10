@@ -6,11 +6,13 @@ import (
 	"friendship/services"
 	"friendship/services/register"
 	"friendship/services/sub"
+	"friendship/utils"
 )
 
 func (s *Server) initRouters() {
 	//регистрация и авторизация
-	authsrv := services.NewAuthService(s.logger, s.cfg, s.postgres)
+	jwtService := utils.NewJWTUtils(s.cfg.JWTSecretKey)
+	authsrv := services.NewAuthService(s.logger, s.cfg, jwtService, s.postgres)
 	authH := handlers.NewAuthHandler(authsrv)
 	routes.RegisterAuthRoutes(s.engine, authH)
 	regsrv := register.NewRegisterSrv(s.logger, s.sessionStore, s.postgres, s.cfg)

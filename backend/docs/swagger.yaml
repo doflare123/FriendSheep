@@ -43,6 +43,17 @@ definitions:
       name:
         type: string
     type: object
+  handlers.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      admin_groups:
+        items:
+          $ref: '#/definitions/services.AdminGroupResponse'
+        type: array
+      refresh_token:
+        type: string
+    type: object
   handlers.CachedPopularSessionsDoc:
     properties:
       count:
@@ -139,6 +150,13 @@ definitions:
       title:
         type: string
     type: object
+  handlers.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
   handlers.SessionEmailInput:
     properties:
       email:
@@ -173,6 +191,16 @@ definitions:
       name:
         example: Иван
         type: string
+    type: object
+  handlers.UserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
     type: object
   models.Category:
     properties:
@@ -3002,6 +3030,98 @@ paths:
       summary: Обновить профиль пользователя
       tags:
       - Users inf
+  /api/v2/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет email и пароль, возвращает access и refresh токены
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Токены успешно созданы
+          schema:
+            $ref: '#/definitions/handlers.AuthResponse'
+        "400":
+          description: Некорректный JSON или параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Неверный пароль
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Аутентификация пользователя
+      tags:
+      - auth
+  /api/v2/auth/refresh:
+    get:
+      consumes:
+      - application/json
+      description: Проверяет email и пароль, возвращает access и refresh токены
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Токены успешно созданы
+          schema:
+            $ref: '#/definitions/handlers.AuthResponse'
+        "400":
+          description: Некорректный JSON или параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Неверный пароль
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Аутентификация пользователя
+      tags:
+      - auth
   /api/v2/register/:
     post:
       consumes:
