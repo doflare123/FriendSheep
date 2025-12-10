@@ -244,6 +244,7 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
                 {totalCount === 0 && !serverError && (
                   <Text style={styles.emptyText}>Здесь пока ничего нет</Text>
                 )}
+                <Text style={styles.hintText}>В данной версии приложения уведомления доступны только внутри приложения или через Telegram-бота</Text>
               </ScrollView>
             </>
           )}
@@ -387,6 +388,12 @@ const styles = StyleSheet.create({
     color: Colors.lightGrey,
     textAlign: 'center',
     paddingVertical: 24,
+  },
+  hintText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 8,
+    color: Colors.lightGrey,
+    paddingVertical: 4,
   },
 });
 
