@@ -16,6 +16,10 @@ export const useUserSearch = () => {
       setUsers([]);
       setTotalUsers(0);
       setHasMore(false);
+      setCurrentPage(1);
+      setError(null);
+      setIsLoading(false);
+      setIsLoadingMore(false);
       return;
     }
 
@@ -34,6 +38,16 @@ export const useUserSearch = () => {
         setUsers([]);
         setTotalUsers(0);
         setHasMore(false);
+        setCurrentPage(1);
+        return;
+      }
+
+      if (response.total === 0) {
+        console.log('[useUserSearch] ℹ️ Нет результатов для запроса:', query);
+        setUsers([]);
+        setTotalUsers(0);
+        setHasMore(false);
+        setCurrentPage(1);
         return;
       }
 
@@ -48,6 +62,7 @@ export const useUserSearch = () => {
       setCurrentPage(page);
 
       console.log('[useUserSearch] ✅ Пользователи загружены:', {
+        query,
         page,
         total: response.total,
         loaded: response.users?.length || 0,
@@ -57,6 +72,8 @@ export const useUserSearch = () => {
       console.error('[useUserSearch] ❌ Ошибка поиска:', err);
       setError(err.message || 'Не удалось выполнить поиск');
       setUsers([]);
+      setTotalUsers(0);
+      setHasMore(false);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);

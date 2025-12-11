@@ -124,10 +124,21 @@ const GroupsPage = () => {
     await loadManagedGroups();
   };
 
+  const handleNavigateToAllGroups = () => {
+    navigation.navigate('AllGroupsPage');
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
-      <PageHeader title="Ваши группы" showWave />
+      <PageHeader 
+        title="Ваши группы" 
+        showWave 
+        actionButton={{
+          icon: require('../../assets/images/more.png'),
+          onPress: handleNavigateToAllGroups,
+        }}
+      />
       
       {isLoading ? (
         <View style={styles.loadingContainer}>

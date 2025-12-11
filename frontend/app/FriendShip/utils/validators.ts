@@ -65,6 +65,61 @@ export interface UsernameValidationResult {
   maxLength: number;
 }
 
+export const validateUserDisplayName = (name: string): UsernameValidationResult => {
+  if (!name) return { 
+    isValid: false, 
+    missingRequirements: [], 
+    length: 0, 
+    maxLength: 50 
+  };
+
+  const requirements = [];
+  const trimmed = name.trim();
+  
+  if (trimmed.length < 2) requirements.push('Минимум 2 символа');
+  if (trimmed.length > 50) requirements.push('Максимум 50 символов');
+
+  if (!/^[a-zA-Zа-яА-ЯёЁ0-9\s]+$/.test(trimmed)) {
+    requirements.push('Только буквы, цифры и пробелы (без спецсимволов)');
+  }
+
+  return {
+    isValid: requirements.length === 0,
+    missingRequirements: requirements,
+    length: trimmed.length,
+    maxLength: 50,
+  };
+};
+
+export const validateUserUsername = (username: string): UsernameValidationResult => {
+  if (!username) return { 
+    isValid: false, 
+    missingRequirements: [], 
+    length: 0, 
+    maxLength: 30 
+  };
+
+  const requirements = [];
+  const trimmed = username.trim();
+  
+  if (trimmed.length < 3) requirements.push('Минимум 3 символа');
+
+  if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+    requirements.push('Только английские буквы, цифры и подчеркивания');
+  }
+
+  if (/[а-яА-ЯёЁ]/.test(trimmed)) {
+    requirements.push('Русские буквы запрещены');
+  }
+
+  return {
+    isValid: requirements.length === 0,
+    missingRequirements: requirements,
+    length: trimmed.length,
+    maxLength: 30,
+  };
+};
+
 export const validateUsername = (username: string): UsernameValidationResult => {
   if (!username) return { 
     isValid: false, 

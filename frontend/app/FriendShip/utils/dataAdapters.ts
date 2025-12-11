@@ -127,6 +127,8 @@ export const sessionsToEvents = (sessions: SessionInfo[]): Event[] => {
       }
     }
 
+    const category = sessionTypeToCategory[session.category_session] || 'other';
+
     return {
       id: session.id.toString(),
       title: session.title,
@@ -139,11 +141,11 @@ export const sessionsToEvents = (sessions: SessionInfo[]): Event[] => {
       description: '',
       typeEvent: session.category_session,
       typePlace: eventTypePlace,
-      eventPlace: session.location || session.city || '',
+      eventPlace: eventPlace,
       publisher: '',
       publicationDate: '',
       ageRating: '',
-      category: sessionTypeToCategory[session.category_session] || 'other',
+      category: category,
       group: '',
     };
   });

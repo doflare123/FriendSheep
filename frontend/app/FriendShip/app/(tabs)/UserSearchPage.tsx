@@ -36,16 +36,20 @@ const UserSearchPage: React.FC = () => {
     totalUsers,
     searchUsers,
     loadMore,
+    resetSearch,
   } = useUserSearch();
 
   useEffect(() => {
-    if (searchState.searchQuery.trim()) {
-      console.log('[UserSearchPage] 🔍 Выполняем поиск:', searchState.searchQuery);
-      searchUsers(searchState.searchQuery, 1, false);
+    const query = searchState.searchQuery.trim();
+    
+    if (query) {
+      console.log('[UserSearchPage] 🔍 Выполняем поиск:', query);
+      searchUsers(query, 1, false);
     } else {
-      searchUsers('', 1, false);
+      console.log('[UserSearchPage] 🧹 Очистка результатов поиска');
+      resetSearch();
     }
-  }, [searchState.searchQuery]);
+  }, [searchState.searchQuery, searchUsers, resetSearch]);
 
   const formattedUsers: User[] = useMemo(() => {
     return users.map(user =>

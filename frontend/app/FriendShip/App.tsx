@@ -7,6 +7,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AllEventsPage from './app/(tabs)/AllEventsPage';
+import AllGroupsPage from './app/(tabs)/AllGroupsPage';
 import CategoryPage from './app/(tabs)/CategoryPage';
 import Confirm from './app/(tabs)/ConfirmPage';
 import Done from './app/(tabs)/DonePage';
@@ -66,6 +68,12 @@ function RootNavigator() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="SettingsPage" component={SettingsPage} />
+          <Stack.Screen 
+            name="AllEventsPage" 
+            component={AllEventsPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="AllGroupsPage" component={AllGroupsPage} />
         </>
       ) : (
         <>

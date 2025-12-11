@@ -26,9 +26,14 @@ export const createUserWithHighlightedText = (
   console.log('[userUtils] Создание User из SearchUserItem:', {
     id: user.id,
     name: user.name,
+    username: user.us,
     image: user.image,
     imageEmpty: !user.image || user.image.trim() === '',
   });
+
+  const highlightedName = highlightText(user.name, query);
+
+  const highlightedUsername = highlightText(user.us, query);
   
   return {
     id: user.id.toString(),
@@ -36,8 +41,12 @@ export const createUserWithHighlightedText = (
     username: usernameWithAt,
     description: user.status || '',
     imageUri: user.image,
-    highlightedUsername: highlightText(usernameWithAt, query),
-    highlightedName: undefined,
+    highlightedUsername: highlightedUsername ? {
+      before: '@' + highlightedUsername.before,
+      match: highlightedUsername.match,
+      after: highlightedUsername.after,
+    } : undefined,
+    highlightedName: highlightedName,
     highlightedDescription: undefined,
   };
 };

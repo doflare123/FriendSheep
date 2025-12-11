@@ -23,4 +23,10 @@ export type RootStackParamList = {
   ProfilePage: { userId?: string } | undefined;
   UserSearchPage: undefined;
   SettingsPage: undefined;
+  AllEventsPage: {
+    mode: 'user' | 'group';
+    groupId?: string;
+    userId?: string;
+  };
+  AllGroupsPage: undefined;
 };

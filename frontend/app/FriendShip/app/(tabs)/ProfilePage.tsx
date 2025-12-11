@@ -372,13 +372,20 @@ const ProfilePage: React.FC = () => {
 
         <CategorySection 
           title="Сессии:" 
-          customActionButton={{
+          customActionButton={isOwnProfile ? {
             icon: sessionFilter === 'completed' 
               ? require('@/assets/images/profile/finished.png')
               : require('@/assets/images/profile/current.png'),
             onPress: () => setSessionFilter(
               sessionFilter === 'completed' ? 'upcoming' : 'completed'
             ),
+          } : undefined}
+          secondaryActionButton={{
+            icon: require('@/assets/images/more.png'),
+            onPress: () => navigation.navigate('AllEventsPage', { 
+              mode: 'user',
+              userId: isOwnProfile ? undefined : userId
+            }),
           }}
           events={
             sessionFilter === 'completed' 

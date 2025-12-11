@@ -104,7 +104,7 @@ class UserService {
       
       const response = await apiClient.get<UserSearchResponse>('/users/search', {
         params: { 
-          us: sanitizedQuery,
+          name: sanitizedQuery,
           page: page,
         },
       });

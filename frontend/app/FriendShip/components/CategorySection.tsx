@@ -19,6 +19,11 @@ interface CategorySectionProps {
     onPress: () => void;
     tintColor?: string;
   };
+  secondaryActionButton?: {
+    icon: ImageSourcePropType;
+    onPress: () => void;
+    tintColor?: string;
+  };
   showBackButton?: boolean;
   onBackPress?: () => void;
   customNavigationButtons?: {
@@ -43,6 +48,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
   showLineVariant = 'line',
   marginBottom,
   customActionButton,
+  secondaryActionButton,
   showBackButton = false,
   onBackPress,
   customNavigationButtons,
@@ -92,36 +98,54 @@ const CategorySection: React.FC<CategorySectionProps> = ({
       <View style={[styles.resultsHeader, marginBottom ? { marginBottom } : null]}>
         <View style={{
           flexDirection: 'row',
-          justifyContent: showArrow || customActionButton ? 'space-between' : centerTitle ? 'center' : 'flex-start',
+          justifyContent: showArrow || customActionButton || secondaryActionButton ? 'space-between' : centerTitle ? 'center' : 'flex-start',
           alignItems: 'center'
         }}>
-          {showBackButton && onBackPress && (
-            <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
-              <Image
-                source={require('../assets/images/arrowLeft.png')}
-                style={{ resizeMode: 'contain', width: 30, height: 30 }}
-              />
-            </TouchableOpacity>
-          )}
-          <Text style={[styles.resultsText, centerTitle && { textAlign: 'center' }]}>
-            {title}
-          </Text>
-          {showArrow && onArrowPress && (
-            <TouchableOpacity onPress={onArrowPress}>
-              <Image
-                source={require('../assets/images/more.png')}
-                style={{ resizeMode: 'contain', width: 30, height: 30 }}
-              />
-            </TouchableOpacity>
-          )}
-          {customActionButton && (
-            <TouchableOpacity onPress={customActionButton.onPress}>
-              <Image
-                source={customActionButton.icon}
-                style={{ resizeMode: 'contain', width: 30, height: 30 }}
-                tintColor={customActionButton.tintColor}
-              />
-            </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: centerTitle ? 0 : 1 }}>
+            {showBackButton && onBackPress && (
+              <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
+                <Image
+                  source={require('../assets/images/arrowLeft.png')}
+                  style={{ resizeMode: 'contain', width: 30, height: 30 }}
+                />
+              </TouchableOpacity>
+            )}
+            <Text style={[styles.resultsText, centerTitle && { textAlign: 'center' }]}>
+              {title}
+            </Text>
+          </View>
+
+          {(showArrow || customActionButton || secondaryActionButton) && (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {customActionButton && (
+                <TouchableOpacity onPress={customActionButton.onPress}>
+                  <Image
+                    source={customActionButton.icon}
+                    style={{ resizeMode: 'contain', width: 30, height: 30 }}
+                    tintColor={customActionButton.tintColor}
+                  />
+                </TouchableOpacity>
+              )}
+              
+              {secondaryActionButton && (
+                <TouchableOpacity onPress={secondaryActionButton.onPress}>
+                  <Image
+                    source={secondaryActionButton.icon}
+                    style={{ resizeMode: 'contain', width: 30, height: 30 }}
+                    tintColor={secondaryActionButton.tintColor}
+                  />
+                </TouchableOpacity>
+              )}
+              
+              {showArrow && onArrowPress && (
+                <TouchableOpacity onPress={onArrowPress}>
+                  <Image
+                    source={require('../assets/images/more.png')}
+                    style={{ resizeMode: 'contain', width: 30, height: 30 }}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
           )}
         </View>
         <Image

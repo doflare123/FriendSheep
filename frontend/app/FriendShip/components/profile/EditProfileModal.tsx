@@ -1,7 +1,8 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { validateUserDisplayName, validateUserUsername } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -60,14 +61,17 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }
   }, [visible, currentProfile]);
 
+  const nameValidation = useMemo(() => validateUserDisplayName(name), [name]);
+  const usernameValidation = useMemo(() => validateUserUsername(username), [username]);
+
   const handleSave = async () => {
-    if (!name.trim()) {
-      Alert.alert('Ошибка', 'Введите имя');
+    if (!nameValidation.isValid) {
+      Alert.alert('Ошибка', `Имя: ${nameValidation.missingRequirements.join(', ')}`);
       return;
     }
 
-    if (!username.trim() || username.length < 2) {
-      Alert.alert('Ошибка', 'Юзернейм должен содержать минимум 2 символа');
+    if (!usernameValidation.isValid) {
+      Alert.alert('Ошибка', `Юзернейм: ${usernameValidation.missingRequirements.join(', ')}`);
       return;
     }
 
@@ -168,39 +172,84 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <Image source={getAvatarSource()} style={styles.avatar} />
               </TouchableOpacity>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Имя"
-                placeholderTextColor={Colors.grey}
-                value={name}
-                onChangeText={setName}
-                maxLength={50}
-                editable={!loading}
-              />
+              <View style={styles.inputWrapper}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>Имя</Text>
+                  {name.length > 0 && (
+                    <Text style={[
+                      styles.charCount,
+                      { color: nameValidation.length > nameValidation.maxLength ? Colors.red : Colors.grey }
+                    ]}>
+                      {nameValidation.length}/{nameValidation.maxLength}
+                    </Text>
+                  )}
+                </View>
+                <TextInput
+                  style={[
+                    styles.input,
+                    name.length > 0 && !nameValidation.isValid && styles.inputError
+                  ]}
+                  placeholder="Имя"
+                  placeholderTextColor={Colors.grey}
+                  value={name}
+                  onChangeText={setName}
+                  maxLength={50}
+                  editable={!loading}
+                />
+                {name.length > 0 && !nameValidation.isValid && (
+                  <Text style={styles.errorText}>
+                    {nameValidation.missingRequirements.join(', ')}
+                  </Text>
+                )}
+              </View>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Юзернейм"
-                placeholderTextColor={Colors.grey}
-                value={username}
-                onChangeText={setUsername}
-                maxLength={30}
-                editable={!loading}
-                autoCapitalize="none"
-              />
+              <View style={styles.inputWrapper}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>Юзернейм</Text>
+                  {username.length > 0 && (
+                    <Text style={[
+                      styles.charCount,
+                      { color: usernameValidation.length > usernameValidation.maxLength ? Colors.red : Colors.grey }
+                    ]}>
+                      {usernameValidation.length}/{usernameValidation.maxLength}
+                    </Text>
+                  )}
+                </View>
+                <TextInput
+                  style={[
+                    styles.input,
+                    username.length > 0 && !usernameValidation.isValid && styles.inputError
+                  ]}
+                  placeholder="Юзернейм"
+                  placeholderTextColor={Colors.grey}
+                  value={username}
+                  onChangeText={setUsername}
+                  maxLength={30}
+                  editable={!loading}
+                  autoCapitalize="none"
+                />
+                {username.length > 0 && !usernameValidation.isValid && (
+                  <Text style={styles.errorText}>
+                    {usernameValidation.missingRequirements.join(', ')}
+                  </Text>
+                )}
+              </View>
 
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Описание"
-                placeholderTextColor={Colors.grey}
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-                maxLength={40}
-                editable={!loading}
-              />
+              <View style={styles.inputWrapper}>
+                <Text style={styles.label}>Описание</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Описание"
+                  placeholderTextColor={Colors.grey}
+                  value={description}
+                  onChangeText={setDescription}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                  maxLength={40}
+                  editable={!loading}
+                />
+              </View>
             </View>
 
             <ImageBackground
@@ -211,9 +260,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             >
               <View style={styles.bottomContent}>
                 <TouchableOpacity
-                  style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+                  style={[
+                    styles.saveButton,
+                    (loading || !nameValidation.isValid || !usernameValidation.isValid) && styles.saveButtonDisabled
+                  ]}
                   onPress={handleSave}
-                  disabled={loading}
+                  disabled={loading || !nameValidation.isValid || !usernameValidation.isValid}
                 >
                   {loading ? (
                     <ActivityIndicator color={Colors.blue3} />
@@ -286,16 +338,37 @@ const styles = StyleSheet.create({
     borderRadius: 75,
     borderColor: Colors.lightGrey,
   },
+  inputWrapper: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  label: {
+    fontFamily: Montserrat.medium,
+    fontSize: 14,
+    color: Colors.black,
+  },
+  charCount: {
+    fontFamily: Montserrat.regular,
+    fontSize: 12,
+  },
   input: {
     width: '100%',
     borderBottomWidth: 1,
     borderBottomColor: Colors.grey,
     paddingVertical: 8,
     paddingHorizontal: 0,
-    marginBottom: 16,
     fontFamily: Montserrat.regular,
     fontSize: 16,
     color: Colors.black,
+  },
+  inputError: {
+    borderBottomColor: Colors.red,
   },
   textArea: {
     borderWidth: 1,
@@ -304,6 +377,12 @@ const styles = StyleSheet.create({
     padding: 16,
     minHeight: 60,
     maxHeight: 120,
+  },
+  errorText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 12,
+    color: Colors.red,
+    marginTop: 4,
   },
   bottomBackground: {
     width: "100%",

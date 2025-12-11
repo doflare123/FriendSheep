@@ -404,7 +404,13 @@ const GroupPage = () => {
           </TouchableOpacity>
         </CategorySection>
 
-        <CategorySection title="Сессии:">
+        <CategorySection 
+          title="Сессии:"
+          secondaryActionButton={{
+            icon: require('@/assets/images/more.png'),
+            onPress: () => navigation.navigate('AllEventsPage', { mode: 'group', groupId }),
+          }}
+        >
           {formattedSessions && formattedSessions.length > 0 ? (
             <EventCarousel events={formattedSessions} />
           ) : (

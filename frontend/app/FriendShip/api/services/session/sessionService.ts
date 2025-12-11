@@ -352,6 +352,26 @@ class SessionService {
       console.error('[SessionService] ❌ Ошибка удаления calendarEventId:', error);
     }
   }
+
+  async getUserGroupSessions(page: number = 1): Promise<any> {
+    try {
+      console.log('[SessionService] 👤 Загрузка событий пользователя, страница:', page);
+      const response = await apiClient.get('/users/sessions/user-groups', {
+        params: { page }
+      });
+      console.log('[SessionService] ✅ События пользователя получены:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[SessionService] ❌ Ошибка загрузки событий пользователя:', error);
+      if (error.response?.status === 401) {
+        throw new Error('Необходимо войти в систему');
+      }
+      if (error.response?.status === 404) {
+        throw new Error('Пользователь не найден');
+      }
+      throw new Error(error.response?.data?.error || 'Ошибка загрузки событий пользователя');
+    }
+  }
 }
 
 export default new SessionService();
