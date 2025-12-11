@@ -291,6 +291,7 @@ func getRecentSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 	err := dbCon.Preload("Session").
 		Preload("Session.Status").
 		Preload("Session.SessionPlace").
+		Preload("Session.SessionType").
 		Joins("JOIN sessions ON session_users.session_id = sessions.id").
 		Joins("JOIN statuses ON sessions.status_id = statuses.id").
 		Where("session_users.user_id = ? AND statuses.status = ?", userID, "Завершена").
@@ -315,15 +316,16 @@ func getRecentSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 	result := make([]SessionInfo, len(sessionUsers))
 	for i, su := range sessionUsers {
 		sessionInfo := SessionInfo{
-			ID:           su.Session.ID,
-			Title:        su.Session.Title,
-			StartTime:    su.Session.StartTime,
-			EndTime:      su.Session.EndTime,
-			CurrentUsers: su.Session.CurrentUsers,
-			MaxUsers:     su.Session.CountUsersMax,
-			Type_session: su.Session.SessionPlace.Title,
-			ImageURL:     safeStringValue(&su.Session.ImageURL),
-			Status:       su.Session.Status.Status,
+			ID:               su.Session.ID,
+			Title:            su.Session.Title,
+			StartTime:        su.Session.StartTime,
+			EndTime:          su.Session.EndTime,
+			CurrentUsers:     su.Session.CurrentUsers,
+			MaxUsers:         su.Session.CountUsersMax,
+			Type_session:     su.Session.SessionPlace.Title,
+			Category_session: su.Session.SessionType.Name,
+			ImageURL:         safeStringValue(&su.Session.ImageURL),
+			Status:           su.Session.Status.Status,
 		}
 
 		if meta, exists := metadata[su.Session.ID]; exists && meta != nil {
