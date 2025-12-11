@@ -27,7 +27,7 @@ export async function getOtherUserInfo(accessToken: string, id: string): Promise
     //   ? data.upcoming_sessions.map((s: RawSession) => mapServerSessionToEvent(s))
     //   : [];
 
-    return mapRawUserDataToUserData({...data, recent_sessions, upcoming_sessions});
+    return mapRawUserDataToUserData({...data});
   } catch (error: any) {
     console.error('Ошибка при получении информации о пользователе:', error);
 

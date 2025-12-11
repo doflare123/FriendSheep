@@ -635,7 +635,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               <h4 className={section2Styles.eventsBlockTitle}>Предстоящие</h4>
               <div className={section2Styles.eventsBlockContent}>
                 {(() => {
-                  const upcomingSessions = profileData.upcoming_sessions;
+                  const upcomingSessions = profileData.upcoming_sessions || [];
                   const hasEvents = upcomingSessions && upcomingSessions.length > 0;
                   
                   return hasEvents ? (
@@ -662,7 +662,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                 <h4 className={section2Styles.eventsBlockTitle}>Завершенные</h4>
                 <div className={section2Styles.eventsBlockContent}>
                   {(() => {
-                    const recentSessions = profileData.recent_sessions;
+                    const recentSessions = profileData.recent_sessions || [];
                     const hasEvents = recentSessions && recentSessions.length > 0;
                     
                     return hasEvents ? (

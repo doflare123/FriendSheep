@@ -7,6 +7,8 @@ import { getUserInfo } from './api/profile/getOwnProfile';
 import { refreshAccessToken, isTokenValid, getCookie, setCookie } from '@/api/auth';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
+export const MOBILE_APP_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+
 export const convertCategoriesToIds = (categories: string[]): number[] => {
     const categoryMap: { [key: string]: number } = {
       'movies': 1,    // Фильмы

@@ -7,7 +7,7 @@
   min-height: 5rem;
   border-color: var(--color-primary-blue-dark);
   border-width: 0px 0px 2px 0px;
-  background-color: white;
+  background-color: var(--color-bg-primary);
   box-shadow: var(--shadow-sm);
   position: relative;
   z-index: 100;
@@ -48,12 +48,12 @@
   display: flex;
   gap: 1.5rem;
   font-size: 1.5rem;
-  color: black;
+  color: var(--color-text-primary);
   font-family: 'Inter', sans-serif;
 }
 
 .navLink {
-  color: black;
+  color: var(--color-text-primary);
   text-decoration: none;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -76,9 +76,9 @@
   left: 50%;
   transform: translateX(-50%);
   margin-top: 0.5rem;
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 0.5rem;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-notification-dropdown);
   padding: 0.5rem 0;
   min-width: 150px;
   z-index: 1000;
@@ -110,13 +110,60 @@
 }
 
 .searchDropdownItem:hover {
-  background-color: var(--color-bg-primary);
+  background-color: var(--color-bg-hover);
+}
+
+/* Выпадающее меню профиля */
+.profileMenuContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.profileDropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: var(--color-bg-primary);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-notification-dropdown);
+  padding: 0.5rem 0;
+  min-width: 150px;
+  z-index: 1000;
+  animation: fadeInDown 0.2s ease;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.profileDropdownItem {
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.profileDropdownItem:hover {
+  background-color: var(--color-bg-hover);
 }
 
 /* Правая секция */
 .authSection {
   font-size: 1.5rem;
-  color: black;
+  color: var(--color-text-primary);
   font-family: 'Inter', sans-serif;
   display: flex;
   align-items: center;
@@ -126,7 +173,7 @@
 
 /* Неавторизованный пользователь */
 .authLink {
-  color: black;
+  color: var(--color-text-primary);
   text-decoration: none;
   padding: 0 0.25rem;
   transition: all 0.2s ease;
@@ -144,7 +191,7 @@
 /* Авторизованный пользователь */
 .createButton {
   background-color: var(--color-primary-blue-dark);
-  color: white;
+  color: var(--color-text-white);
   border: none;
   border-radius: 2rem;
   padding: 0.5rem 1.5rem;
@@ -156,7 +203,7 @@
 }
 
 .createButton:hover {
-  background-color: var(--color-primary-blue-dark);
+  background-color: var(--color-primary-blue);
   transform: translateY(-1px);
 }
 
@@ -244,7 +291,103 @@
   background-color: var(--color-danger);
   border-radius: 50%;
   display: block;
-  z-index: 2; /* Красный кружок выше серого телеграма */
+  z-index: 2;
+}
+
+/* Модалка выхода */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--overlay-dark);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  animation: fadeInOverlay 0.2s ease;
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.logoutModal {
+  background: var(--color-bg-primary);
+  border-radius: 1rem;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: var(--shadow-xxl);
+  animation: scaleIn 0.2s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.logoutModalTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 1rem 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.logoutModalText {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin: 0 0 1.5rem 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.logoutModalButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.logoutModalCancel,
+.logoutModalConfirm {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.logoutModalCancel {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.logoutModalCancel:hover {
+  background-color: var(--color-border-light);
+}
+
+.logoutModalConfirm {
+  background-color: var(--color-danger);
+  color: var(--color-text-white);
+}
+
+.logoutModalConfirm:hover {
+  background-color: var(--color-danger-dark);
 }
 
 /* Адаптивность для средних планшетов (до 1100px) */
@@ -313,6 +456,27 @@
     width: 38px;
     height: 38px;
   }
+
+  .logoutModal {
+    padding: 1.5rem;
+  }
+
+  .logoutModalTitle {
+    font-size: 1.25rem;
+  }
+
+  .logoutModalText {
+    font-size: 0.95rem;
+  }
+
+  .logoutModalButtons {
+    flex-direction: column;
+  }
+
+  .logoutModalCancel,
+  .logoutModalConfirm {
+    width: 100%;
+  }
 }
 
 /* Адаптивность для мобильных (до 480px) */
@@ -377,6 +541,24 @@
     width: 20px;
     height: 20px;
   }
+
+  .logoutModal {
+    padding: 1.25rem;
+  }
+
+  .logoutModalTitle {
+    font-size: 1.125rem;
+  }
+
+  .logoutModalText {
+    font-size: 0.9rem;
+  }
+
+  .logoutModalCancel,
+  .logoutModalConfirm {
+    padding: 0.65rem 1.25rem;
+    font-size: 0.9rem;
+  }
 }
 
 /* Адаптивность для очень маленьких экранов (до 360px) */
@@ -425,5 +607,31 @@
   .avatarContainer svg {
     width: 18px;
     height: 18px;
+  }
+}
+
+.mobileAppLink {
+  color: var(--color-text-primary);
+  text-decoration: none;
+  font-size: 1.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.mobileAppLink:hover {
+  color: var(--color-primary-blue);
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .mobileAppLink {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .mobileAppLink {
+    font-size: 1.1rem;
   }
 }

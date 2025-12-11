@@ -8,7 +8,7 @@ import EventModal from './Events/EventModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getNotif } from '@/api/notification/getNotif';
-import { getAccesToken, getUserData } from '@/Constants';
+import { getAccesToken, getUserData, MOBILE_APP_URL } from '@/Constants';
 import styles from '../styles/Header.module.css';
 
 interface Notification {
@@ -40,14 +40,27 @@ export default function Header() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [showSearchMenu, setShowSearchMenu] = useState(false);
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [hasTelegramLink, setHasTelegramLink] = useState(true);
+    const [isMobile, setIsMobile] = useState(false);
     const router = useRouter();
     const searchMenuRef = useRef<HTMLDivElement>(null);
+    const profileMenuRef = useRef<HTMLDivElement>(null);
     const searchMenuTimeoutRef = useRef<NodeJS.Timeout>();
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const originalTitleRef = useRef<string>('');
 
-    // Инициализация звука и сохранение оригинального title
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+        };
+        
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     useEffect(() => {
         audioRef.current = new Audio('/notification-sound.mp3');
         audioRef.current.volume = 0.5;
@@ -61,7 +74,6 @@ export default function Header() {
         };
     }, []);
 
-    // Проверка привязки телеграма
     useEffect(() => {
         const checkTelegramLink = async () => {
             if (isLoggedIn) {
@@ -73,7 +85,6 @@ export default function Header() {
         checkTelegramLink();
     }, [isLoggedIn]);
 
-    // Обновление title вкладки
     const updateBrowserTitle = (count: number) => {
         if (count > 0) {
             const countText = count === 1 
@@ -85,7 +96,6 @@ export default function Header() {
         }
     };
 
-    // Воспроизведение звука уведомления
     const playNotificationSound = () => {
         if (audioRef.current) {
             audioRef.current.play().catch(err => {
@@ -94,7 +104,6 @@ export default function Header() {
         }
     };
 
-    // Проверка наличия непрочитанных уведомлений
     const checkNotifications = async () => {
         if (!isLoggedIn) return;
 
@@ -102,16 +111,13 @@ export default function Header() {
             const accessToken = await getAccesToken(router);
             const data: NotificationResponse = await getNotif(accessToken);
             
-            // Подсчитываем непрочитанные уведомления и непринятые приглашения
             const unreadNotifications = data.notifications?.filter(n => !n.viewed).length || 0;
             const pendingInvites = data.invites?.filter(i => i.status === 'pending').length || 0;
             const totalUnread = unreadNotifications + pendingInvites;
             
-            // Если количество непрочитанных увеличилось - новое уведомление
             if (totalUnread > unreadCount) {
                 playNotificationSound();
                 
-                // Показываем системное уведомление (если есть разрешение)
                 if ('Notification' in window && Notification.permission === 'granted') {
                     const newCount = totalUnread - unreadCount;
                     const notificationText = newCount === 1 
@@ -134,35 +140,30 @@ export default function Header() {
         }
     };
 
-    // Запрос разрешения на системные уведомления
     useEffect(() => {
         if (isLoggedIn && 'Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission();
         }
     }, [isLoggedIn]);
 
-    // Проверка уведомлений при монтировании и каждую минуту
     useEffect(() => {
         if (isLoggedIn) {
             checkNotifications();
             const interval = setInterval(checkNotifications, 60000);
             return () => clearInterval(interval);
         } else {
-            // Сбрасываем индикаторы при выходе
             setUnreadCount(0);
             setHasUnreadNotifications(false);
             updateBrowserTitle(0);
         }
     }, [isLoggedIn]);
 
-    // Обновление после открытия/закрытия дропдауна
     useEffect(() => {
         if (!showNotifications && isLoggedIn) {
             checkNotifications();
         }
     }, [showNotifications]);
 
-    // Сброс индикаторов при возвращении на вкладку
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden && isLoggedIn) {
@@ -176,11 +177,13 @@ export default function Header() {
         };
     }, [isLoggedIn]);
 
-    // Закрытие выпадающего меню при клике вне его
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (searchMenuRef.current && !searchMenuRef.current.contains(event.target as Node)) {
                 setShowSearchMenu(false);
+            }
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+                setShowProfileMenu(false);
             }
         };
 
@@ -190,7 +193,6 @@ export default function Header() {
         };
     }, []);
 
-    // Показываем скелетон во время загрузки
     if (isLoading) {
         return (
             <header className={styles.header}>
@@ -198,19 +200,55 @@ export default function Header() {
                     <Image src="/logo.png" alt="Логотип" width={64} height={64} className={styles.logoImage}/>
                     <span className={styles.logoText}>FriendShip</span>
                 </Link>
-                <nav className={styles.navSection}>
-                    <Link href="/news" className={styles.navLink}>Новости</Link>
-                    <Link href="/groups" className={styles.navLink}>Группы</Link>
-                </nav>
-                <div className={styles.authSection}>
-                    <div className={styles.loadingSkeleton}>Загрузка...</div>
-                </div>
+                {!isMobile && (
+                    <>
+                        <nav className={styles.navSection}>
+                            <Link href="/news" className={styles.navLink}>Новости</Link>
+                            <Link href="/groups" className={styles.navLink}>Группы</Link>
+                        </nav>
+                        <div className={styles.authSection}>
+                            <div className={styles.loadingSkeleton}>Загрузка...</div>
+                        </div>
+                    </>
+                )}
+                {isMobile && (
+                    <div className={styles.authSection}>
+                        <a 
+                            href={MOBILE_APP_URL}
+                            className={styles.mobileAppLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Приложение
+                        </a>
+                    </div>
+                )}
             </header>
         );
     }
 
     const handleAvatarClick = () => {
+        setShowProfileMenu(!showProfileMenu);
+    };
+
+    const handleProfileClick = () => {
+        setShowProfileMenu(false);
         router.push('/profile/' + userData?.us);
+    };
+
+    const handleLogoutClick = () => {
+        setShowProfileMenu(false);
+        setShowLogoutModal(true);
+    };
+
+    const handleConfirmLogout = () => {
+        logout();
+        setShowLogoutModal(false);
+        router.push('/');
+    };
+
+    const handleCancelLogout = () => {
+        setShowLogoutModal(false);
     };
 
     const handleCreateClick = () => {
@@ -249,6 +287,27 @@ export default function Header() {
             setShowSearchMenu(false);
         }, 200);
     };
+
+    if (isMobile) {
+        return (
+            <header className={styles.header}>
+                <Link href="/" className={styles.logoSection}>
+                    <Image src="/logo.png" alt="Логотип" width={64} height={64} className={styles.logoImage}/>
+                    <span className={styles.logoText}>FriendShip</span>
+                </Link>
+                <div className={styles.authSection}>
+                    <a 
+                        href={MOBILE_APP_URL}
+                        className={styles.mobileAppLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Приложение
+                    </a>
+                </div>
+            </header>
+        );
+    }
 
     return (
         <>
@@ -340,23 +399,45 @@ export default function Header() {
                             <span className={styles.username}>{userData?.username}</span>
                             
                             <div 
-                                className={styles.avatarContainer} 
-                                onClick={handleAvatarClick}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        handleAvatarClick();
-                                    }
-                                }}
+                                className={styles.profileMenuContainer}
+                                ref={profileMenuRef}
                             >
-                                <Image 
-                                    src={userData?.avatar || '/default-avatar.png'} 
-                                    alt="Аватар" 
-                                    width={60} 
-                                    height={60}
-                                    className={styles.avatar}
-                                />
+                                <div 
+                                    className={styles.avatarContainer} 
+                                    onClick={handleAvatarClick}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            handleAvatarClick();
+                                        }
+                                    }}
+                                >
+                                    <Image 
+                                        src={userData?.avatar || '/default-avatar.png'} 
+                                        alt="Аватар" 
+                                        width={60} 
+                                        height={60}
+                                        className={styles.avatar}
+                                    />
+                                </div>
+
+                                {showProfileMenu && (
+                                    <div className={styles.profileDropdown}>
+                                        <button 
+                                            className={styles.profileDropdownItem}
+                                            onClick={handleProfileClick}
+                                        >
+                                            Профиль
+                                        </button>
+                                        <button 
+                                            className={styles.profileDropdownItem}
+                                            onClick={handleLogoutClick}
+                                        >
+                                            Выйти
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </>
                     ) : (
@@ -368,6 +449,30 @@ export default function Header() {
                     )}
                 </div>
             </header>
+
+            {/* Модалка подтверждения выхода */}
+            {showLogoutModal && (
+                <div className={styles.modalOverlay} onClick={handleCancelLogout}>
+                    <div className={styles.logoutModal} onClick={(e) => e.stopPropagation()}>
+                        <h3 className={styles.logoutModalTitle}>Выход из аккаунта</h3>
+                        <p className={styles.logoutModalText}>Вы уверены, что хотите выйти?</p>
+                        <div className={styles.logoutModalButtons}>
+                            <button 
+                                className={styles.logoutModalCancel}
+                                onClick={handleCancelLogout}
+                            >
+                                Отмена
+                            </button>
+                            <button 
+                                className={styles.logoutModalConfirm}
+                                onClick={handleConfirmLogout}
+                            >
+                                Выйти
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <EventModal
                 isOpen={isCreateModalOpen}

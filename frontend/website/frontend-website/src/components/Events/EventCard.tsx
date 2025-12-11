@@ -4,7 +4,6 @@ import styles from '../../styles/EventCard.module.css';
 import Image from "next/image";
 import {getCategoryIcon, convertMinutesToReadableTime} from '../../Constants';
 import EventDetailModal from './EventDetailModal';
-import { showNotification } from "@/utils";
 
 const EventCard: React.FC<EventCardProps> = ({
     id,
@@ -18,12 +17,17 @@ const EventCard: React.FC<EventCardProps> = ({
     duration,
     location,
     isEditMode = false,
+    isDemo = false,
     city,
     onEdit
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleButtonClick = () => {
+        if (isDemo) {
+            return;
+        }
+        
         if (isEditMode && onEdit) {
             onEdit(id);
         } else {
@@ -39,8 +43,6 @@ const EventCard: React.FC<EventCardProps> = ({
     const handleJoin = () => {
         console.log('Присоединиться к событию:', id);
     };
-
-    console.log("Title", title);
 
     return (
         <>
@@ -81,18 +83,24 @@ const EventCard: React.FC<EventCardProps> = ({
                             </span>
                         )}
                     </div>
-                    <button className={styles.detailsButton} onClick={handleButtonClick}>
+                    <button 
+                        className={`${styles.detailsButton} ${isDemo ? styles.demoButton : ''}`} 
+                        onClick={handleButtonClick}
+                        disabled={isDemo}
+                    >
                         {isEditMode ? 'Редактировать' : 'Узнать подробнее'}
                     </button>
                 </div>
             </div>
 
-            <EventDetailModal
-                isOpen={isModalOpen}
-                onClose={handleCloseModal}
-                onJoin={handleJoin}
-                eventId={id}
-            />
+            {!isDemo && (
+                <EventDetailModal
+                    isOpen={isModalOpen}
+                    onClose={handleCloseModal}
+                    onJoin={handleJoin}
+                    eventId={id}
+                />
+            )}
         </>
     );
 };

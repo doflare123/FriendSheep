@@ -40,6 +40,12 @@ const nextConfig: NextConfig = {
         hostname: '**.selstorage.ru',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'media.rawg.io',
+        port: '',
+        pathname: '/**',
       }
     ],
   },

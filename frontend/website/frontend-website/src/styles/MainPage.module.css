@@ -40,7 +40,7 @@
 .categoryHeader {
     margin-bottom: 15px;
     margin-left: 2%;
-    width: 15%;
+    width: auto;
     max-width: 300px;
 }
 

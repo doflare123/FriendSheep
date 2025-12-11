@@ -404,6 +404,11 @@ export default function SearchPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className={styles.searchInput}
                 />
+                {searchType === 'users' && searchQuery.length > 0 && (
+                  <div className={styles.searchHint}>
+                    Используйте @ для поиска по us
+                  </div>
+                )}
                 {searchType === 'groups' && (
                   <div className={styles.filterWrapper} ref={filterRef}>
                     <button

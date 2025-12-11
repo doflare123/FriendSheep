@@ -3,6 +3,7 @@
     /* СИНИЕ ЦВЕТА */
     --color-primary-blue: #37A2E6;
     --color-primary-blue-dark: #316BC2;
+    --color-secondary-blue: #197DBD;
 
     /* КРАСНЫЕ ЦВЕТА */
     --color-danger: #E6374B;
@@ -20,6 +21,7 @@
     --color-text-primary: #000000;
     --color-text-muted: #999999;
     --color-text-disabled: #CCCCCC;
+    --color-text-white: white;
 
     /* ФОНОВЫЕ ЦВЕТА */
     --color-bg-primary: #FFFFFF;

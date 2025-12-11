@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import styles from '../../styles/Events/EventModal.module.css';
 import MapModal from './MapModal';
@@ -60,6 +60,61 @@ interface ValidationErrors {
   location?: string;
 }
 
+// RAWG API интерфейсы
+interface RAWGGame {
+  id: number;
+  name: string;
+  released: string;
+  background_image: string;
+  rating: number;
+  genres: { id: number; name: string; }[];
+  publishers: { id: number; name: string; }[];
+  playtime: number;
+  esrb_rating?: { id: number; name: string; };
+  description_raw?: string;
+}
+
+// Функция для поиска игр через RAWG API
+const searchRAWGGames = async (query: string): Promise<RAWGGame[]> => {
+  const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || 'YOUR_API_KEY';
+  
+  try {
+    const response = await fetch(
+      `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&lang=ru&page_size=5`
+    );
+    
+    if (!response.ok) {
+      throw new Error('Ошибка при поиске игр');
+    }
+    
+    const data = await response.json();
+    return data.results || [];
+  } catch (error) {
+    console.error('Ошибка RAWG API:', error);
+    throw error;
+  }
+};
+
+// Функция для получения деталей игры
+const getRAWGGameDetails = async (gameId: number): Promise<RAWGGame> => {
+  const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || 'YOUR_API_KEY';
+  
+  try {
+    const response = await fetch(
+      `https://api.rawg.io/api/games/${gameId}?key=${RAWG_API_KEY}&lang=ru`
+    );
+    
+    if (!response.ok) {
+      throw new Error('Ошибка при получении деталей игры');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Ошибка получения деталей игры:', error);
+    throw error;
+  }
+};
+
 export default function EventModal({ 
   isOpen, 
   onClose, 
@@ -111,9 +166,12 @@ export default function EventModal({
   const [genresLoading, setGenresLoading] = useState(false);
   const [genresError, setGenresError] = useState<string | null>(null);
 
-  // Новые состояния для ImageCropModal
   const [showImageCropModal, setShowImageCropModal] = useState(false);
   const [tempImageFile, setTempImageFile] = useState<File | null>(null);
+
+  // Новые состояния для API селектора
+  const [showApiSelector, setShowApiSelector] = useState(false);
+  const apiSelectorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && mode === 'create') {
@@ -123,6 +181,23 @@ export default function EventModal({
       loadGenres();
     }
   }, [isOpen, mode]);
+
+  // Закрытие селектора API при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (apiSelectorRef.current && !apiSelectorRef.current.contains(event.target as Node)) {
+        setShowApiSelector(false);
+      }
+    };
+
+    if (showApiSelector) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showApiSelector]);
 
   const checkGroupsAndLoad = async () => {
     setGroupsLoading(true);
@@ -232,7 +307,6 @@ export default function EventModal({
       setAgeLimit(eventData.ageLimit || '');
       
       setSelectedGroup(groupId || null);
-      console.log('selectedGroup установлен из props groupId:', groupId);
       
       const isEventOnline = eventData.location === 'online';
       setIsOnline(isEventOnline);
@@ -280,7 +354,6 @@ export default function EventModal({
       setIsOnline(false);
       
       setSelectedGroup(groupId || null);
-      console.log('selectedGroup установлен из props groupId при создании:', groupId);
       
       setImageFile(null);
       setKinopoiskImageUrl(null);
@@ -607,6 +680,10 @@ export default function EventModal({
     }
   };
 
+  const capitalizeFirstLetter = (str: string): string => {
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
   const handleKinopoiskSearch = async () => {
     if (!formData.title) {
       showNotification(400, 'Введите название фильма для поиска');
@@ -614,14 +691,16 @@ export default function EventModal({
     }
     
     setIsLoading(true);
+    setShowApiSelector(false);
+    
     try {
       const movies = await kinopoiskAPI.searchMovies(formData.title);
       
       if (movies.length > 0) {
         const movie = movies[0];
         
-        console.log('Данные фильма из Кинопоиска:', movie);
-        console.log('Длительность фильма:', movie.filmLength);
+        // Автоматически выбираем категорию "movies"
+        setFormData(prev => ({ ...prev, type: 'movies' }));
         
         const movieDescription = movie.description || movie.shortDescription || '';
         const truncatedDescription = movieDescription.length > VALIDATION_RULES.description.max 
@@ -645,7 +724,6 @@ export default function EventModal({
             totalMinutes = parseInt(movie.filmLength) || 0;
           }
           
-          console.log('Длительность в минутах:', totalMinutes);
           setFormData(prev => ({ 
             ...prev, 
             duration: `${totalMinutes}`
@@ -653,7 +731,7 @@ export default function EventModal({
         }
         
         if (movie.genres) {
-          const movieGenres = movie.genres.map(g => g.genre);
+          const movieGenres = movie.genres.map(g => capitalizeFirstLetter(g.genre));
           
           const matchedGenres: string[] = [];
           const unmatchedGenres: string[] = [];
@@ -699,8 +777,6 @@ export default function EventModal({
         if (movie.posterUrl || movie.posterUrlPreview) {
           const imageUrl = movie.posterUrl || movie.posterUrlPreview;
           
-          console.log('URL постера:', imageUrl);
-          
           setFormData(prev => ({ 
             ...prev, 
             image: imageUrl! 
@@ -729,13 +805,134 @@ export default function EventModal({
     }
   };
 
+  const handleRAWGSearch = async () => {
+    if (!formData.title) {
+      showNotification(400, 'Введите название игры для поиска');
+      return;
+    }
+    
+    setIsLoading(true);
+    setShowApiSelector(false);
+    
+    try {
+      const games = await searchRAWGGames(formData.title);
+      
+      if (games.length > 0) {
+        const game = games[0];
+        const gameDetails = await getRAWGGameDetails(game.id);
+        
+        // Автоматически выбираем категорию "games"
+        setFormData(prev => ({ ...prev, type: 'games' }));
+        
+        // Описание игры
+        const gameDescription = gameDetails.description_raw || '';
+        const truncatedDescription = gameDescription.length > VALIDATION_RULES.description.max 
+          ? gameDescription.substring(0, VALIDATION_RULES.description.max - 3).trim() + '...'
+          : gameDescription;
+        
+        setDescription(truncatedDescription);
+        
+        // Издатель
+        if (gameDetails.publishers && gameDetails.publishers.length > 0) {
+          setPublisher(gameDetails.publishers[0].name);
+        }
+        
+        // Год релиза
+        if (gameDetails.released) {
+          const releaseYear = new Date(gameDetails.released).getFullYear();
+          setYear(releaseYear.toString());
+        }
+        
+        // Возрастной рейтинг
+        if (gameDetails.esrb_rating) {
+          setAgeLimit(gameDetails.esrb_rating.name);
+        }
+        
+        // Длительность НЕ заполняем (убрали автозаполнение часов)
+        
+        // Жанры с заглавной буквы
+        if (gameDetails.genres && gameDetails.genres.length > 0) {
+          const gameGenres = gameDetails.genres.map(g => capitalizeFirstLetter(g.name));
+          
+          const matchedGenres: string[] = [];
+          const unmatchedGenres: string[] = [];
+          
+          gameGenres.forEach(gameGenre => {
+            const exactMatch = genres.find(apiGenre => 
+              apiGenre.toLowerCase() === gameGenre.toLowerCase()
+            );
+            
+            if (exactMatch) {
+              matchedGenres.push(exactMatch);
+            } else {
+              const partialMatch = genres.find(apiGenre => 
+                apiGenre.toLowerCase().includes(gameGenre.toLowerCase()) ||
+                gameGenre.toLowerCase().includes(apiGenre.toLowerCase())
+              );
+              
+              if (partialMatch) {
+                matchedGenres.push(partialMatch);
+              } else {
+                unmatchedGenres.push(gameGenre);
+              }
+            }
+          });
+          
+          const finalGenres = [...matchedGenres, ...unmatchedGenres];
+          
+          if (unmatchedGenres.length > 0) {
+            setGenres(prev => [...prev, ...unmatchedGenres]);
+          }
+          
+          setFormData(prev => ({ 
+            ...prev, 
+            genres: finalGenres
+          }));
+          
+          setValidationErrors(prev => ({ 
+            ...prev, 
+            genres: undefined
+          }));
+        }
+        
+        // Изображение
+        if (gameDetails.background_image) {
+          setFormData(prev => ({ 
+            ...prev, 
+            image: gameDetails.background_image
+          }));
+          
+          setKinopoiskImageUrl(gameDetails.background_image);
+          
+          setValidationErrors(prev => ({ 
+            ...prev, 
+            image: undefined 
+          }));
+          
+          setImageFile(null);
+        }
+        
+        showNotification(200, `Данные игры "${gameDetails.name}" успешно загружены`);
+      } else {
+        showNotification(404, 'Игра не найдена в RAWG');
+      }
+    } catch (error) {
+      console.error('Ошибка поиска игры:', error);
+      showNotification(500, 'Ошибка при поиске игры. Проверьте настройки API');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleApiSelector = () => {
+    setShowApiSelector(!showApiSelector);
+  };
+
   const handleMapSelect = () => {
     setShowMapModal(true);
   };
 
   const handlePlaceSelected = (place: PlaceInfo) => {
-    console.log('Выбрано место:', place);
-    
     setFormData(prev => ({ 
       ...prev, 
       adress: place.address
@@ -889,7 +1086,7 @@ export default function EventModal({
           <div className={styles.modalContent}>
             <div className={styles.leftColumn}>
               <div className={styles.fieldGroup}>
-                <div className={styles.titleRow}>
+                <div className={styles.titleRowContainer}>
                   <input
                     type="text"
                     className={`${styles.input} ${validationErrors.title ? 'error' : ''}`}
@@ -899,18 +1096,41 @@ export default function EventModal({
                     maxLength={VALIDATION_RULES.title.max}
                   />
                   {mode === 'create' && (
-                    <button 
-                      className={styles.kinopoiskButton} 
-                      onClick={handleKinopoiskSearch}
-                      disabled={isLoading}
-                      title="Поиск в Кинопоиске"
-                    >
-                      {isLoading ? (
-                        <span>...</span>
-                      ) : (
-                        <Image src="/social/kp.png" alt="Кинопоиск" width={24} height={24} />
+                    <div className={styles.apiSelectorWrapper} ref={apiSelectorRef}>
+                      <button 
+                        className={styles.apiSelectorButton} 
+                        onClick={toggleApiSelector}
+                        disabled={isLoading}
+                        title="Выбрать источник данных"
+                      >
+                        {isLoading ? (
+                          <span>...</span>
+                        ) : (
+                          <Image src="/icons/arrow_down.png" alt="Выбрать API" width={20} height={20} />
+                        )}
+                      </button>
+                      
+                      {showApiSelector && (
+                        <div className={styles.apiDropdown}>
+                          <button 
+                            className={styles.apiOption}
+                            onClick={handleKinopoiskSearch}
+                            title="Поиск в Кинопоиске"
+                          >
+                            <Image src="/social/kp.png" alt="Кинопоиск" width={24} height={24} />
+                            <span>Кинопоиск</span>
+                          </button>
+                          <button 
+                            className={styles.apiOption}
+                            onClick={handleRAWGSearch}
+                            title="Поиск игр в RAWG"
+                          >
+                            <Image src="/social/games.png" alt="RAWG" width={24} height={24} />
+                            <span>Игры</span>
+                          </button>
+                        </div>
                       )}
-                    </button>
+                    </div>
                   )}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
