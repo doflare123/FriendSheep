@@ -1,130 +1,97 @@
 package db
 
 import (
+	"encoding/json"
+	"fmt"
 	"friendship/models"
 	"friendship/models/sessions"
 	statsusers "friendship/models/stats_users"
-	"log"
+	"friendship/repository"
+	"os"
+
+	"gorm.io/gorm/clause"
 )
 
-func SeedCategories() {
-	categories := []models.Category{
-		{Name: "Фильмы"},
-		{Name: "Игры"},
-		{Name: "Настольные игры"},
-		{Name: "Другое"},
+func Seeder(db repository.PostgresRepository) []error {
+	seeds := []struct {
+		name string
+		data []interface{}
+	}{
+		{
+			name: "категории",
+			data: []interface{}{
+				&models.Category{Name: "Фильмы"},
+				&models.Category{Name: "Игры"},
+				&models.Category{Name: "Настольные игры"},
+				&models.Category{Name: "Другое"},
+			},
+		},
+		{
+			name: "типы мероприятий",
+			data: []interface{}{
+				&sessions.SessionGroupPlace{Title: "Онлайн"},
+				&sessions.SessionGroupPlace{Title: "Оффлайн"},
+			},
+		},
+		{
+			name: "статусы",
+			data: []interface{}{
+				&sessions.Status{Status: "Набор"},
+				&sessions.Status{Status: "В процессе"},
+				&sessions.Status{Status: "Завершена"},
+			},
+		},
 	}
 
-	for _, category := range categories {
-		var existing models.Category
-		err := GetDB().Where("name = ?", category.Name).First(&existing).Error
-		if err == nil {
-			continue
-		}
+	var errs []error
 
-		if err := GetDB().Create(&category).Error; err != nil {
-			log.Printf("Ошибка при создании категории %s: %v", category.Name, err)
+	for _, seed := range seeds {
+		if err := genericSeed(db, seed.data); err != nil {
+			errs = append(errs, fmt.Errorf("ошибка при заполнении %s: %w", seed.name, err))
 		}
 	}
+
+	if err := seedGenresFromJSON(db, "db/data/genres.json"); err != nil {
+		errs = append(errs, fmt.Errorf("ошибка при заполнении жанров: %w", err))
+	}
+
+	if len(errs) > 0 {
+		return errs
+	}
+	return nil
 }
 
-func SeedCategoriesSessionsVisibility() {
-	categories := []sessions.SessionGroupPlace{
-		{Title: "Онлайн"},
-		{Title: "Оффлайн"},
-	}
-
-	for _, category := range categories {
-		var existing sessions.SessionGroupPlace
-		err := GetDB().Where("title = ?", category.Title).First(&existing).Error
-		if err == nil {
-			continue
-		}
-		if err := GetDB().Create(&category).Error; err != nil {
-			log.Printf("Ошибка при создании типа сессии %s: %v", category.Title, err)
+func genericSeed(db repository.PostgresRepository, items []interface{}) error {
+	for _, item := range items {
+		if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(item).Error; err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
-func SeedStatusSessions() {
-	statuses := []sessions.Status{
-		{Status: "Набор"},
-		{Status: "В процессе"},
-		{Status: "Завершена"},
+func seedGenresFromJSON(db repository.PostgresRepository, filepath string) error {
+	data, err := os.ReadFile(filepath)
+	if err != nil {
+		return fmt.Errorf("не удалось прочитать файл %s: %w", filepath, err)
 	}
 
-	for _, status := range statuses {
-		var existing sessions.Status
-		err := GetDB().Where("Status = ?", status.Status).First(&existing).Error
-		if err == nil {
-			continue
-		}
-		if err := GetDB().Create(&status).Error; err != nil {
-			log.Printf("Ошибка при создании типа сессии %s: %v", status.Status, err)
-		}
-	}
-}
-
-func SeedGenres() {
-	genres := []statsusers.Genre{
-		// Фильмы
-		{Name: "Боевик"},
-		{Name: "Приключения"},
-		{Name: "Комедия"},
-		{Name: "Драма"},
-		{Name: "Фэнтези"},
-		{Name: "Ужасы"},
-		{Name: "Мистика"},
-		{Name: "Романтика"},
-		{Name: "Триллер"},
-		{Name: "Научная фантастика"},
-		{Name: "Анимация"},
-		{Name: "Документальный"},
-		// Игры
-		{Name: "РПГ"},
-		{Name: "Шутер"},
-		{Name: "Стратегия"},
-		{Name: "Симулятор"},
-		{Name: "Спорт"},
-		{Name: "Гонки"},
-		{Name: "Файтинг"},
-		{Name: "Платформер"},
-		{Name: "Головоломка"},
-		{Name: "Выживание"},
-		{Name: "Песочница"},
+	var jsonData struct {
+		Genres []struct {
+			Name string `json:"name"`
+		} `json:"genres"`
 	}
 
-	for _, genre := range genres {
-		var existing statsusers.Genre
-		err := GetDB().Where("name = ?", genre.Name).First(&existing).Error
-		if err == nil {
-			continue
-		}
-		if err := GetDB().Create(&genre).Error; err != nil {
-			log.Printf("Ошибка при создании жанра %s: %v", genre.Name, err)
-		}
-	}
-}
-
-func SeedDays() {
-	days := []models.DaysWeek{
-		{Name: "Понедельник"},
-		{Name: "Вторник"},
-		{Name: "Среда"},
-		{Name: "Четверг"},
-		{Name: "Пятница"},
-		{Name: "Суббота"},
-		{Name: "Воскресенье"},
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return fmt.Errorf("не удалось распарсить JSON: %w", err)
 	}
 
-	for _, day := range days {
-		var existing models.DaysWeek
-		err := GetDB().Where("name = ?", day.Name).First(&existing).Error
-		if err == nil {
-			continue
-		}
-		if err := GetDB().Create(&day).Error; err != nil {
-			log.Printf("Ошибка при создании жанра %s: %v", day.Name, err)
+	for _, g := range jsonData.Genres {
+		genre := &statsusers.Genre{Name: g.Name}
+		if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(genre).Error; err != nil {
+			return fmt.Errorf("ошибка при создании жанра %s: %w", g.Name, err)
 		}
 	}
+
+	return nil
 }

@@ -1,4 +1,4 @@
-// package middlewares
+package middlewares
 
 // import (
 // 	"friendship/utils"

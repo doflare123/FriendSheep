@@ -11,5 +11,6 @@ type GroupUsers struct {
 	GroupID uint  `json:"groupId"`
 	Group   Group `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 
-	RoleInGroup string `json:"role"`
+	RoleInGroupID uint `json:"role"`
+	RoleInGroup   Role_in_group
 }
