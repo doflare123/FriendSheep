@@ -78,8 +78,7 @@ export const getAccesToken = async (router?: AppRouterInstance): Promise<string>
     
     if (!refreshToken) {
       if (router) {
-        console.log("LOGIN3");
-        router.push('/login');
+        router.push('/');
       }
       return '';
     }
@@ -94,8 +93,7 @@ export const getAccesToken = async (router?: AppRouterInstance): Promise<string>
     
   } catch (error) {
     if (router) {
-      console.log("LOGIN4");
-      router.push('/login');
+      router.push('/');
     }
     return '';
   }

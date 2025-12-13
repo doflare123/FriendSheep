@@ -165,6 +165,7 @@ export default function EventModal({
   const [genres, setGenres] = useState<string[]>([]);
   const [genresLoading, setGenresLoading] = useState(false);
   const [genresError, setGenresError] = useState<string | null>(null);
+  const [genreSearchQuery, setGenreSearchQuery] = useState('');
 
   const [showImageCropModal, setShowImageCropModal] = useState(false);
   const [tempImageFile, setTempImageFile] = useState<File | null>(null);
@@ -198,6 +199,17 @@ export default function EventModal({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showApiSelector]);
+
+  const filteredGenres = genres.filter(genre =>
+    genre.toLowerCase().includes(genreSearchQuery.toLowerCase())
+  );
+
+  const handleGenreSelectorToggle = () => {
+    setShowGenreSelector(!showGenreSelector);
+    if (!showGenreSelector) {
+      setGenreSearchQuery('');
+    }
+  };
 
   const checkGroupsAndLoad = async () => {
     setGroupsLoading(true);
@@ -1195,7 +1207,7 @@ export default function EventModal({
                 <button
                   type="button"
                   className={`${styles.genreButton} ${validationErrors.genres ? 'error' : ''}`}
-                  onClick={() => setShowGenreSelector(!showGenreSelector)}
+                  onClick={handleGenreSelectorToggle}
                   disabled={genresLoading || isFieldDisabled}
                 >
                   {genresLoading 
@@ -1221,17 +1233,31 @@ export default function EventModal({
                 )}
                 {showGenreSelector && !genresLoading && genres.length > 0 && (
                   <div className={styles.genreSelector}>
-                    {genres.map((genre) => (
-                      <label key={genre} className={styles.genreOption}>
-                        <input
-                          type="checkbox"
-                          checked={formData.genres?.includes(genre) || false}
-                          onChange={() => handleGenreToggle(genre)}
-                          disabled={isFieldDisabled}
-                        />
-                        {genre}
-                      </label>
-                    ))}
+                    <input
+                      type="text"
+                      className={styles.genreSearchInput}
+                      placeholder="Поиск жанров..."
+                      value={genreSearchQuery}
+                      onChange={(e) => setGenreSearchQuery(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className={styles.genreList}>
+                      {filteredGenres.length > 0 ? (
+                        filteredGenres.map((genre) => (
+                          <label key={genre} className={styles.genreOption}>
+                            <input
+                              type="checkbox"
+                              checked={formData.genres?.includes(genre) || false}
+                              onChange={() => handleGenreToggle(genre)}
+                              disabled={isFieldDisabled}
+                            />
+                            {genre}
+                          </label>
+                        ))
+                      ) : (
+                        <div className={styles.noGenresFound}>Жанры не найдены</div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
