@@ -9,6 +9,17 @@ import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.
 
 export const MOBILE_APP_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 
+export function checkDeviceAndRedirect(router: AppRouterInstance) {
+    if (typeof window === 'undefined') return;
+    
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(userAgent);
+    
+    if (isMobile) {
+        router.push('/');
+    }
+}
+
 export const convertCategoriesToIds = (categories: string[]): number[] => {
     const categoryMap: { [key: string]: number } = {
       'movies': 1,    // Фильмы

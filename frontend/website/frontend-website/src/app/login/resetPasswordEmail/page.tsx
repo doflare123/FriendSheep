@@ -1,18 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import FormContainer from '@/components/FormContainer';
 import FormInput from '@/components/FormInput';
 import FormButton from '@/components/FormButton';
 import { showNotification } from '@/utils';
 import { sendEmail } from '@/api/resetPswd/sendEmail';
+import {checkDeviceAndRedirect} from '@/Constants';
 
 export default function ResetPasswordEmailPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   const router = useRouter();
+
+  useEffect(() => {
+      checkDeviceAndRedirect(router);
+  }, [router]);
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);

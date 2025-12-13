@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { registerSession } from '../../api/register_sessions';
 import { PageProtection, PAGE_KEYS } from '../../api/pageProtection';
@@ -11,6 +11,8 @@ import FormButton from '../../components/FormButton';
 import FormLink from '../../components/FormLink';
 import FormText from '../../components/FormText';
 import LinkNote from '../../components/LinkNote';
+
+import {checkDeviceAndRedirect} from '@/Constants';
 
 export default function RegisterPage() {
     const [email, setEmail] = useState('');
@@ -26,6 +28,10 @@ export default function RegisterPage() {
         general: ''
     });
     const router = useRouter();
+
+    useEffect(() => {
+        checkDeviceAndRedirect(router);
+    }, [router]);
 
     const validateForm = () => {
         const newErrors = {

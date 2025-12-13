@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { login as loginAPI } from '../../api/login';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,7 +9,7 @@ import FormInput from '../../components/FormInput';
 import FormButton from '../../components/FormButton';
 import FormLink from '../../components/FormLink';
 import LinkNote from '../../components/LinkNote';
-import {updateUserData} from '@/Constants'
+import {updateUserData, checkDeviceAndRedirect} from '@/Constants'
 import styles from '@/styles/resetPassword.module.css';
 
 export default function LoginPage() {
@@ -24,6 +24,10 @@ export default function LoginPage() {
   
   const router = useRouter();
   const { login } = useAuth();
+
+  useEffect(() => {
+      checkDeviceAndRedirect(router);
+  }, [router]);
 
   const validateForm = () => {
     const newErrors = {

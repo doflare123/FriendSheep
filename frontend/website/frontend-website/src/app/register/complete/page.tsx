@@ -1,12 +1,18 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import FormContainer from '../../../components/FormContainer';
 import FormButton from '../../../components/FormButton';
 import Image from 'next/image';
+import {checkDeviceAndRedirect} from '@/Constants';
 
 export default function CompleteReg() {
     const router = useRouter();
+
+    useEffect(() => {
+        checkDeviceAndRedirect(router);
+    }, [router]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
