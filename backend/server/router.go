@@ -2,24 +2,35 @@ package server
 
 import (
 	"friendship/handlers"
+	"friendship/middlewares"
 	"friendship/routes"
 	"friendship/services"
+	group "friendship/services/groups"
 	"friendship/services/register"
 	"friendship/services/sub"
 	"friendship/utils"
 )
 
 func (s *Server) initRouters() {
-	//регистрация и авторизация
+	// jwt
 	jwtService := utils.NewJWTUtils(s.cfg.JWTSecretKey)
-	authsrv := services.NewAuthService(s.logger, s.cfg, jwtService, s.postgres)
+	jwtMiddleware := middlewares.NewAuthMiddleware(jwtService)
+
+	//регистрация и авторизация
+	authsrv := services.NewAuthService(s.logger, jwtService, s.postgres)
 	authH := handlers.NewAuthHandler(authsrv)
 	routes.RegisterAuthRoutes(s.engine, authH)
 	regsrv := register.NewRegisterSrv(s.logger, s.sessionStore, s.postgres, s.cfg, jwtService)
 	regH := handlers.NewRegisterHandler(regsrv)
 	routes.RegisterRegRoutes(s.engine, regH)
+
 	//саб функции
 	imgsrv := sub.NewImgService(s.logger, s.S3, s.validators.Image)
 	subH := handlers.NewSubHandler(imgsrv)
 	routes.RegisterSubRoutes(s.engine, subH)
+
+	//регистрация групп
+	groupsrv := group.NewGroupService(s.logger, s.postgres)
+	groupH := handlers.NewGroupHandler(groupsrv)
+	routes.RegisterGroupsRoutes(s.engine, groupH, jwtMiddleware)
 }

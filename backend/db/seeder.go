@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"friendship/models"
+	"friendship/models/groups"
 	"friendship/models/sessions"
 	statsusers "friendship/models/stats_users"
 	"friendship/repository"
@@ -39,6 +40,25 @@ func Seeder(db repository.PostgresRepository) []error {
 				&sessions.Status{Status: "Набор"},
 				&sessions.Status{Status: "В процессе"},
 				&sessions.Status{Status: "Завершена"},
+			},
+		},
+		{
+			name: "Дни недели",
+			data: []interface{}{
+				&models.DaysWeek{Name: "Понедельник"},
+				&models.DaysWeek{Name: "Вторник"},
+				&models.DaysWeek{Name: "Среда"},
+				&models.DaysWeek{Name: "Четверг"},
+				&models.DaysWeek{Name: "Пятница"},
+				&models.DaysWeek{Name: "Суббота"},
+				&models.DaysWeek{Name: "Воскресенье"},
+			},
+		},
+		{
+			name: "типы участников групп",
+			data: []interface{}{
+				&groups.Role_in_group{Name: "Админ"},
+				&groups.Role_in_group{Name: "Участник"},
 			},
 		},
 	}

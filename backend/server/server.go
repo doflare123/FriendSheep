@@ -6,6 +6,10 @@ import (
 	"friendship/db"
 	"friendship/logger"
 	"friendship/models"
+	"friendship/models/groups"
+	"friendship/models/news"
+	"friendship/models/sessions"
+	statsusers "friendship/models/stats_users"
 	"friendship/repository"
 	session "friendship/sessions"
 	"friendship/validator"
@@ -45,7 +49,10 @@ func InitServer() (*Server, error) {
 	sessionStore := session.NewSessionStore(redis)
 	if conf.AppEnv == "DEV" {
 		gin.SetMode(gin.DebugMode)
-		if err := db.AutoMigDB(postgres, &models.User{}); err != nil {
+		if err := db.AutoMigDB(postgres, &models.User{}, &news.News{}, &news.ContentNews{}, &news.Comments{}, &statsusers.SideStats_users{}, &statsusers.SessionStats_users{}, &statsusers.SessionsStatsGenres_users{},
+			&statsusers.Genre{}, statsusers.PopSessionType{}, statsusers.SettingTile{}, &models.User{}, models.StatsProcessedEvent{},
+			&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{}, &groups.GroupJoinInvite{},
+			&sessions.Session{}, &sessions.SessionGroupType{}, &sessions.SessionMetadata{}, sessions.Status{}, &sessions.SessionUser{}); err != nil {
 			logger.Error("Error with auto migration: %s", err)
 		}
 	} else {
@@ -73,6 +80,7 @@ func InitServer() (*Server, error) {
 	r.GET("/docs", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "../swagger/index.html")
 	})
+	db.Seeder(postgres)
 
 	s := &Server{
 		engine:       r,

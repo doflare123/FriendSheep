@@ -8,7 +8,7 @@ type GroupUsers struct {
 	UserID uint        `json:"userId"`
 	User   models.User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 
-	GroupID uint  `json:"groupId"`
+	GroupID uint  `json:"groupId" gorm:"not null"`
 	Group   Group `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 
 	RoleInGroupID uint `json:"role"`

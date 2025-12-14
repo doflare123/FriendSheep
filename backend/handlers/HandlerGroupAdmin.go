@@ -1,14 +1,5 @@
 package handlers
 
-import (
-	"friendship/services"
-	"net/http"
-	"strconv"
-	"strings"
-
-	"github.com/gin-gonic/gin"
-)
-
 // GetAdminGroups godoc
 // @Summary      Получить группы, созданные пользователем
 // @Description  Возвращает список всех групп, где текущий авторизованный пользователь является создателем. В ответе также будет количество участников.
@@ -20,25 +11,25 @@ import (
 // @Failure      404  {object}  map[string]string "Пользователь не найден"
 // @Failure      500  {object}  map[string]string "Внутренняя ошибка сервера"
 // @Router       /api/admin/groups [get]
-func GetAdminGroups(c *gin.Context) {
-	email := c.MustGet("email").(string)
-	if email == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
-		return
-	}
+// func GetAdminGroups(c *gin.Context) {
+// 	email := c.MustGet("email").(string)
+// 	if email == "" {
+// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "не передан jwt"})
+// 		return
+// 	}
 
-	groups, err := services.GetAdminGroups(&email)
-	if err != nil {
-		if strings.Contains(err.Error(), "пользователь не найден") {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "не удалось получить группы"})
-		return
-	}
+// 	groups, err := services.GetAdminGroups(&email)
+// 	if err != nil {
+// 		if strings.Contains(err.Error(), "пользователь не найден") {
+// 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+// 			return
+// 		}
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "не удалось получить группы"})
+// 		return
+// 	}
 
-	c.JSON(http.StatusOK, groups)
-}
+// 	c.JSON(http.StatusOK, groups)
+// }
 
 // GetInfAdminGroup godoc
 // @Summary      Получить детальную информацию о группе для администратора
@@ -54,29 +45,29 @@ func GetAdminGroups(c *gin.Context) {
 // @Failure      404  {object}  map[string]string "Группа не найдена"
 // @Failure      500  {object}  map[string]string "Внутренняя ошибка сервера"
 // @Router       /api/admin/groups/{groupId}/infGroup [get]
-func GetInfAdminGroup(c *gin.Context) {
-	email := c.MustGet("email").(string)
+// func GetInfAdminGroup(c *gin.Context) {
+// 	email := c.MustGet("email").(string)
 
-	groupIDStr := c.Param("groupId")
-	groupID64, err := strconv.ParseUint(groupIDStr, 10, 32)
-	if err != nil || groupID64 == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID группы"})
-		return
-	}
-	groupID := uint(groupID64)
-	group, err := services.GetAdminGroupInfo(email, &groupID)
-	if err != nil {
-		errStr := err.Error()
-		if strings.Contains(errStr, "invalid group ID") {
-			c.JSON(http.StatusBadRequest, gin.H{"error": errStr})
-		} else if strings.Contains(errStr, "group not found") || strings.Contains(errStr, "пользователь не найден") {
-			c.JSON(http.StatusNotFound, gin.H{"error": errStr})
-		} else if strings.Contains(errStr, "access denied") {
-			c.JSON(http.StatusForbidden, gin.H{"error": errStr})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": errStr})
-		}
-		return
-	}
-	c.JSON(http.StatusOK, group)
-}
+// 	groupIDStr := c.Param("groupId")
+// 	groupID64, err := strconv.ParseUint(groupIDStr, 10, 32)
+// 	if err != nil || groupID64 == 0 {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID группы"})
+// 		return
+// 	}
+// 	groupID := uint(groupID64)
+// 	group, err := services.GetAdminGroupInfo(email, &groupID)
+// 	if err != nil {
+// 		errStr := err.Error()
+// 		if strings.Contains(errStr, "invalid group ID") {
+// 			c.JSON(http.StatusBadRequest, gin.H{"error": errStr})
+// 		} else if strings.Contains(errStr, "group not found") || strings.Contains(errStr, "пользователь не найден") {
+// 			c.JSON(http.StatusNotFound, gin.H{"error": errStr})
+// 		} else if strings.Contains(errStr, "access denied") {
+// 			c.JSON(http.StatusForbidden, gin.H{"error": errStr})
+// 		} else {
+// 			c.JSON(http.StatusInternalServerError, gin.H{"error": errStr})
+// 		}
+// 		return
+// 	}
+// 	c.JSON(http.StatusOK, group)
+// }

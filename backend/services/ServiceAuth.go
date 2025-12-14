@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"friendship/config"
 	"friendship/logger"
 	"friendship/models"
 	"friendship/models/dto"
@@ -18,15 +17,13 @@ type AuthService interface {
 
 type authService struct {
 	logger     logger.Logger
-	cfg        config.Config
 	rep        repository.PostgresRepository
 	jwtService *utils.JWTUtils
 }
 
-func NewAuthService(logger logger.Logger, cfg config.Config, jwtService *utils.JWTUtils, rep repository.PostgresRepository) AuthService {
+func NewAuthService(logger logger.Logger, jwtService *utils.JWTUtils, rep repository.PostgresRepository) AuthService {
 	return &authService{
 		logger:     logger,
-		cfg:        cfg,
 		rep:        rep,
 		jwtService: jwtService,
 	}
