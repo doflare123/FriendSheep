@@ -15,7 +15,7 @@ func (s *Server) initRouters() {
 	authsrv := services.NewAuthService(s.logger, s.cfg, jwtService, s.postgres)
 	authH := handlers.NewAuthHandler(authsrv)
 	routes.RegisterAuthRoutes(s.engine, authH)
-	regsrv := register.NewRegisterSrv(s.logger, s.sessionStore, s.postgres, s.cfg)
+	regsrv := register.NewRegisterSrv(s.logger, s.sessionStore, s.postgres, s.cfg, jwtService)
 	regH := handlers.NewRegisterHandler(regsrv)
 	routes.RegisterRegRoutes(s.engine, regH)
 	//саб функции

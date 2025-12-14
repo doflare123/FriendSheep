@@ -7,6 +7,7 @@ import (
 	"friendship/config"
 	"friendship/logger"
 	"friendship/models"
+	"friendship/models/dto"
 	statsusers "friendship/models/stats_users"
 	"friendship/repository"
 	session "friendship/sessions"
@@ -48,17 +49,18 @@ var (
 )
 
 type RegService interface {
-	CreateUser(ctx context.Context, input CreateUserInput) error
+	CreateUser(ctx context.Context, input CreateUserInput) (*dto.AuthResponse, error)
 	CreateSessionRegister(ctx context.Context, email string, type_ses string) (*models.SessionRegResponse, error)
 	VerifySession(ctx context.Context, input VerifySessionInput) (bool, error)
 	ChangePassword(ctx context.Context, input ChangePasswordInput) error
 }
 
 type regService struct {
-	logger   logger.Logger
-	redis    session.SessionStore
-	cfg      *config.Config
-	postgres repository.PostgresRepository
+	logger     logger.Logger
+	redis      session.SessionStore
+	cfg        *config.Config
+	postgres   repository.PostgresRepository
+	jwtService *utils.JWTUtils
 }
 
 func NewRegisterSrv(
@@ -66,25 +68,27 @@ func NewRegisterSrv(
 	redis session.SessionStore,
 	postgres repository.PostgresRepository,
 	cfg config.Config,
+	jwtService *utils.JWTUtils,
 ) RegService {
 	return &regService{
-		logger:   logger,
-		redis:    redis,
-		postgres: postgres,
-		cfg:      &cfg,
+		logger:     logger,
+		redis:      redis,
+		postgres:   postgres,
+		cfg:        &cfg,
+		jwtService: jwtService,
 	}
 }
 
-func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) error {
+func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dto.AuthResponse, error) {
 	sess, err := s.redis.GetSession(ctx, input.SessionID)
 	if err != nil {
 		s.logger.Error("Failed to get session", "sessionID", input.SessionID, "error", err)
-		return ErrSessionNotFound
+		return nil, ErrSessionNotFound
 	}
 
 	if !sess.IsVerified {
 		s.logger.Warn("Attempt to create user with unverified session", "sessionID", input.SessionID)
-		return ErrSessionNotVerified
+		return nil, ErrSessionNotVerified
 	}
 
 	us := generateUsername()
@@ -92,7 +96,7 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) erro
 	hashPass, err := utils.HashPassword(input.Password)
 	if err != nil {
 		s.logger.Error("Failed to hash password", "error", err)
-		return fmt.Errorf("ошибка хэширования пароля: %w", err)
+		return nil, fmt.Errorf("ошибка хэширования пароля: %w", err)
 	}
 
 	user := models.User{
@@ -148,7 +152,7 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) erro
 
 	if err != nil {
 		s.logger.Error("Failed to create user", "error", err)
-		return err
+		return nil, err
 	}
 
 	if err := s.redis.DeleteSession(ctx, input.SessionID); err != nil {
@@ -156,7 +160,22 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) erro
 	}
 
 	s.logger.Info("User created successfully", "userID", user.ID, "email", user.Email)
-	return nil
+
+	tokenPair, err := s.jwtService.GenerateTokenPair(user.ID, user.Name, user.Us, user.Image)
+	if err != nil {
+		s.logger.Error("Failed to generate tokens after registration", "userID", user.ID, "error", err)
+		return nil, fmt.Errorf("пользователь создан, но не удалось сгенерировать токены: %w", err)
+	}
+
+	authResponse := &dto.AuthResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		AdminGroups:  []dto.AdminGroupResponse{},
+	}
+
+	s.logger.Info("User auto-logged in after registration", "userID", user.ID)
+
+	return authResponse, nil
 }
 
 func (s *regService) CreateSessionRegister(ctx context.Context, email, type_ses string) (*models.SessionRegResponse, error) {

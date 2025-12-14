@@ -123,7 +123,7 @@ func (h *regHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	err := h.srv.CreateUser(c.Request.Context(), input)
+	authResponse, err := h.srv.CreateUser(c.Request.Context(), input)
 	if err != nil {
 		switch {
 		case errors.Is(err, register.ErrSessionNotVerified):
@@ -138,7 +138,12 @@ func (h *regHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Пользователь успешно зарегистрирован"})
+	c.JSON(http.StatusCreated, gin.H{
+		"message":       "Пользователь успешно зарегистрирован",
+		"access_token":  authResponse.AccessToken,
+		"refresh_token": authResponse.RefreshToken,
+		"admin_groups":  authResponse.AdminGroups,
+	})
 }
 
 // ChangePassword изменяет пароль пользователя
