@@ -470,6 +470,8 @@
 .topGenres {
   flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .topGenres h4 {
@@ -482,6 +484,10 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  overflow-y: auto;
+  max-height: 200px;
+  padding-right: 8px;
+  scrollbar-width: thin;
 }
 
 .genreItem {

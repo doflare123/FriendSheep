@@ -43,24 +43,6 @@
     black calc(100% - 20px),
     transparent 100%);
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
-}
-
-.groupsList::-webkit-scrollbar {
-  width: 6px;
-}
-
-.groupsList::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.groupsList::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 3px;
-}
-
-.groupsList::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .groupItem {
