@@ -1,5 +1,5 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -20,10 +20,13 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
   selected,
   onSelect,
 }) => {
+  const colors = useThemedColors();
   
   return (
     <View>
-      <Text style={styles.sectionLabel}>Выберите категорию *</Text>
+      <Text style={[styles.sectionLabel, { color: colors.black }]}>
+        Выберите категорию *
+      </Text>
       <View style={styles.categoriesContainer}>
         {categories.map((category) => {
           const isSelected = selected === category.id;
@@ -33,13 +36,14 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
               key={category.id}
               style={[
                 styles.categoryButton,
-                isSelected && styles.categorySelected
+                { backgroundColor: colors.veryLightGrey },
+                isSelected && { backgroundColor: colors.lightBlue }
               ]}
               onPress={() => {
                 onSelect(category.id);
               }}
             >
-              <Image source={category.icon} style={styles.categoryIcon} />
+              <Image source={category.icon} style={[styles.categoryIcon, {tintColor: colors.black}]} />
             </TouchableOpacity>
           );
         })}
@@ -52,7 +56,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.black,
     marginBottom: 10,
   },
   categoriesContainer: {
@@ -66,13 +69,9 @@ const styles = StyleSheet.create({
   categoryButton: {
     width: 40,
     height: 40,
-    backgroundColor: Colors.lightLightGrey,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  categorySelected: {
-    backgroundColor: Colors.lightBlue,
   },
   categoryIcon: {
     width: 30,

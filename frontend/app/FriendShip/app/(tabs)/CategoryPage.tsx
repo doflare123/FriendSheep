@@ -11,10 +11,10 @@ import EventModal from '@/components/event/modal/EventModal';
 import VerticalEventList from '@/components/event/VerticalEventList';
 import CategorySearchBar from '@/components/search/CategorySearchBar';
 import TopBar from '@/components/TopBar';
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useEvents } from '@/hooks/useEvents';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { sortEventsByDate, sortEventsByParticipants } from '@/utils/eventSorting';
 import { filterEventsByCategories } from '@/utils/eventUtils';
 import { highlightEventTitle } from '@/utils/textHighlight';
@@ -35,6 +35,7 @@ interface CategoryPageProps {
 }
 
 const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
+  const colors = useThemedColors();
   const route = useRoute<CategoryPageRouteProp>();
   const { category, title } = route.params;
   
@@ -147,7 +148,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
       
       <CategorySection
@@ -166,7 +167,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
 
       {eventsToShow.length > 0 && (
         <View style={styles.resultsHeader}>
-          <Text style={styles.resultsCount}>
+          <Text style={[styles.resultsCount, { color: colors.grey }]}>
             Найдено: {eventsToShow.length} {getEventWordForm(eventsToShow.length)}
           </Text>
         </View>
@@ -177,7 +178,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
           <VerticalEventList events={addOnPressToEvents(eventsToShow)} />
         ) : (
           <View style={styles.noEventsContainer}>
-            <Text style={styles.noEventsText}>
+            <Text style={[styles.noEventsText, { color: colors.blue }]}>
               {sortingState.searchQuery.trim() 
                 ? `Ничего не найдено по запросу "${sortingState.searchQuery}"` 
                 : `В этой категории пока нет событий`
@@ -203,7 +204,6 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -215,7 +215,6 @@ const styles = StyleSheet.create({
   resultsCount: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
   },
   contentContainer: {
     flex: 1,
@@ -229,7 +228,6 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.regular,
     fontSize: 20,
     textAlign: 'center',
-    color: Colors.blue2,
     marginBottom: 4,
   },
 });

@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import {
   Modal,
@@ -24,6 +25,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  const colors = useThemedColors();
+
   return (
     <Modal
       visible={visible}
@@ -31,20 +34,27 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       animationType="fade"
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>{title}</Text>
-          <Text style={styles.modalMessage}>{message}</Text>
+        <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
+          <Text style={[styles.modalTitle, { color: colors.black }]}>
+            {title}
+          </Text>
+          <Text style={[styles.modalMessage, { color: colors.grey }]}>
+            {message}
+          </Text>
           
           <View style={styles.modalButtons}>
             <TouchableOpacity 
               style={[styles.modalButton, styles.cancelButton]}
               onPress={onCancel}
             >
-              <Text style={[styles.modalButtonText, styles.cancelButtonText]}>Отмена</Text>
+              <Text style={styles.modalButtonText}>Отмена</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.modalButton, styles.confirmButton]}
+              style={[
+                styles.modalButton,
+                { backgroundColor: colors.lightBlue }
+              ]}
               onPress={onConfirm}
             >
               <Text style={styles.modalButtonText}>Подтвердить</Text>
@@ -59,12 +69,11 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: Colors.lightBlack,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: Colors.white,
     borderRadius: 40,
     padding: 20,
     marginHorizontal: 40,
@@ -72,14 +81,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.black,
     textAlign: 'center',
     marginBottom: 12,
   },
   modalMessage: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -90,25 +97,15 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  confirmButton: {
-    backgroundColor: Colors.lightBlue,
     borderRadius: 40,
-    paddingVertical: 6,
+    alignItems: 'center',
   },
   cancelButton: {
     backgroundColor: Colors.red,
-    borderRadius: 40,
-    paddingVertical: 6,
   },
   modalButtonText: {
     fontFamily: Montserrat.bold,
     fontSize: 14,
-    color: Colors.white,
-  },
-  cancelButtonText: {
     color: Colors.white,
   },
 });

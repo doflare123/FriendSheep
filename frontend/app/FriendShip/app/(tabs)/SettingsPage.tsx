@@ -3,10 +3,12 @@ import { useAuthContext } from '@/components/auth/AuthContext';
 import BottomBar from '@/components/BottomBar';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import PageHeader from '@/components/PageHeader';
+import { useTheme } from '@/components/ThemeContext';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -22,6 +24,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const SettingsPage = () => {
   const { sortingState, sortingActions } = useSearchState();
   const { setIsAuthenticated } = useAuthContext();
+  const { toggleTheme, isDark } = useTheme();
+  const colors = useThemedColors();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogoutPress = () => {
@@ -53,13 +57,40 @@ const SettingsPage = () => {
     setShowLogoutModal(false);
   };
 
+  const handleThemeToggle = () => {
+    toggleTheme();
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <PageHeader title="Настройки" showWave />
+
         <View style={styles.shadowWrapper}>
-          <TouchableOpacity style={styles.badge} onPress={handleLogoutPress}>
+          <TouchableOpacity 
+            style={[styles.badge, { backgroundColor: colors.card }]} 
+            onPress={handleThemeToggle}
+          >
+            <Text style={[styles.settingText, { color: colors.black }]}>
+              {isDark ? 'Светлая тема' : 'Тёмная тема'}
+            </Text>
+            <Image
+              source={
+                isDark
+                  ? require('@/assets/images/settings/light.png')
+                  : require('@/assets/images/settings/dark.png')
+              }
+              style={styles.icon}
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.shadowWrapper}>
+          <TouchableOpacity 
+            style={[styles.badge, { backgroundColor: colors.card }]} 
+            onPress={handleLogoutPress}
+          >
             <Text style={styles.logout}>Выйти из аккаунта</Text>
             <Image
               source={require('@/assets/images/settings/logout.png')}
@@ -84,9 +115,13 @@ const SettingsPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   scrollView: {
+    flex: 1,
+  },
+  settingText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 20,
     flex: 1,
   },
   logout: {
@@ -103,10 +138,10 @@ const styles = StyleSheet.create({
   },
   badge: {
     padding: 16,
-    backgroundColor: Colors.white,
     elevation: 2,
     borderRadius: 20,
     margin: 16,
+    marginBottom: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center'

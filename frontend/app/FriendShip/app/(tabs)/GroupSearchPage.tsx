@@ -17,6 +17,7 @@ import { Montserrat } from '@/constants/Montserrat';
 import { useGroupSearch } from '@/hooks/useGroupSearch';
 import { useGroupSearchState } from '@/hooks/useGroupSearchState';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { RootStackParamList } from '@/navigation/types';
 import { createGroupWithHighlightedName } from '@/utils/groupUtils';
 import { useNavigation } from '@react-navigation/native';
@@ -30,6 +31,7 @@ const CATEGORY_MAP: Record<string, string> = {
 };
 
 const GroupSearchPage: React.FC = () => {
+  const colors = useThemedColors();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { searchState, searchActions } = useGroupSearchState();
   const { sortingState: globalSortingState, sortingActions: globalSortingActions } = useSearchState();
@@ -107,8 +109,8 @@ const GroupSearchPage: React.FC = () => {
 
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color={Colors.lightBlue} />
-        <Text style={styles.footerText}>Загрузка...</Text>
+        <ActivityIndicator size="small" color={colors.lightBlue} />
+        <Text style={[styles.footerText, {color: colors.grey}]}>Загрузка...</Text>
       </View>
     );
   };
@@ -117,8 +119,8 @@ const GroupSearchPage: React.FC = () => {
     if (isLoading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={Colors.lightBlue} />
-          <Text style={styles.loadingText}>Поиск групп...</Text>
+          <ActivityIndicator size="large" color={colors.lightBlue} />
+          <Text style={[styles.loadingText, {color: colors.grey}]}>Поиск групп...</Text>
         </View>
       );
     }
@@ -133,8 +135,8 @@ const GroupSearchPage: React.FC = () => {
 
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.emptyText}>Группы не найдены</Text>
-        <Text style={styles.emptySubtext}>
+        <Text style={[styles.emptyText, {color: colors.grey}]}>Группы не найдены</Text>
+        <Text style={[styles.emptySubtext, {color: colors.grey}]}>
           Попробуйте изменить параметры поиска
         </Text>
       </View>
@@ -142,7 +144,7 @@ const GroupSearchPage: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, {backgroundColor: colors.white}]}>
       <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
 
       <View style={{ flex: 1 }}>
@@ -154,7 +156,7 @@ const GroupSearchPage: React.FC = () => {
         >
           {totalGroups > 0 && (
             <View style={styles.resultsHeader}>
-              <Text style={styles.resultsCount}>
+              <Text style={[styles.resultsCount, {color: colors.grey}]}>
                 Найдено: {totalGroups} {totalGroups === 1 ? 'группа' : 'групп'}
               </Text>
             </View>
@@ -191,7 +193,6 @@ const GroupSearchPage: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   contentContainer: {
     flex: 1,
@@ -211,7 +212,6 @@ const styles = StyleSheet.create({
   resultsCount: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
   },
   centerContainer: {
     flex: 1,
@@ -223,7 +223,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
   },
   errorText: {
     fontFamily: Montserrat.regular,
@@ -235,13 +234,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.grey,
     marginBottom: 8,
   },
   emptySubtext: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
     textAlign: 'center',
   },
   footerLoader: {
@@ -252,7 +249,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
   },
 });
 

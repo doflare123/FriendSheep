@@ -1,14 +1,14 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import {
-    Image,
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface DescriptionModalProps {
@@ -30,6 +30,8 @@ const DescriptionModal: React.FC<DescriptionModalProps> = ({
   title = 'Описание события',
   placeholder = 'Введите описание события...',
 }) => {
+  const colors = useThemedColors();
+
   return (
     <Modal
       visible={visible}
@@ -38,24 +40,32 @@ const DescriptionModal: React.FC<DescriptionModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.content}>
+        <View style={[styles.content, { backgroundColor: colors.white }]}>
           <View style={styles.header}>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={[styles.title, { color: colors.black }]}>
+              {title}
+            </Text>
             <TouchableOpacity
               onPress={onClose}
               style={styles.closeButton}
             >
               <Image
                 source={require('@/assets/images/event_card/back.png')}
-                style={styles.closeIcon}
+                style={[styles.closeIcon, { tintColor: colors.black }]}
               />
             </TouchableOpacity>
           </View>
           
           <TextInput
-            style={styles.textArea}
+            style={[
+              styles.textArea,
+              {
+                borderColor: colors.grey,
+                color: colors.black
+              }
+            ]}
             placeholder={placeholder}
-            placeholderTextColor={Colors.grey}
+            placeholderTextColor={colors.grey}
             value={description}
             onChangeText={onChangeDescription}
             multiline
@@ -64,7 +74,7 @@ const DescriptionModal: React.FC<DescriptionModalProps> = ({
             autoFocus
           />
           
-          <Text style={styles.counter}>
+          <Text style={[styles.counter, { color: colors.grey }]}>
             {description.length} / {maxLength}
           </Text>
         </View>
@@ -82,7 +92,6 @@ const styles = StyleSheet.create({
     minHeight: 240,
   },
   content: {
-    backgroundColor: Colors.white,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -97,7 +106,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.black,
   },
   closeButton: {
     padding: 4,
@@ -105,24 +113,20 @@ const styles = StyleSheet.create({
   closeIcon: {
     width: 24,
     height: 24,
-    tintColor: Colors.black,
     transform: [{ rotate: '180deg' }],
   },
   textArea: {
     borderWidth: 1,
-    borderColor: Colors.grey,
     borderRadius: 12,
     padding: 16,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
     minHeight: 230,
     textAlignVertical: 'top',
   },
   counter: {
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    color: Colors.grey,
     textAlign: 'right',
     marginTop: 8,
   },

@@ -9,6 +9,7 @@ import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { RootStackParamList } from '@/navigation/types';
 import { groupSessionsToEvents } from '@/utils/dataAdapters';
 import { filterActiveSessions } from '@/utils/sessionStatusHelpers';
@@ -61,6 +62,7 @@ const contactIcons: Record<string, any> = {
 };
 
 const GroupPage = () => {
+  const colors = useThemedColors();
   const route = useRoute<GroupPageRouteProp>();
   const { groupId } = route.params;
   const [descriptionModalVisible, setDescriptionModalVisible] = useState(false);
@@ -307,11 +309,13 @@ const GroupPage = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.blue} />
-          <Text style={styles.loadingText}>Загрузка группы...</Text>
+          <ActivityIndicator size="large" color={colors.blue} />
+          <Text style={[styles.loadingText, { color: colors.grey }]}>
+            Загрузка группы...
+          </Text>
         </View>
         <BottomBar />
       </SafeAreaView>
@@ -320,7 +324,7 @@ const GroupPage = () => {
   
   if (isPrivateGroup) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         <PrivateGroupPreview
           groupName={privateGroupName}
@@ -335,10 +339,12 @@ const GroupPage = () => {
 
   if (!groupData) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Группа не найдена</Text>
+          <Text style={[styles.errorText, { color: colors.black }]}>
+            Группа не найдена
+          </Text>
         </View>
         <BottomBar />
       </SafeAreaView>
@@ -359,23 +365,27 @@ const GroupPage = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Image source={{ uri: groupData.image }} style={styles.groupImage} />
           <View style={{ flexDirection: 'column', flex: 1 }}>
             <View style={styles.headerInfo}>
-              <Text style={styles.groupName}>{groupData.name}</Text>
+              <Text style={[styles.groupName, { color: colors.black }]}>
+                {groupData.name}
+              </Text>
               {groupData.city && groupData.city.trim() !== '' && (
-                <Text style={styles.location}>{groupData.city}</Text>
+                <Text style={[styles.location, { color: colors.black }]}>
+                  {groupData.city}
+                </Text>
               )}
               <View style={styles.categoriesContainer}>
                 {mappedCategories.map((category, index) => (
                   <Image
                     key={index}
                     source={categoryIcons[category]}
-                    style={styles.categoryIcon}
+                    style={[styles.categoryIcon, {tintColor: colors.black}]}
                   />
                 ))}
               </View>
@@ -398,7 +408,7 @@ const GroupPage = () => {
 
         <CategorySection title="Описание:">
           <TouchableOpacity onPress={() => setDescriptionModalVisible(true)}>
-            <Text style={styles.descriptionText} numberOfLines={3}>
+            <Text style={[styles.descriptionText, { color: colors.black }]} numberOfLines={3}>
               {groupData.description || 'Описание пока не добавлено'}
             </Text>
           </TouchableOpacity>
@@ -415,7 +425,9 @@ const GroupPage = () => {
             <EventCarousel events={formattedSessions} />
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Пока нет активных сессий</Text>
+              <Text style={[styles.emptyText, { color: colors.grey }]}>
+                Пока нет активных сессий
+              </Text>
             </View>
           )}
         </CategorySection>
@@ -444,7 +456,9 @@ const GroupPage = () => {
             </View>
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Пока нет участников</Text>
+              <Text style={[styles.emptyText, { color: colors.grey }]}>
+                Пока нет участников
+              </Text>
             </View>
           )}
         </CategorySection>
@@ -460,13 +474,16 @@ const GroupPage = () => {
                     style={styles.contactItem}
                     onPress={() => handleContactPress(contact.link)}
                   >
-                    <View style={styles.contactIconContainer}>
+                    <View style={[
+                      styles.contactIconContainer,
+                      { backgroundColor: colors.white }
+                    ]}>
                       <Image 
                         source={icon} 
                         style={styles.contactIcon} 
                       />
                     </View>
-                    <Text style={styles.contactDescription} numberOfLines={2}>
+                    <Text style={[styles.contactDescription, { color: colors.black }]} numberOfLines={2}>
                       {contact.name}
                     </Text>
                   </TouchableOpacity>
@@ -475,7 +492,9 @@ const GroupPage = () => {
             </View>
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Контакты пока не добавлены</Text>
+              <Text style={[styles.emptyText, { color: colors.grey }]}>
+                Контакты пока не добавлены
+              </Text>
             </View>
           )}
         </CategorySection>
@@ -489,18 +508,27 @@ const GroupPage = () => {
         onRequestClose={() => setDescriptionModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Описание группы</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
+            <View style={[
+              styles.modalHeader,
+              { borderBottomColor: colors.lightGrey }
+            ]}>
+              <Text style={[styles.modalTitle, { color: colors.black }]}>
+                Описание группы
+              </Text>
               <TouchableOpacity
                 onPress={() => setDescriptionModalVisible(false)}
                 style={styles.closeButton}
               >
-                <Text style={styles.closeButtonText}>✕</Text>
+                <Text style={[styles.closeButtonText, { color: colors.black }]}>
+                  ✕
+                </Text>
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalScrollView}>
-              <Text style={styles.modalDescriptionText}>{groupData.description}</Text>
+              <Text style={[styles.modalDescriptionText, { color: colors.black }]}>
+                {groupData.description}
+              </Text>
             </ScrollView>
           </View>
         </View>
@@ -516,11 +544,9 @@ const GroupPage = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   scrollView: {
     flex: 1,
@@ -534,7 +560,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
   },
   errorContainer: {
     flex: 1,
@@ -544,7 +569,6 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
   },
   header: {
     flexDirection: 'row',
@@ -563,13 +587,11 @@ const styles = StyleSheet.create({
   groupName: {
     fontFamily: Montserrat.bold,
     fontSize: 20,
-    color: Colors.black,
     marginBottom: 4,
   },
   location: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
     marginBottom: 8,
   },
   categoriesContainer: {
@@ -596,7 +618,6 @@ const styles = StyleSheet.create({
   descriptionText: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
     lineHeight: 20,
     paddingHorizontal: 18,
     paddingVertical: 12,
@@ -618,7 +639,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 100,
-    backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
@@ -636,7 +656,6 @@ const styles = StyleSheet.create({
   contactDescription: {
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    color: Colors.black,
     textAlign: 'center',
   },
   modalOverlay: {
@@ -646,7 +665,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: Colors.white,
     borderRadius: 20,
     margin: 20,
     maxHeight: '70%',
@@ -658,13 +676,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGrey,
   },
   modalTitle: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
     marginLeft: 8,
-    color: Colors.black,
   },
   closeButton: {
     width: 30,
@@ -675,7 +691,6 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.black,
   },
   modalScrollView: {
     maxHeight: 300,
@@ -683,7 +698,6 @@ const styles = StyleSheet.create({
   modalDescriptionText: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
     lineHeight: 20,
     padding: 20,
   },
@@ -695,7 +709,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
     textAlign: 'center',
   },
   joinButton: {

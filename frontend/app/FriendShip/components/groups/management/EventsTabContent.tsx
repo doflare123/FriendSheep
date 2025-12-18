@@ -3,6 +3,7 @@ import GroupEventsSearchBar from '@/components/groups/GroupEventsSearchBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { sortEventsByDate, sortEventsByParticipants } from '@/utils/eventSorting';
 import { highlightEventTitle } from '@/utils/textHighlight';
 import React, { useMemo, useState } from 'react';
@@ -25,6 +26,7 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
   onCreateEvent,
   onEditEvent,
 }) => {
+  const colors = useThemedColors();
   const [searchQuery, setSearchQuery] = useState('');
   const { sortingState, sortingActions } = useSearchState();
 
@@ -78,8 +80,8 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.searchContainer}>
+    <View style={[styles.container, { backgroundColor: colors.white }]}>
+      <View style={[styles.searchContainer, { backgroundColor: colors.white }]}>
         <GroupEventsSearchBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -88,11 +90,16 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
         />
       </View>
 
-      <TouchableOpacity style={styles.createButton} onPress={onCreateEvent}>
+      <TouchableOpacity 
+        style={[styles.createButton, { backgroundColor: colors.lightBlue }]} 
+        onPress={onCreateEvent}
+      >
         <Text style={styles.createButtonText}>Создать новое событие</Text>
       </TouchableOpacity>
 
-      <Text style={styles.hintText}>Для редактирования события нажмите на него</Text>
+      <Text style={[styles.hintText, { color: colors.grey }]}>
+        Для редактирования события нажмите на него
+      </Text>
 
       <FlatList
         data={filteredAndSortedEvents}
@@ -102,7 +109,7 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: colors.grey }]}>
               {searchQuery.trim() || !sortingState.checkedCategories.includes('Все')
                 ? 'События не найдены' 
                 : 'У группы пока нет событий'
@@ -118,17 +125,14 @@ const EventsTabContent: React.FC<EventsTabContentProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   searchContainer: {
     paddingHorizontal: 16,
     marginBottom: 4,
-    backgroundColor: Colors.white,
   },
   createButton: {
     marginHorizontal: 20,
     marginBottom: 8,
-    backgroundColor: Colors.lightBlue,
     borderRadius: 40,
     paddingVertical: 6,
     alignItems: 'center',
@@ -159,13 +163,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
     textAlign: 'center',
   },
   hintText: {
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    color: Colors.grey,
     textAlign: 'center',
     marginBottom: 8,
   }

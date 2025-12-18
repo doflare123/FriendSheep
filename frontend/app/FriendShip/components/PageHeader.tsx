@@ -1,4 +1,5 @@
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/components/ThemeContext';
+import { Colors, getColors } from '@/constants/Colors';
 import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
 import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -13,9 +14,12 @@ interface PageHeaderProps {
 }
 
 const PageHeader: React.FC<PageHeaderProps> = ({ title, showWave = false, actionButton }) => {
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
+
   return (
     <>
-      <View style={styles.headerContainer}>
+      <View style={[styles.headerContainer, { backgroundColor: colors.lightBlue2 }]}>
         <Text style={styles.headerTitle}>{title}</Text>
         {actionButton && (
           <TouchableOpacity 
@@ -42,7 +46,6 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, showWave = false, action
 
 const styles = StyleSheet.create({
   headerContainer: {
-    backgroundColor: Colors.lightBlue2,
     paddingVertical: 20,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -53,8 +56,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: Montserrat_Alternates.medium,
     fontSize: 24,
-    color: Colors.white,
     textTransform: 'none',
+    color: Colors.white
   },
   actionButton: {
     position: 'absolute',
@@ -64,7 +67,7 @@ const styles = StyleSheet.create({
   actionIcon: {
     width: 30,
     height: 30,
-    tintColor: Colors.white,
+    tintColor: Colors.white
   },
 });
 

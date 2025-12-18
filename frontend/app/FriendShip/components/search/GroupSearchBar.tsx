@@ -1,6 +1,6 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { GroupSearchActions, GroupSearchState } from '@/hooks/useGroupSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useRef, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +27,7 @@ const GroupSearchBar: React.FC<GroupSearchBarProps> = ({
   searchState, 
   searchActions
 }) => {
+  const colors = useThemedColors();
   const insets = useSafeAreaInsets();
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [inputText, setInputText] = useState(searchState.searchQuery);
@@ -62,14 +63,15 @@ const GroupSearchBar: React.FC<GroupSearchBarProps> = ({
 
   return (
     <>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.veryLightGrey }]}>
         <TextInput
           placeholder="Поиск групп..."
+          placeholderTextColor={colors.grey}
           value={inputText}
           onChangeText={handleSearchInputChange}
           onSubmitEditing={handleSearchSubmit}
           returnKeyType="search"
-          style={styles.input}
+          style={[styles.input, { color: colors.black }]}
         />
 
         <TouchableOpacity
@@ -88,7 +90,7 @@ const GroupSearchBar: React.FC<GroupSearchBarProps> = ({
             });
           }}
         >
-          <Image style={styles.optionsIcon} source={require('@/assets/images/top_bar/search_bar/options.png')} />
+          <Image style={[styles.optionsIcon, {tintColor: colors.lightGreyBlue}]} source={require('@/assets/images/top_bar/search_bar/options.png')} />
         </TouchableOpacity>
       </View>
 
@@ -105,27 +107,36 @@ const GroupSearchBar: React.FC<GroupSearchBarProps> = ({
           <Pressable
             style={[
               styles.dropdown,
-              { position: 'absolute', top: filterModalPos.top, left: filterModalPos.left },
+              { 
+                position: 'absolute', 
+                top: filterModalPos.top, 
+                left: filterModalPos.left,
+                backgroundColor: colors.white
+              },
             ]}
             onPress={() => {}}
           >
-            <Text style={styles.dropdownTitle}>Сортировка по участникам</Text>
+            <Text style={[styles.dropdownTitle, { color: colors.black }]}>
+              Сортировка по участникам
+            </Text>
             {(['none', 'asc', 'desc'] as const).map((order) => (
               <TouchableOpacity
                 key={order}
                 style={styles.radioItem}
                 onPress={() => setSortByParticipants(order)}
               >
-                <View style={styles.radioCircleEmpty}>
+                <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue }]}>
                   {sortByParticipants === order && (
-                    <View style={styles.radioInnerCircle} />
+                    <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue }]} />
                   )}
                 </View>
-                <Text style={styles.radioLabel}>{getSortingLabel(order)}</Text>
+                <Text style={[styles.radioLabel, { color: colors.black }]}>
+                  {getSortingLabel(order)}
+                </Text>
               </TouchableOpacity>
             ))}
 
-            <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
+            <Text style={[styles.dropdownTitle, { marginTop: 12, color: colors.black }]}>
               Фильтрация по категориям
             </Text>
             {[
@@ -146,20 +157,22 @@ const GroupSearchBar: React.FC<GroupSearchBarProps> = ({
                   }
                 }}
               >
-                <View style={styles.radioSquareEmpty}>
+                <View style={[styles.radioSquareEmpty, { borderColor: colors.lightBlue }]}>
                   {value === null
                     ? checkedCategories.length === 0 && (
-                        <View style={styles.radioInnerSquare} />
+                        <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue }]} />
                       )
                     : checkedCategories.includes(value) && (
-                        <View style={styles.radioInnerSquare} />
+                        <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue }]} />
                       )}
                 </View>
-                <Text style={styles.radioLabel}>{label}</Text>
+                <Text style={[styles.radioLabel, { color: colors.black }]}>
+                  {label}
+                </Text>
               </TouchableOpacity>
             ))}
 
-            <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
+            <Text style={[styles.dropdownTitle, { marginTop: 12, color: colors.black }]}>
               Сортировка по регистрации
             </Text>
             {(['none', 'asc', 'desc'] as const).map((order) => (
@@ -168,12 +181,14 @@ const GroupSearchBar: React.FC<GroupSearchBarProps> = ({
                 style={styles.radioItem}
                 onPress={() => setSortByRegistration(order)}
               >
-                <View style={styles.radioCircleEmpty}>
+                <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue }]}>
                   {sortByRegistration === order && (
-                    <View style={styles.radioInnerCircle} />
+                    <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue }]} />
                   )}
                 </View>
-                <Text style={styles.radioLabel}>{getSortingLabel(order)}</Text>
+                <Text style={[styles.radioLabel, { color: colors.black }]}>
+                  {getSortingLabel(order)}
+                </Text>
               </TouchableOpacity>
             ))}
           </Pressable>
@@ -190,7 +205,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     paddingHorizontal: 10,
     margin: 4,
-    backgroundColor: Colors.veryLightGrey,
   },
   input: {
     flex: 1,
@@ -198,7 +212,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
   },
   optionsIcon: {
     width: 24,
@@ -213,7 +226,6 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     width: 230,
-    backgroundColor: Colors.white,
     borderRadius: 10,
     borderTopEndRadius: 0,
     padding: 12,
@@ -238,7 +250,6 @@ const styles = StyleSheet.create({
     width: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: Colors.lightBlue2,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
@@ -248,7 +259,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 10,
-    backgroundColor: Colors.blue2,
     alignSelf: 'center',
   },
   radioSquareEmpty: {
@@ -256,7 +266,6 @@ const styles = StyleSheet.create({
     width: 20,
     borderWidth: 2,
     borderRadius: 6,
-    borderColor: Colors.lightBlue2,
     backgroundColor: 'transparent',
     marginRight: 8,
     justifyContent: 'center',
@@ -266,7 +275,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 2,
-    backgroundColor: Colors.blue2,
     alignSelf: 'center',
     justifyContent: 'center',
   },

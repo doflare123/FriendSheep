@@ -2,7 +2,7 @@ import authService from '@/api/services/authService';
 import { clearTokens } from '@/api/storage/tokenStorage';
 import { useAuthContext } from '@/components/auth/AuthContext';
 import { useToast } from '@/components/ToastContext';
-import { Colors } from '@/constants/Colors';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
@@ -13,6 +13,7 @@ import Logo from '../../components/auth/Logo';
 import authorizeStyle from '../styles/authorizeStyle';
 
 const Login = () => {
+  const colors = useThemedColors();
   const navigation = useNavigation();
   const { showToast } = useToast();
   const { setIsAuthenticated } = useAuthContext();
@@ -95,10 +96,12 @@ const Login = () => {
   };
 
   return (
-    <View style={authorizeStyle.container}>
+    <View style={[authorizeStyle.container, { backgroundColor: colors.white }]}>
       <View style={authorizeStyle.topContainer}>
         <Logo />
-        <Text style={authorizeStyle.title}>Вход</Text>
+        <Text style={[authorizeStyle.title, { color: colors.black }]}>
+          Вход
+        </Text>
       </View>
 
       <KeyboardAwareScrollView
@@ -108,7 +111,9 @@ const Login = () => {
         extraScrollHeight={20}
         showsVerticalScrollIndicator={false}>
 
-        <Text style={authorizeStyle.label}>Почта</Text>
+        <Text style={[authorizeStyle.label, { color: colors.black }]}>
+          Почта
+        </Text>
         <Input
           placeholder="user_email@gmail.com"
           value={email}
@@ -120,23 +125,25 @@ const Login = () => {
         />
 
         {email.length > 0 && !isEmailValid && (
-          <Text style={authorizeStyle.passwordValidation}>
+          <Text style={[authorizeStyle.passwordValidation, { color: colors.red }]}>
             Введите корректный email (должен содержать @ и домен)
           </Text>
         )}
 
-        <Text style={authorizeStyle.label}>Пароль</Text>
+        <Text style={[authorizeStyle.label, { color: colors.black }]}>
+          Пароль
+        </Text>
         <Input
           placeholder="Пароль"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
           editable={!loading}
-          borderColor={hasRussianChars ? Colors.orange : undefined}
+          borderColor={hasRussianChars ? colors.orange : undefined}
         />
 
         {hasRussianChars && (
-          <Text style={[authorizeStyle.passwordValidation, {color: Colors.orange}]}>
+          <Text style={[authorizeStyle.passwordValidation, { color: colors.orange }]}>
             Включена русская раскладка!
           </Text>
         )}
@@ -146,13 +153,17 @@ const Login = () => {
             onPress={() => navigation.navigate('ForgotPassword' as never)}
             disabled={loading}
           >
-            <Text style={authorizeStyle.password}>Забыли пароль?</Text>
+            <Text style={[authorizeStyle.password, { color: colors.blue }]}>
+              Забыли пароль?
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => navigation.navigate('Register' as never)}
             disabled={loading}
           >
-            <Text style={authorizeStyle.account}>Нет аккаунта?</Text>
+            <Text style={[authorizeStyle.account, { color: colors.blue }]}>
+              Нет аккаунта?
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -165,13 +176,15 @@ const Login = () => {
         {loading && (
           <ActivityIndicator 
             size="large" 
-            color={Colors.blue} 
+            color={colors.blue} 
             style={{ marginTop: 16 }} 
           />
         )}
       </KeyboardAwareScrollView>
 
-      <Text style={authorizeStyle.footer}>©NecroDwarf</Text>
+      <Text style={[authorizeStyle.footer, { color: colors.grey }]}>
+        ©NecroDwarf
+      </Text>
     </View>
   );
 };

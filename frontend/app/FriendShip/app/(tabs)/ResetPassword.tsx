@@ -1,6 +1,6 @@
 import authService from '@/api/services/authService';
 import { useToast } from '@/components/ToastContext';
-import { Colors } from '@/constants/Colors';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { hasRussianChars, validatePassword } from '@/utils/validators';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
@@ -18,6 +18,7 @@ interface RouteParams {
 }
 
 const ResetPassword = () => {
+  const colors = useThemedColors();
   const navigation = useNavigation();
   const route = useRoute();
   const { showToast } = useToast();
@@ -86,10 +87,12 @@ const ResetPassword = () => {
   };
 
   return (
-    <View style={authorizeStyle.container}>
+    <View style={[authorizeStyle.container, { backgroundColor: colors.white }]}>
       <View style={authorizeStyle.topContainer}>
         <Logo />
-        <Text style={authorizeStyle.title}>Новый пароль</Text>
+        <Text style={[authorizeStyle.title, { color: colors.black }]}>
+          Новый пароль
+        </Text>
       </View>
 
       <KeyboardAwareScrollView
@@ -99,11 +102,13 @@ const ResetPassword = () => {
         extraScrollHeight={20}
         showsVerticalScrollIndicator={false}>
 
-        <Text style={authorizeStyle.terms}>
+        <Text style={[authorizeStyle.terms, { color: colors.grey }]}>
           Установите новый пароль для {email}
         </Text>
 
-        <Text style={authorizeStyle.label}>Новый пароль</Text>
+        <Text style={[authorizeStyle.label, { color: colors.black }]}>
+          Новый пароль
+        </Text>
         <Input
           placeholder="Минимум 10 символов"
           secureTextEntry
@@ -111,22 +116,24 @@ const ResetPassword = () => {
           onChangeText={setNewPassword}
           editable={!loading}
           isValid={newPassword.length === 0 || (passwordValidation.isValid && !showRussianWarning)}
-          borderColor={showRussianWarning ? Colors.orange : undefined}
+          borderColor={showRussianWarning ? colors.orange : undefined}
         />
 
         {showRussianWarning && (
-          <Text style={[authorizeStyle.passwordValidation, {color: Colors.orange}]}>
+          <Text style={[authorizeStyle.passwordValidation, { color: colors.orange }]}>
             Включена русская раскладка!
           </Text>
         )}
 
         {newPassword.length > 0 && !passwordValidation.isValid && !showRussianWarning && (
-          <Text style={authorizeStyle.passwordValidation}>
+          <Text style={[authorizeStyle.passwordValidation, { color: colors.red }]}>
             Необходимо: {passwordValidation.missingRequirements.join(', ')}
           </Text>
         )}
 
-        <Text style={authorizeStyle.label}>Подтвердите пароль</Text>
+        <Text style={[authorizeStyle.label, { color: colors.black }]}>
+          Подтвердите пароль
+        </Text>
         <Input
           placeholder="Повторите пароль"
           secureTextEntry
@@ -137,7 +144,7 @@ const ResetPassword = () => {
         />
 
         {confirmPassword.length > 0 && newPassword !== confirmPassword && (
-          <Text style={authorizeStyle.passwordValidation}>
+          <Text style={[authorizeStyle.passwordValidation, { color: colors.red }]}>
             Пароли не совпадают
           </Text>
         )}
@@ -151,13 +158,15 @@ const ResetPassword = () => {
         {loading && (
           <ActivityIndicator 
             size="large" 
-            color={Colors.blue} 
+            color={colors.blue} 
             style={{ marginTop: 16 }} 
           />
         )}
       </KeyboardAwareScrollView>
 
-      <Text style={authorizeStyle.footer}>©NecroDwarf</Text>
+      <Text style={[authorizeStyle.footer, { color: colors.grey }]}>
+        ©NecroDwarf
+      </Text>
     </View>
   );
 };

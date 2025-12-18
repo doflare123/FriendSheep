@@ -1,4 +1,5 @@
 import ProfilePage from '@/app/(tabs)/ProfilePage';
+import { ThemeProvider } from '@/components/ThemeContext';
 import { ToastProvider } from '@/components/ToastContext';
 import { Montserrat_200ExtraLight, Montserrat_300Light, Montserrat_400Regular, Montserrat_500Medium, Montserrat_600SemiBold, Montserrat_700Bold, useFonts } from '@expo-google-fonts/montserrat';
 import { MontserratAlternates_500Medium } from '@expo-google-fonts/montserrat-alternates';
@@ -111,14 +112,16 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <SafeAreaProvider>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </SafeAreaProvider>
-      </ToastProvider>   
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <SafeAreaProvider>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </SafeAreaProvider>
+        </ToastProvider>   
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

@@ -4,6 +4,7 @@ import { GroupInvite, Notification } from '@/api/types/notification';
 import { useToast } from '@/components/ToastContext';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -45,6 +46,7 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
   onUpdateNotifications,
   onUpdateInvites,
 }) => {
+  const colors = useThemedColors();
   const { showToast } = useToast();
 
   const handleMarkAsViewed = async (notificationId: number) => {
@@ -142,10 +144,10 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
     >
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable
-          style={[styles.notificationsModal, { top: position.top, left: position.left }]}
+          style={[styles.notificationsModal, { top: position.top, left: position.left, backgroundColor: colors.white }]}
           onPress={() => {}}
         >
-          <Text style={styles.title}>
+          <Text style={[styles.title, {color: colors.black}]}>
             {serverError 
               ? 'Сервис уведомлений недоступен'
               : totalCount > 0
@@ -155,16 +157,16 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
 
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={Colors.lightBlue} />
+              <ActivityIndicator size="small" color={colors.lightBlue} />
             </View>
           ) : serverError ? (
             <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>
+              <Text style={[styles.errorText, {color: colors.grey}]}>
                 Не удалось загрузить уведомления.{'\n'}
                 Возможно, notify_service не запущен.
               </Text>
               <TouchableOpacity 
-                style={styles.retryButton}
+                style={[styles.retryButton, {backgroundColor: colors.lightBlue}]}
                 onPress={onReload}
               >
                 <Text style={styles.retryButtonText}>Попробовать снова</Text>
@@ -179,11 +181,11 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
                     style={styles.telegramBannerIcon}
                   />
                   <View style={styles.telegramBannerContent}>
-                    <Text style={styles.telegramBannerText}>
+                    <Text style={[styles.telegramBannerText, {color: colors.black}]}>
                       Получайте уведомления в Telegram!
                     </Text>
                     <TouchableOpacity onPress={handleTelegramBotPress}>
-                      <Text style={styles.telegramBannerLink}>
+                      <Text style={[styles.telegramBannerLink, {color: colors.blue2}]}>
                         Привязать бота
                       </Text>
                     </TouchableOpacity>
@@ -194,9 +196,9 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
               <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {invites.map((invite) => (
                   <View key={`invite-${invite.id}`} style={styles.notificationItem}>
-                    <View style={styles.iconWrapper}>
+                    <View style={[styles.iconWrapper, {backgroundColor: colors.lightBlue}]}>
                       <Image
-                        style={styles.notificationIcon}
+                        style={[styles.notificationIcon, {tintColor: colors.white}]}
                         source={require('@/assets/images/top_bar/notifications.png')}
                       />
                     </View>
@@ -219,7 +221,7 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
                         </TouchableOpacity>
                       </View>
                     </View>
-                    <Text style={styles.notificationTime}>{formatTime(invite.createdAt)}</Text>
+                    <Text style={[styles.notificationTime, {color: colors.lightGrey}]}>{formatTime(invite.createdAt)}</Text>
                   </View>
                 ))}
 
@@ -230,21 +232,21 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
                     onPress={() => handleMarkAsViewed(notification.id)}
                     activeOpacity={0.7}
                   >
-                    <View style={styles.iconWrapper}>
+                    <View style={[styles.iconWrapper, {backgroundColor: colors.lightBlue}]}>
                       <Image
-                        style={styles.notificationIcon}
+                        style={[styles.notificationIcon, {tintColor: colors.white}]}
                         source={require('@/assets/images/top_bar/notifications.png')}
                       />
                     </View>
                     <Text style={styles.notificationText}>{notification.text}</Text>
-                    <Text style={styles.notificationTime}>{formatTime(notification.sendAt)}</Text>
+                    <Text style={[styles.notificationTime, {color: colors.lightGrey}]}>{formatTime(notification.sendAt)}</Text>
                   </TouchableOpacity>
                 ))}
 
                 {totalCount === 0 && !serverError && (
-                  <Text style={styles.emptyText}>Здесь пока ничего нет</Text>
+                  <Text style={[styles.emptyText, {color: colors.lightGrey}]}>Здесь пока ничего нет</Text>
                 )}
-                <Text style={styles.hintText}>В данной версии приложения уведомления доступны только внутри приложения или через Telegram-бота</Text>
+                <Text style={[styles.hintText, {color: colors.lightGrey}]}>В данной версии приложения уведомления доступны только внутри приложения или через Telegram-бота</Text>
               </ScrollView>
             </>
           )}
@@ -263,7 +265,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 320,
     maxHeight: 400,
-    backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 16,
     borderTopEndRadius: 0,
@@ -292,13 +293,11 @@ const styles = StyleSheet.create({
   telegramBannerText: {
     fontFamily: Montserrat.regular,
     fontSize: 11,
-    color: Colors.black,
     marginBottom: 2,
   },
   telegramBannerLink: {
     fontFamily: Montserrat.bold,
     fontSize: 11,
-    color: Colors.blue2,
   },
   scrollView: {
     maxHeight: 320,
@@ -314,12 +313,10 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    color: Colors.grey,
     textAlign: 'center',
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: Colors.lightBlue,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
@@ -338,7 +335,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.lightBlue,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -346,7 +342,6 @@ const styles = StyleSheet.create({
   notificationIcon: {
     width: 32,
     height: 32,
-    tintColor: Colors.white,
   },
   notificationText: {
     fontFamily: Montserrat.regular,
@@ -356,7 +351,6 @@ const styles = StyleSheet.create({
   notificationTime: {
     fontFamily: Montserrat.regular,
     fontSize: 10,
-    color: Colors.lightGrey,
     marginLeft: 8,
     alignSelf: 'flex-end',
   },
@@ -385,14 +379,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    color: Colors.lightGrey,
     textAlign: 'center',
     paddingVertical: 24,
   },
   hintText: {
     fontFamily: Montserrat.regular,
     fontSize: 8,
-    color: Colors.lightGrey,
     paddingVertical: 4,
   },
 });

@@ -9,6 +9,7 @@ import EventTypeSelector from '@/components/event/modal/EventTypeSelector';
 import GenreSelector from '@/components/event/modal/GenreSelector';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import {
@@ -56,6 +57,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   availableGenres = [],
   isLoading = false,
 }) => {
+  const colors = useThemedColors();
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -178,7 +180,6 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
     { id: 'table_game', label: 'Настолки', icon: require('@/assets/images/event_card/table_game.png') },
     { id: 'other', label: 'Другое', icon: require('@/assets/images/event_card/other.png') },
   ];
-
   const handleImagePicker = async () => {
     try {
       console.log('[CreateEditEventModal] 🖼️ handleImagePicker вызван');
@@ -548,11 +549,10 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
       (editMode || imageFile)
     );
   };
-
   return (
     <Modal visible={visible} animationType="fade" transparent>
       <View style={styles.overlay}>
-        <View style={styles.modal}>
+        <View style={[styles.modal, { backgroundColor: colors.white }]}>
           <ScrollView
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -560,8 +560,8 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
             bounces={false}
             scrollEnabled={!isLoading}
           >
-            <View style={styles.header}>
-              <Text style={styles.title}>
+            <View style={[styles.header, { backgroundColor: colors.white }]}>
+              <Text style={[styles.title, { color: colors.black }]}>
                 {editMode ? 'Редактирование события' : 'Создание события'}
               </Text>
               
@@ -571,7 +571,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                 disabled={isLoading}
               >
                 <Image
-                  tintColor={Colors.black}
+                  tintColor={colors.black}
                   style={{ width: 35, height: 35, resizeMode: 'cover' }}
                   source={require('@/assets/images/event_card/back.png')}
                 />
@@ -579,9 +579,9 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
             </View>
 
             {(isLoading || isLoadingKinopoisk || isLoadingRawg) && (
-              <View style={styles.loadingOverlay}>
-                <ActivityIndicator size="large" color={Colors.lightBlue} />
-                <Text style={styles.loadingText}>
+              <View style={[styles.loadingOverlay, { backgroundColor: colors.white + 'E6' }]}>
+                <ActivityIndicator size="large" color={colors.lightBlue} />
+                <Text style={[styles.loadingText, { color: colors.black }]}>
                   {isLoadingKinopoisk 
                     ? 'Загрузка данных с Кинопоиска...' 
                     : isLoadingRawg
@@ -592,7 +592,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               </View>
             )}
 
-            <View style={[styles.content, (isLoading || isLoadingKinopoisk || isLoadingRawg) && styles.contentDisabled]}>
+            <View style={[styles.content, { backgroundColor: colors.white }, (isLoading || isLoadingKinopoisk || isLoadingRawg) && styles.contentDisabled]}>
               <View style={styles.nameInputContainer}>
                 {showKinopoiskButton && (
                   <KinopoiskButton
@@ -609,9 +609,16 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                   />
                 )}
                 <TextInput
-                  style={[styles.input, (showKinopoiskButton || showRawgButton) && styles.inputWithButton]}
+                  style={[
+                    styles.input,
+                    {
+                      borderBottomColor: colors.grey,
+                      color: colors.black
+                    },
+                    (showKinopoiskButton || showRawgButton) && styles.inputWithButton
+                  ]}
                   placeholder="Название *"
-                  placeholderTextColor={Colors.grey}
+                  placeholderTextColor={colors.grey}
                   value={eventName}
                   onChangeText={setEventName}
                   maxLength={40}
@@ -619,16 +626,23 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                 />
               </View>
               {eventName.length > 0 && (
-                <Text style={styles.charCounter}>
+                <Text style={[styles.charCounter, { color: colors.grey }]}>
                   {eventName.length} / 40 {eventName.length < 5 && '(мин. 5)'}
                 </Text>
               )}
 
               <View style={styles.descriptionContainer}>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[
+                    styles.input,
+                    styles.textArea,
+                    {
+                      borderColor: colors.grey,
+                      color: colors.black
+                    }
+                  ]}
                   placeholder="Описание"
-                  placeholderTextColor={Colors.grey}
+                  placeholderTextColor={colors.grey}
                   value={description}
                   onChangeText={setDescription}
                   multiline
@@ -644,12 +658,12 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                 >
                   <Image
                     source={require('@/assets/images/event_card/back.png')}
-                    style={styles.expandIcon}
+                    style={[styles.expandIcon, { tintColor: colors.grey }]}
                   />
                 </TouchableOpacity>
               </View>
               {description.length > 0 && (
-                <Text style={styles.charCounter}>
+                <Text style={[styles.charCounter, { color: colors.grey }]}>
                   {description.length} / 500 {description.length < 5 && '(мин. 5)'}
                 </Text>
               )}
@@ -662,9 +676,18 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                 />
               ) : (
                 <View style={styles.disabledFieldContainer}>
-                  <Text style={styles.disabledFieldLabel}>Категория</Text>
-                  <View style={[styles.input, styles.disabledInput]}>
-                    <Text style={styles.disabledText}>
+                  <Text style={[styles.disabledFieldLabel, { color: colors.black }]}>
+                    Категория
+                  </Text>
+                  <View style={[
+                    styles.input,
+                    styles.disabledInput,
+                    {
+                      backgroundColor: colors.veryLightGrey,
+                      borderBottomColor: colors.lightGrey
+                    }
+                  ]}>
+                    <Text style={[styles.disabledText, { color: colors.grey }]}>
                       {categories.find(c => c.id === selectedCategory)?.label || 'Не выбрана'}
                     </Text>
                   </View>
@@ -678,9 +701,18 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                 />
               ) : (
                 <View style={styles.disabledFieldContainer}>
-                  <Text style={styles.disabledFieldLabel}>Тип события</Text>
-                  <View style={[styles.input, styles.disabledInput]}>
-                    <Text style={styles.disabledText}>
+                  <Text style={[styles.disabledFieldLabel, { color: colors.black }]}>
+                    Тип события
+                  </Text>
+                  <View style={[
+                    styles.input,
+                    styles.disabledInput,
+                    {
+                      backgroundColor: colors.veryLightGrey,
+                      borderBottomColor: colors.lightGrey
+                    }
+                  ]}>
+                    <Text style={[styles.disabledText, { color: colors.grey }]}>
                       {eventType === 'online' ? 'Онлайн' : 'Оффлайн'}
                     </Text>
                   </View>
@@ -693,9 +725,15 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               />
 
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    borderBottomColor: colors.grey,
+                    color: colors.black
+                  }
+                ]}
                 placeholder="Издатель"
-                placeholderTextColor={Colors.grey}
+                placeholderTextColor={colors.grey}
                 value={publisher}
                 onChangeText={setPublisher}
                 maxLength={50}
@@ -704,9 +742,17 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
 
               <View style={styles.rowContainer}>
                 <TextInput
-                  style={[styles.input, { flex: 1, marginRight: 8 }]}
+                  style={[
+                    styles.input,
+                    {
+                      flex: 1,
+                      marginRight: 8,
+                      borderBottomColor: colors.grey,
+                      color: colors.black
+                    }
+                  ]}
                   placeholder="Год издания"
-                  placeholderTextColor={Colors.grey}
+                  placeholderTextColor={colors.grey}
                   value={publishYear}
                   onChangeText={setPublishYear}
                   keyboardType="numeric"
@@ -714,9 +760,16 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                   editable={!isLoading}
                 />
                 <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                  style={[
+                    styles.input,
+                    {
+                      flex: 1,
+                      borderBottomColor: colors.grey,
+                      color: colors.black
+                    }
+                  ]}
                   placeholder="Ограничение (12+)"
-                  placeholderTextColor={Colors.grey}
+                  placeholderTextColor={colors.grey}
                   value={ageRating}
                   onChangeText={handleAgeRatingChange}
                   keyboardType="numeric"
@@ -725,20 +778,38 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                 />
               </View>
 
-              <View style={[styles.input, styles.disabledInput]}>
-                <Text style={styles.disabledText}>{groupName}</Text>
+              <View style={[
+                styles.input,
+                styles.disabledInput,
+                {
+                  backgroundColor: colors.veryLightGrey,
+                  borderBottomColor: colors.lightGrey
+                }
+              ]}>
+                <Text style={[styles.disabledText, { color: colors.grey }]}>
+                  {groupName}
+                </Text>
               </View>
 
               <View style={styles.rowContainer}>
                 <TouchableOpacity 
-                  style={[styles.dateButton, { flex: 1, marginRight: 6 }]}
+                  style={[
+                    styles.dateButton,
+                    {
+                      flex: 1,
+                      marginRight: 6,
+                      borderBottomColor: colors.grey
+                    }
+                  ]}
                   onPress={() => !isLoading && setDatePickerVisibility(true)}
                   disabled={isLoading}
                 >
-                  <Text style={styles.dateText}>{formatDate(eventDate)}</Text>
+                  <Text style={[styles.dateText, { color: colors.black }]}>
+                    {formatDate(eventDate)}
+                  </Text>
                   <Image 
                     source={require('@/assets/images/top_bar/search_bar/event-bar.png')}
-                    style={styles.calendarIcon}
+                    style={[styles.calendarIcon, {tintColor: colors.grey}]}
                   />
                 </TouchableOpacity>
 
@@ -751,9 +822,17 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                 />
 
                 <TextInput
-                  style={[styles.input, { flex: 1, fontSize: 14 }]}
+                  style={[
+                    styles.input,
+                    {
+                      flex: 1,
+                      fontSize: 14,
+                      borderBottomColor: colors.grey,
+                      color: colors.black
+                    }
+                  ]}
                   placeholder="Длительность (мин) *"
-                  placeholderTextColor={Colors.grey}
+                  placeholderTextColor={colors.grey}
                   value={duration}
                   onChangeText={setDuration}
                   keyboardType="numeric"
@@ -764,9 +843,16 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               
               <View style={styles.placeContainer}>
                 <TextInput
-                  style={[styles.input, styles.placeInput]}
+                  style={[
+                    styles.input,
+                    styles.placeInput,
+                    {
+                      borderBottomColor: colors.grey,
+                      color: colors.black
+                    }
+                  ]}
                   placeholder={eventType === 'offline' ? 'Место проведения (адрес)' : 'Место проведения (ссылка)'}
-                  placeholderTextColor={Colors.grey}
+                  placeholderTextColor={colors.grey}
                   value={eventPlace}
                   onChangeText={setEventPlace}
                   maxLength={100}
@@ -774,22 +860,28 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                 />
                 {eventType === 'offline' && (
                   <TouchableOpacity 
-                    style={styles.mapButton} 
+                    style={[styles.mapButton, { borderColor: colors.lightBlue }]} 
                     onPress={handleMapPress}
                     disabled={isLoading}
                   >
                     <Image 
                       source={require('@/assets/images/event_card/offline.png')} 
-                      style={styles.mapIcon}
+                      style={[styles.mapIcon, {tintColor: colors.black}]}
                     />
                   </TouchableOpacity>
                 )}
               </View>
 
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    borderBottomColor: colors.grey,
+                    color: colors.black
+                  }
+                ]}
                 placeholder="Кол-во участников *"
-                placeholderTextColor={Colors.grey}
+                placeholderTextColor={colors.grey}
                 value={maxParticipants}
                 onChangeText={setMaxParticipants}
                 keyboardType="numeric"
@@ -803,16 +895,24 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                 disabled={isLoading}
                 activeOpacity={0.7}
               >
-                <View style={styles.uploadPlaceholder}>
+                <View style={[
+                  styles.uploadPlaceholder,
+                  {
+                    backgroundColor: colors.veryLightGrey,
+                    borderColor: colors.lightGrey
+                  }
+                ]}>
                   {eventImage ? (
                     <Image source={{ uri: eventImage }} style={styles.eventImage} />
                   ) : (
                     <>
                       <Image 
                         source={require('@/assets/images/groups/upload_image.png')} 
-                        style={styles.uploadIcon}
+                        style={[styles.uploadIcon, { tintColor: colors.grey }]}
                       />
-                      <Text style={styles.uploadText}>Загрузите изображение события *</Text>
+                      <Text style={[styles.uploadText, { color: colors.grey }]}>
+                        Загрузите изображение события *
+                      </Text>
                     </>
                   )}
                 </View>
@@ -907,7 +1007,6 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -918,7 +1017,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     borderRadius: 25,
     overflow: "hidden",
-    backgroundColor: Colors.white,
     maxHeight: screenHeight * 0.9,
   },
   header: {
@@ -926,13 +1024,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 15,
     paddingHorizontal: 16,
-    backgroundColor: Colors.white,
     position: 'relative',
   },
   title: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.black,
     textAlign: 'left',
   },
   closeButton: {
@@ -941,7 +1037,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   content: {
-    backgroundColor: Colors.white,
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 16,
@@ -956,7 +1051,6 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     zIndex: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     padding: 20,
     borderRadius: 12,
     marginHorizontal: 40,
@@ -965,7 +1059,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
   },
   nameInputContainer: {
     flexDirection: 'row',
@@ -975,13 +1068,11 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.grey,
     paddingVertical: 8,
     paddingHorizontal: 0,
     marginBottom: 12,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
   },
   inputWithButton: {
     flex: 1,
@@ -989,7 +1080,6 @@ const styles = StyleSheet.create({
   },
   textArea: {
     borderWidth: 1,
-    borderColor: Colors.grey,
     borderRadius: 8,
     padding: 16,
     minHeight: 100,
@@ -997,7 +1087,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.black,
     marginBottom: 10,
   },
   rowContainer: {
@@ -1006,26 +1095,22 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   disabledInput: {
-    backgroundColor: Colors.lightLightGrey,
-    borderBottomColor: Colors.lightGrey,
+    borderBottomWidth: 1,
   },
   disabledText: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
   },
   dateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.grey,
     paddingVertical: 9,
     marginBottom: 16,
   },
   dateText: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
     flex: 1,
   },
   calendarIcon: {
@@ -1046,7 +1131,6 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: Colors.lightBlue,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -1063,10 +1147,8 @@ const styles = StyleSheet.create({
   uploadPlaceholder: {
     width: '100%',
     height: 200,
-    backgroundColor: Colors.lightLightGrey,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.lightGrey,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1081,13 +1163,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     resizeMode: 'contain',
-    tintColor: Colors.grey,
     marginBottom: 8,
   },
   uploadText: {
     fontFamily: Montserrat.bold,
     fontSize: 14,
-    color: Colors.grey,
     textAlign: 'center',
   },
   bottomBackground: {
@@ -1148,13 +1228,11 @@ const styles = StyleSheet.create({
   disabledFieldLabel: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.black,
     marginBottom: 8,
   },
   charCounter: {
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    color: Colors.grey,
     marginTop: -12,
     marginBottom: 12,
   },
@@ -1175,7 +1253,6 @@ const styles = StyleSheet.create({
   expandIcon: {
     width: 20,
     height: 20,
-    tintColor: Colors.grey,
     transform: [{ rotate: '90deg' }],
   },
 });

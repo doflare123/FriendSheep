@@ -1,6 +1,7 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import {
   Image,
@@ -36,6 +37,8 @@ const SubscribersTabContent: React.FC<SubscribersTabContentProps> = ({
   onUserPress,
   isProcessing = false,
 }) => {
+  const colors = useThemedColors();
+
   const filteredSubscribers = subscribers.filter(subscriber =>
     subscriber.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -67,20 +70,30 @@ const SubscribersTabContent: React.FC<SubscribersTabContentProps> = ({
       style={styles.tabContent}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.content}>
+      <View style={[styles.content, { backgroundColor: colors.white }]}>
         <View style={styles.header}>
           <View style={styles.counterContainer}>
-            <Text style={styles.counterNumber}>{subscribers.length}</Text>
-            <Text style={styles.counterText}>участников</Text>
+            <Text style={[styles.counterNumber, { color: colors.black }]}>
+              {subscribers.length}
+            </Text>
+            <Text style={[styles.counterText, { color: colors.grey }]}>
+              участников
+            </Text>
           </View>
         </View>
 
         {subscribers.length > 0 && (
           <View style={styles.searchContainer}>
             <TextInput
-              style={styles.searchInput}
+              style={[
+                styles.searchInput,
+                {
+                  backgroundColor: colors.veryLightGrey,
+                  color: colors.black
+                }
+              ]}
               placeholder="Найти участника..."
-              placeholderTextColor={Colors.grey}
+              placeholderTextColor={colors.grey}
               value={searchQuery}
               onChangeText={setSearchQuery}
               editable={!isProcessing}
@@ -93,7 +106,7 @@ const SubscribersTabContent: React.FC<SubscribersTabContentProps> = ({
             {filteredSubscribers.map((subscriber) => (
               <TouchableOpacity
                 key={subscriber.id}
-                style={styles.subscriberItem}
+                style={[styles.subscriberItem, { backgroundColor: colors.card }]}
                 onPress={() => onUserPress(subscriber.id)}
                 activeOpacity={0.7}
                 disabled={isProcessing}
@@ -101,7 +114,9 @@ const SubscribersTabContent: React.FC<SubscribersTabContentProps> = ({
                 <Image source={{ uri: subscriber.imageUri }} style={styles.userAvatar} />
                 
                 <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{subscriber.name}</Text>
+                  <Text style={[styles.userName, { color: colors.black }]}>
+                    {subscriber.name}
+                  </Text>
                   <View style={[styles.roleBadge, { backgroundColor: getRoleBadgeColor(subscriber.role) }]}>
                     <Text style={styles.roleText}>{getRoleText(subscriber.role)}</Text>
                   </View>
@@ -127,11 +142,15 @@ const SubscribersTabContent: React.FC<SubscribersTabContentProps> = ({
           </View>
         ) : subscribers.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>Нет участников</Text>
+            <Text style={[styles.emptyStateText, { color: colors.grey }]}>
+              Нет участников
+            </Text>
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>Участники не найдены</Text>
+            <Text style={[styles.emptyStateText, { color: colors.grey }]}>
+              Участники не найдены
+            </Text>
           </View>
         )}
       </View>
@@ -144,7 +163,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    backgroundColor: Colors.white,
     paddingHorizontal: 16,
     paddingTop: 20,
     minHeight: '100%',
@@ -159,28 +177,23 @@ const styles = StyleSheet.create({
   counterNumber: {
     fontFamily: Montserrat_Alternates.bold,
     fontSize: 26,
-    color: Colors.black,
   },
   counterText: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
   },
   searchContainer: {
     marginBottom: 20,
   },
   searchInput: {
-    backgroundColor: Colors.veryLightGrey,
     borderRadius: 40,
     paddingHorizontal: 16,
     paddingVertical: 8,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
   },
   subscribersList: {
     borderRadius: 12,
-    backgroundColor: Colors.white,
     overflow: 'visible',
   },
   subscriberItem: {
@@ -189,7 +202,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 12,
-    backgroundColor: Colors.white,
     borderRadius: 30,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -209,7 +221,6 @@ const styles = StyleSheet.create({
   userName: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.black,
     marginBottom: 4,
   },
   roleBadge: {
@@ -246,7 +257,6 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
   },
 });
 

@@ -1,9 +1,10 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { ReactNode } from 'react';
 import { Image, ImageSourcePropType, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Event } from './event/EventCard';
 import EventCarousel from './event/EventCarousel';
+import { useTheme } from './ThemeContext';
 
 interface CategorySectionProps {
   title: string;
@@ -53,9 +54,16 @@ const CategorySection: React.FC<CategorySectionProps> = ({
   onBackPress,
   customNavigationButtons,
 }) => {
-  const lineImage = showLineVariant === 'line2' 
-    ? require('../assets/images/line2.png')
-    : require('../assets/images/line.png');
+  const colors = useThemedColors();
+  const { isDark } = useTheme();
+
+const lineImage = showLineVariant === 'line2' 
+  ? (isDark 
+      ? require('../assets/images/line2_2.png')
+      : require('../assets/images/line2.png'))
+  : (isDark
+      ? require('../assets/images/line_2.png')
+      : require('../assets/images/line.png')); 
 
   if (customNavigationButtons) {
     return (
@@ -65,12 +73,12 @@ const CategorySection: React.FC<CategorySectionProps> = ({
             <TouchableOpacity onPress={customNavigationButtons.leftButton.onPress}>
               <Image
                 source={customNavigationButtons.leftButton.icon}
-                style={styles.navigationIcon}
+                style={[styles.navigationIcon, { tintColor: colors.blue }]}
               />
             </TouchableOpacity>
             
             <View style={styles.titleWithLineContainer}>
-              <Text style={[styles.resultsText, centerTitle && { textAlign: 'center' }]}>
+              <Text style={[styles.resultsText, centerTitle && { textAlign: 'center' }, { color: colors.blue }]}>
                 {title}
               </Text>
             </View>
@@ -78,7 +86,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
             <TouchableOpacity onPress={customNavigationButtons.rightButton.onPress}>
               <Image
                 source={customNavigationButtons.rightButton.icon}
-                style={styles.navigationIcon}
+                style={[styles.navigationIcon, { tintColor: colors.blue }]}
               />
             </TouchableOpacity>
           </View>
@@ -106,11 +114,11 @@ const CategorySection: React.FC<CategorySectionProps> = ({
               <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
                 <Image
                   source={require('../assets/images/arrowLeft.png')}
-                  style={{ resizeMode: 'contain', width: 30, height: 30 }}
+                  style={[styles.navigationIcon, { tintColor: colors.blue }]}
                 />
               </TouchableOpacity>
             )}
-            <Text style={[styles.resultsText, centerTitle && { textAlign: 'center' }]}>
+            <Text style={[styles.resultsText, centerTitle && { textAlign: 'center' }, { color: colors.blue }]}>
               {title}
             </Text>
           </View>
@@ -122,7 +130,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
                   <Image
                     source={customActionButton.icon}
                     style={{ resizeMode: 'contain', width: 30, height: 30 }}
-                    tintColor={customActionButton.tintColor}
+                    tintColor={customActionButton.tintColor || colors.blue}
                   />
                 </TouchableOpacity>
               )}
@@ -132,7 +140,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
                   <Image
                     source={secondaryActionButton.icon}
                     style={{ resizeMode: 'contain', width: 30, height: 30 }}
-                    tintColor={secondaryActionButton.tintColor}
+                    tintColor={secondaryActionButton.tintColor || colors.blue}
                   />
                 </TouchableOpacity>
               )}
@@ -141,7 +149,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
                 <TouchableOpacity onPress={onArrowPress}>
                   <Image
                     source={require('../assets/images/more.png')}
-                    style={{ resizeMode: 'contain', width: 30, height: 30 }}
+                    style={[styles.navigationIcon, { tintColor: colors.blue }]}
                   />
                 </TouchableOpacity>
               )}
@@ -166,7 +174,6 @@ const styles = StyleSheet.create({
   resultsText: {
     fontFamily: Montserrat_Alternates.medium,
     fontSize: 20,
-    color: Colors.blue2,
     marginBottom: 4,
   },
   backButton: {

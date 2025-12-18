@@ -11,10 +11,28 @@ export const Colors = {
   lightGrey: '#808080',
   veryLightGrey: '#E2EAEF',
   lightLightGrey: '#D9D9D9',
-  white: '#ffffff',
+  white: '#FFFFFF',
   white2: '#EDEDED',
   black: '#000000',
   lightBlack: 'rgba(0,0,0,0.3)',
   lightGreyBlue: '#687580',
-  darkGrey: '#1E1E1E'
+  darkGrey: '#1E1E1E',
 };
+
+export const getColors = (isDark: boolean) => ({
+  ...Colors,
+  darkGrey: isDark ? '#687580' : '#1E1E1E',
+  lightGreyBlue: isDark ? '#1E1E1E' : '#687580',
+  grey: isDark ? '#808080' : '#515151',
+  lightGrey: isDark ? '#515151' : '#808080',
+  lightBlue2: isDark ? '#679FD2' : '#679FD2',
+  // blue2: isDark ? '#679FD2' : '#26537C',
+  // lightBlue: isDark ? '#26537C' : '#408DD2',
+  blue: isDark ? '#408DD2' : '#26537C',
+  white: isDark ? '#2F2F2F' : '#FFFFFF',
+  card: isDark ? '#2F2F2F' : '#FFFFFF',
+  white2: isDark ? '#1A1A1A' : '#EDEDED',
+  black: isDark ? '#EDEDED' : '#000000',
+  lightBlack: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+  veryLightGrey: isDark ? '#3A3A3A' : '#E2EAEF',
+});

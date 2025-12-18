@@ -1,5 +1,5 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -16,6 +16,7 @@ const InputSmall: React.FC<InputSmallProps> = ({
   editable = true,
   length = 6 
 }) => {
+  const colors = useThemedColors();
   const [values, setValues] = useState<string[]>(Array(length).fill(''));
   const hiddenInputRef = useRef<TextInput>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -95,9 +96,10 @@ const InputSmall: React.FC<InputSmallProps> = ({
         <TouchableOpacity
           key={index}
           style={[
-            styles.input, 
-            activeIndex === index && styles.inputActive,
-            !editable && styles.inputDisabled
+            styles.input,
+            { borderColor: colors.blue },
+            activeIndex === index && { borderColor: colors.lightBlue },
+            !editable && [styles.inputDisabled, { borderColor: colors.grey }]
           ]}
           activeOpacity={0.8}
           onPressIn={() => ensureFocus(index)}
@@ -105,7 +107,8 @@ const InputSmall: React.FC<InputSmallProps> = ({
         >
           <Text style={[
             styles.fakeInputText,
-            !editable && styles.textDisabled
+            { color: colors.black },
+            !editable && { color: colors.grey }
           ]}>
             {char}
           </Text>
@@ -138,27 +141,18 @@ const styles = StyleSheet.create({
   input: {
     fontFamily: Montserrat.regular,
     borderWidth: 3,
-    borderColor: Colors.blue3,
     borderRadius: 14,
     width: 45,
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  inputActive: {
-    borderColor: Colors.lightBlue,
-  },
   inputDisabled: {
     opacity: 0.5,
-    borderColor: Colors.grey,
   },
   fakeInputText: {
     fontSize: 24,
-    color: Colors.black,
     textAlign: 'center',
     fontFamily: Montserrat.regular,
-  },
-  textDisabled: {
-    color: Colors.grey,
   },
 });

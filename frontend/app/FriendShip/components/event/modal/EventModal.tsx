@@ -5,6 +5,7 @@ import { useToast } from '@/components/ToastContext';
 import { Event } from '@/components/event/EventCard';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { addEventToCalendar, removeEventFromCalendar } from '@/utils/calendarHelper';
 import { formatDuration } from '@/utils/formatDuration';
  
@@ -89,6 +90,7 @@ const EventModal: React.FC<EventModalProps> = ({
   event,
   onSessionUpdate 
 }) => {
+  const colors = useThemedColors();
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -412,7 +414,7 @@ const EventModal: React.FC<EventModalProps> = ({
             <View style={StyleSheet.absoluteFill} />
           </TouchableWithoutFeedback>
 
-          <View style={styles.modal}>
+          <View style={[styles.modal, { backgroundColor: colors.white }]}>
             {isLoading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={Colors.lightBlue} />
@@ -435,47 +437,47 @@ const EventModal: React.FC<EventModalProps> = ({
 
                 <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                   <Image
-                    tintColor={Colors.black}
+                    tintColor={colors.black}
                     style={{ width: 35, height: 35, resizeMode: 'cover' }}
                     source={require('@/assets/images/event_card/back.png')}
                   />
                 </TouchableOpacity>
 
-                <View style={styles.content}>
+                <View style={[styles.content, { backgroundColor: colors.white }]}>
                   <View style={styles.titleRow}>
-                    <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
+                    <Text style={[styles.title, { color: colors.black }]} numberOfLines={2} ellipsizeMode="tail">
                       {formatTitle(sessionData?.session?.title || event.title)}
                     </Text>
                     <View style={styles.iconsRow}>
-                      <View style={styles.iconOverlay}>
+                      <View style={[styles.iconOverlay, { backgroundColor: colors.white }]}>
                         <Image
                           source={categoryIcons[event.category]}
-                          style={{ resizeMode: 'contain', width: 20, height: 20 }}
+                          style={{ resizeMode: 'contain', width: 20, height: 20, tintColor: colors.black }}
                         />
                       </View>
-                      <View style={styles.iconOverlay}>
+                      <View style={[styles.iconOverlay, { backgroundColor: colors.white }]}>
                         <Image
                           source={placeIcons[event.typePlace]}
-                          style={{ resizeMode: 'contain', width: 20, height: 20 }}
+                          style={{ resizeMode: 'contain', width: 20, height: 20, tintColor: colors.black }}
                         />
                       </View>
                     </View>
                   </View>
 
-                  <Text style={styles.description}>
+                  <Text style={[styles.description, { color: colors.black }]}>
                     {formatDescription(sessionData?.metadata?.Notes || event.description)}
                   </Text>
 
                   <View style={[styles.row, { marginBottom: 8 }]}>
                     <View style={{ flexDirection: 'row', flex: 1 }}>
-                      <Text style={styles.label}>Дата:</Text>
-                      <Text style={styles.value} numberOfLines={1}>
+                      <Text style={[styles.label, { color: colors.black }]}>Дата:</Text>
+                      <Text style={[styles.value, { color: colors.black }]} numberOfLines={1}>
                         {formatDateTime(sessionData?.session?.start_time) || event.date}
                       </Text>
                     </View>
                     <View style={{ flexDirection: 'row' }}>
-                      <Text style={styles.value}>
-                        {formatDuration(sessionData?.session?.duration || event.duration.replace(' мин', ''))}
+                      <Text style={[styles.value, { color: colors.black }]}>
+                        {formatDuration(sessionData?.session?.duration || event.duration.replace(' мін', ''))}
                       </Text>
                       <Image
                         source={require('@/assets/images/event_card/duration.png')}
@@ -485,25 +487,26 @@ const EventModal: React.FC<EventModalProps> = ({
                           resizeMode: 'contain',
                           marginStart: 2,
                           marginTop: 6,
+                          tintColor: colors.black
                         }}
                       />
                     </View>
                   </View>
 
-                  <Text style={styles.hint}>(указано местное время)</Text>
+                  <Text style={[styles.hint, {color: colors.darkGrey}]}>(указано местное время)</Text>
 
-                  <Text style={styles.label}>Жанры:</Text>
+                  <Text style={[styles.label, { color: colors.black }]}>Жанры:</Text>
                   <View style={styles.genres}>
                     {formatGenres(sessionData?.metadata?.Genres || event.genres).map((g, index) => (
                       <View key={`${g}-${index}`} style={styles.genreBadge}>
-                        <Text style={styles.genreText}>{g}</Text>
+                        <Text style={[styles.genreText, { color: colors.black }]}>{g}</Text>
                       </View>
                     ))}
                   </View>
 
                   {event.group && (
                     <View style={{ marginBottom: 4 }}>
-                      <Text style={styles.label}>
+                      <Text style={[styles.label, { color: colors.black }]}>
                         Организатор:{' '}
                         <Text
                           style={[styles.value, styles.clickableText]}
@@ -515,7 +518,7 @@ const EventModal: React.FC<EventModalProps> = ({
                     </View>
                   )}
 
-                  <Text style={[styles.label, { marginTop: 2 }]}>Место проведения:</Text>
+                  <Text style={[styles.label, { marginTop: 2, color: colors.black }]}>Место проведения:</Text>
                   <Text
                     style={[styles.value, styles.clickableText, {marginTop: 2}]}
                     onPress={handleLocationPress}
@@ -525,8 +528,8 @@ const EventModal: React.FC<EventModalProps> = ({
 
                   <View style={styles.row}>
                     <View style={{ flexDirection: 'row' }}>
-                      <Text style={styles.label}>Участников:</Text>
-                      <Text style={styles.value}>
+                      <Text style={[styles.label, { color: colors.black }]}>Участников:</Text>
+                      <Text style={[styles.value, { color: colors.black }]}>
                         {currentParticipants}/{maxParticipants}
                       </Text>
                       <Image
@@ -537,6 +540,7 @@ const EventModal: React.FC<EventModalProps> = ({
                           resizeMode: 'contain',
                           marginStart: 2,
                           marginTop: 6,
+                          tintColor: colors.black
                         }}
                       />
                     </View>
@@ -546,8 +550,8 @@ const EventModal: React.FC<EventModalProps> = ({
                     <View style={styles.calendarSection}>
                       <View style={styles.calendarRow}>
                         <View style={styles.calendarInfo}>
-                          <Text style={styles.calendarLabel}>Добавить в календарь</Text>
-                          <Text style={styles.calendarHint}>
+                          <Text style={[styles.calendarLabel, { color: colors.black }]}>Добавить в календарь</Text>
+                          <Text style={[styles.calendarHint, {color: colors.darkGrey}]}>
                             Событие будет добавлено в ваш календарь
                           </Text>
                         </View>
@@ -566,35 +570,35 @@ const EventModal: React.FC<EventModalProps> = ({
                   source={require('@/assets/images/event_card/bottom_rectangle.png')}
                   style={styles.bottomBackground}
                   resizeMode="stretch"
-                  tintColor={Colors.lightBlue}
+                  tintColor={colors.lightBlue}
                 >
                   <View style={styles.bottomContent}>
                     {formatPublisher(sessionData?.metadata?.Country || event.publisher) && (
-                      <Text style={styles.label}>
-                        Издатель: <Text style={styles.value}>
+                      <Text style={[styles.label, { color: colors.black }]}>
+                        Издатель: <Text style={[styles.value, { color: colors.black }]}>
                           {formatPublisher(sessionData?.metadata?.Country || event.publisher)}
                         </Text>
                       </Text>
                     )}
 
                     {(sessionData?.metadata?.Year || event.publicationDate) && (
-                      <Text style={styles.label}>
-                        Год издания: <Text style={styles.value}>
+                      <Text style={[styles.label, { color: colors.black }]}>
+                        Год издания: <Text style={[styles.value, { color: colors.black }]}>
                           {sessionData?.metadata?.Year || event.publicationDate}
                         </Text>
                       </Text>
                     )}
 
                     {(sessionData?.metadata?.AgeLimit || event.ageRating) && (
-                      <Text style={styles.label}>
-                        Возрастное ограничение: <Text style={styles.value}>
+                      <Text style={[styles.label, { color: colors.black }]}>
+                        Возрастное ограничение: <Text style={[styles.value, { color: colors.black }]}>
                           {sessionData?.metadata?.AgeLimit || event.ageRating}
                         </Text>
                       </Text>
                     )}
 
                     <TouchableOpacity
-                      style={[styles.actionButton, getButtonStyle()]}
+                      style={[styles.actionButton, getButtonStyle(), { backgroundColor: Colors.white }]}
                       onPress={handleJoinLeave}
                       disabled={isProcessing}
                     >
@@ -644,7 +648,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     borderRadius: 30,
     overflow: "hidden",
-    backgroundColor: Colors.white,
     maxHeight: screenHeight * 0.85,
   },
   loadingContainer: {
@@ -678,7 +681,6 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   iconOverlay: {
-    backgroundColor: Colors.white,
     borderRadius: 20,
     padding: 6,
     borderWidth: 2,
@@ -688,11 +690,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: Montserrat.bold,
     fontSize: 20,
-    color: Colors.black,
     lineHeight: 24,
   },
   content: {
-    backgroundColor: Colors.white,
     padding: 16,
   },
   description: {
@@ -710,7 +710,6 @@ const styles = StyleSheet.create({
   value: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
     marginTop: 6,
   },
   genres: {
@@ -729,7 +728,6 @@ const styles = StyleSheet.create({
   },
   genreText: { 
     fontFamily: Montserrat.regular, 
-    color: Colors.black, 
     fontSize: 12 
   },
   row: {
@@ -757,13 +755,11 @@ const styles = StyleSheet.create({
   calendarLabel: {
     fontFamily: Montserrat.bold,
     fontSize: 14,
-    color: Colors.black,
     marginBottom: 4,
   },
   calendarHint: {
     fontFamily: Montserrat.regular,
     fontSize: 11,
-    color: Colors.grey,
   },
   bottomBackground: {
     width: "100%",
@@ -779,10 +775,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   joinButton: {
-    backgroundColor: Colors.white,
   },
   leaveButton: {
-    backgroundColor: Colors.white,
   },
   actionButtonText: {
     fontFamily: Montserrat.bold,
@@ -799,13 +793,11 @@ const styles = StyleSheet.create({
     color: Colors.lightBlue,
   },
   disabledButton: {
-    backgroundColor: Colors.white,
   },
   hint: {
     fontFamily: Montserrat.regular,
     fontSize: 10,
     marginTop: -10,
-    color: Colors.darkGrey,
     marginBottom: 4
   }
 });

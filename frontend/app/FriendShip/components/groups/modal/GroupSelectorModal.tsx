@@ -1,8 +1,8 @@
 import groupService from '@/api/services/group/groupService';
 import { AdminGroup } from '@/api/services/group/groupTypes';
 import GroupCard, { GroupCategory } from '@/components/groups/GroupCard';
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -32,6 +32,7 @@ const GroupSelectorModal: React.FC<GroupSelectorModalProps> = ({
   onClose,
   onSelectGroup,
 }) => {
+  const colors = useThemedColors();
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -91,25 +92,25 @@ const GroupSelectorModal: React.FC<GroupSelectorModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Выберите группу</Text>
+        <View style={[styles.modalContainer, {backgroundColor: colors.white}]}>
+          <View style={[styles.header, {borderBottomColor: colors.lightGrey}]}>
+            <Text style={[styles.title, {color: colors.black}]}>Выберите группу</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
+              <Text style={[styles.closeButtonText, {color: colors.black}]}>✕</Text>
             </TouchableOpacity>
           </View>
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.lightBlue} />
-              <Text style={styles.loadingText}>Загрузка групп...</Text>
+              <ActivityIndicator size="large" color={colors.lightBlue} />
+              <Text style={[styles.loadingText, {color: colors.grey}]}>Загрузка групп...</Text>
             </View>
           ) : groups.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
+              <Text style={[styles.emptyText, {color: colors.black}]}>
                 У вас пока нет групп, где вы администратор
               </Text>
-              <Text style={styles.emptySubtext}>
+              <Text style={[styles.emptySubtext, {color: colors.grey}]}>
                 Создайте группу, чтобы добавлять события
               </Text>
             </View>
@@ -138,7 +139,6 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: '95%',
     maxHeight: '80%',
-    backgroundColor: Colors.white,
     borderRadius: 25,
     overflow: 'hidden',
   },
@@ -149,12 +149,10 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGrey,
   },
   title: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.black,
   },
   closeButton: {
     justifyContent: 'center',
@@ -163,7 +161,6 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontFamily: Montserrat.bold,
     fontSize: 24,
-    color: Colors.black,
   },
   loadingContainer: {
     padding: 40,
@@ -173,7 +170,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
   },
   emptyContainer: {
     padding: 40,
@@ -182,14 +178,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.black,
     textAlign: 'center',
     marginBottom: 8,
   },
   emptySubtext: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
     textAlign: 'center',
   },
   listContent: {

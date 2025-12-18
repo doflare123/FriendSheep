@@ -1,5 +1,5 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -12,38 +12,54 @@ const EventTypeSelector: React.FC<EventTypeSelectorProps> = ({
   selected,
   onSelect,
 }) => {
+  const colors = useThemedColors();
+
   return (
     <View>
-      <Text style={styles.sectionLabel}>Выберите тип события *</Text>
+      <Text style={[styles.sectionLabel, { color: colors.black }]}>
+        Выберите тип события *
+      </Text>
       <View style={styles.typeContainer}>
         <View style={{ flexDirection: 'column', alignItems: 'center' }}>
           <TouchableOpacity
-            style={[styles.typeButton, selected === 'offline' && styles.typeSelected]}
+            style={[
+              styles.typeButton,
+              { borderColor: colors.lightGrey },
+              selected === 'offline' && { borderColor: colors.lightBlue }
+            ]}
             onPress={() => onSelect('offline')}
           >
-            <View style={styles.typeIconContainer}>
+            <View style={[styles.typeIconContainer, { backgroundColor: colors.white }]}>
               <Image
                 source={require('@/assets/images/event_card/offline.png')}
-                style={styles.typeIcon}
+                style={[styles.typeIcon, {tintColor: colors.black}]}
               />
             </View>
           </TouchableOpacity>
-          <Text style={styles.typeText}>Оффлайн</Text>
+          <Text style={[styles.typeText, { color: colors.black }]}>
+            Оффлайн
+          </Text>
         </View>
 
         <View style={{ flexDirection: 'column', alignItems: 'center' }}>
           <TouchableOpacity
-            style={[styles.typeButton, selected === 'online' && styles.typeSelected]}
+            style={[
+              styles.typeButton,
+              { borderColor: colors.lightGrey },
+              selected === 'online' && { borderColor: colors.lightBlue }
+            ]}
             onPress={() => onSelect('online')}
           >
-            <View style={styles.typeIconContainer}>
+            <View style={[styles.typeIconContainer, { backgroundColor: colors.white }]}>
               <Image
                 source={require('@/assets/images/event_card/online.png')}
-                style={styles.typeIcon}
+                style={[styles.typeIcon, {tintColor: colors.black}]}
               />
             </View>
           </TouchableOpacity>
-          <Text style={styles.typeText}>Онлайн</Text>
+          <Text style={[styles.typeText, { color: colors.black }]}>
+            Онлайн
+          </Text>
         </View>
       </View>
     </View>
@@ -54,7 +70,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.black,
     marginBottom: 10,
   },
   typeContainer: {
@@ -71,16 +86,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 40,
     borderWidth: 3,
-    borderColor: Colors.lightGrey,
-  },
-  typeSelected: {
-    borderColor: Colors.lightBlue,
   },
   typeIconContainer: {
     width: 30,
     height: 30,
     borderRadius: 20,
-    backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -93,7 +103,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontFamily: Montserrat.bold,
     fontSize: 10,
-    color: Colors.black,
   },
 });
 

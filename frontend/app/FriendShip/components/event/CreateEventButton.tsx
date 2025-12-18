@@ -1,4 +1,5 @@
 import { Colors } from '@/constants/Colors';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import { Image, StyleSheet, TouchableOpacity } from 'react-native';
 
@@ -7,15 +8,17 @@ interface CreateEventButtonProps {
 }
 
 const CreateEventButton: React.FC<CreateEventButtonProps> = ({ onPress }) => {
+  const colors = useThemedColors();
+
   return (
     <TouchableOpacity 
-      style={styles.container} 
+      style={[styles.container, { backgroundColor: colors.blue2 }]} 
       onPress={onPress}
       activeOpacity={0.8}
     >
       <Image
         source={require('@/assets/images/bottom_bar/add.png')}
-        style={styles.icon}
+        style={[styles.icon, { tintColor: Colors.white }]}
       />
     </TouchableOpacity>
   );
@@ -29,7 +32,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: Colors.blue2,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
@@ -41,7 +43,6 @@ const styles = StyleSheet.create({
   icon: {
     width: 40,
     height: 40,
-    tintColor: Colors.white,
   },
 });
 

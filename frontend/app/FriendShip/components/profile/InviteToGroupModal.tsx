@@ -3,8 +3,8 @@ import groupService from '@/api/services/group/groupService';
 import { AdminGroup } from '@/api/services/group/groupTypes';
 import GroupCard, { GroupCategory } from '@/components/groups/GroupCard';
 import { useToast } from '@/components/ToastContext';
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -41,6 +41,7 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
   userId,
   onInviteSent,
 }) => {
+  const colors = useThemedColors();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -129,32 +130,44 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
       <TouchableWithoutFeedback onPress={sending ? undefined : onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.modal}>
-              <View style={styles.header}>
-                <Text style={styles.title}>Выберите группу</Text>
+            <View style={[styles.modal, { backgroundColor: colors.white }]}>
+              <View style={[
+                styles.header,
+                {
+                  backgroundColor: colors.white,
+                  borderBottomColor: colors.veryLightGrey
+                }
+              ]}>
+                <Text style={[styles.title, { color: colors.black }]}>
+                  Выберите группу
+                </Text>
                 <TouchableOpacity 
                   style={styles.closeButton} 
                   onPress={onClose}
                   disabled={sending}
                 >
                   <Image
-                    tintColor={Colors.black}
+                    tintColor={colors.black}
                     style={{ width: 35, height: 35, resizeMode: 'cover' }}
                     source={require('@/assets/images/event_card/back.png')}
                   />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.content}>
+              <View style={[styles.content, { backgroundColor: colors.white }]}>
                 {loading ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={Colors.lightBlue} />
-                    <Text style={styles.loadingText}>Загрузка групп...</Text>
+                    <ActivityIndicator size="large" color={colors.lightBlue} />
+                    <Text style={[styles.loadingText, { color: colors.grey }]}>
+                      Загрузка групп...
+                    </Text>
                   </View>
                 ) : sending ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={Colors.lightBlue} />
-                    <Text style={styles.loadingText}>Отправка приглашения...</Text>
+                    <ActivityIndicator size="large" color={colors.lightBlue} />
+                    <Text style={[styles.loadingText, { color: colors.grey }]}>
+                      Отправка приглашения...
+                    </Text>
                   </View>
                 ) : adminGroups.length > 0 ? (
                   <FlatList
@@ -166,7 +179,7 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
                   />
                 ) : (
                   <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>
+                    <Text style={[styles.emptyText, { color: colors.grey }]}>
                       У вас пока нет групп, где вы администратор
                     </Text>
                   </View>
@@ -191,7 +204,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
     borderRadius: 25,
     overflow: "hidden",
-    backgroundColor: Colors.white,
     maxHeight: screenHeight * 0.8,
     width: '95%',
   },
@@ -201,15 +213,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: Colors.white,
     position: 'relative',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.veryLightGrey,
   },
   title: {
     fontFamily: Montserrat.bold,
     fontSize: 20,
-    color: Colors.black,
     textAlign: 'center',
   },
   closeButton: {
@@ -218,7 +227,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   content: {
-    backgroundColor: Colors.white,
     paddingVertical: 8,
     maxHeight: screenHeight * 0.6,
   },
@@ -230,7 +238,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
   },
   listContent: {
     padding: 16,
@@ -245,7 +252,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
     textAlign: 'center',
     paddingHorizontal: 20,
   },

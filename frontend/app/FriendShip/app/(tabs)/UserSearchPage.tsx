@@ -15,6 +15,7 @@ import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { useUserSearch } from '@/hooks/useUserSearch';
 import { useUserSearchState } from '@/hooks/useUserSearchState';
 import { RootStackParamList } from '@/navigation/types';
@@ -23,6 +24,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 const UserSearchPage: React.FC = () => {
+  const colors = useThemedColors();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { sortingState: globalSortingState, sortingActions: globalSortingActions } = useSearchState();
   const { searchState, searchActions } = useUserSearchState();
@@ -84,8 +86,8 @@ const UserSearchPage: React.FC = () => {
 
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color={Colors.lightBlue} />
-        <Text style={styles.footerText}>Загрузка...</Text>
+        <ActivityIndicator size="small" color={colors.lightBlue} />
+        <Text style={[styles.footerText, {color: colors.grey}]}>Загрузка...</Text>
       </View>
     );
   };
@@ -94,8 +96,8 @@ const UserSearchPage: React.FC = () => {
     if (isLoading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={Colors.lightBlue} />
-          <Text style={styles.loadingText}>Поиск пользователей...</Text>
+          <ActivityIndicator size="large" color={colors.lightBlue} />
+          <Text style={[styles.loadingText, {color: colors.grey}]}>Поиск пользователей...</Text>
         </View>
       );
     }
@@ -111,8 +113,8 @@ const UserSearchPage: React.FC = () => {
     if (!searchState.searchQuery.trim()) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={styles.emptyText}>Введите имя пользователя</Text>
-          <Text style={styles.emptySubtext}>
+          <Text style={[styles.emptyText, {color: colors.grey}]}>Введите имя пользователя</Text>
+          <Text style={[styles.emptySubtext, {color: colors.grey}]}>
             для начала поиска
           </Text>
         </View>
@@ -121,8 +123,8 @@ const UserSearchPage: React.FC = () => {
 
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.emptyText}>Пользователи не найдены</Text>
-        <Text style={styles.emptySubtext}>
+        <Text style={[styles.emptyText, {color: colors.grey}]}>Пользователи не найдены</Text>
+        <Text style={[styles.emptySubtext, {color: colors.grey}]}>
           Попробуйте изменить запрос
         </Text>
       </View>
@@ -130,7 +132,7 @@ const UserSearchPage: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, {backgroundColor: colors.white}]}>
       <TopBar sortingState={globalSortingState} sortingActions={globalSortingActions} />
 
       <View style={styles.content}>
@@ -142,7 +144,7 @@ const UserSearchPage: React.FC = () => {
         >
           {totalUsers > 0 && (
             <View style={styles.resultsHeader}>
-              <Text style={styles.resultsCount}>
+              <Text style={[styles.resultsCount, {color: colors.grey}]}>
                 Найдено: {totalUsers} {getUserWordForm(totalUsers)}
               </Text>
             </View>
@@ -179,7 +181,6 @@ const UserSearchPage: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   content: {
     flex: 1,
@@ -202,7 +203,6 @@ const styles = StyleSheet.create({
   resultsCount: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
   },
   centerContainer: {
     flex: 1,
@@ -214,7 +214,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
   },
   errorText: {
     fontFamily: Montserrat.regular,
@@ -226,13 +225,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.grey,
     marginBottom: 8,
   },
   emptySubtext: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
     textAlign: 'center',
   },
   footerLoader: {
@@ -243,7 +240,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
   },
 });
 

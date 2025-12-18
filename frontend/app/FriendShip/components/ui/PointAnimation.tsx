@@ -1,6 +1,6 @@
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
-import { Colors } from '../../constants/Colors';
 
 const POINT_SIZE = 22;
 const POINT_SPACING = 18;
@@ -8,6 +8,7 @@ const POINT_DISTANCE = POINT_SIZE + POINT_SPACING;
 const JUMP_HEIGHT = 36;
 
 const PointAnimation = () => {
+  const colors = useThemedColors();
   const positions = [0, 1, 2].map(i => i * POINT_DISTANCE);
 
   const translateXs = useRef([
@@ -103,6 +104,7 @@ const PointAnimation = () => {
           key={i}
           style={[
             styles.dot,
+            { backgroundColor: colors.lightBlue },
             {
               transform: [
                 { translateX: translateXs[i] },
@@ -131,7 +133,6 @@ const styles = StyleSheet.create({
     width: POINT_SIZE,
     height: POINT_SIZE,
     borderRadius: POINT_SIZE / 2,
-    backgroundColor: Colors.lightBlue,
   },
 });
 

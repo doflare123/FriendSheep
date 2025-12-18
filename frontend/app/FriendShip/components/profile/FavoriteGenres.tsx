@@ -1,5 +1,5 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -13,9 +13,10 @@ interface FavoriteGenresProps {
 }
 
 const FavoriteGenres: React.FC<FavoriteGenresProps> = ({ genres }) => {
+  const colors = useThemedColors();
   if (!genres || genres.length === 0) {
     return (
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyText, {color: colors.black}]}>
         Пока нет любимых жанров
       </Text>
     );
@@ -41,7 +42,7 @@ const FavoriteGenres: React.FC<FavoriteGenresProps> = ({ genres }) => {
             key={`left-${index}`} 
             style={[
               styles.genreItem,
-              { fontFamily: getFontFamily(index) }
+              { fontFamily: getFontFamily(index), color: colors.black }
             ]}
           >
             {index + 1}. {genre.name} - {genre.count}
@@ -56,7 +57,7 @@ const FavoriteGenres: React.FC<FavoriteGenresProps> = ({ genres }) => {
               key={`right-${index}`} 
               style={[
                 styles.genreItem,
-                { fontFamily: getFontFamily(globalIndex) }
+                { fontFamily: getFontFamily(globalIndex), color: colors.black }
               ]}
             >
               {globalIndex + 1}. {genre.name} - {genre.count}
@@ -80,13 +81,11 @@ const styles = StyleSheet.create({
   },
   genreItem: {
     fontSize: 15,
-    color: Colors.black,
     marginBottom: 4,
   },
   emptyText: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
     alignSelf: 'center',
     marginVertical: 8,
   },

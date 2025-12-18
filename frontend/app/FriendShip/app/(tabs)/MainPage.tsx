@@ -17,6 +17,7 @@ import { Montserrat } from '@/constants/Montserrat';
 import { categoryToSessionType } from '@/hooks/groups/groupManageHelpers';
 import { useEvents } from '@/hooks/useEvents';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { RootStackParamList } from '@/navigation/types';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -28,6 +29,7 @@ type MainPageRouteProp = RouteProp<RootStackParamList, 'MainPage'>;
 type MainPageNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainPage'>;
 
 const MainPage = () => {
+  const colors = useThemedColors();
   const route = useRoute<MainPageRouteProp>();
   const navigation = useNavigation<MainPageNavigationProp>();
 
@@ -83,13 +85,11 @@ const MainPage = () => {
   const navigateToCategory = (
     category: 'movie' | 'game' | 'table_game' | 'other' | 'popular' | 'new',
     title: string,
-    imageSource: any
   ) => {
     try {
       navigation.navigate('CategoryPage', {
         category,
-        title,
-        imageSource,
+        title
       });
     } catch (error) {
       console.error('❌ Navigation error:', error);
@@ -181,11 +181,11 @@ const MainPage = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={Colors.lightBlue} />
-          <Text style={styles.loadingText}>
+          <Text style={[styles.loadingText, { color: colors.black }]}>
             Загрузка событий...
           </Text>
         </View>
@@ -196,13 +196,13 @@ const MainPage = () => {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         <View style={styles.centerContainer}>
           <Text style={styles.errorTitle}>
             Ошибка загрузки
           </Text>
-          <Text style={styles.errorText}>
+          <Text style={[styles.errorText, { color: colors.black }]}>
             {error}
           </Text>
         </View>
@@ -212,7 +212,7 @@ const MainPage = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
 
       {sortingState.searchQuery.trim() ? (
@@ -241,10 +241,10 @@ const MainPage = () => {
 
           {!hasAnyEvents ? (
             <View style={styles.noEventsContainer}>
-              <Text style={styles.noEventsTitle}>
+              <Text style={[styles.noEventsTitle, { color: Colors.blue2 }]}>
                 Пока нет доступных событий
               </Text>
-              <Text style={styles.noEventsSubtext}>
+              <Text style={[styles.noEventsSubtext, { color: Colors.grey }]}>
                 Создайте первое событие в вашей группе,{'\n'}
                 чтобы оно появилось здесь
               </Text>
@@ -259,8 +259,7 @@ const MainPage = () => {
                   onArrowPress={() =>
                     navigateToCategory(
                       'popular',
-                      'Популярные события',
-                      require('../../assets/images/category/popular-pattern.png')
+                      'Популярные события'
                     )
                   }
                 />
@@ -274,8 +273,7 @@ const MainPage = () => {
                   onArrowPress={() =>
                     navigateToCategory(
                       'new',
-                      'Новые события',
-                      require('../../assets/images/category/new-pattern.png')
+                      'Новые события'
                     )
                   }
                 />
@@ -297,8 +295,7 @@ const MainPage = () => {
                   onArrowPress={() =>
                     navigateToCategory(
                       'movie',
-                      'Медиа',
-                      require('../../assets/images/category/movies-pattern.png')
+                      'Медиа'
                     )
                   }
                 />
@@ -312,8 +309,7 @@ const MainPage = () => {
                   onArrowPress={() =>
                     navigateToCategory(
                       'game',
-                      'Видеоигры',
-                      require('../../assets/images/category/games-pattern.png')
+                      'Видеоигры'
                     )
                   }
                 />
@@ -327,8 +323,7 @@ const MainPage = () => {
                   onArrowPress={() =>
                     navigateToCategory(
                       'table_game',
-                      'Настольные игры',
-                      require('../../assets/images/category/table_games-pattern.png')
+                      'Настольные игры'
                     )
                   }
                 />
@@ -342,8 +337,7 @@ const MainPage = () => {
                   onArrowPress={() =>
                     navigateToCategory(
                       'other',
-                      'Другое',
-                      require('../../assets/images/category/other-pattern.png')
+                      'Другое'
                     )
                   }
                 />
@@ -389,7 +383,6 @@ const MainPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   scrollContent: {
     paddingBottom: 80,
@@ -439,14 +432,12 @@ const styles = StyleSheet.create({
   noEventsTitle: {
     fontFamily: Montserrat.bold,
     fontSize: 20,
-    color: Colors.blue2,
     textAlign: 'center',
     marginBottom: 12,
   },
   noEventsSubtext: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
     textAlign: 'center',
     lineHeight: 24,
   },

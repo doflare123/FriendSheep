@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
@@ -11,6 +12,8 @@ interface StatisticsBarProps {
 }
 
 const StatisticsBar = ({ title, count = 20, icon, fullWidth = false }: StatisticsBarProps) => {
+  const colors = useThemedColors();
+
   const getIconSource = (iconType?: string) => {
     switch (iconType) {
       case 'movies':
@@ -37,23 +40,30 @@ const StatisticsBar = ({ title, count = 20, icon, fullWidth = false }: Statistic
   };
 
   return (
-    <View style={[styles.container, fullWidth ? styles.containerFullWidth : styles.containerFitContent]}>
+    <View style={[
+      styles.container,
+      { backgroundColor: colors.lightBlue2 },
+      fullWidth ? styles.containerFullWidth : styles.containerFitContent
+    ]}>
       {icon && (
         <Image 
           source={getIconSource(icon)} 
-          style={styles.icon}
+          style={[styles.icon, {tintColor: Colors.black}]}
         />
       )}
-      <Text style={styles.text} numberOfLines={1}>{title}</Text>
-      <Text style={styles.separator}>-</Text>
-      <Text style={styles.countText} numberOfLines={1}>{count}</Text>
+      <Text style={[styles.text, { color: Colors.black }]} numberOfLines={1}>
+        {title}
+      </Text>
+      <Text style={[styles.separator, { color: Colors.black }]}>-</Text>
+      <Text style={[styles.countText, { color: Colors.black }]} numberOfLines={1}>
+        {count}
+      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.lightBlue2,
     flexDirection: 'row',    
     borderRadius: 40,
     paddingVertical: 8,
@@ -77,20 +87,17 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   text: {
-    color: Colors.black,
     fontSize: 14,
     fontFamily: Montserrat.regular,
     flexShrink: 1,
   },
   separator: {
-    color: Colors.black,
     fontSize: 14,
     fontFamily: Montserrat.regular,
     marginHorizontal: 6,
     flexShrink: 0,
   },
   countText: {
-    color: Colors.black,
     fontSize: 14,
     fontFamily: Montserrat.regular,
     flexShrink: 1,

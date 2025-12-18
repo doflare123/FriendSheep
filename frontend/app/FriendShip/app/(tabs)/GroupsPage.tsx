@@ -7,9 +7,9 @@ import GroupCarousel from '@/components/groups/GroupCarousel';
 import CreateGroupModal from '@/components/groups/modal/CreateGroupModal';
 import PageHeader from '@/components/PageHeader';
 import TopBar from '@/components/TopBar';
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { RootStackParamList } from '@/navigation/types';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -27,6 +27,7 @@ const CATEGORY_MAPPING: { [key: string]: string } = {
 };
 
 const GroupsPage = () => {
+  const colors = useThemedColors();
   const { sortingState, sortingActions } = useSearchState();
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [managedGroups, setManagedGroups] = useState<Group[]>([]);
@@ -129,7 +130,7 @@ const GroupsPage = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
       <PageHeader 
         title="Ваши группы" 
@@ -142,8 +143,10 @@ const GroupsPage = () => {
       
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.blue} />
-          <Text style={styles.loadingText}>Загрузка групп...</Text>
+          <ActivityIndicator size="large" color={colors.blue} />
+          <Text style={[styles.loadingText, { color: colors.grey }]}>
+            Загрузка групп...
+          </Text>
         </View>
       ) : (
         <ScrollView
@@ -151,8 +154,8 @@ const GroupsPage = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={[Colors.blue]}
-              tintColor={Colors.blue}
+              colors={[colors.blue]}
+              tintColor={colors.blue}
             />
           }
         >
@@ -161,21 +164,21 @@ const GroupsPage = () => {
             customActionButton={{
               icon: require('../../assets/images/groups/group_add.png'),
               onPress: handleAddGroup,
-              tintColor: Colors.blue2,
+              tintColor: colors.blue,
             }}
           >
             {managedGroups.length > 0 ? (
               <GroupCarousel 
                 groups={managedGroups} 
                 actionText="Управлять"
-                actionColor={[Colors.lightBlue, Colors.blue]}
+                actionColor={[colors.lightBlue, colors.blue]}
               />
             ) : (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
+                <Text style={[styles.emptyText, { color: colors.black }]}>
                   У вас пока нет групп под управлением
                 </Text>
-                <Text style={styles.emptySubtext}>
+                <Text style={[styles.emptySubtext, { color: colors.grey }]}>
                   Создайте свою первую группу!
                 </Text>
               </View>
@@ -187,7 +190,7 @@ const GroupsPage = () => {
               <GroupCarousel 
                 groups={subscriptions} 
                 actionText="Перейти"
-                actionColor={[Colors.lightBlue, Colors.blue]}
+                actionColor={[colors.lightBlue, colors.blue]}
               />
             </CategorySection>
           )}
@@ -216,7 +219,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
   },
   emptyContainer: {
     padding: 40,
@@ -225,14 +227,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.black,
     textAlign: 'center',
     marginBottom: 8,
   },
   emptySubtext: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
     textAlign: 'center',
   },
 });

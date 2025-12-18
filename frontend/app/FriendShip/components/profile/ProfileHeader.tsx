@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useRef, useState } from 'react';
 import {
   Image,
@@ -38,6 +39,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onChangeTiles,
   onInviteToGroup,
 }) => {
+  const colors = useThemedColors();
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const settingsIconRef = useRef<View>(null);
@@ -83,7 +85,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             >
               <Image 
                 source={require('@/assets/images/profile/settings.png')} 
-                style={styles.settingsImage}
+                style={[styles.settingsImage, {tintColor: Colors.lightGreyBlue}]}
               />
             </TouchableOpacity>
           )}
@@ -103,7 +105,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         
         <View style={styles.headerInfo}>
           <View style={styles.nameRow}>
-            <Text style={styles.profileName}>{name}</Text>
+            <Text style={[styles.profileName, { color: colors.black }]}>{name}</Text>
             <TouchableOpacity onPress={handleTelegramPress}>
               <Image 
                 source={require('@/assets/images/profile/telegram.png')} 
@@ -114,8 +116,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               />
             </TouchableOpacity>
           </View>
-          <Text style={styles.profileUs}>{username}</Text>
-          <Text style={styles.description}>{description}</Text>
+          <Text style={[styles.profileUs, { color: colors.black }]}>{username}</Text>
+          <Text style={[styles.description, { color: colors.black }]}>{description}</Text>
           <Text style={styles.registrationDate}>{registrationDate}</Text>
         </View>
       </View>
@@ -133,14 +135,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <View 
                   style={[
                     styles.menuContainer,
-                    { top: menuPosition.top, left: menuPosition.left }
+                    { 
+                      top: menuPosition.top, 
+                      left: menuPosition.left,
+                      backgroundColor: colors.white
+                    }
                   ]}
                 >
                   <TouchableOpacity
                     style={styles.menuItem}
                     onPress={() => handleMenuItemPress('tiles')}
                   >
-                    <Text style={styles.menuItemText}>Сменить плитки</Text>
+                    <Text style={[styles.menuItemText, { color: colors.black }]}>Сменить плитки</Text>
                   </TouchableOpacity>
                   
                   <View style={styles.menuDivider} />
@@ -149,7 +155,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     style={styles.menuItem}
                     onPress={() => handleMenuItemPress('edit')}
                   >
-                    <Text style={styles.menuItemText} numberOfLines={2}>Редактировать профиль</Text>
+                    <Text style={[styles.menuItemText, { color: colors.black }]} numberOfLines={2}>Редактировать профиль</Text>
                   </TouchableOpacity>
                 </View>
               </TouchableWithoutFeedback>
@@ -206,7 +212,6 @@ const styles = StyleSheet.create({
   profileName: {
     fontFamily: Montserrat.bold,
     fontSize: 20,
-    color: Colors.black,
     marginRight: 4,
   },
   telegramIcon: {
@@ -221,14 +226,12 @@ const styles = StyleSheet.create({
   profileUs: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
     marginTop: -6,
     marginBottom: 8,
   },
   description: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
     marginBottom: 8,
   },
   registrationDate: {
@@ -242,7 +245,6 @@ const styles = StyleSheet.create({
   },
   menuContainer: {
     position: 'absolute',
-    backgroundColor: Colors.white,
     borderRadius: 12,
     borderTopLeftRadius: 0,
     paddingVertical: 8,
@@ -261,7 +263,6 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
   },
   menuDivider: {
     height: 1,

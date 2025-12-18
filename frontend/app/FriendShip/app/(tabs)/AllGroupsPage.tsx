@@ -13,6 +13,7 @@ import { Montserrat } from '@/constants/Montserrat';
 import { useAllGroups } from '@/hooks/groups/useAllGroups';
 import { useGroupSearchState } from '@/hooks/useGroupSearchState';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { RootStackParamList } from '@/navigation/types';
 
 type GroupsMode = 'managed' | 'subscriptions';
@@ -22,6 +23,7 @@ interface AllGroupsPageProps {
 }
 
 const AllGroupsPage: React.FC<AllGroupsPageProps> = ({ navigation }) => {
+  const colors = useThemedColors();
   const [groupsMode, setGroupsMode] = useState<GroupsMode>('managed');
   
   const { sortingState, sortingActions } = useSearchState();
@@ -68,7 +70,7 @@ const AllGroupsPage: React.FC<AllGroupsPageProps> = ({ navigation }) => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         
         <CategorySection
@@ -78,8 +80,10 @@ const AllGroupsPage: React.FC<AllGroupsPageProps> = ({ navigation }) => {
         />
         
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={Colors.lightBlue} />
-          <Text style={styles.loadingText}>Загрузка групп...</Text>
+          <ActivityIndicator size="large" color={colors.lightBlue} />
+          <Text style={[styles.loadingText, { color: colors.grey }]}>
+            Загрузка групп...
+          </Text>
         </View>
         
         <BottomBar />
@@ -89,7 +93,7 @@ const AllGroupsPage: React.FC<AllGroupsPageProps> = ({ navigation }) => {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         
         <CategorySection
@@ -100,7 +104,9 @@ const AllGroupsPage: React.FC<AllGroupsPageProps> = ({ navigation }) => {
         
         <View style={styles.centerContainer}>
           <Text style={styles.errorTitle}>Ошибка загрузки</Text>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { color: colors.grey }]}>
+            {error}
+          </Text>
         </View>
         
         <BottomBar />
@@ -109,7 +115,7 @@ const AllGroupsPage: React.FC<AllGroupsPageProps> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
       
       <CategorySection
@@ -133,7 +139,7 @@ const AllGroupsPage: React.FC<AllGroupsPageProps> = ({ navigation }) => {
 
       {groups.length > 0 && (
         <View style={styles.resultsHeader}>
-          <Text style={styles.resultsCount}>
+          <Text style={[styles.resultsCount, { color: colors.grey }]}>
             Найдено: {groups.length} {getGroupWordForm(groups.length)}
           </Text>
         </View>
@@ -144,7 +150,7 @@ const AllGroupsPage: React.FC<AllGroupsPageProps> = ({ navigation }) => {
           <VerticalGroupList groups={groups} />
         ) : (
           <View style={styles.noGroupsContainer}>
-            <Text style={styles.noGroupsText}>
+            <Text style={[styles.noGroupsText, { color: colors.blue }]}>
               {getEmptyText()}
             </Text>
           </View>
@@ -159,7 +165,6 @@ const AllGroupsPage: React.FC<AllGroupsPageProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -171,7 +176,6 @@ const styles = StyleSheet.create({
   resultsCount: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
   },
   contentContainer: {
     flex: 1,
@@ -187,7 +191,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
   },
   errorTitle: {
     fontFamily: Montserrat.bold,
@@ -199,7 +202,6 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.regular,
     fontSize: 14,
     textAlign: 'center',
-    color: Colors.grey,
   },
   noGroupsContainer: {
     flex: 1,
@@ -211,7 +213,6 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.regular,
     fontSize: 20,
     textAlign: 'center',
-    color: Colors.blue2,
     marginBottom: 4,
   },
 });

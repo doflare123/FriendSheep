@@ -1,6 +1,6 @@
 import authService from '@/api/services/authService';
 import { useToast } from '@/components/ToastContext';
-import { Colors } from '@/constants/Colors';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
@@ -11,6 +11,7 @@ import Logo from '../../components/auth/Logo';
 import authorizeStyle from '../styles/authorizeStyle';
 
 const ForgotPassword = () => {
+  const colors = useThemedColors();
   const navigation = useNavigation();
   const { showToast } = useToast();
   
@@ -76,10 +77,12 @@ const ForgotPassword = () => {
   };
 
   return (
-    <View style={authorizeStyle.container}>
+    <View style={[authorizeStyle.container, { backgroundColor: colors.white }]}>
       <View style={authorizeStyle.topContainer}>
         <Logo />
-        <Text style={authorizeStyle.title}>Восстановление пароля</Text>
+        <Text style={[authorizeStyle.title, { color: colors.black }]}>
+          Восстановление пароля
+        </Text>
       </View>
 
       <KeyboardAwareScrollView
@@ -89,7 +92,9 @@ const ForgotPassword = () => {
         extraScrollHeight={20}
         showsVerticalScrollIndicator={false}>
 
-        <Text style={authorizeStyle.label}>Email</Text>
+        <Text style={[authorizeStyle.label, { color: colors.black }]}>
+          Email
+        </Text>
         <Input
           placeholder="user_email@gmail.com"
           value={email}
@@ -101,12 +106,12 @@ const ForgotPassword = () => {
         />
 
         {email.length > 0 && !isEmailValid && (
-          <Text style={authorizeStyle.passwordValidation}>
+          <Text style={[authorizeStyle.passwordValidation, { color: colors.red }]}>
             Введите корректный email (должен содержать @ и домен)
           </Text>
         )}
 
-        <Text style={authorizeStyle.terms}>
+        <Text style={[authorizeStyle.terms, { color: colors.grey }]}>
           Мы отправим код подтверждения на указанный email.
           После этого вы сможете установить новый пароль
         </Text>
@@ -120,7 +125,7 @@ const ForgotPassword = () => {
         {loading && (
           <ActivityIndicator 
             size="large" 
-            color={Colors.blue}
+            color={colors.blue}
             style={{ marginTop: 16 }} 
           />
         )}
@@ -130,12 +135,16 @@ const ForgotPassword = () => {
             onPress={() => navigation.goBack()}
             disabled={loading}
           >
-            <Text style={authorizeStyle.account}>Вернуться к входу</Text>
+            <Text style={[authorizeStyle.account, { color: colors.blue }]}>
+              Вернуться к входу
+            </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>
 
-      <Text style={authorizeStyle.footer}>©NecroDwarf</Text>
+      <Text style={[authorizeStyle.footer, { color: colors.grey }]}>
+        ©NecroDwarf
+      </Text>
     </View>
   );
 };

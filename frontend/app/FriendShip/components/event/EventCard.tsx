@@ -1,6 +1,7 @@
 import EventModal from '@/components/event/modal/EventModal';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { formatDuration } from '@/utils/formatDuration';
 import { formatTitle } from "@/utils/formatTitle";
 import React, { useState } from 'react';
@@ -83,6 +84,7 @@ const EventCard: React.FC<Event> = ({
   calendarEventId,
   ...eventData
 }) => {
+  const colors = useThemedColors();
   const [placeTextWidth, setPlaceTextWidth] = React.useState(0);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -101,7 +103,7 @@ const EventCard: React.FC<Event> = ({
   const renderTitle = () => {
     if (highlightedTitle) {
       return (
-        <Text style={styles.title}>
+        <Text style={[styles.title, { color: colors.black }]}>
           {highlightedTitle.before}
           <Text style={styles.highlightedText}>{highlightedTitle.match}</Text>
           {highlightedTitle.after}
@@ -109,7 +111,7 @@ const EventCard: React.FC<Event> = ({
       );
     } else {
       return <Text
-        style={styles.title}
+        style={[styles.title, { color: colors.black }]}
         numberOfLines={1}
         ellipsizeMode="tail"
       >
@@ -141,16 +143,16 @@ const EventCard: React.FC<Event> = ({
   return (
     <>
       <View style={styles.shadowWrapper}>
-        <TouchableOpacity onPress={handleCardPress} style={styles.card}>
+        <TouchableOpacity onPress={handleCardPress} style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={styles.imageWrapper}>
             <Image source={{ uri: imageUri }} style={styles.image} />
 
             <View style={styles.dateBadgeContainer}>
               <Image
                 source={require('@/assets/images/event_card/dateBadge.png')}
-                style={styles.dateBadge}
+                style={[styles.dateBadge, {tintColor: colors.card}]}
               />
-              <Text style={styles.dateText}>{date}</Text>
+              <Text style={[styles.dateText, { color: colors.black }]}>{date}</Text>
             </View>
 
             {typePlace === 'offline' && eventPlace && eventPlace.trim() !== '' && (
@@ -161,7 +163,7 @@ const EventCard: React.FC<Event> = ({
                   resizeMode="stretch"
                 />
                 <Text 
-                  style={styles.placeText}
+                  style={[styles.placeText, { color: colors.black }]}
                   onLayout={(e) => setPlaceTextWidth(e.nativeEvent.layout.width)}
                 >
                   {eventPlace.length > 20 ? eventPlace.substring(0, 14) + '...' : eventPlace}
@@ -174,16 +176,16 @@ const EventCard: React.FC<Event> = ({
             <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
               {renderTitle()}
               <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-                <View style={styles.iconOverlay}>
+                <View style={[styles.iconOverlay, { backgroundColor: colors.white }]}>
                     <Image
                       source={categoryIcons[category]}
-                      style={{ resizeMode: 'contain', width: 16, height: 16 }}
+                      style={{ resizeMode: 'contain', width: 16, height: 16, tintColor: colors.black }}
                     />
                 </View>
-                <View style={styles.iconOverlay}>
+                <View style={[styles.iconOverlay, { backgroundColor: colors.white }]}>
                     <Image
                       source={placeIcons[typePlace]}
-                      style={{ resizeMode: 'contain', width: 16, height: 16 }}
+                      style={{ resizeMode: 'contain', width: 16, height: 16, tintColor: colors.black }}
                     />
                 </View>
               </View>
@@ -191,10 +193,10 @@ const EventCard: React.FC<Event> = ({
 
             {hasGenres && (
               <View style={styles.genres}>
-                <Text style={[styles.metaText, { marginRight: 6, fontFamily: Montserrat.regular }]}>Жанры:</Text>
+                <Text style={[styles.metaText, { marginRight: 6, fontFamily: Montserrat.regular, color: colors.black }]}>Жанры:</Text>
                 {getVisibleGenres(genres).map((genre, index) => (
                   <View key={index} style={styles.genreBadge}>
-                    <Text style={styles.genreText}>{genre}</Text>
+                    <Text style={[styles.genreText, { color: colors.black }]}>{genre}</Text>
                   </View>
                 ))}
               </View>
@@ -202,20 +204,20 @@ const EventCard: React.FC<Event> = ({
 
             <View style={[styles.metaContainer, {marginTop: 10}]}>
               <View style={styles.metaRow}>
-                <Text style={styles.metaText}>
+                <Text style={[styles.metaText, { color: colors.black }]}>
                   Участники: {currentParticipants}/{maxParticipants}
                 </Text>
                 <Image
                   source={require("@/assets/images/event_card/person.png")}
-                  style={styles.metaIcon}
+                  style={[styles.metaIcon, {tintColor: colors.black}]}
                 />
               </View>
 
             <View style={styles.metaRow}>
-              <Text style={styles.metaText}>{formatDuration(duration.replace(' мин', ''))}</Text>
+              <Text style={[styles.metaText, { color: colors.black }]}>{formatDuration(duration.replace(' мин', ''))}</Text>
               <Image
                 source={require("@/assets/images/event_card/duration.png")}
-                style={styles.metaIcon}
+                style={[styles.metaIcon, {tintColor: colors.black}]}
               />
             </View>
             </View>
@@ -238,7 +240,6 @@ const styles = StyleSheet.create({
     width: 320,
     alignSelf: 'center',
     borderRadius: 26,
-    backgroundColor: Colors.white,
     overflow: 'hidden',
     elevation: 4,
     minHeight: 200,
@@ -274,7 +275,6 @@ const styles = StyleSheet.create({
     left: 0,
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    color: Colors.black,
     zIndex: 2,
     paddingHorizontal: 14,
     paddingVertical: 4,
@@ -295,7 +295,6 @@ const styles = StyleSheet.create({
     right: 0,
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    color: Colors.black,
     zIndex: 2,
     paddingRight: 14,
     paddingVertical: 4,
@@ -307,7 +306,6 @@ const styles = StyleSheet.create({
   iconOverlay: {
     width: 30,
     height: 30,
-    backgroundColor: Colors.white,
     borderRadius: 20,
     borderWidth: 2,
     marginLeft: 6,
@@ -322,7 +320,6 @@ const styles = StyleSheet.create({
     maxWidth: '85%',
     marginTop: 4,
     marginBottom: 4,
-    color: Colors.black,
   },
   highlightedText: {
     backgroundColor: Colors.lightBlue2,
@@ -342,7 +339,6 @@ const styles = StyleSheet.create({
   },
   genreText: { 
     fontFamily: Montserrat.regular, 
-    color: Colors.black, 
     fontSize: 10 
   },
   metaContainer: {
@@ -365,7 +361,6 @@ const styles = StyleSheet.create({
   metaText: { 
     fontFamily: Montserrat.regular, 
     fontSize: 14, 
-    color: Colors.black 
   },
 });
 

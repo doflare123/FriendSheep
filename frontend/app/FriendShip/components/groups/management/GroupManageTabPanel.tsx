@@ -1,4 +1,5 @@
 import { Colors } from '@/constants/Colors';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -16,6 +17,8 @@ const GroupManageTabPanel: React.FC<GroupManageTabPanelProps> = ({
   onTabChange,
   isPrivateGroup,
 }) => {
+  const colors = useThemedColors();
+
   const renderTabButton = (tab: TabType, icon: any) => (
     <TouchableOpacity
       key={tab}
@@ -31,13 +34,14 @@ const GroupManageTabPanel: React.FC<GroupManageTabPanelProps> = ({
       >
         <View style={[
           isPrivateGroup ? styles.innerButtonPrivate : styles.innerButtonPublic,
+          { backgroundColor: colors.veryLightGrey },
           activeTab === tab
         ]}>
           <Image 
             source={icon} 
             style={[
-              styles.tabIcon,
-              activeTab === tab && styles.tabIconActive
+              styles.tabIcon, {tintColor: Colors.lightGreyBlue},
+              activeTab === tab && {tintColor: Colors.darkGrey},
             ]} 
           />
         </View>
@@ -84,7 +88,6 @@ const styles = StyleSheet.create({
   },
   innerButtonPrivate: {
     flex: 1,
-    backgroundColor: Colors.veryLightGrey,
     alignItems: 'center',
     justifyContent: 'flex-end',
     borderRadius: 18,
@@ -94,7 +97,6 @@ const styles = StyleSheet.create({
   },
   innerButtonPublic: {
     flex: 1,
-    backgroundColor: Colors.veryLightGrey,
     alignItems: 'center',
     justifyContent: 'flex-end',
     borderRadius: 18,
@@ -106,10 +108,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     resizeMode: 'contain',
-    tintColor: Colors.lightGreyBlue,
-  },
-  tabIconActive: {
-    tintColor: Colors.darkGrey,
   },
 });
 

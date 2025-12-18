@@ -1,5 +1,5 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import { StyleSheet, Text, TextInput } from 'react-native';
 
@@ -9,15 +9,17 @@ interface CityFilterInputProps {
 }
 
 const CityFilterInput: React.FC<CityFilterInputProps> = ({ value, onChangeText }) => {
+  const colors = useThemedColors();
+  
   return (
     <>
-      <Text style={styles.dropdownTitle}>Фильтрация по городу</Text>
+      <Text style={[styles.dropdownTitle, {color: colors.black}]}>Фильтрация по городу</Text>
       <TextInput
-        style={styles.cityInput}
+        style={[styles.cityInput, {color: colors.black, backgroundColor: colors.veryLightGrey}]}
         placeholder="Введите город..."
         value={value}
         onChangeText={onChangeText}
-        placeholderTextColor={Colors.grey}
+        placeholderTextColor={colors.grey}
       />
     </>
   );
@@ -35,8 +37,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
-    backgroundColor: Colors.veryLightGrey,
   },
 });
 

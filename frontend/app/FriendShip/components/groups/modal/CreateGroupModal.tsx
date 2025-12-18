@@ -2,6 +2,7 @@ import groupService from '@/api/services/group/groupService';
 import DescriptionModal from '@/components/event/modal/DescriptionModal';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { validateFullDescription, validateGroupName, validateShortDescription } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
@@ -37,6 +38,7 @@ const CATEGORY_IDS: { [key: string]: number } = {
 };
 
 const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, onCreate }) => {
+  const colors = useThemedColors();
   const [groupName, setGroupName] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [fullDescription, setFullDescription] = useState('');
@@ -188,7 +190,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
     <>
       <Modal visible={visible} animationType="fade" transparent>
         <View style={styles.overlay}>
-          <View style={styles.modal}>
+          <View style={[styles.modal, { backgroundColor: colors.white }]}>
             <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
@@ -196,34 +198,40 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
               bounces={false}
               alwaysBounceVertical={false}
             >
-              <View style={styles.header}>
-                <Text style={styles.title}>Основная информация</Text>
+              <View style={[styles.header, { backgroundColor: colors.white }]}>
+                <Text style={[styles.title, { color: colors.black }]}>Основная информация</Text>
                 <TouchableOpacity 
                   style={styles.closeButton} 
                   onPress={handleClose}
                   disabled={isLoading}
                 >
                   <Image
-                    tintColor={Colors.black}
+                    tintColor={colors.black}
                     style={{ width: 35, height: 35, resizeMode: 'cover' }}
                     source={require('@/assets/images/event_card/back.png')}
                   />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.content}>
+              <View style={[styles.content, { backgroundColor: colors.white }]}>
                 <View style={styles.fieldContainer}>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { 
+                        borderBottomColor: colors.grey,
+                        color: colors.black
+                      }
+                    ]}
                     placeholder="Название *"
-                    placeholderTextColor={Colors.grey}
+                    placeholderTextColor={colors.grey}
                     value={groupName}
                     onChangeText={setGroupName}
                     maxLength={40}
                     editable={!isLoading}
                   />
                   {groupName.length > 0 && (
-                    <Text style={styles.charCounter}>
+                    <Text style={[styles.charCounter, { color: colors.grey }]}>
                       {groupName.length} / 40 {groupName.length < 5 && '(мин. 5)'}
                     </Text>
                   )}
@@ -232,9 +240,15 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                 <View style={styles.fieldContainer}>
                   <View style={styles.inputWithButtonContainer}>
                     <TextInput
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        { 
+                          borderBottomColor: colors.grey,
+                          color: colors.black
+                        }
+                      ]}
                       placeholder="Краткое описание *"
-                      placeholderTextColor={Colors.grey}
+                      placeholderTextColor={colors.grey}
                       value={shortDescription}
                       onChangeText={setShortDescription}
                       maxLength={50}
@@ -247,12 +261,12 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                     >
                       <Image
                         source={require('@/assets/images/event_card/back.png')}
-                        style={styles.expandIcon}
+                        style={[styles.expandIcon, { tintColor: colors.grey }]}
                       />
                     </TouchableOpacity>
                   </View>
                   {shortDescription.length > 0 && (
-                    <Text style={styles.charCounter}>
+                    <Text style={[styles.charCounter, { color: colors.grey }]}>
                       {shortDescription.length} / 50 {shortDescription.length < 5 && '(мин. 5)'}
                     </Text>
                   )}
@@ -261,9 +275,16 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                 <View style={styles.fieldContainer}>
                   <View style={styles.textAreaContainer}>
                     <TextInput
-                      style={[styles.input, styles.textArea]}
+                      style={[
+                        styles.input, 
+                        styles.textArea,
+                        {
+                          borderColor: colors.grey,
+                          color: colors.black
+                        }
+                      ]}
                       placeholder="Полное описание *"
-                      placeholderTextColor={Colors.grey}
+                      placeholderTextColor={colors.grey}
                       value={fullDescription}
                       onChangeText={setFullDescription}
                       multiline
@@ -279,21 +300,27 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                     >
                       <Image
                         source={require('@/assets/images/event_card/back.png')}
-                        style={styles.expandIcon}
+                        style={[styles.expandIcon, { tintColor: colors.grey }]}
                       />
                     </TouchableOpacity>
                   </View>
                   {fullDescription.length > 0 && (
-                    <Text style={styles.charCounter}>
+                    <Text style={[styles.charCounter, { color: colors.grey }]}>
                       {fullDescription.length} / 300 {fullDescription.length < 5 && '(мин. 5)'}
                     </Text>
                   )}
                 </View>
 
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    { 
+                      borderBottomColor: colors.grey,
+                      color: colors.black
+                    }
+                  ]}
                   placeholder="Город"
-                  placeholderTextColor={Colors.grey}
+                  placeholderTextColor={colors.grey}
                   value={city}
                   onChangeText={setCity}
                   maxLength={50}
@@ -307,22 +334,29 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                     disabled={isLoading}
                   >
                     <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                      <View style={[styles.checkboxCircle, isPrivate && styles.checkboxSelected]} />
-                      <Text style={styles.checkboxLabel}>Приватная группа</Text>
+                      <View style={[
+                        styles.checkboxCircle,
+                        { borderColor: colors.grey },
+                        isPrivate && { backgroundColor: colors.lightBlue }
+                      ]} />
+                      <Text style={[styles.checkboxLabel, { color: colors.black }]}>
+                        Приватная группа
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.categoriesAndImageSection}>
                   <View style={styles.leftSection}>
-                    <Text style={styles.sectionLabel}>Категории *</Text>
+                    <Text style={[styles.sectionLabel, { color: colors.black }]}>Категории *</Text>
                     <View style={styles.categoriesContainer}>
                       {categories.map((category) => (
                         <TouchableOpacity
                           key={category.id}
                           style={[
                             styles.categoryButton,
-                            selectedCategories.includes(category.id) && styles.categoryButtonSelected
+                            { backgroundColor: colors.veryLightGrey },
+                            selectedCategories.includes(category.id) && { backgroundColor: colors.lightBlue }
                           ]}
                           onPress={() => toggleCategory(category.id)}
                           disabled={isLoading}
@@ -332,7 +366,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                       ))}
                     </View>
 
-                    <Text style={styles.sectionLabel}>Контакты:</Text>
+                    <Text style={[styles.sectionLabel, { color: colors.black }]}>Контакты:</Text>
                     <View style={styles.contactsContainer}>
                       <TouchableOpacity
                         style={styles.contactButton}
@@ -369,12 +403,20 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                         style={styles.selectedImage}
                       />
                     ) : (
-                      <View style={styles.uploadPlaceholder}>
+                      <View style={[
+                        styles.uploadPlaceholder,
+                        { 
+                          backgroundColor: colors.veryLightGrey,
+                          borderColor: colors.lightGrey
+                        }
+                      ]}>
                         <Image 
                           source={require('@/assets/images/groups/upload_image.png')} 
-                          style={styles.uploadIcon}
+                          style={[styles.uploadIcon, { tintColor: colors.grey }]}
                         />
-                        <Text style={styles.uploadText}>Загрузите{'\n'}изображение *</Text>
+                        <Text style={[styles.uploadText, { color: colors.grey }]}>
+                          Загрузите{'\n'}изображение *
+                        </Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -390,7 +432,8 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
                 <View style={styles.bottomContent}>
                   <TouchableOpacity
                     style={[
-                      styles.createButton, 
+                      styles.createButton,
+                      { backgroundColor: colors.white },
                       (!isFormValid() || isLoading) && styles.createButtonDisabled
                     ]}
                     onPress={handleCreate}
@@ -448,7 +491,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
     borderRadius: 25,
     overflow: "hidden",
-    backgroundColor: Colors.white,
     maxHeight: screenHeight * 0.85,
   },
   header: {
@@ -457,13 +499,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: Colors.white,
     position: 'relative',
   },
   title: {
     fontFamily: Montserrat.bold,
     fontSize: 20,
-    color: Colors.black,
     textAlign: 'center',
   },
   closeButton: {
@@ -472,7 +512,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   content: {
-    backgroundColor: Colors.white,
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 16,
@@ -485,19 +524,16 @@ const styles = StyleSheet.create({
   },
   input: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.grey,
     paddingVertical: 4,
     paddingHorizontal: 0,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
   },
   textAreaContainer: {
     position: 'relative',
   },
   textArea: {
     borderWidth: 1,
-    borderColor: Colors.grey,
     borderRadius: 8,
     padding: 16,
     paddingRight: 48,
@@ -507,7 +543,6 @@ const styles = StyleSheet.create({
   charCounter: {
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    color: Colors.grey,
     marginTop: 4,
   },
   expandButton: {
@@ -531,7 +566,6 @@ const styles = StyleSheet.create({
   expandIcon: {
     width: 18,
     height: 18,
-    tintColor: Colors.grey,
     transform: [{ rotate: '90deg' }],
   },
   checkboxContainer: {
@@ -547,17 +581,11 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: Colors.grey,
-    backgroundColor: Colors.white,
-  },
-  checkboxSelected: {
-    backgroundColor: Colors.lightBlue,
   },
   checkboxLabel: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
     marginLeft: 12,
-    color: Colors.black,
   },
   categoriesAndImageSection: {
     flexDirection: 'row',
@@ -571,7 +599,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.black,
     marginBottom: 8,
   },
   categoriesContainer: {
@@ -584,14 +611,10 @@ const styles = StyleSheet.create({
     width: 35,
     height: 35,
     borderRadius: 8,
-    backgroundColor: Colors.lightLightGrey,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-  },
-  categoryButtonSelected: {
-    backgroundColor: Colors.lightBlue,
   },
   categoryIcon: {
     width: 25,
@@ -632,23 +655,19 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: Colors.lightLightGrey,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.lightGrey,
     borderStyle: 'dashed',
   },
   uploadIcon: {
     width: 40,
     height: 40,
     resizeMode: 'contain',
-    tintColor: Colors.grey,
   },
   uploadText: {
     fontFamily: Montserrat.bold,
     fontSize: 12,
-    color: Colors.grey,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -666,7 +685,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   createButton: {
-    backgroundColor: Colors.white,
     marginHorizontal: 60,
     paddingVertical: 6,
     borderRadius: 20,

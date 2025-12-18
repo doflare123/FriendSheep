@@ -1,4 +1,5 @@
 import { Colors } from '@/constants/Colors';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import { Image, Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -32,6 +33,8 @@ const SearchTypeModal: React.FC<SearchTypeModalProps> = ({
   activeType,
   onTypeChange,
 }) => {
+  const colors = useThemedColors();
+
   const getIconSource = (type: 'event' | 'profile' | 'group') => {
     return type === activeType 
       ? SEARCH_TYPE_ICONS[type].arrow 
@@ -49,13 +52,17 @@ const SearchTypeModal: React.FC<SearchTypeModalProps> = ({
         <View
           style={[
             styles.categoryModal,
-            { top: position.top, left: position.left }
+            { 
+              top: position.top, 
+              left: position.left,
+              backgroundColor: colors.white
+            }
           ]}
         >
           <View>
             <Image
               source={SEARCH_TYPE_ICONS[activeType].arrow}
-              style={styles.iconOnly}
+              style={[styles.iconOnly, {tintColor: Colors.lightGreyBlue}]}
               resizeMode="contain"
             />
           </View>
@@ -66,7 +73,7 @@ const SearchTypeModal: React.FC<SearchTypeModalProps> = ({
               <TouchableOpacity key={type} onPress={() => onTypeChange(type)}>
                 <Image 
                   source={getIconSource(type)} 
-                  style={styles.iconOnly} 
+                  style={[styles.iconOnly, {tintColor: Colors.lightGreyBlue}]} 
                   resizeMode="contain" 
                 />
               </TouchableOpacity>
@@ -85,7 +92,6 @@ const styles = StyleSheet.create({
   },
   categoryModal: {
     position: 'absolute',
-    backgroundColor: Colors.white,
     borderRadius: 10,
     padding: 10,
     elevation: 5,

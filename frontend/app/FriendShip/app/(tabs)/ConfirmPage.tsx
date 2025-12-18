@@ -2,6 +2,7 @@ import authService from '@/api/services/authService';
 import { useAuthContext } from '@/components/auth/AuthContext';
 import InputSmall from '@/components/auth/InputSmall';
 import { useToast } from '@/components/ToastContext';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Text, TouchableOpacity, View } from 'react-native';
@@ -9,7 +10,6 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import Button from '../../components/auth/Button';
 import Logo from '../../components/auth/Logo';
 import PointAnimation from '../../components/ui/PointAnimation';
-import { Colors } from '../../constants/Colors';
 import authorizeStyle from '../styles/authorizeStyle';
 
 const RESEND_TIMEOUT_MINUTES = 15;
@@ -21,6 +21,7 @@ type ConfirmRouteParams = {
 };
 
 const Confirm = () => {
+  const colors = useThemedColors();
   const navigation = useNavigation();
   const { showToast } = useToast();
   const { tempRegData, setTempRegData } = useAuthContext();
@@ -297,10 +298,12 @@ const Confirm = () => {
   };
 
   return (
-    <View style={authorizeStyle.container}>
+    <View style={[authorizeStyle.container, { backgroundColor: colors.white }]}>
       <View style={[authorizeStyle.topContainer, { marginBottom: 0 }]}>
         <Logo />
-        <Text style={authorizeStyle.title}>{getTitle()}</Text>
+        <Text style={[authorizeStyle.title, { color: colors.black }]}>
+          {getTitle()}
+        </Text>
         <PointAnimation />
       </View>
 
@@ -312,7 +315,10 @@ const Confirm = () => {
         showsVerticalScrollIndicator={false}
       >
         <Text
-          style={[authorizeStyle.label, { fontSize: 16, textAlign: 'center' }]}
+          style={[
+            authorizeStyle.label,
+            { fontSize: 16, textAlign: 'center', color: colors.black }
+          ]}
         >
           Введите код подтверждения из письма, отправленного на почту {user_email_name}@{user_email_domain}
         </Text>
@@ -325,13 +331,16 @@ const Confirm = () => {
         />
 
         {attempts >= MAX_ATTEMPTS && (
-          <Text style={[authorizeStyle.hintLabel, { color: Colors.red, marginBottom: 10 }]}>
+          <Text style={[
+            authorizeStyle.hintLabel,
+            { color: colors.red, marginBottom: 10 }
+          ]}>
             Превышено количество попыток. Запросите новый код.
           </Text>
         )}
 
         {!resendAvailable ? (
-          <Text style={authorizeStyle.hintLabel}>
+          <Text style={[authorizeStyle.hintLabel, { color: colors.grey }]}>
             Повторно код можно отправить через {minutes}:{seconds.toString().padStart(2, '0')}
           </Text>
         ) : (
@@ -339,7 +348,7 @@ const Confirm = () => {
             onPress={handleResend}
             disabled={resending}
           >
-            <Text style={[authorizeStyle.hintLabel, { color: Colors.lightBlue }]}>
+            <Text style={[authorizeStyle.hintLabel, { color: colors.lightBlue }]}>
               {resending ? 'Отправка...' : 'Отправить код повторно'}
             </Text>
           </TouchableOpacity>
@@ -351,7 +360,7 @@ const Confirm = () => {
             disabled={loading || resending}
             style={{ marginTop: 10 }}
           >
-            <Text style={[authorizeStyle.hintLabel, { color: Colors.lightBlue }]}>
+            <Text style={[authorizeStyle.hintLabel, { color: colors.lightBlue }]}>
               Изменить email
             </Text>
           </TouchableOpacity>
@@ -366,13 +375,15 @@ const Confirm = () => {
         {(loading || resending) && (
           <ActivityIndicator 
             size="large" 
-            color={Colors.blue} 
+            color={colors.blue} 
             style={{ marginTop: 16 }} 
           />
         )}
       </KeyboardAwareScrollView>
 
-      <Text style={authorizeStyle.footer}>©NecroDwarf</Text>
+      <Text style={[authorizeStyle.footer, { color: colors.grey }]}>
+        ©NecroDwarf
+      </Text>
     </View>
   );
 };

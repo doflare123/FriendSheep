@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -23,6 +24,8 @@ const PrivateGroupPreview: React.FC<PrivateGroupPreviewProps> = ({
   isProcessing,
   requestStatus = 'none',
 }) => {
+  const colors = useThemedColors();
+
   const getButtonText = () => {
     switch (requestStatus) {
       case 'pending':
@@ -39,13 +42,13 @@ const PrivateGroupPreview: React.FC<PrivateGroupPreviewProps> = ({
   const getButtonStyle = () => {
     switch (requestStatus) {
       case 'pending':
-        return [styles.requestButton, styles.pendingButton];
+        return [styles.requestButton, { backgroundColor: colors.grey }];
       case 'approved':
-        return [styles.requestButton, styles.approvedButton];
+        return [styles.requestButton, { backgroundColor: Colors.green }];
       case 'rejected':
-        return [styles.requestButton, styles.rejectedButton];
+        return [styles.requestButton, { backgroundColor: Colors.red }];
       default:
-        return styles.requestButton;
+        return [styles.requestButton, { backgroundColor: colors.lightBlue }];
     }
   };
 
@@ -53,21 +56,25 @@ const PrivateGroupPreview: React.FC<PrivateGroupPreviewProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.iconContainer}>
+      <View style={[styles.iconContainer, { backgroundColor: colors.veryLightGrey }]}>
         <Image
           source={require('@/assets/images/groups/lock.png')}
-          style={styles.lockIcon}
+          style={[styles.lockIcon, { tintColor: colors.grey }]}
           resizeMode="contain"
         />
       </View>
 
-      <Text style={styles.title}>Приватная группа</Text>
+      <Text style={[styles.title, { color: colors.black }]}>
+        Приватная группа
+      </Text>
       
       {groupName && (
-        <Text style={styles.groupName}>{groupName}</Text>
+        <Text style={[styles.groupName, { color: colors.lightBlue }]}>
+          {groupName}
+        </Text>
       )}
 
-      <Text style={styles.description}>
+      <Text style={[styles.description, { color: colors.grey }]}>
         {requestStatus === 'pending' 
           ? 'Ваша заявка отправлена и ожидает одобрения администратора.'
           : requestStatus === 'approved'
@@ -91,7 +98,7 @@ const PrivateGroupPreview: React.FC<PrivateGroupPreviewProps> = ({
       </TouchableOpacity>
 
       {requestStatus === 'none' && (
-        <Text style={styles.hint}>
+        <Text style={[styles.hint, { color: colors.grey }]}>
           После одобрения заявки администратором вы получите полный доступ к группе
         </Text>
       )}
@@ -111,7 +118,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: Colors.veryLightGrey,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -119,47 +125,33 @@ const styles = StyleSheet.create({
   lockIcon: {
     width: 60,
     height: 60,
-    tintColor: Colors.grey,
   },
   title: {
     fontFamily: Montserrat.bold,
     fontSize: 24,
-    color: Colors.black,
     marginBottom: 8,
     textAlign: 'center',
   },
   groupName: {
     fontFamily: Montserrat.bold,
     fontSize: 20,
-    color: Colors.lightBlue,
     marginBottom: 16,
     textAlign: 'center',
   },
   description: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
   },
   requestButton: {
-    backgroundColor: Colors.lightBlue,
     paddingVertical: 12,
     paddingHorizontal: 48,
     borderRadius: 25,
     marginBottom: 16,
     minWidth: 200,
     alignItems: 'center',
-  },
-  pendingButton: {
-    backgroundColor: Colors.grey,
-  },
-  approvedButton: {
-    backgroundColor: Colors.green,
-  },
-  rejectedButton: {
-    backgroundColor: Colors.red,
   },
   requestButtonDisabled: {
     opacity: 0.6,
@@ -172,7 +164,6 @@ const styles = StyleSheet.create({
   hint: {
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    color: Colors.grey,
     textAlign: 'center',
     fontStyle: 'italic',
   },

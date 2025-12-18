@@ -22,17 +22,18 @@ import TopBar from '@/components/TopBar';
 import CreateEditEventModal from '@/components/event/modal/CreateEventModal';
 import { GroupAdminGuard } from '@/components/groups/management/GroupAdminGuard';
 import SubscribersTabContent from '@/components/groups/management/SubscribersTabContent';
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
 import { useGroupManage } from '@/hooks/groups/useGroupManage';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { RootStackParamList } from '@/navigation/types';
 
 type GroupManagePageRouteProp = RouteProp<RootStackParamList, 'GroupManagePage'>;
 type GroupManagePageNavigationProp = StackNavigationProp<RootStackParamList, 'GroupManagePage'>;
 
 const GroupManagePage = () => {
+  const colors = useThemedColors();
   const route = useRoute<GroupManagePageRouteProp>();
   const navigation = useNavigation<GroupManagePageNavigationProp>();
   const { sortingState, sortingActions } = useSearchState();
@@ -209,9 +210,11 @@ const GroupManagePage = () => {
 
   if (!groupData) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Группа не найдена</Text>
+          <Text style={[styles.errorText, { color: colors.black }]}>
+            Группа не найдена
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -219,7 +222,7 @@ const GroupManagePage = () => {
 
   return (
     <GroupAdminGuard groupId={groupId}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
           <View style={styles.sectionHeader}>
             <GroupManageTabPanel
@@ -231,14 +234,15 @@ const GroupManagePage = () => {
             <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
               <Image
                 source={require('../../assets/images/event_card/back.png')}
-                style={styles.backIcon}
-                tintColor={Colors.darkGrey}
+                style={[styles.backIcon, { tintColor: colors.black }]}
               />
             </TouchableOpacity>
           </View>
           
           <View style={styles.titleContainer}>
-            <Text style={styles.sectionTitle}>{getSectionTitle()}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.black }]}>
+              {getSectionTitle()}
+            </Text>
             {activeTab === 'info' && (
               <TouchableOpacity
                 style={styles.deleteIconButton}
@@ -317,7 +321,6 @@ const GroupManagePage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   errorContainer: {
     flex: 1,
@@ -327,7 +330,6 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -352,7 +354,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     resizeMode: 'contain',
-    tintColor: Colors.black,
   },
   topBackground: {
     width: '100%',
@@ -371,7 +372,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: Montserrat_Alternates.bold,
     fontSize: 20,
-    color: Colors.black,
   },
   deleteIconButton: {
     position: 'absolute',

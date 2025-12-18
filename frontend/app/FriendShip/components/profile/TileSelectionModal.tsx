@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useEffect, useState } from 'react';
 import {
   Image,
@@ -41,6 +42,7 @@ const TileSelectionModal: React.FC<TileSelectionModalProps> = ({
   onTilesChange,
   stats,
 }) => {
+  const colors = useThemedColors();
   const [localSelectedTiles, setLocalSelectedTiles] = useState<TileType[]>(selectedTiles);
 
   useEffect(() => {
@@ -100,8 +102,8 @@ const TileSelectionModal: React.FC<TileSelectionModalProps> = ({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.container}>
-              <Text style={styles.title}>
+            <View style={[styles.container, { backgroundColor: colors.white }]}>
+              <Text style={[styles.title, { color: colors.black }]}>
                 Выберите плитки для отображения
               </Text>
 
@@ -114,16 +116,25 @@ const TileSelectionModal: React.FC<TileSelectionModalProps> = ({
                     return (
                       <TouchableOpacity
                         key={tile.id}
-                        style={styles.tile}
+                        style={[styles.tile, { backgroundColor: colors.lightBlue2 }]}
                         onPress={() => handleTilePress(tile.id)}
                         activeOpacity={0.7}
                       >
                         <Image source={tile.icon} style={styles.tileIcon} />
-                        <Text style={styles.tileText}>{tile.title}</Text>
+                        <Text style={[styles.tileText, { color: Colors.black }]}>{tile.title}</Text>
                         
                         {isSelected && (
-                          <View style={styles.selectionBadge}>
-                            <Text style={styles.selectionBadgeText}>
+                          <View style={[
+                            styles.selectionBadge,
+                            { 
+                              backgroundColor: colors.white,
+                              borderColor: colors.lightBlue2
+                            }
+                          ]}>
+                            <Text style={[
+                              styles.selectionBadgeText,
+                              { color: colors.lightBlue2 }
+                            ]}>
                               {selectionNumber}
                             </Text>
                           </View>
@@ -141,16 +152,25 @@ const TileSelectionModal: React.FC<TileSelectionModalProps> = ({
                     return (
                       <TouchableOpacity
                         key={tile.id}
-                        style={styles.tile}
+                        style={[styles.tile, { backgroundColor: colors.lightBlue2 }]}
                         onPress={() => handleTilePress(tile.id)}
                         activeOpacity={0.7}
                       >
                         <Image source={tile.icon} style={styles.tileIcon} />
-                        <Text style={styles.tileText}>{tile.title}</Text>
+                        <Text style={[styles.tileText, { color: Colors.black }]}>{tile.title}</Text>
                         
                         {isSelected && (
-                          <View style={styles.selectionBadge}>
-                            <Text style={styles.selectionBadgeText}>
+                          <View style={[
+                            styles.selectionBadge,
+                            { 
+                              backgroundColor: colors.white,
+                              borderColor: colors.lightBlue2
+                            }
+                          ]}>
+                            <Text style={[
+                              styles.selectionBadgeText,
+                              { color: colors.lightBlue2 }
+                            ]}>
                               {selectionNumber}
                             </Text>
                           </View>
@@ -168,16 +188,25 @@ const TileSelectionModal: React.FC<TileSelectionModalProps> = ({
                     return (
                       <TouchableOpacity
                         key={tile.id}
-                        style={styles.tile}
+                        style={[styles.tile, { backgroundColor: colors.lightBlue2 }]}
                         onPress={() => handleTilePress(tile.id)}
                         activeOpacity={0.7}
                       >
                         <Image source={tile.icon} style={styles.tileIcon} />
-                        <Text style={styles.tileText}>{tile.title}</Text>
+                        <Text style={[styles.tileText, { color: Colors.black }]}>{tile.title}</Text>
                         
                         {isSelected && (
-                          <View style={styles.selectionBadge}>
-                            <Text style={styles.selectionBadgeText}>
+                          <View style={[
+                            styles.selectionBadge,
+                            { 
+                              backgroundColor: colors.white,
+                              borderColor: colors.lightBlue2
+                            }
+                          ]}>
+                            <Text style={[
+                              styles.selectionBadgeText,
+                              { color: colors.lightBlue2 }
+                            ]}>
                               {selectionNumber}
                             </Text>
                           </View>
@@ -191,7 +220,7 @@ const TileSelectionModal: React.FC<TileSelectionModalProps> = ({
               <TouchableOpacity 
                 style={[
                   styles.confirmButton,
-                  localSelectedTiles.length !== 4 && styles.confirmButtonDisabled
+                  { backgroundColor: localSelectedTiles.length === 4 ? Colors.blue3 : colors.lightBlack }
                 ]}
                 onPress={handleConfirm}
                 disabled={localSelectedTiles.length !== 4}
@@ -216,7 +245,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   container: {
-    backgroundColor: Colors.white,
     borderRadius: 24,
     padding: 16,
     maxWidth: 340,
@@ -224,7 +252,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.black,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -240,7 +267,6 @@ const styles = StyleSheet.create({
   },
   tile: {
     flex: 1,
-    backgroundColor: Colors.lightBlue2,
     borderRadius: 40,
     paddingVertical: 8,
     paddingHorizontal: 8,
@@ -256,29 +282,24 @@ const styles = StyleSheet.create({
   tileText: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
     flex: 1,
   },
   selectionBadge: {
     position: 'absolute',
     top: -6,
     right: -2,
-    backgroundColor: Colors.white,
     borderRadius: 20,
     width: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.lightBlue2,
   },
   selectionBadgeText: {
     fontFamily: Montserrat.bold,
     fontSize: 10,
-    color: Colors.lightBlue2,
   },
   confirmButton: {
-    backgroundColor: Colors.blue3,
     borderRadius: 40,
     paddingVertical: 8,
     alignItems: 'center',
@@ -287,9 +308,6 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.white,
-  },
-  confirmButtonDisabled: {
-    backgroundColor: Colors.lightBlack,
   },
 });
 

@@ -1,5 +1,5 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -42,11 +42,13 @@ const GroupCard: React.FC<GroupCardProps> = ({
   onPress,
   highlightedName,
 }) => {
+  const colors = useThemedColors();
+
   const renderHighlightedText = () => {
     if (!highlightedName) {
       return (
         <Text 
-          style={styles.groupName}
+          style={[styles.groupName, { color: colors.black }]}
           numberOfLines={2}
           ellipsizeMode='tail'
         >
@@ -57,12 +59,14 @@ const GroupCard: React.FC<GroupCardProps> = ({
 
     return (
       <Text 
-        style={styles.groupName}
+        style={[styles.groupName, { color: colors.black }]}
         numberOfLines={2}
         ellipsizeMode='tail'
       >
         {highlightedName.before}
-        <Text style={styles.highlight}>{highlightedName.match}</Text>
+        <Text style={{ backgroundColor: colors.lightBlue, color: colors.black }}>
+          {highlightedName.match}
+        </Text>
         {highlightedName.after}
       </Text>
     );
@@ -79,7 +83,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
   return (
     <View style={styles.shadowWrapper}>
       <TouchableOpacity 
-        style={styles.card}
+        style={[styles.card, { backgroundColor: colors.card }]}
         onPress={onPress}
         activeOpacity={0.7}
       >
@@ -100,14 +104,14 @@ const GroupCard: React.FC<GroupCardProps> = ({
                     <Image
                       key={`${category}-${index}`}
                       source={categoryIcons[category]}
-                      style={styles.icon}
+                      style={[styles.icon, {tintColor: colors.black}]}
                     />
                   ))}
                 </View>
               )}
               
               <Text 
-                style={styles.description} 
+                style={[styles.description, { color: colors.black }]} 
                 numberOfLines={3} 
                 ellipsizeMode='tail'
               >
@@ -115,12 +119,12 @@ const GroupCard: React.FC<GroupCardProps> = ({
               </Text>
               
               <View style={styles.participantsRow}>
-                <Text style={styles.participantsText}>
+                <Text style={[styles.participantsText, { color: colors.black }]}>
                   Участники:  {participantsCount}
                 </Text>
                 <Image
                   source={require('@/assets/images/event_card/person.png')}
-                  style={styles.personIcon}
+                  style={[styles.personIcon, {tintColor: colors.black}]}
                 />
               </View>
             </View>
@@ -136,7 +140,6 @@ const styles = StyleSheet.create({
     width: 340,
     alignSelf: 'center',
     borderRadius: 20,
-    backgroundColor: Colors.white,
     overflow: 'hidden',
     elevation: 4,
     padding: 8,
@@ -170,7 +173,6 @@ const styles = StyleSheet.create({
     width: 200,
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.black,
   },
   iconsContainer: {
     flexDirection: 'row',
@@ -191,7 +193,6 @@ const styles = StyleSheet.create({
   participantsText: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
     marginRight: 2,
   },
   personIcon: {
@@ -204,14 +205,9 @@ const styles = StyleSheet.create({
     width: 200,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
     lineHeight: 18,
     marginBottom: 8,
     flex: 1,
-  },
-  highlight: {
-    backgroundColor: Colors.lightBlue2,
-    color: Colors.black,
   },
 });
 

@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { getContactIconByLink } from '@/utils/contactHelpers';
 import * as ImagePicker from 'expo-image-picker';
 import React from 'react';
@@ -56,6 +57,8 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
   isSaving = false,
   selectedContacts = [],
 }) => {
+  const colors = useThemedColors();
+
   const categories = [
     { id: 'movie', icon: require('@/assets/images/event_card/movie.png') },
     { id: 'game', icon: require('@/assets/images/event_card/game.png') },
@@ -89,11 +92,17 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.content}>
+      <View style={[styles.content, { backgroundColor: colors.white }]}>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              borderBottomColor: colors.grey,
+              color: colors.black
+            }
+          ]}
           placeholder="Название"
-          placeholderTextColor={Colors.grey}
+          placeholderTextColor={colors.grey}
           value={groupName}
           onChangeText={setGroupName}
           maxLength={50}
@@ -101,9 +110,15 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
         />
 
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              borderBottomColor: colors.grey,
+              color: colors.black
+            }
+          ]}
           placeholder="Краткое описание"
-          placeholderTextColor={Colors.grey}
+          placeholderTextColor={colors.grey}
           value={shortDescription}
           onChangeText={setShortDescription}
           maxLength={100}
@@ -111,9 +126,16 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
         />
 
         <TextInput
-          style={[styles.input, styles.textArea]}
+          style={[
+            styles.input,
+            styles.textArea,
+            {
+              borderColor: colors.grey,
+              color: colors.black
+            }
+          ]}
           placeholder="Описание"
-          placeholderTextColor={Colors.grey}
+          placeholderTextColor={colors.grey}
           value={fullDescription}
           onChangeText={setFullDescription}
           multiline
@@ -124,9 +146,15 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
         />
 
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              borderBottomColor: colors.grey,
+              color: colors.black
+            }
+          ]}
           placeholder="Город"
-          placeholderTextColor={Colors.grey}
+          placeholderTextColor={colors.grey}
           value={city}
           onChangeText={setCity}
           maxLength={50}
@@ -140,32 +168,43 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
             disabled={isSaving}
           >
             <View style={styles.checkboxRow}>
-              <View style={[styles.checkboxCircle, isPrivate && styles.checkboxSelected]} />
-              <Text style={styles.checkboxLabel}>Приватная группа</Text>
+              <View style={[
+                styles.checkboxCircle,
+                { borderColor: colors.grey },
+                isPrivate && { backgroundColor: colors.lightBlue }
+              ]} />
+              <Text style={[styles.checkboxLabel, { color: colors.black }]}>
+                Приватная группа
+              </Text>
             </View>
           </TouchableOpacity>
         </View>
 
         <View style={styles.categoriesAndImageSection}>
           <View style={styles.leftSection}>
-            <Text style={styles.sectionLabel}>Категории:</Text>
+            <Text style={[styles.sectionLabel, { color: colors.black }]}>
+              Категории:
+            </Text>
             <View style={styles.categoriesContainer}>
               {categories.map((category) => (
                 <TouchableOpacity
                   key={category.id}
                   style={[
                     styles.categoryButton,
-                    selectedCategories.includes(category.id) && styles.categoryButtonSelected
+                    { backgroundColor: colors.veryLightGrey },
+                    selectedCategories.includes(category.id) && { backgroundColor: colors.lightBlue }
                   ]}
                   onPress={() => toggleCategory(category.id)}
                   disabled={isSaving}
                 >
-                  <Image source={category.icon} style={styles.categoryIcon} />
+                  <Image source={category.icon} style={[styles.categoryIcon, {tintColor: colors.black}]} />
                 </TouchableOpacity>
               ))}
             </View>
 
-            <Text style={styles.sectionLabel}>Контакты:</Text>
+            <Text style={[styles.sectionLabel, { color: colors.black }]}>
+              Контакты:
+            </Text>
               <View style={styles.contactsContainer}>
                 <TouchableOpacity
                   style={styles.contactButton}
@@ -196,13 +235,19 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
           
           <View style={styles.imageUpload}>
             <TouchableOpacity onPress={handleImagePicker} disabled={isSaving}>
-              <View style={styles.uploadPlaceholder}>
+              <View style={[
+                styles.uploadPlaceholder,
+                {
+                  backgroundColor: colors.veryLightGrey,
+                  borderColor: colors.lightGrey
+                }
+              ]}>
                 {groupImage ? (
                   <Image source={{ uri: groupImage }} style={styles.groupImage} />
                 ) : (
                   <Image 
                     source={require('@/assets/images/groups/upload_image.png')} 
-                    style={styles.uploadIcon}
+                    style={[styles.uploadIcon, { tintColor: colors.grey }]}
                   />
                 )}
               </View>
@@ -219,7 +264,11 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
       >
         <View style={styles.bottomContent}>
           <TouchableOpacity
-            style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+            style={[
+              styles.saveButton,
+              { backgroundColor: Colors.white },
+              isSaving && styles.saveButtonDisabled
+            ]}
             onPress={onSaveChanges}
             disabled={isSaving}
           >
@@ -240,24 +289,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    backgroundColor: Colors.white,
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 16,
   },
   input: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.grey,
     paddingVertical: 4,
     paddingHorizontal: 0,
     marginBottom: 16,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
   },
   textArea: {
     borderWidth: 1,
-    borderColor: Colors.grey,
     borderRadius: 8,
     padding: 16,
     minHeight: 120,
@@ -279,17 +324,11 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: Colors.grey,
-    backgroundColor: Colors.white,
-  },
-  checkboxSelected: {
-    backgroundColor: Colors.lightBlue,
   },
   checkboxLabel: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
     marginLeft: 12,
-    color: Colors.black,
   },
   categoriesAndImageSection: {
     flexDirection: 'row',
@@ -303,7 +342,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.black,
     marginBottom: 8,
   },
   categoriesContainer: {
@@ -316,14 +354,10 @@ const styles = StyleSheet.create({
     width: 35,
     height: 35,
     borderRadius: 8,
-    backgroundColor: Colors.lightLightGrey,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-  },
-  categoryButtonSelected: {
-    backgroundColor: Colors.lightBlue,
   },
   categoryIcon: {
     width: 25,
@@ -356,11 +390,9 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 100,
-    backgroundColor: Colors.lightLightGrey,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.lightGrey,
     borderStyle: 'dashed',
     overflow: 'hidden',
   },
@@ -373,7 +405,6 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     resizeMode: 'contain',
-    tintColor: Colors.grey,
   },
   bottomBackground: {
     width: "100%",
@@ -384,7 +415,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   saveButton: {
-    backgroundColor: Colors.white,
     marginHorizontal: 60,
     paddingVertical: 6,
     borderRadius: 20,

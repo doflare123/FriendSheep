@@ -1,20 +1,28 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
-const CategoryButton = ({ title, onPress, imageSource }: { title: string; imageSource?: ImageSourcePropType; onPress: () => void }) => (
- <TouchableOpacity onPress={onPress} style={styles.button}>
-    {imageSource && (
-      <Image source={imageSource} style={styles.backgroundImage} />
-    )}
-    <Text style={styles.text}>{title}</Text>
-  </TouchableOpacity>
-);
+const CategoryButton = ({ title, onPress, imageSource }: { title: string; imageSource?: ImageSourcePropType; onPress: () => void }) => {
+  const colors = useThemedColors();
+
+  return (
+    <TouchableOpacity 
+      onPress={onPress} 
+      style={[styles.button, { backgroundColor: colors.blue }]}
+    >
+      {imageSource && (
+        <Image source={imageSource} style={styles.backgroundImage} />
+      )}
+      <Text style={[styles.text, { color: colors.white }]}>
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: Colors.blue,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -25,7 +33,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   text: {
-    color: Colors.white,
     fontSize: 20,
     fontFamily: Montserrat.regular,
   },

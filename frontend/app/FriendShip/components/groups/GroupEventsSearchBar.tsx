@@ -1,6 +1,6 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { SortingActions, SortingState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useRef, useState } from 'react';
 import { Image, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +19,7 @@ const GroupEventsSearchBar: React.FC<GroupEventsSearchBarProps> = ({
   sortingState,
   sortingActions,
 }) => {
+  const colors = useThemedColors();
   const insets = useSafeAreaInsets();
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [filterModalPos, setFilterModalPos] = useState({ top: 0, left: 0 });
@@ -28,14 +29,14 @@ const GroupEventsSearchBar: React.FC<GroupEventsSearchBarProps> = ({
 
   return (
     <>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.veryLightGrey }]}>
         <TextInput
           placeholder="Найти событие..."
           value={searchQuery}
           onChangeText={onSearchChange}
           returnKeyType="search"
-          style={styles.input}
-          placeholderTextColor={Colors.grey}
+          style={[styles.input, { color: colors.black }]}
+          placeholderTextColor={colors.grey}
         />
 
         <TouchableOpacity
@@ -99,7 +100,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     paddingHorizontal: 10,
     margin: 4,
-    backgroundColor: Colors.veryLightGrey,
     height: 40,
   },
   input: {
@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
   },
   optionsIcon: {
     width: 25,

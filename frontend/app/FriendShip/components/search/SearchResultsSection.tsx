@@ -1,7 +1,7 @@
 import PageHeader from '@/components/PageHeader';
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { ReactNode } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
@@ -20,12 +20,16 @@ const SearchResultsSection: React.FC<SearchResultsSectionProps> = ({
   children,
   showWave = false,
 }) => {
+  const colors = useThemedColors();
+
   return (
     <>
       <PageHeader title={title} showWave={showWave} />
       
       <View style={styles.resultsHeader}>
-        <Text style={styles.resultsText}>Результаты поиска:</Text>
+        <Text style={[styles.resultsText, { color: colors.blue }]}>
+          Результаты поиска:
+        </Text>
         <Image
           source={require('@/assets/images/line.png')}
           style={{ resizeMode: 'none' }}
@@ -35,7 +39,7 @@ const SearchResultsSection: React.FC<SearchResultsSectionProps> = ({
       {hasResults ? (
         children
       ) : (
-        <Text style={styles.noResultsText}>
+        <Text style={[styles.noResultsText, { color: colors.black }]}>
           Ничего не найдено по запросу - {searchQuery}
         </Text>
       )}
@@ -50,13 +54,11 @@ const styles = StyleSheet.create({
   resultsText: {
     fontFamily: Montserrat_Alternates.medium,
     fontSize: 20,
-    color: Colors.blue2,
     marginBottom: 4,
   },
   noResultsText: {
     fontFamily: Montserrat.regular,
     fontSize: 18,
-    color: Colors.black,
     textAlign: 'center',
   },
 });

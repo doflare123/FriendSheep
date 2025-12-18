@@ -1,6 +1,7 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import {
   Image,
@@ -40,6 +41,8 @@ const RequestsTabContent: React.FC<RequestsTabContentProps> = ({
   onRejectAll,
   isProcessing = false,
 }) => {
+  const colors = useThemedColors();
+
   const filteredRequests = pendingRequests.filter(request =>
     request.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     request.username.toLowerCase().includes(searchQuery.toLowerCase())
@@ -50,17 +53,25 @@ const RequestsTabContent: React.FC<RequestsTabContentProps> = ({
       style={styles.tabContent}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.requestsContent}>
+      <View style={[styles.requestsContent, { backgroundColor: colors.white }]}>
         <View style={styles.requestsHeader}>
           <View style={styles.counterContainer}>
-            <Text style={styles.counterNumber}>{pendingRequests.length}</Text>
-            <Text style={styles.counterText}>нерассмотренных заявок</Text>
+            <Text style={[styles.counterNumber, { color: colors.black }]}>
+              {pendingRequests.length}
+            </Text>
+            <Text style={[styles.counterText, { color: colors.grey }]}>
+              нерассмотренных заявок
+            </Text>
           </View>
           
           {pendingRequests.length > 0 && (
             <View style={styles.actionButtons}>
               <TouchableOpacity 
-                style={[styles.acceptAllButton, isProcessing && styles.buttonDisabled]} 
+                style={[
+                  styles.acceptAllButton,
+                  { backgroundColor: colors.lightBlue },
+                  isProcessing && styles.buttonDisabled
+                ]} 
                 onPress={onAcceptAll}
                 disabled={isProcessing}
               >
@@ -80,9 +91,15 @@ const RequestsTabContent: React.FC<RequestsTabContentProps> = ({
         {pendingRequests.length > 0 && (
           <View style={styles.searchContainer}>
             <TextInput
-              style={styles.searchInput}
+              style={[
+                styles.searchInput,
+                {
+                  backgroundColor: colors.veryLightGrey,
+                  color: colors.black
+                }
+              ]}
               placeholder="Найти пользователя..."
-              placeholderTextColor={Colors.grey}
+              placeholderTextColor={colors.grey}
               value={searchQuery}
               onChangeText={setSearchQuery}
               editable={!isProcessing}
@@ -93,12 +110,16 @@ const RequestsTabContent: React.FC<RequestsTabContentProps> = ({
         {filteredRequests.length > 0 ? (
           <View style={styles.requestsList}>
             {filteredRequests.map((request) => (
-              <View key={request.id} style={styles.requestItem}>
+              <View key={request.id} style={[styles.requestItem, { backgroundColor: colors.card }]}>
                 <Image source={{ uri: request.imageUri }} style={styles.userAvatar} />
                 
                 <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{request.name}</Text>
-                  <Text style={styles.userUsername}>@{request.username}</Text>
+                  <Text style={[styles.userName, { color: colors.black }]}>
+                    {request.name}
+                  </Text>
+                  <Text style={[styles.userUsername, { color: colors.grey }]}>
+                    @{request.username}
+                  </Text>
                 </View>
                 
                 <View style={styles.requestActions}>
@@ -129,11 +150,15 @@ const RequestsTabContent: React.FC<RequestsTabContentProps> = ({
           </View>
         ) : pendingRequests.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>Нет заявок на рассмотрение</Text>
+            <Text style={[styles.emptyStateText, { color: colors.grey }]}>
+              Нет заявок на рассмотрение
+            </Text>
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>Пользователи не найдены</Text>
+            <Text style={[styles.emptyStateText, { color: colors.grey }]}>
+              Пользователи не найдены
+            </Text>
           </View>
         )}
       </View>
@@ -146,7 +171,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   requestsContent: {
-    backgroundColor: Colors.white,
     paddingHorizontal: 16,
     paddingTop: 20,
     minHeight: '100%',
@@ -162,19 +186,16 @@ const styles = StyleSheet.create({
   counterNumber: {
     fontFamily: Montserrat_Alternates.bold,
     fontSize: 26,
-    color: Colors.black,
   },
   counterText: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
   },
   actionButtons: {
     flexDirection: 'row',
     gap: 16,
   },
   acceptAllButton: {
-    backgroundColor: Colors.lightBlue,
     paddingHorizontal: 16,
     paddingVertical: 4,
     borderRadius: 20,
@@ -199,17 +220,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   searchInput: {
-    backgroundColor: Colors.veryLightGrey,
     borderRadius: 40,
     paddingHorizontal: 16,
     paddingVertical: 8,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
   },
   requestsList: {
     borderRadius: 12,
-    backgroundColor: Colors.white,
     overflow: 'visible',
   },
   requestItem: {
@@ -218,7 +236,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 12,
-    backgroundColor: Colors.white,
     borderRadius: 30,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -238,12 +255,10 @@ const styles = StyleSheet.create({
   userName: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.black,
   },
   userUsername: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
   },
   requestActions: {
     flexDirection: 'row',
@@ -282,7 +297,6 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
   },
 });
 

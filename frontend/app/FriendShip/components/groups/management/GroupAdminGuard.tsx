@@ -1,6 +1,6 @@
 import groupService from '@/api/services/group/groupService';
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
@@ -15,6 +15,7 @@ export const GroupAdminGuard: React.FC<GroupAdminGuardProps> = ({
   groupId, 
   children 
 }) => {
+  const colors = useThemedColors();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const navigation = useNavigation<StackNavigationProp<any>>();
 
@@ -36,9 +37,11 @@ export const GroupAdminGuard: React.FC<GroupAdminGuardProps> = ({
 
   if (isAuthorized === null) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color={Colors.blue} />
-        <Text style={styles.text}>Проверка прав доступа...</Text>
+      <View style={[styles.container, { backgroundColor: colors.white }]}>
+        <ActivityIndicator size="large" color={colors.blue} />
+        <Text style={[styles.text, { color: colors.grey }]}>
+          Проверка прав доступа...
+        </Text>
       </View>
     );
   }
@@ -55,12 +58,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.white,
   },
   text: {
     marginTop: 10,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
   },
 });

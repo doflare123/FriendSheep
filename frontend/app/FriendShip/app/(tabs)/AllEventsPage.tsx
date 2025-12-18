@@ -15,6 +15,7 @@ import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useAllEvents } from '@/hooks/useAllEvents';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { RootStackParamList } from '@/navigation/types';
 
 type AllEventsPageRouteProp = RouteProp<RootStackParamList, 'AllEventsPage'>;
@@ -25,6 +26,7 @@ interface AllEventsPageProps {
 }
 
 const AllEventsPage: React.FC<AllEventsPageProps> = ({ navigation }) => {
+  const colors = useThemedColors();
   const route = useRoute<AllEventsPageRouteProp>();
   const { mode, groupId, userId } = route.params;
   
@@ -107,7 +109,7 @@ const AllEventsPage: React.FC<AllEventsPageProps> = ({ navigation }) => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         
         <CategorySection
@@ -117,8 +119,8 @@ const AllEventsPage: React.FC<AllEventsPageProps> = ({ navigation }) => {
         />
         
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={Colors.lightBlue} />
-          <Text style={styles.loadingText}>Загрузка событий...</Text>
+          <ActivityIndicator size="large" color={colors.lightBlue} />
+          <Text style={[styles.loadingText, { color: colors.grey }]}>Загрузка событий...</Text>
         </View>
         
         <BottomBar />
@@ -128,7 +130,7 @@ const AllEventsPage: React.FC<AllEventsPageProps> = ({ navigation }) => {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         
         <CategorySection
@@ -139,7 +141,9 @@ const AllEventsPage: React.FC<AllEventsPageProps> = ({ navigation }) => {
         
         <View style={styles.centerContainer}>
           <Text style={styles.errorTitle}>Ошибка загрузки</Text>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { color: colors.grey }]}>
+            {error}
+          </Text>
         </View>
         
         <BottomBar />
@@ -148,7 +152,7 @@ const AllEventsPage: React.FC<AllEventsPageProps> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
       
       <CategorySection
@@ -173,7 +177,7 @@ const AllEventsPage: React.FC<AllEventsPageProps> = ({ navigation }) => {
 
       {eventsToShow.length > 0 && (
         <View style={styles.resultsHeader}>
-          <Text style={styles.resultsCount}>
+          <Text style={[styles.resultsCount, { color: colors.grey }]}>
             Найдено: {eventsToShow.length} {getEventWordForm(eventsToShow.length)}
           </Text>
         </View>
@@ -184,7 +188,7 @@ const AllEventsPage: React.FC<AllEventsPageProps> = ({ navigation }) => {
           <VerticalEventList events={eventsToShow} />
         ) : (
           <View style={styles.noEventsContainer}>
-            <Text style={styles.noEventsText}>
+            <Text style={[styles.noEventsText, { color: colors.blue }]}>
               {getEmptyText()}
             </Text>
           </View>
@@ -208,7 +212,6 @@ const AllEventsPage: React.FC<AllEventsPageProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -220,7 +223,6 @@ const styles = StyleSheet.create({
   resultsCount: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
   },
   contentContainer: {
     flex: 1,
@@ -236,7 +238,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
   },
   errorTitle: {
     fontFamily: Montserrat.bold,
@@ -248,7 +249,6 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.regular,
     fontSize: 14,
     textAlign: 'center',
-    color: Colors.grey,
   },
   noEventsContainer: {
     flex: 1,
@@ -260,7 +260,6 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.regular,
     fontSize: 20,
     textAlign: 'center',
-    color: Colors.blue2,
     marginBottom: 4,
   },
 });

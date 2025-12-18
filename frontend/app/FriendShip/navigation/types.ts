@@ -9,7 +9,6 @@ export type RootStackParamList = {
   CategoryPage: {
     category: 'movie' | 'game' | 'table_game' | 'other' | 'popular' | 'new';
     title: string;
-    imageSource: any;
   };
   GroupsPage: undefined;
   GroupPage: {

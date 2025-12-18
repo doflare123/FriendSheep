@@ -1,5 +1,5 @@
 import barsStyle from '@/app/styles/barsStyle';
-import { Colors } from '@/constants/Colors';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import React from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -9,6 +9,8 @@ const BottomBar = () => {
   const route = useRoute();
   const currentRoute = route.name;
   const isActive = (routeName: string) => currentRoute === routeName;
+
+  const colors = useThemedColors();
 
   const handleProfilePress = () => {
     if (currentRoute === 'ProfilePage') {
@@ -24,26 +26,25 @@ const BottomBar = () => {
   };
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.white }]}>
       <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('SettingsPage' as never)}>
-          <Image style={[barsStyle.iconsMenu, isActive('SettingsPage') && { tintColor: Colors.darkGrey }]} source={require("@/assets/images/bottom_bar/settings.png")} />
+          <Image style={[barsStyle.iconsMenu, {tintColor: colors.lightGreyBlue}, isActive('SettingsPage') && { tintColor: colors.darkGrey }]} source={require("@/assets/images/bottom_bar/settings.png")} />
       </TouchableOpacity>
       <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('GroupsPage' as never)}>
           <Image 
-            style={[barsStyle.iconsMenu, (isActive('GroupsPage') || isActive('GroupPage') || isActive('GroupManagePage') || isActive('GroupSearchPage')) && { tintColor: Colors.darkGrey }]} 
+            style={[barsStyle.iconsMenu, {tintColor: colors.lightGreyBlue}, (isActive('GroupsPage') || isActive('GroupPage') || isActive('GroupManagePage') || isActive('GroupSearchPage')) && { tintColor: colors.darkGrey }]} 
             source={require("@/assets/images/bottom_bar/groups.png")} />
       </TouchableOpacity>
       <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('MainPage' as never)}>
         <Image
-          style={[barsStyle.iconsMenu, (isActive('MainPage') || isActive('CategoryPage')) && { tintColor: Colors.darkGrey }]}
+          style={[barsStyle.iconsMenu, {tintColor: colors.lightGreyBlue}, (isActive('MainPage') || isActive('CategoryPage')) && { tintColor: colors.darkGrey }]}
           source={require("@/assets/images/bottom_bar/main.png")}
         />
       </TouchableOpacity>
-      {/* <TouchableOpacity style={barsStyle.menu}>
-          <Image style={barsStyle.iconsMenu} source={require("@/assets/images/bottom_bar/news.png")} />
-      </TouchableOpacity> */}
       <TouchableOpacity style={barsStyle.menu} onPress={handleProfilePress}>
-          <Image style={[barsStyle.iconsMenu, {width: 25, height: 25}, (isActive('ProfilePage') || isActive('UserSearchPage')) && { tintColor: Colors.darkGrey }]} source={require("@/assets/images/bottom_bar/profile.png")} />
+        <Image 
+          style={[barsStyle.iconsMenu, {width: 25, height: 25, tintColor: colors.lightGreyBlue}, (isActive('ProfilePage') || isActive('UserSearchPage')) && { tintColor: colors.darkGrey }]} 
+          source={require("@/assets/images/bottom_bar/profile.png")} />
       </TouchableOpacity>
     </View>
   );
@@ -55,7 +56,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     paddingVertical: 10,
-    backgroundColor: Colors.white,
   },
 });
 

@@ -1,5 +1,5 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -39,6 +39,7 @@ const UserCard: React.FC<User> = ({
   highlightedUsername,
   highlightedDescription,
 }) => {
+  const colors = useThemedColors();
   const getImageSource = () => {
     if (!imageUri || (typeof imageUri === 'string' && imageUri.trim() === '')) {
       return { uri: PLACEHOLDER_IMAGE };
@@ -58,7 +59,7 @@ const UserCard: React.FC<User> = ({
     return (
       <Text style={style}>
         {highlighted.before}
-        <Text style={styles.highlight}>{highlighted.match}</Text>
+        <Text style={{backgroundColor: colors.lightBlue2}}>{highlighted.match}</Text>
         {highlighted.after}
       </Text>
     );
@@ -67,7 +68,7 @@ const UserCard: React.FC<User> = ({
   return (
     <View style={styles.shadowWrapper}>
       <TouchableOpacity 
-        style={styles.card}
+        style={[styles.card, {backgroundColor: colors.card}]}
         onPress={onPress}
         activeOpacity={0.7}
       >
@@ -81,19 +82,19 @@ const UserCard: React.FC<User> = ({
           {renderHighlightedText(
             name,
             highlightedName,
-            styles.userName
+            [styles.userName, {color: colors.black}]
           )}
           
           {renderHighlightedText(
             username,
             highlightedUsername,
-            styles.userUsername
+            [styles.userUsername, {color: colors.black}]
           )}
           
           {description && renderHighlightedText(
             description,
             highlightedDescription,
-            styles.description
+            [styles.description, {color: colors.black}]
           )}
         </View>
       </TouchableOpacity>
@@ -114,7 +115,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     borderRadius: 20,
-    backgroundColor: Colors.white,
     padding: 16,
     elevation: 4,
     alignItems: 'center',
@@ -133,23 +133,17 @@ const styles = StyleSheet.create({
   userName: {
     fontFamily: Montserrat.bold,
     fontSize: 20,
-    color: Colors.black,
     marginBottom: 2,
   },
   userUsername: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
     marginBottom: 6,
   },
   description: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
     lineHeight: 18,
-  },
-  highlight: {
-    backgroundColor: Colors.lightBlue2,
   },
 });
 

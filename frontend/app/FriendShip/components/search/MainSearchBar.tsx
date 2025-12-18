@@ -5,6 +5,7 @@ import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useGroupSearchState } from '@/hooks/useGroupSearchState';
 import { SortingActions, SortingState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { useUserSearchState } from '@/hooks/useUserSearchState';
 import { RootStackParamList } from '@/navigation/types';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -26,6 +27,7 @@ type MainSearchBarNavigationProp = NativeStackNavigationProp<
 type MainSearchBarRouteProp = RouteProp<RootStackParamList, 'MainPage'>;
 
 const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActions }) => {
+  const colors = useThemedColors();
   const navigation = useNavigation<MainSearchBarNavigationProp>();
   const route = useRoute<MainSearchBarRouteProp>();
 
@@ -117,7 +119,7 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
 
   return (
     <>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.veryLightGrey }]}>
         <TouchableOpacity
           ref={categoryIconRef}
           onPress={() => {
@@ -127,16 +129,17 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
             });
           }}
         >
-          <Image style={barsStyle.switch} source={getSearchTypeIcon()} />
+          <Image style={[barsStyle.switch, {tintColor: colors.lightGreyBlue}]} source={getSearchTypeIcon()} />
         </TouchableOpacity>
 
         <TextInput
           placeholder={getPlaceholderByType(activeSearchType)}
+          placeholderTextColor={Colors.lightGrey}
           value={getCurrentSearchQuery()}
           onChangeText={handleSearchInputChange}
           onSubmitEditing={handleSearchSubmit}
           returnKeyType="search"
-          style={styles.input}
+          style={[styles.input, { color: colors.black }]}
         />
 
         {activeSearchType !== 'profile' && (
@@ -164,7 +167,7 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
             disabled={activeSearchType === 'profile'}
           >
             <Image
-              style={barsStyle.options}
+              style={[barsStyle.options, {tintColor: colors.lightGreyBlue}]}
               source={require('@/assets/images/top_bar/search_bar/options.png')}
             />
           </TouchableOpacity>
@@ -200,7 +203,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     paddingHorizontal: 10,
     margin: 4,
-    backgroundColor: Colors.veryLightGrey,
   },
   input: {
     flex: 1,
@@ -208,7 +210,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
   },
 });
 

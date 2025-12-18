@@ -1,6 +1,6 @@
 import CategorySection from '@/components/CategorySection';
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useRef, useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
@@ -21,6 +21,7 @@ const StatisticsChart: React.FC<StatisticsChartProps> = ({
   genresData,
   categoriesData,
 }) => {
+  const colors = useThemedColors();
   const [currentPage, setCurrentPage] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const screenWidth = Dimensions.get('window').width;
@@ -84,7 +85,11 @@ const StatisticsChart: React.FC<StatisticsChartProps> = ({
               key={index}
               style={[
                 styles.paginationDot,
-                currentPage === index && styles.paginationDotActive,
+                { backgroundColor: colors.lightGrey },
+                currentPage === index && [
+                  styles.paginationDotActive,
+                  { backgroundColor: colors.lightBlue }
+                ],
               ]}
             />
           ))}
@@ -117,10 +122,8 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.lightGrey,
   },
   paginationDotActive: {
-    backgroundColor: Colors.lightBlue,
     width: 24,
   },
 });

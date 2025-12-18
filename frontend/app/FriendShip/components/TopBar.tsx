@@ -6,6 +6,7 @@ import NotificationsModal from '@/components/notifications/NotificationsModal';
 import MainSearchBar from '@/components/search/MainSearchBar';
 import { Colors } from '@/constants/Colors';
 import { SortingActions, SortingState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Image,
@@ -20,6 +21,7 @@ interface TopBarProps {
 }
 
 const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
+  const colors = useThemedColors();
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [notifModalPos, setNotifModalPos] = useState({ top: 0, left: 0 });
   const notifIconRef = useRef<View>(null);
@@ -120,7 +122,7 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
   const hasTelegramLink = userProfile?.telegram_link === true;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.white }]}>
       <MainSearchBar sortingState={sortingState} sortingActions={sortingActions} />
       
       <TouchableOpacity
@@ -130,7 +132,7 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
         style={styles.notificationButton}
       >
         <Image
-          style={barsStyle.notifications}
+          style={[barsStyle.notifications, {tintColor: colors.darkGrey}]}
           source={require('@/assets/images/top_bar/notifications.png')}
         />
         {hasUnread && !serverError && <View style={styles.unreadIndicator} />}
@@ -155,7 +157,6 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.white,
     paddingHorizontal: 16,
     paddingVertical: 8,
     flexDirection: 'row',

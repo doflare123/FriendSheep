@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
 
@@ -11,11 +12,14 @@ interface ButtonProps {
 }
 
 const Button: React.FC<ButtonProps> = ({ title, onPress, disabled = false, style }) => {
+  const colors = useThemedColors();
+  
   return (
     <TouchableOpacity
       style={[
         styles.button,
-        disabled && styles.buttonDisabled,
+        { backgroundColor: colors.blue },
+        disabled && { backgroundColor: colors.grey, opacity: 0.6 },
         style
       ]}
       onPress={onPress}
@@ -24,7 +28,7 @@ const Button: React.FC<ButtonProps> = ({ title, onPress, disabled = false, style
     >
       <Text style={[
         styles.buttonText,
-        disabled && styles.buttonTextDisabled
+        disabled && { color: colors.lightGrey }
       ]}>
         {title}
       </Text>
@@ -35,7 +39,6 @@ const Button: React.FC<ButtonProps> = ({ title, onPress, disabled = false, style
 const styles = StyleSheet.create({
   button: {
     marginTop: 16,
-    backgroundColor: Colors.blue3,
     paddingVertical: 10,
     borderRadius: 30,
     alignItems: 'center',
@@ -46,17 +49,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  buttonDisabled: {
-    backgroundColor: Colors.grey,
-    opacity: 0.6,
-  },
   buttonText: {
+    color: Colors.white,
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.white,
-  },
-  buttonTextDisabled: {
-    color: Colors.lightGrey,
   },
 });
 

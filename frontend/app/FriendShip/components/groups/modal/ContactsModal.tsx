@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
@@ -77,6 +78,7 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
   onSave,
   initialContacts = []
 }) => {
+  const colors = useThemedColors();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   
@@ -197,10 +199,20 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
             <View style={StyleSheet.absoluteFill} />
           </TouchableWithoutFeedback>
 
-          <View style={styles.modal}>
-            <View style={styles.header}>
-              <Text style={styles.title}>Контакты группы</Text>
-              <Text style={styles.subtitle}>Добавьте ссылки на социальные сети</Text>
+          <View style={[styles.modal, { backgroundColor: colors.white }]}>
+            <View style={[
+              styles.header,
+              { 
+                backgroundColor: colors.white,
+                borderBottomColor: colors.lightGrey
+              }
+            ]}>
+              <Text style={[styles.title, { color: colors.black }]}>
+                Контакты группы
+              </Text>
+              <Text style={[styles.subtitle, { color: colors.grey }]}>
+                Добавьте ссылки на социальные сети
+              </Text>
             </View>
 
             <ScrollView
@@ -211,9 +223,17 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
             >
               <View style={styles.content}>
                 {contacts.map((contact, index) => (
-                  <View key={`contact-item-${index}`} style={styles.contactItem}>
+                  <View 
+                    key={`contact-item-${index}`} 
+                    style={[
+                      styles.contactItem,
+                      { borderBottomColor: colors.veryLightGrey }
+                    ]}
+                  >
                     <View style={styles.contactHeader}>
-                      <Text style={styles.contactNumber}>Контакт {index + 1}</Text>
+                      <Text style={[styles.contactNumber, { color: colors.black }]}>
+                        Контакт {index + 1}
+                      </Text>
                       <TouchableOpacity 
                         style={styles.removeButton}
                         onPress={() => handleRemoveContactPress(index)}
@@ -224,17 +244,29 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
 
                     <View style={styles.inputsContainer}>
                       <TextInput
-                        style={styles.input}
+                        style={[
+                          styles.input,
+                          { 
+                            borderBottomColor: colors.lightGrey,
+                            color: colors.black
+                          }
+                        ]}
                         placeholder="Название (необязательно)"
-                        placeholderTextColor={Colors.grey}
+                        placeholderTextColor={colors.grey}
                         value={contact.description}
                         onChangeText={(text) => updateContactDescription(index, text)}
                         maxLength={50}
                       />
                       <TextInput
-                        style={styles.input}
+                        style={[
+                          styles.input,
+                          { 
+                            borderBottomColor: colors.lightGrey,
+                            color: colors.black
+                          }
+                        ]}
                         placeholder="Ссылка"
-                        placeholderTextColor={Colors.grey}
+                        placeholderTextColor={colors.grey}
                         value={contact.link}
                         onChangeText={(text) => updateContactLink(index, text)}
                         maxLength={200}
@@ -246,18 +278,35 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
                 ))}
 
                 {!hasEmptyContact && (
-                  <TouchableOpacity style={styles.addButton} onPress={addContact}>
+                  <TouchableOpacity 
+                    style={[styles.addButton, { backgroundColor: colors.lightBlue }]}
+                    onPress={addContact}
+                  >
                     <Text style={styles.addButtonText}>Добавить контакт</Text>
                   </TouchableOpacity>
                 )}
               </View>
             </ScrollView>
 
-            <View style={styles.footer}>
-              <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
-                <Text style={styles.cancelButtonText}>Отмена</Text>
+            <View style={[
+              styles.footer,
+              { 
+                backgroundColor: colors.white,
+                borderTopColor: colors.lightGrey
+              }
+            ]}>
+              <TouchableOpacity 
+                style={[styles.cancelButton, { backgroundColor: colors.veryLightGrey }]}
+                onPress={handleClose}
+              >
+                <Text style={[styles.cancelButtonText, { color: colors.black }]}>
+                  Отмена
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+              <TouchableOpacity 
+                style={[styles.saveButton, { backgroundColor: colors.lightBlue }]}
+                onPress={handleSave}
+              >
                 <Text style={styles.saveButtonText}>Сохранить</Text>
               </TouchableOpacity>
             </View>
@@ -271,18 +320,26 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
         animationType="fade"
       >
         <View style={styles.confirmModalOverlay}>
-          <View style={styles.confirmModalContent}>
-            <Text style={styles.confirmModalTitle}>Удалить контакт?</Text>
-            <Text style={styles.confirmModalMessage}>
+          <View style={[styles.confirmModalContent, { backgroundColor: colors.white }]}>
+            <Text style={[styles.confirmModalTitle, { color: colors.black }]}>
+              Удалить контакт?
+            </Text>
+            <Text style={[styles.confirmModalMessage, { color: colors.grey }]}>
               Контакт будет удалён из списка
             </Text>
             
             <View style={styles.confirmModalButtons}>
               <TouchableOpacity 
-                style={[styles.confirmModalButton, styles.confirmCancelButton]}
+                style={[
+                  styles.confirmModalButton, 
+                  styles.confirmCancelButton,
+                  { backgroundColor: colors.veryLightGrey }
+                ]}
                 onPress={cancelRemoveContact}
               >
-                <Text style={styles.confirmCancelButtonText}>Отмена</Text>
+                <Text style={[styles.confirmCancelButtonText, { color: colors.black }]}>
+                  Отмена
+                </Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -308,28 +365,23 @@ const styles = StyleSheet.create({
   modal: {
     marginHorizontal: 20,
     borderRadius: 20,
-    backgroundColor: Colors.white,
     maxHeight: screenHeight * 0.8,
     overflow: 'hidden',
   },
   header: {
     paddingVertical: 16,
     paddingHorizontal: 20,
-    backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGrey,
   },
   title: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.black,
     textAlign: 'center',
     marginBottom: 4,
   },
   subtitle: {
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    color: Colors.grey,
     textAlign: 'center',
   },
   scrollView: {
@@ -342,7 +394,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightLightGrey,
   },
   contactHeader: {
     flexDirection: 'row',
@@ -353,20 +404,17 @@ const styles = StyleSheet.create({
   contactNumber: {
     fontFamily: Montserrat.semibold,
     fontSize: 14,
-    color: Colors.black,
   },
   inputsContainer: {
     flex: 1,
   },
   input: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGrey,
     paddingVertical: 8,
     paddingHorizontal: 0,
     marginBottom: 12,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
   },
   removeButton: {
     width: 30,
@@ -381,7 +429,6 @@ const styles = StyleSheet.create({
     color: Colors.red,
   },
   addButton: {
-    backgroundColor: Colors.lightBlue,
     paddingVertical: 12,
     borderRadius: 20,
     alignItems: 'center',
@@ -395,13 +442,10 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     padding: 20,
-    backgroundColor: Colors.white,
     borderTopWidth: 1,
-    borderTopColor: Colors.lightGrey,
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: Colors.veryLightGrey,
     paddingVertical: 12,
     borderRadius: 25,
     alignItems: 'center',
@@ -410,11 +454,9 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
   },
   saveButton: {
     flex: 1,
-    backgroundColor: Colors.lightBlue,
     paddingVertical: 12,
     borderRadius: 25,
     alignItems: 'center',
@@ -432,7 +474,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmModalContent: {
-    backgroundColor: Colors.white,
     borderRadius: 20,
     padding: 24,
     marginHorizontal: 40,
@@ -441,14 +482,12 @@ const styles = StyleSheet.create({
   confirmModalTitle: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.black,
     textAlign: 'center',
     marginBottom: 12,
   },
   confirmModalMessage: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -465,9 +504,7 @@ const styles = StyleSheet.create({
   confirmDeleteButton: {
     backgroundColor: Colors.red,
   },
-  confirmCancelButton: {
-    backgroundColor: Colors.veryLightGrey,
-  },
+  confirmCancelButton: {},
   confirmModalButtonText: {
     fontFamily: Montserrat.bold,
     fontSize: 14,
@@ -476,7 +513,6 @@ const styles = StyleSheet.create({
   confirmCancelButtonText: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
   },
 });
 

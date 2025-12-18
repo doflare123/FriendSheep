@@ -1,5 +1,5 @@
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useMemo, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -104,6 +104,7 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
   onToggle,
   genres,
 }) => {
+  const colors = useThemedColors();
   const useDefaultGenres = !genres || genres.length === 0;
   
   const [showDropdown, setShowDropdown] = useState(false);
@@ -143,31 +144,36 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
   return (
     <View>
       <TouchableOpacity
-        style={styles.dropdownButton}
+        style={[styles.dropdownButton, { borderBottomColor: colors.grey }]}
         onPress={() => setShowDropdown(!showDropdown)}
       >
-        <Text style={[styles.dropdownText, selected.length > 0 && styles.dropdownTextActive]}>
+        <Text style={[
+          styles.dropdownText,
+          { color: colors.grey },
+          selected.length > 0 && { color: colors.black }
+        ]}>
           {selected.length > 0 ? selected.join(', ') : 'Выберите жанры... *'}
         </Text>
         <Image
           source={require('@/assets/images/event_card/back.png')}
           style={[
             styles.dropdownArrow,
+            { tintColor: colors.grey },
             { transform: [{ rotate: showDropdown ? '270deg' : '90deg' }] }
           ]}
         />
       </TouchableOpacity>
 
       {selected.length > 0 && (
-        <Text style={styles.genreCounter}>
+        <Text style={[styles.genreCounter, { color: colors.grey }]}>
           {selected.length} / {MAX_GENRES}
         </Text>
       )}
 
       {showDropdown && (
-        <View style={styles.genreDropdown}>
+        <View style={[styles.genreDropdown, { backgroundColor: colors.card }]}>
           {useDefaultGenres && (
-            <View style={styles.categorySelector}>
+            <View style={[styles.categorySelector, { borderBottomColor: colors.lightGrey }]}>
               <View style={styles.categoriesContainer}>
                 {Object.values(GENRE_CATEGORIES).map((category) => {
                   const isSelected = activeCategory === category.id;
@@ -177,11 +183,12 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
                       key={category.id}
                       style={[
                         styles.categoryButton,
-                        isSelected && styles.categorySelected
+                        { backgroundColor: colors.veryLightGrey },
+                        isSelected && { backgroundColor: colors.lightBlue }
                       ]}
                       onPress={() => setActiveCategory(category.id)}
                     >
-                      <Image source={category.icon} style={styles.categoryIcon} />
+                      <Image source={category.icon} style={[styles.categoryIcon, {tintColor: colors.black}]} />
                     </TouchableOpacity>
                   );
                 })}
@@ -189,15 +196,15 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
             </View>
           )}
 
-          <View style={styles.searchContainer}>
+          <View style={[styles.searchContainer, { borderBottomColor: colors.lightGrey }]}>
             <Image
               source={require('@/assets/images/top_bar/search_bar/search.png')}
-              style={styles.searchIcon}
+              style={[styles.searchIcon, { tintColor: colors.grey }]}
             />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.black }]}
               placeholder="Поиск жанров..."
-              placeholderTextColor={Colors.grey}
+              placeholderTextColor={colors.grey}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"
@@ -210,7 +217,7 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
               >
                 <Image
                   source={require('@/assets/images/event_card/back.png')}
-                  style={styles.clearIcon}
+                  style={[styles.clearIcon, { tintColor: colors.grey }]}
                 />
               </TouchableOpacity>
             )}
@@ -228,15 +235,21 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
                   style={styles.genreItem}
                   onPress={() => handleGenreToggle(genre)}
                 >
-                  <View style={styles.checkbox}>
-                    {selected.includes(genre) && <View style={styles.checkboxSelected} />}
+                  <View style={[styles.checkbox, { borderColor: colors.blue }]}>
+                    {selected.includes(genre) && (
+                      <View style={[styles.checkboxSelected, { backgroundColor: colors.blue }]} />
+                    )}
                   </View>
-                  <Text style={styles.genreText}>{genre}</Text>
+                  <Text style={[styles.genreText, { color: colors.black }]}>
+                    {genre}
+                  </Text>
                 </TouchableOpacity>
               ))
             ) : (
               <View style={styles.noResultsContainer}>
-                <Text style={styles.noResultsText}>Ничего не найдено</Text>
+                <Text style={[styles.noResultsText, { color: colors.grey }]}>
+                  Ничего не найдено
+                </Text>
               </View>
             )}
           </ScrollView>
@@ -251,7 +264,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.grey,
     paddingVertical: 8,
     paddingHorizontal: 0,
     marginBottom: 8,
@@ -260,24 +272,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.grey,
-  },
-  dropdownTextActive: {
-    color: Colors.black,
   },
   dropdownArrow: {
     width: 20,
     height: 20,
-    tintColor: Colors.grey,
   },
   genreCounter: {
     fontFamily: Montserrat.regular,
     fontSize: 12,
-    color: Colors.grey,
     marginBottom: 8,
   },
   genreDropdown: {
-    backgroundColor: Colors.white2,
     borderRadius: 20,
     marginBottom: 16,
     maxHeight: 350,
@@ -285,7 +290,6 @@ const styles = StyleSheet.create({
   categorySelector: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGrey,
   },
   categoriesContainer: {
     flexDirection: 'row',
@@ -296,13 +300,9 @@ const styles = StyleSheet.create({
   categoryButton: {
     width: 40,
     height: 40,
-    backgroundColor: Colors.lightLightGrey,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  categorySelected: {
-    backgroundColor: Colors.lightBlue,
   },
   categoryIcon: {
     width: 28,
@@ -315,20 +315,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGrey,
   },
   searchIcon: {
     width: 20,
     height: 20,
     resizeMode: 'contain',
-    tintColor: Colors.grey,
     marginRight: 12,
   },
   searchInput: {
     flex: 1,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
     padding: 0,
   },
   clearButton: {
@@ -338,7 +335,6 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     resizeMode: 'contain',
-    tintColor: Colors.grey,
     transform: [{ rotate: '180deg' }],
   },
   genreScrollView: {
@@ -355,9 +351,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: Colors.blue2,
     marginRight: 12,
-    backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -365,12 +359,10 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 2,
-    backgroundColor: Colors.blue2,
   },
   genreText: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
   },
   noResultsContainer: {
     paddingVertical: 20,
@@ -379,7 +371,6 @@ const styles = StyleSheet.create({
   noResultsText: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
   },
 });
 

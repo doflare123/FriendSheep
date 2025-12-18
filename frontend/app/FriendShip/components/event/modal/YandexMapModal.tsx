@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -29,6 +30,7 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
   onSelectAddress,
   initialAddress = '',
 }) => {
+  const colors = useThemedColors();
   const [searchQuery, setSearchQuery] = useState(initialAddress);
   const [selectedAddress, setSelectedAddress] = useState(initialAddress);
   const [isSearching, setIsSearching] = useState(false);
@@ -231,31 +233,31 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Выбор места</Text>
+      <View style={[styles.container, {backgroundColor: colors.white}]}>
+        <View style={[styles.header, {borderBottomColor: colors.lightGrey,}]}>
+          <Text style={[styles.headerTitle, {color: colors.black}]}>Выбор места</Text>
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>✕</Text>
+            <Text style={[styles.closeButtonText, {color: colors.grey}]}>✕</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.searchContainer}>
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, {borderColor: colors.lightGrey, color: colors.black}]}
             placeholder="Введите адрес"
-            placeholderTextColor={Colors.grey}
+            placeholderTextColor={colors.grey}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearch}
             returnKeyType="search"
           />
           <TouchableOpacity
-            style={styles.searchButton}
+            style={[styles.searchButton, {backgroundColor: colors.lightBlue}]}
             onPress={handleSearch}
             disabled={isSearching || !searchQuery.trim()}
           >
             {isSearching ? (
-              <ActivityIndicator size="small" color={Colors.white} />
+              <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <Text style={styles.searchButtonText}>Найти</Text>
             )}
@@ -264,8 +266,8 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
 
         {selectedAddress !== '' && (
           <View style={styles.selectedAddressContainer}>
-            <Text style={styles.selectedAddressLabel}>Выбранный адрес:</Text>
-            <Text style={styles.selectedAddressText} numberOfLines={2}>
+            <Text style={[styles.selectedAddressLabel, {color: colors.grey}]}>Выбранный адрес:</Text>
+            <Text style={[styles.selectedAddressText, {color: colors.black}]} numberOfLines={2}>
               {selectedAddress}
             </Text>
           </View>
@@ -273,9 +275,9 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
 
         <View style={styles.mapContainer}>
           {isMapLoading && (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color={Colors.lightBlue} />
-              <Text style={styles.loadingText}>Загрузка карты...</Text>
+            <View style={[styles.loadingOverlay, {backgroundColor: colors.white}]}>
+              <ActivityIndicator size="large" color={colors.lightBlue} />
+              <Text style={[styles.loadingText, {color: colors.grey}]}>Загрузка карты...</Text>
             </View>
           )}
           <WebView
@@ -291,17 +293,17 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
           />
         </View>
 
-        <View style={styles.hintContainer}>
-          <Text style={styles.hintText}>
+        <View style={[styles.hintContainer, {backgroundColor: colors.white}]}>
+          <Text style={[styles.hintText, {color: colors.grey}]}>
             Нажмите на карту или перетащите метку для выбора адреса
           </Text>
         </View>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, {borderTopColor: colors.lightGrey}]}>
           <TouchableOpacity
             style={[
-              styles.selectButton,
-              !selectedAddress.trim() && styles.selectButtonDisabled,
+              styles.selectButton, {backgroundColor: colors.lightBlue},
+              !selectedAddress.trim() && {backgroundColor: colors.lightGrey},
             ]}
             onPress={handleSelect}
             disabled={!selectedAddress.trim()}
@@ -317,7 +319,6 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   header: {
     flexDirection: 'row',
@@ -327,13 +328,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 50 : 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGrey,
     position: 'relative',
   },
   headerTitle: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.black,
   },
   closeButton: {
     position: 'absolute',
@@ -343,7 +342,6 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: 28,
-    color: Colors.grey,
     fontFamily: Montserrat.regular,
   },
   searchContainer: {
@@ -354,16 +352,13 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: Colors.lightGrey,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
   },
   searchButton: {
-    backgroundColor: Colors.lightBlue,
     borderRadius: 20,
     paddingHorizontal: 20,
     justifyContent: 'center',
@@ -382,13 +377,11 @@ const styles = StyleSheet.create({
   selectedAddressLabel: {
     fontFamily: Montserrat.bold,
     fontSize: 12,
-    color: Colors.grey,
     marginBottom: 4,
   },
   selectedAddressText: {
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.black,
   },
   mapContainer: {
     flex: 1,
@@ -405,38 +398,32 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.white,
     zIndex: 10,
   },
   loadingText: {
     marginTop: 16,
     fontFamily: Montserrat.regular,
     fontSize: 14,
-    color: Colors.grey,
   },
   hintContainer: {
     padding: 12,
-    backgroundColor: Colors.white,
   },
   hintText: {
     fontFamily: Montserrat.regular,
     fontSize: 10,
-    color: Colors.grey,
     textAlign: 'center',
   },
   footer: {
     padding: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.lightGrey,
   },
   selectButton: {
-    backgroundColor: Colors.lightBlue,
     borderRadius: 20,
     paddingVertical: 8,
     alignItems: 'center',
   },
   selectButtonDisabled: {
-    backgroundColor: Colors.lightGrey,
+
   },
   selectButtonText: {
     fontFamily: Montserrat.bold,

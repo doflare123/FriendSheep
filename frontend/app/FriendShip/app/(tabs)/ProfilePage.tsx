@@ -16,6 +16,7 @@ import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { RootStackParamList } from '@/navigation/types';
 import { sessionsToEvents } from '@/utils/dataAdapters';
 import { formatDate } from '@/utils/dateUtils';
@@ -36,6 +37,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 type ProfilePageRouteProp = RouteProp<RootStackParamList, 'ProfilePage'>;
 
 const ProfilePage: React.FC = () => {
+  const colors = useThemedColors();
   const route = useRoute<ProfilePageRouteProp>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { showToast } = useToast();
@@ -239,7 +241,7 @@ const ProfilePage: React.FC = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.lightBlue} />
@@ -252,7 +254,7 @@ const ProfilePage: React.FC = () => {
 
   if (!profileData) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         <View style={styles.loadingContainer}>
           <Text style={styles.errorText}>Не удалось загрузить профиль</Text>
@@ -271,7 +273,7 @@ const ProfilePage: React.FC = () => {
     
     if (total === 0) return [];
     
-    const colors = [
+    const colorsChart = [
       '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#95E1D3',
       '#F38181', '#AA96DA', '#FCBAD3', '#A8D8EA', '#FFCB85'
     ];
@@ -279,8 +281,8 @@ const ProfilePage: React.FC = () => {
     return profileData.popular_genres.map((genre, index) => ({
       name: genre.name,
       percentage: Math.round((genre.count / total) * 100),
-      color: colors[index % colors.length],
-      legendFontColor: '#000'
+      color: colorsChart[index % colorsChart.length],
+      legendFontColor: colors.black
     }));
   };
 
@@ -314,7 +316,7 @@ const ProfilePage: React.FC = () => {
     
     if (total === 0) return [];
     
-    const colors: Record<string, string> = {
+    const colorsMap: Record<string, string> = {
       'movies': '#FF6B6B',
       'video_games': '#4ECDC4',
       'board_games': '#45B7D1',
@@ -324,8 +326,8 @@ const ProfilePage: React.FC = () => {
     return categoryData.map((cat) => ({
       name: cat.name,
       percentage: Math.round((cat.count / total) * 100),
-      color: colors[cat.key] || '#95E1D3',
-      legendFontColor: '#000'
+      color: colorsMap[cat.key] || '#95E1D3',
+      legendFontColor: colors.black
     }));
   };
 
@@ -333,7 +335,7 @@ const ProfilePage: React.FC = () => {
   const categoryStatisticsData = generateCategoryStatistics();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <PageHeader 
@@ -395,7 +397,7 @@ const ProfilePage: React.FC = () => {
         >
           {((sessionFilter === 'completed' && (!profileData.recent_sessions || profileData.recent_sessions.length === 0)) ||
             (sessionFilter === 'upcoming' && (!profileData.upcoming_sessions || profileData.upcoming_sessions.length === 0))) && (
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: colors.black }]}>
               {sessionFilter === 'completed' 
                 ? 'Завершённых сессий пока нет' 
                 : 'Предстоящих сессий пока нет'}
@@ -489,7 +491,6 @@ const ProfilePage: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   scrollView: {
     flex: 1,
@@ -524,7 +525,6 @@ const styles = StyleSheet.create({
   emptyText:{
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
     alignSelf: 'center',
     marginVertical: 8
   }

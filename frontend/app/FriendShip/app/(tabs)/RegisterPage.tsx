@@ -1,7 +1,7 @@
 import authService from '@/api/services/authService';
 import { useAuthContext } from '@/components/auth/AuthContext';
 import { useToast } from '@/components/ToastContext';
-import { Colors } from '@/constants/Colors';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { hasRussianChars, validatePassword, validateUsername } from '@/utils/validators';
 import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
@@ -13,6 +13,7 @@ import Logo from '../../components/auth/Logo';
 import authorizeStyle from '../styles/authorizeStyle';
 
 const Register = () => {
+  const colors = useThemedColors();
   const { setTempRegData } = useAuthContext();
   const navigation = useNavigation();
   const { showToast } = useToast();
@@ -124,10 +125,12 @@ const Register = () => {
   };
 
   return (
-    <View style={authorizeStyle.container}>
+    <View style={[authorizeStyle.container, { backgroundColor: colors.white }]}>
       <View style={authorizeStyle.topContainer}>
         <Logo />
-        <Text style={authorizeStyle.title}>Регистрация</Text>
+        <Text style={[authorizeStyle.title, { color: colors.black }]}>
+          Регистрация
+        </Text>
       </View>
 
       <KeyboardAwareScrollView
@@ -137,10 +140,10 @@ const Register = () => {
         extraScrollHeight={20}
         showsVerticalScrollIndicator={false}>
 
-        <Text style={authorizeStyle.label}>
+        <Text style={[authorizeStyle.label, { color: colors.black }]}>
           Имя пользователя 
           {username.length > 0 && (
-            <Text style={{ color: usernameValidation.length > 40 ? Colors.red : Colors.grey }}>
+            <Text style={{ color: usernameValidation.length > 40 ? colors.red : colors.grey }}>
               {' '}({usernameValidation.length}/{usernameValidation.maxLength})
             </Text>
           )}
@@ -155,12 +158,14 @@ const Register = () => {
         />
 
         {username.length > 0 && !usernameValidation.isValid && (
-          <Text style={authorizeStyle.passwordValidation}>
+          <Text style={[authorizeStyle.passwordValidation, { color: colors.red }]}>
             {usernameValidation.missingRequirements.join(', ')}
           </Text>
         )}
 
-        <Text style={authorizeStyle.label}>Пароль</Text>
+        <Text style={[authorizeStyle.label, { color: colors.black }]}>
+          Пароль
+        </Text>
         <Input
           placeholder="Минимум 10 символов"
           secureTextEntry
@@ -168,22 +173,24 @@ const Register = () => {
           onChangeText={setPassword}
           editable={!loading}
           isValid={password.length === 0 || (passwordValidation.isValid && !showRussianWarning)}
-          borderColor={showRussianWarning ? Colors.orange : undefined}
+          borderColor={showRussianWarning ? colors.orange : undefined}
         />
 
         {showRussianWarning && (
-          <Text style={[authorizeStyle.passwordValidation, {color: Colors.orange}]}>
+          <Text style={[authorizeStyle.passwordValidation, { color: colors.orange }]}>
             Включена русская раскладка!
           </Text>
         )}
 
         {password.length > 0 && !passwordValidation.isValid && !showRussianWarning && (
-          <Text style={authorizeStyle.passwordValidation}>
+          <Text style={[authorizeStyle.passwordValidation, { color: colors.red }]}>
             Необходимо: {passwordValidation.missingRequirements.join(', ')}
           </Text>
         )}
 
-        <Text style={authorizeStyle.label}>Подтвердите пароль</Text>
+        <Text style={[authorizeStyle.label, { color: colors.black }]}>
+          Подтвердите пароль
+        </Text>
         <Input
           placeholder="Повторите пароль"
           secureTextEntry
@@ -194,12 +201,14 @@ const Register = () => {
         />
 
         {confirmPassword.length > 0 && password !== confirmPassword && (
-          <Text style={authorizeStyle.passwordValidation}>
+          <Text style={[authorizeStyle.passwordValidation, { color: colors.red }]}>
             Пароли не совпадают
           </Text>
         )}
 
-        <Text style={authorizeStyle.label}>Почта</Text>
+        <Text style={[authorizeStyle.label, { color: colors.black }]}>
+          Почта
+        </Text>
         <Input
           placeholder="user_email@gmail.com"
           value={email}
@@ -211,7 +220,7 @@ const Register = () => {
         />
 
         {email.length > 0 && !isEmailValid && (
-          <Text style={authorizeStyle.passwordValidation}>
+          <Text style={[authorizeStyle.passwordValidation, { color: colors.red }]}>
             Введите корректный email (должен содержать @ и домен)
           </Text>
         )}
@@ -221,14 +230,16 @@ const Register = () => {
             onPress={() => navigation.navigate('Login' as never)}
             disabled={loading}
           >
-            <Text style={authorizeStyle.account}>Есть аккаунт?</Text>
+            <Text style={[authorizeStyle.account, { color: colors.blue }]}>
+              Есть аккаунт?
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={authorizeStyle.terms}>
+        <Text style={[authorizeStyle.terms, { color: colors.grey }]}>
           При создании аккаунта вы соглашаетесь с условиями{' '}
           <Text
-            style={authorizeStyle.link}
+            style={[authorizeStyle.link, { color: colors.blue }]}
             onPress={() =>
               openURL('https://friendsheep.ru/info/privacy')
             }
@@ -237,7 +248,7 @@ const Register = () => {
           </Text>{' '}
           и{' '}
           <Text
-            style={authorizeStyle.link}
+            style={[authorizeStyle.link, { color: colors.blue }]}
             onPress={() =>
               openURL(
                 'https://friendsheep.ru/info/privacy',
@@ -257,13 +268,15 @@ const Register = () => {
         {loading && (
           <ActivityIndicator 
             size="large" 
-            color={Colors.blue}
+            color={colors.blue}
             style={{ marginTop: 16 }} 
           />
         )}
       </KeyboardAwareScrollView>
 
-      <Text style={authorizeStyle.footer}>©NecroDwarf</Text>
+      <Text style={[authorizeStyle.footer, { color: colors.grey }]}>
+        ©NecroDwarf
+      </Text>
     </View>
   );
 };

@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { validateUserDisplayName, validateUserUsername } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -46,6 +47,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   onSave,
   currentProfile 
 }) => {
+  const colors = useThemedColors();
   const [avatar, setAvatar] = useState<string | ImageSourcePropType>(currentProfile.avatar);
   const [name, setName] = useState(currentProfile.name);
   const [username, setUsername] = useState(currentProfile.username);
@@ -140,7 +142,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   return (
     <Modal visible={visible} animationType="fade" transparent>
       <View style={styles.overlay}>
-        <View style={styles.modal}>
+        <View style={[styles.modal, { backgroundColor: colors.white }]}>
           <ScrollView
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -148,37 +150,37 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             bounces={false}
             alwaysBounceVertical={false}
           >
-            <View style={styles.header}>
-              <Text style={styles.title}>Редактирование профиля</Text>
+            <View style={[styles.header, { backgroundColor: colors.white }]}>
+              <Text style={[styles.title, { color: colors.black }]}>Редактирование профиля</Text>
               <TouchableOpacity 
                 style={styles.closeButton} 
                 onPress={handleClose}
                 disabled={loading}
               >
                 <Image
-                  tintColor={Colors.black}
+                  tintColor={colors.black}
                   style={{ width: 35, height: 35, resizeMode: 'cover' }}
                   source={require('@/assets/images/event_card/back.png')}
                 />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.content}>
+            <View style={[styles.content, { backgroundColor: colors.white }]}>
               <TouchableOpacity 
-                style={styles.avatarContainer}
+                style={[styles.avatarContainer, { borderColor: colors.lightGrey }]}
                 onPress={handleAvatarPress}
                 disabled={loading}
               >
-                <Image source={getAvatarSource()} style={styles.avatar} />
+                <Image source={getAvatarSource()} style={[styles.avatar, { borderColor: colors.lightGrey }]} />
               </TouchableOpacity>
 
               <View style={styles.inputWrapper}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.label}>Имя</Text>
+                  <Text style={[styles.label, { color: colors.black }]}>Имя</Text>
                   {name.length > 0 && (
                     <Text style={[
                       styles.charCount,
-                      { color: nameValidation.length > nameValidation.maxLength ? Colors.red : Colors.grey }
+                      { color: nameValidation.length > nameValidation.maxLength ? Colors.red : colors.grey }
                     ]}>
                       {nameValidation.length}/{nameValidation.maxLength}
                     </Text>
@@ -187,10 +189,14 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <TextInput
                   style={[
                     styles.input,
+                    { 
+                      borderBottomColor: colors.grey,
+                      color: colors.black
+                    },
                     name.length > 0 && !nameValidation.isValid && styles.inputError
                   ]}
                   placeholder="Имя"
-                  placeholderTextColor={Colors.grey}
+                  placeholderTextColor={colors.grey}
                   value={name}
                   onChangeText={setName}
                   maxLength={50}
@@ -205,11 +211,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
               <View style={styles.inputWrapper}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.label}>Юзернейм</Text>
+                  <Text style={[styles.label, { color: colors.black }]}>Юзернейм</Text>
                   {username.length > 0 && (
                     <Text style={[
                       styles.charCount,
-                      { color: usernameValidation.length > usernameValidation.maxLength ? Colors.red : Colors.grey }
+                      { color: usernameValidation.length > usernameValidation.maxLength ? Colors.red : colors.grey }
                     ]}>
                       {usernameValidation.length}/{usernameValidation.maxLength}
                     </Text>
@@ -218,10 +224,14 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <TextInput
                   style={[
                     styles.input,
+                    { 
+                      borderBottomColor: colors.grey,
+                      color: colors.black
+                    },
                     username.length > 0 && !usernameValidation.isValid && styles.inputError
                   ]}
                   placeholder="Юзернейм"
-                  placeholderTextColor={Colors.grey}
+                  placeholderTextColor={colors.grey}
                   value={username}
                   onChangeText={setUsername}
                   maxLength={30}
@@ -236,11 +246,18 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               </View>
 
               <View style={styles.inputWrapper}>
-                <Text style={styles.label}>Описание</Text>
+                <Text style={[styles.label, { color: colors.black }]}>Описание</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[
+                    styles.input, 
+                    styles.textArea,
+                    {
+                      borderColor: colors.grey,
+                      color: colors.black
+                    }
+                  ]}
                   placeholder="Описание"
-                  placeholderTextColor={Colors.grey}
+                  placeholderTextColor={colors.grey}
                   value={description}
                   onChangeText={setDescription}
                   multiline
@@ -262,6 +279,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <TouchableOpacity
                   style={[
                     styles.saveButton,
+                    { backgroundColor: Colors.white },
                     (loading || !nameValidation.isValid || !usernameValidation.isValid) && styles.saveButtonDisabled
                   ]}
                   onPress={handleSave}
@@ -292,7 +310,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     borderRadius: 25,
     overflow: "hidden",
-    backgroundColor: Colors.white,
     maxHeight: screenHeight * 0.85,
   },
   header: {
@@ -301,13 +318,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: Colors.white,
     position: 'relative',
   },
   title: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    color: Colors.black,
     textAlign: 'center',
   },
   closeButton: {
@@ -316,7 +331,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   content: {
-    backgroundColor: Colors.white,
     paddingHorizontal: 16,
     paddingBottom: 16,
     alignItems: 'center',
@@ -330,13 +344,11 @@ const styles = StyleSheet.create({
     borderRadius: 78,
     borderWidth: 3,
     borderStyle: 'dashed',
-    borderColor: Colors.lightGrey
   },
   avatar: {
     width: 150,
     height: 150,
     borderRadius: 75,
-    borderColor: Colors.lightGrey,
   },
   inputWrapper: {
     width: '100%',
@@ -351,7 +363,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: Montserrat.medium,
     fontSize: 14,
-    color: Colors.black,
   },
   charCount: {
     fontFamily: Montserrat.regular,
@@ -360,19 +371,16 @@ const styles = StyleSheet.create({
   input: {
     width: '100%',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.grey,
     paddingVertical: 8,
     paddingHorizontal: 0,
     fontFamily: Montserrat.regular,
     fontSize: 16,
-    color: Colors.black,
   },
   inputError: {
     borderBottomColor: Colors.red,
   },
   textArea: {
     borderWidth: 1,
-    borderColor: Colors.grey,
     borderRadius: 8,
     padding: 16,
     minHeight: 60,
@@ -392,7 +400,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   saveButton: {
-    backgroundColor: Colors.white,
     marginHorizontal: 60,
     paddingVertical: 10,
     borderRadius: 20,

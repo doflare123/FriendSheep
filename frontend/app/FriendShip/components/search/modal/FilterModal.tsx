@@ -1,8 +1,8 @@
 import CityFilterInput from '@/components/filters/CityFilterInput';
-import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { GroupSearchActions, GroupSearchState } from '@/hooks/useGroupSearchState';
 import { SortingActions, SortingState } from '@/hooks/useSearchState';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { getCategoryDisplayName } from '@/utils/categoryMapping';
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -45,6 +45,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   groupFilters,
   topInset,
 }) => {
+  const colors = useThemedColors();
   const { sortingState, sortingActions } = eventFilters;
   const { groupSearchState, groupSearchActions } = groupFilters;
 
@@ -63,7 +64,12 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <Pressable
             style={[
               styles.dropdown,
-              { position: 'absolute', top: position.top, left: position.left },
+              { 
+                position: 'absolute', 
+                top: position.top, 
+                left: position.left,
+                backgroundColor: colors.white
+              },
             ]}
             onPress={() => {}}
           >
@@ -74,7 +80,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onChangeText={sortingActions.setCityFilter}
                 />
 
-                <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
+                <Text style={[styles.dropdownTitle, { marginTop: 12, color: colors.black }]}>
                   Фильтрация по категориям
                 </Text>
                 {['Все', 'Игры', 'Фильмы', 'Настолки', 'Другое'].map((cat) => (
@@ -83,16 +89,18 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     style={styles.radioItem}
                     onPress={() => sortingActions.toggleCategoryCheckbox(cat)}
                   >
-                    <View style={styles.radioSquareEmpty}>
+                    <View style={[styles.radioSquareEmpty, { borderColor: colors.lightBlue }]}>
                       {sortingState.checkedCategories.includes(cat) && (
-                        <View style={styles.radioInnerSquare} />
+                        <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue }]} />
                       )}
                     </View>
-                    <Text style={styles.radioLabel}>{getCategoryDisplayName(cat)}</Text>
+                    <Text style={[styles.radioLabel, { color: colors.black }]}>
+                      {getCategoryDisplayName(cat)}
+                    </Text>
                   </TouchableOpacity>
                 ))}
 
-                <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
+                <Text style={[styles.dropdownTitle, { marginTop: 12, color: colors.black }]}>
                   Сортировка по дате
                 </Text>
                 {(['none', 'asc', 'desc'] as const).map((order) => (
@@ -101,16 +109,18 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     style={styles.radioItem}
                     onPress={() => sortingActions.setSortByDate(order)}
                   >
-                    <View style={styles.radioCircleEmpty}>
+                    <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue }]}>
                       {sortingState.sortByDate === order && (
-                        <View style={styles.radioInnerCircle} />
+                        <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue }]} />
                       )}
                     </View>
-                    <Text style={styles.radioLabel}>{getSortingLabel(order)}</Text>
+                    <Text style={[styles.radioLabel, { color: colors.black }]}>
+                      {getSortingLabel(order)}
+                    </Text>
                   </TouchableOpacity>
                 ))}
 
-                <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
+                <Text style={[styles.dropdownTitle, { marginTop: 12, color: colors.black }]}>
                   Сортировка по участникам
                 </Text>
                 {(['none', 'asc', 'desc'] as const).map((order) => (
@@ -119,12 +129,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     style={styles.radioItem}
                     onPress={() => sortingActions.setSortByParticipants(order)}
                   >
-                    <View style={styles.radioCircleEmpty}>
+                    <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue }]}>
                       {sortingState.sortByParticipants === order && (
-                        <View style={styles.radioInnerCircle} />
+                        <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue }]} />
                       )}
                     </View>
-                    <Text style={styles.radioLabel}>{getSortingLabel(order)}</Text>
+                    <Text style={[styles.radioLabel, { color: colors.black }]}>
+                      {getSortingLabel(order)}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </>
@@ -132,23 +144,27 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
           {searchType === 'group' && (
             <>
-              <Text style={styles.dropdownTitle}>Сортировка по участникам</Text>
+              <Text style={[styles.dropdownTitle, { color: colors.black }]}>
+                Сортировка по участникам
+              </Text>
               {(['none', 'asc', 'desc'] as const).map((order) => (
                 <TouchableOpacity
                   key={order}
                   style={styles.radioItem}
                   onPress={() => groupSearchActions.setSortByParticipants(order)}
                 >
-                  <View style={styles.radioCircleEmpty}>
+                  <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue }]}>
                     {groupSearchState.sortByParticipants === order && (
-                      <View style={styles.radioInnerCircle} />
+                      <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue }]} />
                     )}
                   </View>
-                  <Text style={styles.radioLabel}>{getSortingLabel(order)}</Text>
+                  <Text style={[styles.radioLabel, { color: colors.black }]}>
+                    {getSortingLabel(order)}
+                  </Text>
                 </TouchableOpacity>
               ))}
 
-              <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
+              <Text style={[styles.dropdownTitle, { marginTop: 12, color: colors.black }]}>
                 Сортировка по категориям
               </Text>
               {[
@@ -169,20 +185,22 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     }
                   }}
                 >
-                  <View style={styles.radioSquareEmpty}>
+                  <View style={[styles.radioSquareEmpty, { borderColor: colors.lightBlue }]}>
                     {value === null
                       ? groupSearchState.checkedCategories.length === 0 && (
-                          <View style={styles.radioInnerSquare} />
+                          <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue }]} />
                         )
                       : groupSearchState.checkedCategories.includes(value) && (
-                          <View style={styles.radioInnerSquare} />
+                          <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue }]} />
                         )}
                   </View>
-                  <Text style={styles.radioLabel}>{label}</Text>
+                  <Text style={[styles.radioLabel, { color: colors.black }]}>
+                    {label}
+                  </Text>
                 </TouchableOpacity>
               ))}
 
-              <Text style={[styles.dropdownTitle, { marginTop: 12 }]}>
+              <Text style={[styles.dropdownTitle, { marginTop: 12, color: colors.black }]}>
                 Сортировка по регистрации
               </Text>
               {(['none', 'asc', 'desc'] as const).map((order) => (
@@ -191,12 +209,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   style={styles.radioItem}
                   onPress={() => groupSearchActions.setSortByRegistration(order)}
                 >
-                  <View style={styles.radioCircleEmpty}>
+                  <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue }]}>
                     {groupSearchState.sortByRegistration === order && (
-                      <View style={styles.radioInnerCircle} />
+                      <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue }]} />
                     )}
                   </View>
-                  <Text style={styles.radioLabel}>{getSortingLabel(order)}</Text>
+                  <Text style={[styles.radioLabel, { color: colors.black }]}>
+                    {getSortingLabel(order)}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </>
@@ -217,7 +237,6 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     width: 230,
-    backgroundColor: Colors.white,
     borderRadius: 10,
     borderTopEndRadius: 0,
     padding: 12,
@@ -241,7 +260,6 @@ const styles = StyleSheet.create({
     width: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: Colors.lightBlue2,
     backgroundColor: 'transparent',
     marginRight: 8,
     justifyContent: 'center',
@@ -251,7 +269,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 10,
-    backgroundColor: Colors.blue2,
     alignSelf: 'center',
     justifyContent: 'center',
   },
@@ -260,7 +277,6 @@ const styles = StyleSheet.create({
     width: 20,
     borderWidth: 2,
     borderRadius: 6,
-    borderColor: Colors.lightBlue2,
     backgroundColor: 'transparent',
     marginRight: 8,
     justifyContent: 'center',
@@ -270,7 +286,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 2,
-    backgroundColor: Colors.blue2,
     alignSelf: 'center',
     justifyContent: 'center',
   },
