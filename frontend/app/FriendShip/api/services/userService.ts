@@ -36,14 +36,10 @@ class UserService {
       if (isNumericId) {
         userId = userIdOrUsername;
       } else {
-        console.log('[UserService] Получаем ID для username:', userIdOrUsername);
-
         const usernameResponse = await apiClient.get(`/users/${userIdOrUsername}`);
-        console.log('[UserService] Ответ от /users/{username}:', usernameResponse.data);
 
         if (typeof usernameResponse.data === 'number') {
           userId = usernameResponse.data.toString();
-          console.log('[UserService] ✅ Получен ID:', userId);
         } else if (usernameResponse.data?.id) {
           userId = usernameResponse.data.id.toString();
         } else {
@@ -51,17 +47,17 @@ class UserService {
         }
       }
 
-      console.log('[UserService] Загружаем профиль по ID:', userId);
       const response = await apiClient.get<UserProfile>(`/users/inf/${userId}`);
-      
-      console.log('[UserService] ✅ Профиль загружен:', response.data.name);
       
       const profile = response.data;
       profile.image = normalizeImageUrl(profile.image);
+
+      if (!profile.id) {
+        profile.id = parseInt(userId, 10);
+      }
       
       return profile;
     } catch (error: any) {
-      console.error('[UserService] ❌ Ошибка загрузки профиля:', error.response?.status);
       throw this.handleError(error);
     }
   }

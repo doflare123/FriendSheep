@@ -99,24 +99,28 @@ class GroupMemberService {
       
       return response.data;
     } catch (error: any) {
-      console.error('[GroupMemberService] Ошибка отправки приглашения');
-      
-      if (error.response?.status === 403) {
-        throw new Error('У вас нет прав администратора этой группы');
-      }
-      if (error.response?.status === 404) {
-        throw new Error('Пользователь или группа не найдены');
-      }
-      if (error.response?.status === 400) {
-        const errorMsg = error.response?.data?.message || '';
-        if (errorMsg.includes('already')) {
-          throw new Error('Пользователь уже состоит в группе');
+        if (error.response) {
+          // ✅ Детально обрабатываем ошибки сервера
+          const status = error.response.status;
+          const data = error.response.data;
+          
+          // Конкретные статусы
+          if (status === 403) throw new Error('...');
+          if (status === 404) throw new Error('...');
+          if (status === 400) throw new Error('...');
+          
+          // ✅ Для всех остальных - понятное сообщение
+          throw new Error(data?.message || data?.error || `Ошибка сервера (${status})`);
+          
+        } else if (error.request) {
+          // ✅ Нет ответа от сервера
+          throw new Error('Сервер не отвечает. Проверьте подключение к интернету.');
+          
+        } else {
+          // ✅ Ошибка настройки запроса
+          throw new Error(error.message || 'Неизвестная ошибка');
         }
-        throw new Error(errorMsg || 'Некорректные параметры запроса');
       }
-      
-      throw new Error(error.response?.data?.message || 'Ошибка отправки приглашения');
-    }
   }
 }
 

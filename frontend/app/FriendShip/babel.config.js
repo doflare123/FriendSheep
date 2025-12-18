@@ -24,6 +24,12 @@ module.exports = function (api) {
           allowUndefined: true,
         },
       ],
+      [
+        'transform-remove-console',
+        {
+          exclude: ['error', 'warn']
+        }
+      ],
       'react-native-reanimated/plugin',
     ],
   };

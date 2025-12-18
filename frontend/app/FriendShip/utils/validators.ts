@@ -1,5 +1,5 @@
 export const validateUserId = (userId: any): number => {
-  const parsed = typeof userId === 'string' ? parseInt(userId) : userId;
+  const parsed = typeof userId === 'string' ? parseInt(userId, 10) : userId;
   
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error('Некорректный ID пользователя');
@@ -9,7 +9,7 @@ export const validateUserId = (userId: any): number => {
 };
 
 export const validateGroupId = (groupId: any): number => {
-  const parsed = typeof groupId === 'string' ? parseInt(groupId) : groupId;
+  const parsed = typeof groupId === 'string' ? parseInt(groupId, 10) : groupId;
   
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error('Некорректный ID группы');
@@ -19,7 +19,7 @@ export const validateGroupId = (groupId: any): number => {
 };
 
 export const validateSessionId = (sessionId: any): number => {
-  const parsed = typeof sessionId === 'string' ? parseInt(sessionId) : sessionId;
+  const parsed = typeof sessionId === 'string' ? parseInt(sessionId, 10) : sessionId;
   
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error('Некорректный ID события');

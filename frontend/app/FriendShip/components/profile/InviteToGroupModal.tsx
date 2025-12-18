@@ -24,7 +24,7 @@ const screenHeight = Dimensions.get("window").height;
 interface InviteToGroupModalProps {
   visible: boolean;
   onClose: () => void;
-  userId: number;
+  userId: number | string | undefined | null;
   onInviteSent?: () => void;
 }
 
@@ -49,22 +49,40 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
 
   useEffect(() => {
     if (visible) {
+      if (!isValidUserId(userId)) {
+        showToast({
+          type: 'error',
+          title: 'Ошибка',
+          message: `Некорректный ID пользователя: ${userId}`,
+        });
+        onClose();
+        return;
+      }
+      
       loadAdminGroups();
     }
   }, [visible]);
 
+  const isValidUserId = (id: any): boolean => {
+    if (id === undefined || id === null || id === '') return false;
+    
+    const parsed = typeof id === 'string' ? parseInt(id, 10) : id;
+    
+    return Number.isInteger(parsed) && parsed > 0 && !isNaN(parsed);
+  };
+
+  const parseUserId = (id: any): number => {
+    if (typeof id === 'number') return id;
+    if (typeof id === 'string') return parseInt(id, 10);
+    return 0;
+  };
+
   const loadAdminGroups = async () => {
     try {
       setLoading(true);
-      console.log('[InviteToGroupModal] 📥 Загрузка групп администратора...');
-      
       const groups = await groupService.getAdminGroups();
-      
-      console.log('[InviteToGroupModal] ✅ Загружено групп:', groups.length);
       setAdminGroups(groups);
-      
     } catch (error: any) {
-      console.error('[InviteToGroupModal] ❌ Ошибка загрузки групп:', error);
       showToast({
         type: 'error',
         title: 'Ошибка',
@@ -76,13 +94,21 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
   };
 
   const handleGroupPress = async (groupId: number) => {
+    if (!isValidUserId(userId)) {
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'ID пользователя недоступен. Попробуйте открыть профиль заново.',
+      });
+      onClose();
+      return;
+    }
+
+    const validUserId = parseUserId(userId);
+
     try {
       setSending(true);
-      console.log('[InviteToGroupModal] 📨 Отправка приглашения:', { groupId, userId });
-      
-      const result = await groupMemberService.sendInviteToUser(groupId, userId);
-      
-      console.log('[InviteToGroupModal] ✅ Результат:', result);
+      const result = await groupMemberService.sendInviteToUser(groupId, validUserId);
       
       showToast({
         type: 'success',
@@ -94,7 +120,6 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
       onClose();
       
     } catch (error: any) {
-      console.error('[InviteToGroupModal] ❌ Ошибка отправки:', error);
       showToast({
         type: 'error',
         title: 'Ошибка',

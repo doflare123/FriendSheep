@@ -37,6 +37,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 type ProfilePageRouteProp = RouteProp<RootStackParamList, 'ProfilePage'>;
 
 const ProfilePage: React.FC = () => {
+  const [viewedUserId, setViewedUserId] = useState<number | null>(null);
   const colors = useThemedColors();
   const route = useRoute<ProfilePageRouteProp>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -82,8 +83,29 @@ const ProfilePage: React.FC = () => {
 
       console.log('[ProfilePage] Загруженный профиль:', profile.name, '(свой:', isViewingOwnProfile, ')');
 
+      console.log('[ProfilePage] ===== CHECKING PROFILE.ID =====');
+      console.log('profile.id:', profile.id, 'type:', typeof profile.id);
+      console.log('profile:', JSON.stringify(profile, null, 2));
+      console.log('==========================================');
+
       if (!profile || !profile.name || !profile.tiles) {
         throw new Error('Получены некорректные данные профиля');
+      }
+
+      if (!isViewingOwnProfile) {
+        if (profile.id && typeof profile.id === 'number' && profile.id > 0) {
+          setViewedUserId(profile.id);
+          console.log('[ProfilePage] ✅ Saved viewedUserId:', profile.id);
+        } else {
+          console.error('[ProfilePage] ❌ profile.id некорректный:', profile.id);
+          if (typeof profile.id === 'string') {
+            const parsed = parseInt(profile.id, 10);
+            if (!isNaN(parsed) && parsed > 0) {
+              setViewedUserId(parsed);
+              console.log('[ProfilePage] ✅ Parsed and saved viewedUserId:', parsed);
+            }
+          }
+        }
       }
       
       setProfileData(profile);
@@ -476,14 +498,14 @@ const ProfilePage: React.FC = () => {
         </>
       )}
       
-      {!isOwnProfile && userId && (
-        <InviteToGroupModal
-          visible={inviteModalVisible}
-          onClose={() => setInviteModalVisible(false)}
-          userId={parseInt(userId)}
-          onInviteSent={handleInviteSent}
-        />
-      )}
+    {!isOwnProfile && viewedUserId && (
+      <InviteToGroupModal
+        visible={inviteModalVisible}
+        onClose={() => setInviteModalVisible(false)}
+        userId={viewedUserId}
+        onInviteSent={handleInviteSent}
+      />
+    )}
     </SafeAreaView>
   );
 };
