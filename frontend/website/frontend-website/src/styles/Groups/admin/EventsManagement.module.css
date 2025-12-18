@@ -30,7 +30,7 @@
   border: 2px solid var(--color-primary-blue-dark);
   border-radius: 20px;
   font-size: 14px;
-  background: white;
+  background: var(--color-bg-primary);
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
@@ -94,7 +94,7 @@
   position: absolute;
   top: 100%;
   right: 0;
-  background: white;
+  background: var(--color-bg-primary);
   border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   padding: 16px;
@@ -212,7 +212,7 @@
 .scrollButton {
   position: absolute;
   right: 10px;
-  background: white;
+  background: var(--color-bg-primary);
   color: var(--color-primary-blue-dark);
   border: 2px solid var(--color-primary-blue-dark);
   border-radius: 50%;

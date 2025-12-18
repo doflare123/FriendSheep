@@ -24,7 +24,7 @@
 }
 
 .modalContent {
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 16px;
   width: 90%;
   max-width: 500px;

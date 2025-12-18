@@ -2,7 +2,7 @@
     flex-shrink: 0;
     width: 550px;
     height: 350px;
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 16px;
     border: 3px solid var(--color-primary-blue-dark);
     box-shadow: var(--shadow-lg);
@@ -25,8 +25,8 @@
     position: absolute;
     top: 160px;
     right: 10px;
-    background: white;
-    color: black;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
     font-weight: 600;
     font-size: 14px;
     border-radius: 50%;
@@ -55,7 +55,7 @@
     position: absolute;
     top: 10px;
     right: 10px;
-    background: white;
+    background: var(--color-bg-primary);
     padding: 8px;
     border-radius: 50%;
     border: 2px solid var(--color-primary-blue);
@@ -68,7 +68,7 @@
     position: absolute;
     top: 10px;
     left: 10px;
-    background: white;
+    background: var(--color-bg-primary);
     color: var(--color-text-primary);
     padding: 6px 12px;
     border-radius: 20px;
@@ -116,7 +116,7 @@
 }
 
 .genresLabel {
-    color: black;
+    color: var(--color-text-primary);
     font-weight: 600;
     margin-right: 4px;
     flex-shrink: 0;
@@ -124,7 +124,7 @@
 
 .genre {
     background: var(--color-primary-blue);
-    color: white;
+    color: var(--color-text-white);
     padding: 4px 12px;
     border-radius: 16px;
     font-size: 12px;
@@ -145,7 +145,7 @@
 
 .cardParticipants {
     font-weight: 500;
-    color: black;
+    color: var(--color-text-primary);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -153,7 +153,7 @@
 
 .cardDuration {
     font-size: 13px;
-    color: black;
+    color: var(--color-text-primary);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -167,7 +167,7 @@
 .detailsButton {
     width: 100%;
     background: var(--color-primary-blue);
-    color: white;
+    color: var(--color-text-white);
     border: none;
     padding: 12px;
     border-radius: 25px;
@@ -180,15 +180,15 @@
 }
 
 .detailsButton:hover {
-    background: var(--color-primary-blue);
+    background: var(--color-primary-blue-dark);
 }
 
 .cityBadge {
     position: absolute;
     bottom: 0;
     right: 0;
-    background: white;
-    color: black;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
     font-weight: 600;
     font-size: 13px;
     padding: 4px 10px 4px 20px;

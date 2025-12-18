@@ -8,7 +8,7 @@
     min-width: 800px; /* Минимальная ширина для корректного отображения карточек */
     min-height: 400px; /* Минимальная высота */
     height: fit-content; /* Высота зависит от содержимого */
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     padding: 24px;

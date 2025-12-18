@@ -36,10 +36,11 @@
   padding-right: 50px;
   border: 2px solid var(--color-primary-blue-dark);
   border-radius: 20px;
-  background: white;
+  background: var(--color-bg-primary);
   font-size: 16px;
   outline: none;
   transition: border-color 0.3s ease;
+  color: var(--color-text-primary);
 }
 
 .searchInput:focus {
@@ -47,7 +48,7 @@
 }
 
 .searchInput::placeholder {
-  color: black;
+  color: var(--color-text-primary);
 }
 
 .filterWrapper {
@@ -79,7 +80,7 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  background: white;
+  background: var(--color-bg-primary);
   border: 2px solid var(--color-primary-blue);
   border-radius: 0px 12px 12px 12px;
   padding: 16px;
@@ -99,7 +100,7 @@
 .filterTitle {
   font-size: 14px;
   font-weight: 200;
-  color: black;
+  color: var(--color-text-primary);
   margin: 0 0 8px 0;
 }
 
@@ -110,7 +111,7 @@
   margin-bottom: 6px;
   cursor: pointer;
   font-size: 14px;
-  color: black;
+  color: var(--color-text-primary);
 }
 
 .filterOption:last-child {
@@ -133,7 +134,7 @@
   height: 44px;
   border: 2px solid var(--color-primary-blue-dark);
   border-radius: 8px;
-  background: white;
+  background: var(--color-bg-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -162,7 +163,7 @@
 }
 
 .toggleSide.inactive {
-  background-color: white;
+  background-color: var(--color-bg-primary);
 }
 
 .toggleDivider {
@@ -190,7 +191,7 @@
 }
 
 .groupItem {
-  background: white;
+  background: var(--color-bg-primary);
   border: 2px solid var(--color-primary-blue);
   border-radius: 16px;
   padding: 16px;
@@ -246,7 +247,7 @@
 .groupName {
   font-size: 18px;
   font-weight: 400;
-  color: black;
+  color: var(--color-text-primary);
   margin: 0 0 4px 0;
   line-height: 1.2;
   display: inline;
@@ -273,7 +274,7 @@
 
 .groupDescription {
   font-size: 14px;
-  color: black;
+  color: var(--color-text-primary);
   margin: 0;
   white-space: pre-line;
 }
@@ -289,7 +290,7 @@
 .joinButton {
   padding: 8px 16px;
   background: var(--color-primary-blue);
-  color: white;
+  color: var(--color-text-white);
   border: none;
   border-radius: 12px;
   font-size: 14px;
@@ -300,7 +301,7 @@
 }
 
 .joinButton:hover {
-  background: var(--color-primary-blue);
+  background: var(--color-primary-blue-dark);
   transform: translateY(-1px);
 }
 
@@ -335,7 +336,7 @@
 
 .memberCount {
   font-size: 14px;
-  color: black;
+  color: var(--color-text-primary);
   white-space: nowrap;
 }
 
@@ -347,7 +348,7 @@
 }
 
 .userItem {
-  background: white;
+  background: var(--color-bg-primary);
   border: 2px solid var(--color-primary-blue);
   border-radius: 16px;
   padding: 16px;
@@ -393,7 +394,7 @@
 .userName {
   font-size: 18px;
   font-weight: 400;
-  color: black;
+  color: var(--color-text-primary);
   margin: 0 0 4px 0;
   cursor: pointer;
   transition: color 0.2s ease;
@@ -412,14 +413,14 @@
 
 .userDescription {
   font-size: 14px;
-  color: black;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .addButton {
   padding: 8px 16px;
   background: var(--color-primary-blue);
-  color: white;
+  color: var(--color-text-white);
   border: none;
   border-radius: 12px;
   font-size: 14px;
@@ -431,7 +432,7 @@
 }
 
 .addButton:hover {
-  background: var(--color-primary-blue);
+  background: var(--color-primary-blue-dark);
   transform: translateY(-1px);
 }
 
@@ -455,7 +456,7 @@
 }
 
 .arrowButton:hover:not(:disabled) {
-  color: var(--color-primary-blue);
+  color: var(--color-primary-blue-dark);
 }
 
 .arrowButton:disabled {
@@ -476,11 +477,11 @@
 }
 
 .pageNumber:hover {
-  color: var(--color-primary-blue);
+  color: var(--color-primary-blue-dark);
 }
 
 .activePage {
-  color: var(--color-primary-blue) !important;
+  color: var(--color-primary-blue-dark) !important;
   font-weight: 600;
 }
 

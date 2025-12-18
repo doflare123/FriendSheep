@@ -10,9 +10,9 @@
 }
 
 .eventsSection h3 {
-  margin: 0 0 10px 0; /* Уменьшен отступ снизу с 20px до 10px */
+  margin: 0 0 10px 0;
   font-size: 24px;
-  color: #000;
+  color: var(--color-text-primary);
   flex-shrink: 0;
   text-align: center;
 }
@@ -20,7 +20,7 @@
 .header {
   display: flex;
   flex: 1;
-  margin-top: -10px; /* Поднимаем весь контент */
+  margin-top: -10px;
 }
 
 .content {
@@ -66,7 +66,7 @@
 .genresTitle {
   font-size: 18px;
   font-weight: bold;
-  color: #000;
+  color: var(--color-text-primary);
   margin: 0 0 10px 0;
 }
 
@@ -74,7 +74,7 @@
   display: flex;
   align-items: center;
   font-size: 16px;
-  color: #000;
+  color: var(--color-text-primary);
 }
 
 .legendNumber {
@@ -96,18 +96,18 @@
 }
 
 .statisticsTile {
-  background: white;
+  background: var(--color-bg-primary);
   border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
-  padding: 15px 12px; /* Уменьшен padding с 20px 15px */
+  padding: 15px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   flex: 0 0 auto;
-  width: 178px; /* Уменьшено на ~15% (210px * 0.85) */
-  height: 178px; /* Уменьшено на ~15% (210px * 0.85) */
+  width: 178px;
+  height: 178px;
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -120,34 +120,34 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 8px; /* Уменьшен отступ с 10px */
+  margin-bottom: 8px;
   width: 100%;
 }
 
 .tileTitle {
-  font-size: 13px; /* Уменьшен с 15px */
-  color: #000;
+  font-size: 13px;
+  color: var(--color-text-primary);
   font-weight: 600;
   line-height: 1.3;
   text-align: center;
 }
 
 .tileIcon {
-  margin: 0 0 8px 0; /* Уменьшен отступ с 10px */
+  margin: 0 0 8px 0;
   flex-shrink: 0;
 }
 
 .tileValue {
-  font-size: 22px; /* Уменьшен с 26px */
+  font-size: 22px;
   font-weight: bold;
-  color: #000;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .tileSubtitle {
-  font-size: 15px; /* Уменьшен с 18px */
-  color: #000;
-  margin-top: 5px; /* Уменьшен с 6px */
+  font-size: 15px;
+  color: var(--color-text-primary);
+  margin-top: 5px;
 }
 
 /* Placeholder для пустого состояния */
@@ -156,7 +156,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #000;
+  color: var(--color-text-primary);
   font-size: 18px;
   border: 2px dashed var(--color-border-gray);
   border-radius: 8px;
@@ -199,7 +199,7 @@
   }
   
   .statisticsTile {
-    width: 110px; /* Пропорционально уменьшено */
+    width: 110px;
     height: 110px;
     padding: 12px 10px;
   }
@@ -228,7 +228,7 @@
   }
   
   .statisticsTile {
-    width: 102px; /* Пропорционально уменьшено */
+    width: 102px;
     height: 102px;
   }
   

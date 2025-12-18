@@ -10,7 +10,7 @@
 
 .adminPage {
   display: flex;
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 20px;
   box-shadow: var(--shadow-xl);
   width: 90%;
@@ -53,7 +53,7 @@
 .mainContent {
   flex: 1;
   padding: 0;
-  background: white;
+  background: var(--color-bg-primary);
   border-top-right-radius: 20px;
   border-bottom-right-radius: 20px;
   overflow: hidden; /* Убираем скролл отсюда */
@@ -64,7 +64,7 @@
 .contentHeader {
   padding: 20px 30px;
   border-bottom: 1px solid var(--color-border-light);
-  background: white;
+  background: var(--color-bg-primary);
   border-top-right-radius: 20px;
   display: flex;
   justify-content: center;
@@ -73,7 +73,7 @@
 }
 
 .contentHeader h2 {
-  color: #000;
+  color: var(--color-text-primary);
   font-size: 24px;
   font-weight: 600;
   margin: 0;
@@ -81,7 +81,7 @@
 
 .contentBody {
   flex: 1; /* Занимает оставшееся место */
-  background: white;
+  background: var(--color-bg-primary);
   overflow: hidden; /* Убираем скролл отсюда тоже */
   display: flex;
   flex-direction: column;

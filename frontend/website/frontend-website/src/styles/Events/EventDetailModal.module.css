@@ -17,7 +17,7 @@
 }
 
 .modalContainer {
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 20px;
   width: 100%;
   max-width: 900px;
@@ -82,7 +82,7 @@
   position: absolute;
   top: 12px;
   right: 12px;
-  background: white;
+  background: var(--color-bg-primary);
   border: 2px solid var(--color-primary-blue);
   border-radius: 50%;
   width: 35px;

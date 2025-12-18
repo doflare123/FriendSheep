@@ -62,7 +62,7 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: white;
+    background: var(--color-bg-primary);
     border: 2px solid var(--color-primary-blue-dark);
     color: var(--color-primary-blue-dark);
     font-size: 20px;

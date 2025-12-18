@@ -1,6 +1,6 @@
 .relatedNewsSection {
   padding: 30px;
-  background: white; /* Единый белый фон */
+  background: var(--color-bg-primary); /* Единый белый фон */
 }
 
 .sectionTitle {

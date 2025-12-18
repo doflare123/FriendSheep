@@ -9,7 +9,7 @@
   align-items: center; /* Центрирую аватарку по вертикали */
   gap: 15px; /* Увеличил отступ */
   padding: 15px;
-  background: white; /* Белый фон */
+  background: var(--color-bg-primary); /* Белый фон */
   border-radius: 8px;
   border: 2px solid var(--color-primary-blue); /* Обводка цвета var(--color-primary-blue) */
 }

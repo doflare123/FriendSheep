@@ -49,9 +49,9 @@
 html,
 body {
   height: 100%;
-  color: black;
+  color: var(--color-text-primary);;
   font-family: 'Inter', sans-serif;
-  background-color: white;
+  background-color: var(--color-bg-primary);;
 }
 
 .bgPage {
@@ -68,18 +68,19 @@ body {
 
 .bgPage::before {
     content: "";
-    position: fixed; /* Вместо absolute - делает фон статичным */
+    position: fixed;
     inset: 0;
     background-image: url('/bg.png'), 
                       linear-gradient(135deg, #4e79a7 0%, var(--color-primary-blue) 100%);
-    background-size: cover; /* Растягивает/сжимает изображение */
-    background-position: center; /* Центрирует изображение */
-    background-repeat: no-repeat; /* Убирает повторение */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: brightness(var(--bg-brightness));
     z-index: -1;
 }
 
 .form-container {
-  @apply bg-white rounded-2xl p-10 w-[50vw] font-inter border-2 border-[var(--color-primary-blue-dark)] min-h-[475px] text-2xl;
+  @apply bg-[var(--color-bg-primary)] rounded-2xl p-10 w-[50vw] font-inter border-2 border-[var(--color-primary-blue-dark)] min-h-[475px] text-2xl;
 }
 
 .page-wrapper {
@@ -95,24 +96,23 @@ body {
 }
 
 .label-style {
-  @apply block mb-1 text-black;
+  @apply block mb-1 text-[var(--color-text-primary)];
 }
 
 .input-style {
-  @apply w-full rounded-lg border-2 border-[var(--color-primary-blue-dark)] p-3 text-xl text-black;
+  @apply w-full rounded-lg border-2 border-[var(--color-primary-blue-dark)] p-3 text-xl text-[var(--color-text-primary)] bg-[var(--color-bg-primary)];
 }
 
 .button-primary {
-  @apply w-[80%] block mx-auto rounded-lg bg-[var(--color-primary-blue)] border-2 border-[var(--color-primary-blue-dark)] text-white py-3 hover:bg-[var(--color-primary-blue)] transition mt-5;
+  @apply w-[80%] block mx-auto rounded-lg bg-[var(--color-primary-blue)] border-2 border-[var(--color-primary-blue-dark)] text-[var(--color-text-white)] py-3 hover:bg-[var(--color-primary-blue-dark)] transition mt-5;
 }
 
 .link-small-note {
-  @apply text-right text-xl text-gray-600 -mt-2;
+  @apply text-right text-xl text-[var(--color-text-muted)] -mt-2;
 }
 
-
 .footer-links {
-  @apply flex items-center space-x-2 text-gray-600;
+  @apply flex items-center space-x-2 text-[var(--color-text-muted)];
 }
 
 .footer-link {

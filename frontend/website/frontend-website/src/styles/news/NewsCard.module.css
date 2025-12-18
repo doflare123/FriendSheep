@@ -1,7 +1,7 @@
 /* src/styles/news/NewsCard.module.css */
 
 .newsCard {
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: var(--shadow-lg);

@@ -43,7 +43,7 @@
   max-height: 60vh;
   border: 2px solid var(--color-primary-blue-dark);
   border-radius: 12px;
-  background: white;
+  background: var(--color-bg-primary);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -57,7 +57,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: white;
+  background: var(--color-bg-primary);
   border: 2px solid var(--color-primary-blue-dark);
   color: var(--color-primary-blue-dark);
   font-size: 20px;

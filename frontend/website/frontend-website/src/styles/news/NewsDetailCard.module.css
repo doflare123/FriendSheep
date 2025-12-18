@@ -1,5 +1,5 @@
 .newsDetailCard {
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 12px 12px 0 0;
   overflow: hidden;
 }

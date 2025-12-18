@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import GroupsScroll from '../../components/Groups/GroupsScroll';
 import CreateGroupModal from '../../components/Groups/CreateGroupModal';
 import styles from '../../styles/Groups/GroupsPage.module.css';
@@ -18,8 +19,12 @@ export default function GroupsPage() {
   const [managedGroups, setManagedGroups] = useState<SmallGroup[]>([]);
   const [subscriptions, setSubscriptions] = useState<SmallGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
-  // Загрузка групп пользователя
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const loadUserGroups = async () => {
     try {
       setIsLoading(true);
@@ -27,7 +32,6 @@ export default function GroupsPage() {
       const accessToken = await getAccesToken(router);
       
       if (!accessToken) {
-        //router.push('/login');
         return;
       }
 
@@ -42,7 +46,6 @@ export default function GroupsPage() {
       
     } catch (error) {
       console.error('Ошибка при загрузке групп:', error);
-      // Если ошибка связана с авторизацией (например, 401), перенаправляем на регистрацию
       if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
         localStorage.removeItem('access_token');
         router.push('/register');
@@ -58,7 +61,6 @@ export default function GroupsPage() {
     try {
       const accessToken = await getAccesToken(router);
       if (!accessToken) {
-        //router.push('/register');
         return;
       }
 
@@ -77,11 +79,9 @@ export default function GroupsPage() {
         accessToken
       );
 
-      // Перезагружаем группы после создания новой
       await loadUserGroups();
     } catch (error) {
       console.error('Ошибка при создании группы:', error);
-      // Если ошибка связана с авторизацией, перенаправляем на регистрацию
       if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
         localStorage.removeItem('access_token');
         router.push('/register');
@@ -96,7 +96,6 @@ export default function GroupsPage() {
   return (
     <div className='bgPage' style={{ display: 'flex' }}>
       <div className={styles.contentContainer}>
-        {/* Группы под управлением */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>Группы под вашим управлением</h2>
@@ -123,7 +122,6 @@ export default function GroupsPage() {
           )}
         </div>
 
-        {/* Подписки */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>Подписки</h2>
@@ -140,12 +138,12 @@ export default function GroupsPage() {
         </div>
       </div>
 
-      {/* Модальное окно создания группы */}
-      {isCreateModalOpen && (
+      {mounted && isCreateModalOpen && createPortal(
         <CreateGroupModal
           onClose={() => setIsCreateModalOpen(false)}
           onSubmit={handleCreateGroup}
-        />
+        />,
+        document.body
       )}
     </div>
   );

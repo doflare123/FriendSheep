@@ -4,7 +4,7 @@
   /*height: calc(100% - 40px);
   min-height: 1050px;*/
   height: 1075px;
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 12px;
   box-shadow: var(--shadow-profile);
   display: grid;

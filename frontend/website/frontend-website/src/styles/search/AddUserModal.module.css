@@ -13,7 +13,7 @@
 }
 
 .modal {
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 16px;
   width: 100%;
   max-width: 500px;
@@ -98,7 +98,7 @@
   margin-bottom: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: white;
+  background: var(--color-bg-primary);
 }
 
 .groupItem:last-child {

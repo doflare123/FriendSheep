@@ -1,6 +1,6 @@
 /* Стили для модального окна контактов */
 .socialModalContent {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 20px;
     width: 90%;
     max-width: 500px;

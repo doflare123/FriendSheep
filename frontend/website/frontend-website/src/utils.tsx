@@ -73,3 +73,35 @@ export function showNotification(
   console.log("=== showNotification wrapper called ===");
   manager.show(code, description, type);
 }
+
+export const getTheme = (): 'light' | 'dark' => {
+  if (typeof window === 'undefined') return 'light';
+  
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark' || saved === 'light') {
+    return saved;
+  }
+  
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+export const setTheme = (theme: 'light' | 'dark') => {
+  if (typeof window === 'undefined') return;
+  
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+};
+
+export const toggleTheme = () => {
+  const current = getTheme();
+  const newTheme = current === 'light' ? 'dark' : 'light';
+  setTheme(newTheme);
+  return newTheme;
+};
+
+export const initTheme = () => {
+  if (typeof window === 'undefined') return;
+  
+  const theme = getTheme();
+  document.documentElement.setAttribute('data-theme', theme);
+};

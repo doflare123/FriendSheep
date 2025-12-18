@@ -1,4 +1,3 @@
-/* Стили для основного модального окна создания группы */
 div.modalOverlay {
     position: fixed;
     top: 0;
@@ -14,15 +13,14 @@ div.modalOverlay {
 }
 
 div.modalOverlay .modalContent {
-    background: white !important;
-    border-radius: 20px !important;
+    background: var(--color-bg-primary);
+    border-radius: 20px;
     width: 90%;
     max-width: 800px;
     max-height: 90vh;
     overflow-y: auto;
     position: relative;
-    box-shadow: var(--shadow-xl) !important;
-    border: none !important;
+    box-shadow: var(--shadow-xl);
 }
 
 .modalHeader {
@@ -35,7 +33,7 @@ div.modalOverlay .modalContent {
 }
 
 .modalHeader h2 {
-    color: #000;
+    color: var(--color-text-primary);
     font-size: 24px;
     font-weight: 600;
     margin: 0;
@@ -60,7 +58,7 @@ div.modalOverlay .modalContent {
 
 .closeButton:hover {
     background: var(--color-bg-hover);
-    color: #000;
+    color: var(--color-text-primary);
 }
 
 .modalBody {
@@ -70,6 +68,17 @@ div.modalOverlay .modalContent {
 .modalContent .createGroupForm {
     margin: 0;
     padding: 0;
+}
+
+.formTitleSection {
+    margin-bottom: 30px;
+}
+
+.formTitle {
+    color: var(--color-text-primary);
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
 }
 
 .createGroupForm {
@@ -97,19 +106,18 @@ div.modalOverlay .modalContent {
 .formLabel {
     display: block;
     margin-bottom: 8px;
-    color: #000;
+    color: var(--color-text-primary);
     font-weight: 500;
     font-size: 16px;
 }
 
-/* Стили для названия (без рамки, только подчеркивание) */
 .nameInput {
     width: 100%;
     padding: 12px 0;
     border: none;
     border-bottom: 2px solid var(--color-primary-blue-dark);
     font-size: 18px;
-    color: #000;
+    color: var(--color-text-primary);
     background: transparent;
     transition: border-color 0.2s ease;
 }
@@ -120,18 +128,17 @@ div.modalOverlay .modalContent {
 }
 
 .nameInput::placeholder {
-    color: #000;
+    color: var(--color-text-primary);
     font-size: 18px;
 }
 
-/* Стили для города (аналогично названию) */
 .cityInput {
     width: 100%;
     padding: 12px 0;
     border: none;
     border-bottom: 2px solid var(--color-primary-blue-dark);
     font-size: 16px;
-    color: #000;
+    color: var(--color-text-primary);
     background: transparent;
     transition: border-color 0.2s ease;
 }
@@ -152,7 +159,8 @@ div.modalOverlay .modalContent {
     border: 2px solid var(--color-primary-blue-dark);
     border-radius: 12px;
     font-size: 16px;
-    color: #000;
+    color: var(--color-text-primary);
+    background: var(--color-bg-primary);
     transition: border-color 0.2s ease;
 }
 
@@ -167,9 +175,10 @@ div.modalOverlay .modalContent {
     border: 2px solid var(--color-primary-blue-dark);
     border-radius: 12px;
     font-size: 16px;
-    color: #000;
-    resize: none; /* Отключаем возможность изменения размера */
-    height: 120px; /* Увеличили высоту с 100px до 120px */
+    color: var(--color-text-primary);
+    background: var(--color-bg-primary);
+    resize: none;
+    height: 120px;
     font-family: 'Inter', sans-serif;
     transition: border-color 0.2s ease;
 }
@@ -179,7 +188,6 @@ div.modalOverlay .modalContent {
     border-color: var(--color-primary-blue);
 }
 
-/* Стили для контактов */
 .socialIcons {
     display: flex;
     align-items: center;
@@ -190,7 +198,7 @@ div.modalOverlay .modalContent {
 .socialIcon {
     width: 40px;
     height: 40px;
-    background: white;
+    background: var(--color-bg-primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -236,7 +244,7 @@ div.modalOverlay .modalContent {
 
 .groupImagePreview:hover {
     transform: scale(1.02);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
 }
 
 .previewImage {
@@ -250,16 +258,15 @@ div.modalOverlay .modalContent {
     align-items: center;
     gap: 12px;
     font-size: 16px;
-    color: #000;
+    color: var(--color-text-primary);
     cursor: pointer;
 }
 
-/* Стили для приватного чекбокса */
 .privateCheckbox {
     width: 20px;
     height: 20px;
     appearance: none;
-    background: white;
+    background: var(--color-bg-primary);
     border: 2px solid var(--color-primary-blue-dark);
     border-radius: 4px;
     cursor: pointer;
@@ -278,12 +285,11 @@ div.modalOverlay .modalContent {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: white;
+    color: var(--color-text-white);
     font-size: 14px;
     font-weight: bold;
 }
 
-/* Стили для категорий */
 .categoriesRow {
     display: flex;
     gap: 8px;
@@ -306,18 +312,16 @@ div.modalOverlay .modalContent {
     background: var(--color-primary-blue);
 }
 
-/* Контейнер для кнопок действий */
 .actionButtons {
   display: flex;
   gap: 12px;
   justify-content: center;
-  margin-top: 10px; /* Поднимаем кнопки на 10px относительно обычного положения */
+  margin-top: 10px;
 }
 
-/* Обновленный стиль .createButton */
 .createButton {
   background: var(--color-primary-blue);
-  color: white;
+  color: var(--color-text-white);
   border: 2px solid var(--color-primary-blue-dark);
   border-radius: 12px;
   padding: 16px 32px;
@@ -329,7 +333,7 @@ div.modalOverlay .modalContent {
 }
 
 .createButton:hover:not(:disabled) {
-  background: var(--color-primary-blue);
+  background: var(--color-primary-blue-dark);
   transform: translateY(-1px);
   box-shadow: var(--shadow-blue);
 }
@@ -341,10 +345,9 @@ div.modalOverlay .modalContent {
   opacity: 0.7;
 }
 
-/* Кнопка удаления */
 .deleteButton {
   background-color: var(--color-danger);
-  color: white;
+  color: var(--color-text-white);
   border: 2px solid var(--color-danger-dark);
   border-radius: 12px;
   padding: 16px 32px;
@@ -368,22 +371,6 @@ div.modalOverlay .modalContent {
   opacity: 0.7;
 }
 
-/* Адаптивность для кнопок */
-@media (max-width: 768px) {
-  .actionButtons {
-    flex-direction: column;
-    width: 100%;
-    gap: 12px;
-  }
-
-  .createButton,
-  .deleteButton {
-    width: 100%;
-    min-width: unset;
-  }
-}
-
-/* Стили для ошибок */
 .error {
     border-color: var(--color-danger) !important;
 }
@@ -410,7 +397,6 @@ div.modalOverlay .modalContent {
   transform: scale(1.1);
 }
 
-/* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
     .modalContent {
         width: 95%;
@@ -434,5 +420,17 @@ div.modalOverlay .modalContent {
     .categoryItem {
         width: 100%;
         justify-content: flex-start;
+    }
+
+    .actionButtons {
+        flex-direction: column;
+        width: 100%;
+        gap: 12px;
+    }
+
+    .createButton,
+    .deleteButton {
+        width: 100%;
+        min-width: unset;
     }
 }

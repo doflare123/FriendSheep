@@ -56,7 +56,7 @@
   position: absolute;
   top: -2px;
   right: -2px;
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 50%;
   padding: 4px;
   box-shadow: var(--shadow-avatar);
@@ -85,7 +85,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  margin-bottom: 4px; /* Было 8px, уменьшили до 4px */
+  margin-bottom: 4px;
 }
 
 .nameWrapper {
@@ -98,7 +98,7 @@
 .userName {
   font-size: 22px;
   font-weight: bold;
-  color: #000;
+  color: var(--color-text-primary);
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -109,11 +109,11 @@
 .nameInput {
   font-size: 20px;
   font-weight: bold;
-  color: #000;
+  color: var(--color-text-primary);
   border: 2px solid var(--color-primary-blue);
   border-radius: 4px;
   padding: 4px 8px;
-  background: white;
+  background: var(--color-bg-primary);
   max-width: 180px;
   box-sizing: border-box;
   overflow: hidden;
@@ -150,8 +150,8 @@
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background: white;
-  color: #000;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
   border: 2px solid var(--color-primary-blue);
   padding: 12px 16px;
   border-radius: 12px;
@@ -188,7 +188,7 @@
   height: 0;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
-  border-top: 6px solid white;
+  border-top: 6px solid var(--color-bg-primary);
   z-index: 1;
 }
 
@@ -199,11 +199,11 @@
 
 .userStatusContainer {
   position: relative;
-  margin-top: 4px; /* Было 12px, уменьшили до 4px */
+  margin-top: 4px;
 }
 
 .userStatus {
-  color: #000;
+  color: var(--color-text-primary);
   font-size: 16px;
   margin: 0;
   line-height: 1.4;
@@ -222,7 +222,7 @@
   border: 2px solid var(--color-primary-blue);
   border-radius: 4px;
   font-size: 14px;
-  color: #000;
+  color: var(--color-text-primary);
   resize: none;
   box-sizing: border-box;
   font-family: 'Inter', sans-serif;
@@ -233,7 +233,7 @@
   position: absolute;
   top: -6px;
   right: -6px;
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 50%;
   padding: 2px;
   box-shadow: var(--shadow-icon-sm);
@@ -273,7 +273,7 @@
   border: 2px solid var(--color-primary-blue);
   border-radius: 4px;
   padding: 4px 6px;
-  background: white;
+  background: var(--color-bg-primary);
   min-width: 80px;
   box-sizing: border-box;
 }
@@ -285,14 +285,14 @@
 }
 
 .registerDate {
-  color: #000;
+  color: var(--color-text-primary);
   font-size: 14px;
   text-align: right;
 }
 
 .userUsContainer {
-  margin-top: 0; /* Было 4px, убрали */
-  margin-bottom: 4px; /* Было 8px, уменьшили до 4px */
+  margin-top: 0;
+  margin-bottom: 4px;
 }
 
 .userUs {
@@ -318,7 +318,7 @@
   border: 2px solid var(--color-primary-blue);
   border-radius: 4px;
   padding: 4px 8px;
-  background: white;
+  background: var(--color-bg-primary);
   width: 150px;
   box-sizing: border-box;
   overflow: hidden;
@@ -330,7 +330,7 @@
   position: absolute;
   top: -6px;
   right: -6px;
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 50%;
   padding: 2px;
   box-shadow: var(--shadow-icon-sm);
@@ -341,7 +341,7 @@
   position: absolute;
   top: -6px;
   right: -6px;
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 50%;
   padding: 2px;
   box-shadow: var(--shadow-icon-sm);
@@ -357,7 +357,7 @@
 }
 
 .statTile {
-  background: white;
+  background: var(--color-bg-primary);
   border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   padding: 5px;
@@ -384,12 +384,12 @@
 .tileValue {
   font-size: 24px;
   font-weight: bold;
-  color: #000;
+  color: var(--color-text-primary);
 }
 
 .tileLabel {
   font-size: 16px;
-  color: #000;
+  color: var(--color-text-primary);
   font-weight: bold;
 }
 
@@ -397,7 +397,7 @@
   position: absolute;
   top: -2px;
   right: -2px;
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 50%;
   padding: 2px;
   box-shadow: var(--shadow-icon-sm);
@@ -419,7 +419,7 @@
 }
 
 .tileModalContent {
-  background: white;
+  background: var(--color-bg-primary);
   border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   padding: 20px;
@@ -429,7 +429,7 @@
 
 .tileModalContent h4 {
   margin: 0 0 15px 0;
-  color: #000;
+  color: var(--color-text-primary);
   text-align: center;
 }
 
@@ -459,7 +459,7 @@
   width: 100%;
   padding: 10px;
   background: var(--color-primary-blue);
-  color: white;
+  color: var(--color-text-white);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -477,7 +477,7 @@
 .topGenres h4 {
   font-size: 16px;
   margin: 0 0 10px 0;
-  color: #000;
+  color: var(--color-text-primary);
 }
 
 .genresList {
@@ -488,6 +488,28 @@
   max-height: 200px;
   padding-right: 8px;
   scrollbar-width: thin;
+  scrollbar-color: transparent;
+}
+
+.genresList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.genresList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.genresList::-webkit-scrollbar-thumb {
+  background: var(--color-primary-blue);
+  border-radius: 3px;
+}
+
+.genresList::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-blue-dark);
+}
+
+.genresList::-webkit-scrollbar-button {
+  display: none;
 }
 
 .genreItem {
@@ -497,18 +519,18 @@
 }
 
 .genreNumber {
-  color: #000;
+  color: var(--color-text-primary);
   margin-right: 8px;
   min-width: 20px;
 }
 
 .genreName {
   flex: 1;
-  color: #000;
+  color: var(--color-text-primary);
 }
 
 .genreCount {
-  color: #000;
+  color: var(--color-text-primary);
 }
 
 /* Кнопка добавления в группу */
@@ -537,8 +559,8 @@
   bottom: 120%;
   left: 50%;
   transform: translateX(-50%);
-  background: white;
-  color: #000;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
   border: 2px solid var(--color-primary-blue);
   padding: 8px 12px;
   border-radius: 8px;
@@ -572,7 +594,7 @@
   height: 0;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
-  border-top: 6px solid white;
+  border-top: 6px solid var(--color-bg-primary);
   z-index: 1;
 }
 

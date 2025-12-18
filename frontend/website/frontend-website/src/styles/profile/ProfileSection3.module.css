@@ -1,10 +1,11 @@
+/* ProfileSection3.module.css */
 .subscriptionsSection {
   border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   padding: 20px;
   grid-row: 2;
   grid-column: 1;
-  background: #fff;
+  background: var(--color-bg-primary);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -13,7 +14,7 @@
 .subscriptionsTitle {
   font-size: 30px;
   font-weight: 100;
-  color: #000;
+  color: var(--color-text-primary);
   margin-top: -10px;
   text-align: center;
 }
@@ -54,7 +55,7 @@
   margin-bottom: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: white;
+  background: var(--color-bg-primary);
 }
 
 .groupItem:last-child {
@@ -62,7 +63,7 @@
 }
 
 .groupItem:hover {
-  background: rgba(55, 162, 230, 0.05);
+  background: var(--overlay-blue);
   transform: translateY(-1px);
 }
 

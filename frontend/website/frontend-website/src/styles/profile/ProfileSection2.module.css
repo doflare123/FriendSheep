@@ -9,11 +9,10 @@
   flex-direction: column;
 }
 
-/* Главный заголовок секции "События" - только прямой потомок */
 .statisticsSection > h3 {
   margin: 0 0 15px 0;
   font-size: 26px;
-  color: #000;
+  color: var(--color-text-primary);
   flex-shrink: 0;
   text-align: center;
 }
@@ -30,7 +29,6 @@
   margin-top: -150px;
 }
 
-/* Контейнер для одного типа событий */
 .eventsBlock {
   display: flex;
   flex-direction: column;
@@ -40,7 +38,7 @@
 .eventsBlockTitle {
   font-size: 18px;
   font-weight: 400;
-  color: #000;
+  color: var(--color-text-primary);
   margin: 0;
   padding-left: 5px;
 }
@@ -53,7 +51,6 @@
   margin-top: -10px;
 }
 
-/* Стили для заголовка и табов (скрыты, но оставлены для совместимости) */
 .header {
   display: none;
 }
@@ -74,7 +71,6 @@
   display: none;
 }
 
-/* Responsive adjustments */
 @media (max-width: 1200px) {
   .statisticsSection {
     padding: 15px;

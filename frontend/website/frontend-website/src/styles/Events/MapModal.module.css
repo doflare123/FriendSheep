@@ -13,7 +13,7 @@
 }
 
 .mapModal {
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 16px;
   width: 90vw;
   height: 80vh;

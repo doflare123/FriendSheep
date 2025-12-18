@@ -15,7 +15,7 @@
   font-family: 'Inter', sans-serif;
   resize: vertical;
   min-height: 80px;
-  background: white;
+  background: var(--color-bg-primary);
   color: var(--color-text-primary);
   box-sizing: border-box;
 }

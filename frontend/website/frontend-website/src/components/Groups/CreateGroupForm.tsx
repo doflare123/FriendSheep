@@ -265,21 +265,16 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   };
 
   return (
-    <>
-      {showTitle && (
-        <div style={{ marginBottom: '30px' }}>
-          <h2 style={{ 
-            color: '#000', 
-            fontSize: '24px', 
-            fontWeight: '600', 
-            margin: 0 
-          }}>
-            Основная информация
-          </h2>
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className={styles.createGroupForm}>
+  <>
+    {showTitle && (
+      <div className={styles.formTitleSection}>
+        <h2 className={styles.formTitle}>
+          Основная информация
+        </h2>
+      </div>
+    )}
+    
+    <form onSubmit={handleSubmit} className={styles.createGroupForm}>
         <div className={styles.formRow}>
           <div className={styles.leftColumn}>
             <div className={styles.formGroup}>
