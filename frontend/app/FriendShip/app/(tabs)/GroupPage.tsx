@@ -5,6 +5,7 @@ import CategorySection from '@/components/CategorySection';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import EventCarousel from '@/components/event/EventCarousel';
 import PrivateGroupPreview from '@/components/groups/PrivateGroupPreview';
+import PageHeader from '@/components/PageHeader';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
@@ -331,6 +332,7 @@ const GroupPage = () => {
           onRequestJoin={handlePrivateGroupRequestJoin}
           isProcessing={isProcessing}
           requestStatus={requestStatus}
+          onBackPress={() => navigation.goBack()}
         />
         <BottomBar />
       </SafeAreaView>
@@ -368,6 +370,12 @@ const GroupPage = () => {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <PageHeader 
+          title={groupData.name}
+          showWave={false}
+          showBackButton={true}
+          onBackPress={() => navigation.goBack()}
+        />
         <View style={styles.header}>
           <Image source={{ uri: groupData.image }} style={styles.groupImage} />
           <View style={{ flexDirection: 'column', flex: 1 }}>

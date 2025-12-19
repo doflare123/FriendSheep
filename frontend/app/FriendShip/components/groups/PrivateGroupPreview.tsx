@@ -16,6 +16,7 @@ interface PrivateGroupPreviewProps {
   onRequestJoin: () => void;
   isProcessing: boolean;
   requestStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  onBackPress?: () => void;
 }
 
 const PrivateGroupPreview: React.FC<PrivateGroupPreviewProps> = ({
@@ -23,6 +24,7 @@ const PrivateGroupPreview: React.FC<PrivateGroupPreviewProps> = ({
   onRequestJoin,
   isProcessing,
   requestStatus = 'none',
+  onBackPress,
 }) => {
   const colors = useThemedColors();
 
@@ -56,58 +58,88 @@ const PrivateGroupPreview: React.FC<PrivateGroupPreviewProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.iconContainer, { backgroundColor: colors.veryLightGrey }]}>
-        <Image
-          source={require('@/assets/images/groups/lock.png')}
-          style={[styles.lockIcon, { tintColor: colors.grey }]}
-          resizeMode="contain"
-        />
-      </View>
-
-      <Text style={[styles.title, { color: colors.black }]}>
-        Приватная группа
-      </Text>
-      
-      {groupName && (
-        <Text style={[styles.groupName, { color: colors.lightBlue }]}>
-          {groupName}
-        </Text>
+      {onBackPress && (
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={onBackPress}
+          activeOpacity={0.7}
+        >
+          <Image 
+            source={require('@/assets/images/arrowLeft.png')} 
+            style={[styles.backIcon, { tintColor: colors.black }]}
+          />
+        </TouchableOpacity>
       )}
 
-      <Text style={[styles.description, { color: colors.grey }]}>
-        {requestStatus === 'pending' 
-          ? 'Ваша заявка отправлена и ожидает одобрения администратора.'
-          : requestStatus === 'approved'
-          ? 'Ваша заявка одобрена! Теперь у вас есть доступ к группе.'
-          : requestStatus === 'rejected'
-          ? 'Ваша заявка была отклонена. Вы можете подать заявку повторно.'
-          : 'Это приватная группа.\nЧтобы увидеть её содержимое, отправьте заявку на вступление.'
-        }
-      </Text>
+      <View style={styles.content}>
+        <View style={[styles.iconContainer, { backgroundColor: colors.veryLightGrey }]}>
+          <Image
+            source={require('@/assets/images/groups/lock.png')}
+            style={[styles.lockIcon, { tintColor: colors.grey }]}
+            resizeMode="contain"
+          />
+        </View>
 
-      <TouchableOpacity
-        style={[getButtonStyle(), isButtonDisabled && styles.requestButtonDisabled]}
-        onPress={onRequestJoin}
-        disabled={isButtonDisabled}
-      >
-        {isProcessing ? (
-          <ActivityIndicator color={Colors.white} size="small" />
-        ) : (
-          <Text style={styles.requestButtonText}>{getButtonText()}</Text>
+        <Text style={[styles.title, { color: colors.black }]}>
+          Приватная группа
+        </Text>
+        
+        {groupName && (
+          <Text style={[styles.groupName, { color: colors.lightBlue }]}>
+            {groupName}
+          </Text>
         )}
-      </TouchableOpacity>
 
-      {requestStatus === 'none' && (
-        <Text style={[styles.hint, { color: colors.grey }]}>
-          После одобрения заявки администратором вы получите полный доступ к группе
+        <Text style={[styles.description, { color: colors.grey }]}>
+          {requestStatus === 'pending' 
+            ? 'Ваша заявка отправлена и ожидает одобрения администратора.'
+            : requestStatus === 'approved'
+            ? 'Ваша заявка одобрена! Теперь у вас есть доступ к группе.'
+            : requestStatus === 'rejected'
+            ? 'Ваша заявка была отклонена. Вы можете подать заявку повторно.'
+            : 'Это приватная группа.\nЧтобы увидеть её содержимое, отправьте заявку на вступление.'
+          }
         </Text>
-      )}
+
+        <TouchableOpacity
+          style={[getButtonStyle(), isButtonDisabled && styles.requestButtonDisabled]}
+          onPress={onRequestJoin}
+          disabled={isButtonDisabled}
+        >
+          {isProcessing ? (
+            <ActivityIndicator color={Colors.white} size="small" />
+          ) : (
+            <Text style={styles.requestButtonText}>{getButtonText()}</Text>
+          )}
+        </TouchableOpacity>
+
+        {requestStatus === 'none' && (
+          <Text style={[styles.hint, { color: colors.grey }]}>
+            После одобрения заявки администратором вы получите полный доступ к группе
+          </Text>
+        )}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    padding: 8,
+    zIndex: 10,
+  },
+  backIcon: {
+    width: 30,
+    height: 30,
+  },
+  content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

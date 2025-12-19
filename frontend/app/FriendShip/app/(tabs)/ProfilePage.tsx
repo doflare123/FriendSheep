@@ -360,10 +360,12 @@ const ProfilePage: React.FC = () => {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <PageHeader 
-          title={isOwnProfile ? "Ваш профиль" : profileData.name} 
-          showWave 
-        />
+      <PageHeader 
+        title={isOwnProfile ? "Ваш профиль" : profileData.name} 
+        showWave 
+        showBackButton={!isOwnProfile}
+        onBackPress={() => navigation.goBack()}
+      />
         
         <ProfileHeader 
           avatar={{ uri: profileData.image }}
