@@ -26,28 +26,31 @@
   color: var(--color-text-primary);
   margin: 0 0 20px 0;
   line-height: 1.3;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .contentSection {
   font-size: 16px;
   line-height: 1.6;
   color: var(--color-text-primary);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .contentLine {
   margin-bottom: 12px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .contentLine:last-child {
   margin-bottom: 0;
 }
 
-/* Стили для списков в контенте */
-.contentLine:has-text("•") {
-  padding-left: 0;
-}
-
-/* Адаптивность */
 @media (max-width: 1024px) {
   .imageContainer {
     height: 250px;
@@ -77,5 +80,23 @@
   
   .contentSection {
     font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .imageContainer {
+    height: 180px;
+  }
+  
+  .title {
+    font-size: 20px;
+  }
+  
+  .cardContent {
+    padding: 16px;
+  }
+  
+  .contentSection {
+    font-size: 14px;
   }
 }
