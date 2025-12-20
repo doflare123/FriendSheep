@@ -2,6 +2,7 @@ import authService from '@/api/services/authService';
 import { useAuthContext } from '@/components/auth/AuthContext';
 import InputSmall from '@/components/auth/InputSmall';
 import { useToast } from '@/components/ToastContext';
+import { Colors } from '@/constants/Colors';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
@@ -301,7 +302,7 @@ const Confirm = () => {
     <View style={[authorizeStyle.container, { backgroundColor: colors.white }]}>
       <View style={[authorizeStyle.topContainer, { marginBottom: 0 }]}>
         <Logo />
-        <Text style={[authorizeStyle.title, { color: colors.black }]}>
+        <Text style={[authorizeStyle.title, { color: Colors.lightBlue }]}>
           {getTitle()}
         </Text>
         <PointAnimation />

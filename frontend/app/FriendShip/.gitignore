@@ -39,4 +39,7 @@ yarn-error.*
 # env
 .env
 
-app-example
+# Firebase config
+google-services.json
+GoogleService-Info.plist
+frontend/app/FriendShip/google-services.json

@@ -1,5 +1,6 @@
 import authService from '@/api/services/authService';
 import { useToast } from '@/components/ToastContext';
+import { Colors } from '@/constants/Colors';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
@@ -80,7 +81,7 @@ const ForgotPassword = () => {
     <View style={[authorizeStyle.container, { backgroundColor: colors.white }]}>
       <View style={authorizeStyle.topContainer}>
         <Logo />
-        <Text style={[authorizeStyle.title, { color: colors.black }]}>
+        <Text style={[authorizeStyle.title, { color: Colors.lightBlue }]}>
           Восстановление пароля
         </Text>
       </View>

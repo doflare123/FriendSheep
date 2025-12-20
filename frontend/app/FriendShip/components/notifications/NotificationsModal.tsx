@@ -1,5 +1,6 @@
 import groupMemberService from '@/api/services/group/groupMemberService';
 import notificationService from '@/api/services/notificationService';
+import pushNotificationService from '@/api/services/pushNotificationService';
 import { GroupInvite, Notification } from '@/api/types/notification';
 import { useToast } from '@/components/ToastContext';
 import { Colors } from '@/constants/Colors';
@@ -31,6 +32,7 @@ interface NotificationsModalProps {
   onReload: () => void;
   onUpdateNotifications: (notifications: Notification[]) => void;
   onUpdateInvites: (invites: GroupInvite[]) => void;
+  onUnreadStatusChange?: (hasUnread: boolean) => void;
 }
 
 const NotificationsModal: React.FC<NotificationsModalProps> = ({
@@ -45,15 +47,33 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
   onReload,
   onUpdateNotifications,
   onUpdateInvites,
+  onUnreadStatusChange,
 }) => {
   const colors = useThemedColors();
   const { showToast } = useToast();
+
+  const checkAndUpdateUnreadStatus = async (
+    remainingNotifications: Notification[], 
+    remainingInvites: GroupInvite[]
+  ) => {
+    const totalUnread = remainingNotifications.length + remainingInvites.length;
+    const hasUnread = totalUnread > 0;
+
+    await pushNotificationService.setBadgeCount(totalUnread);
+    
+    if (onUnreadStatusChange) {
+      onUnreadStatusChange(hasUnread);
+    }
+  };
 
   const handleMarkAsViewed = async (notificationId: number) => {
     try {
       await notificationService.markAsViewed(notificationId);
 
-      onUpdateNotifications(notifications.filter((n) => n.id !== notificationId));
+      const updatedNotifications = notifications.filter((n) => n.id !== notificationId);
+      onUpdateNotifications(updatedNotifications);
+
+      checkAndUpdateUnreadStatus(updatedNotifications, invites);
       
       showToast({
         type: 'success',
@@ -73,7 +93,10 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
     try {
       await groupMemberService.respondToInvite(inviteId.toString(), 'accepted');
 
-      onUpdateInvites(invites.filter((inv) => inv.id !== inviteId));
+      const updatedInvites = invites.filter((inv) => inv.id !== inviteId);
+      onUpdateInvites(updatedInvites);
+
+      checkAndUpdateUnreadStatus(notifications, updatedInvites);
       
       showToast({
         type: 'success',
@@ -93,7 +116,10 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
     try {
       await groupMemberService.respondToInvite(inviteId.toString(), 'rejected');
 
-      onUpdateInvites(invites.filter((inv) => inv.id !== inviteId));
+      const updatedInvites = invites.filter((inv) => inv.id !== inviteId);
+      onUpdateInvites(updatedInvites);
+
+      checkAndUpdateUnreadStatus(notifications, updatedInvites);
       
       showToast({
         type: 'success',

@@ -1,3 +1,4 @@
+import permissionsService from '@/api/services/permissionsService';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
@@ -6,8 +7,10 @@ import * as ImagePicker from 'expo-image-picker';
 import React from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ImageBackground,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -66,23 +69,67 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
     { id: 'other', icon: require('@/assets/images/event_card/other.png') },
   ];
 
+  const showPermissionAlert = (onRetry: () => void) => {
+    Alert.alert(
+      'Разрешение на доступ к фото',
+      'Для загрузки изображения группы необходимо разрешить доступ к галерее. Хотите предоставить разрешение?',
+      [
+        {
+          text: 'Отмена',
+          style: 'cancel',
+        },
+        {
+          text: 'Настройки',
+          onPress: () => {
+            Linking.openSettings();
+          },
+        },
+        {
+          text: 'Разрешить',
+          onPress: onRetry,
+        },
+      ]
+    );
+  };
+
   const handleImagePicker = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (status !== 'granted') {
-      alert('Необходимо разрешение на доступ к галерее');
-      return;
-    }
+    try {
+      console.log('[InfoTabContent] 🖼️ Запрос на выбор изображения группы');
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
+      const hasPermission = await permissionsService.checkMediaPermission();
+      
+      if (!hasPermission) {
+        console.log('[InfoTabContent] ⚠️ Нет разрешения на медиатеку');
 
-    if (!result.canceled && result.assets[0]) {
-      setGroupImage(result.assets[0].uri);
+        const granted = await permissionsService.requestMediaPermission();
+        
+        if (!granted) {
+          console.log('[InfoTabContent] ❌ Пользователь отклонил разрешение');
+          showPermissionAlert(handleImagePicker);
+          return;
+        }
+      }
+
+      console.log('[InfoTabContent] ✅ Разрешение получено, открываем галерею');
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      console.log('[InfoTabContent] 📦 Результат выбора:', result);
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        console.log('[InfoTabContent] ✅ Изображение выбрано:', result.assets[0].uri);
+        setGroupImage(result.assets[0].uri);
+      } else {
+        console.log('[InfoTabContent] ℹ️ Пользователь отменил выбор изображения');
+      }
+    } catch (error) {
+      console.error('[InfoTabContent] ❌ Ошибка выбора изображения:', error);
+      Alert.alert('Ошибка', 'Не удалось загрузить изображение');
     }
   };
 

@@ -1,4 +1,5 @@
 import groupService from '@/api/services/group/groupService';
+import permissionsService from '@/api/services/permissionsService';
 import DescriptionModal from '@/components/event/modal/DescriptionModal';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
@@ -12,6 +13,7 @@ import {
   Dimensions,
   Image,
   ImageBackground,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -67,31 +69,76 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
     );
   };
 
+  const showPermissionAlert = (onRetry: () => void) => {
+    Alert.alert(
+      'Разрешение на доступ к фото',
+      'Для загрузки изображения группы необходимо разрешить доступ к галерее. Хотите предоставить разрешение?',
+      [
+        {
+          text: 'Отмена',
+          style: 'cancel',
+        },
+        {
+          text: 'Настройки',
+          onPress: () => {
+            Linking.openSettings();
+          },
+        },
+        {
+          text: 'Разрешить',
+          onPress: onRetry,
+        },
+      ]
+    );
+  };
+
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (status !== 'granted') {
-      Alert.alert('Ошибка', 'Необходимо разрешение на доступ к галерее');
-      return;
-    }
+    try {
+      console.log('[CreateGroupModal] 🖼️ Запрос на выбор изображения группы');
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      const filename = asset.uri.split('/').pop() || 'group_image.jpg';
-      const fileType = filename.split('.').pop()?.toLowerCase();
+      const hasPermission = await permissionsService.checkMediaPermission();
       
-      setSelectedImage({
-        uri: asset.uri,
-        name: filename,
-        type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+      if (!hasPermission) {
+        console.log('[CreateGroupModal] ⚠️ Нет разрешения на медиатеку');
+
+        const granted = await permissionsService.requestMediaPermission();
+        
+        if (!granted) {
+          console.log('[CreateGroupModal] ❌ Пользователь отклонил разрешение');
+          showPermissionAlert(pickImage);
+          return;
+        }
+      }
+
+      console.log('[CreateGroupModal] ✅ Разрешение получено, открываем галерею');
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
       });
+
+      console.log('[CreateGroupModal] 📦 Результат выбора:', result);
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        const filename = asset.uri.split('/').pop() || 'group_image.jpg';
+        const fileType = filename.split('.').pop()?.toLowerCase();
+        
+        console.log('[CreateGroupModal] ✅ Изображение выбрано:', asset.uri);
+        
+        setSelectedImage({
+          uri: asset.uri,
+          name: filename,
+          type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+        });
+      } else {
+        console.log('[CreateGroupModal] ℹ️ Пользователь отменил выбор изображения');
+      }
+    } catch (error) {
+      console.error('[CreateGroupModal] ❌ Ошибка выбора изображения:', error);
+      Alert.alert('Ошибка', 'Не удалось загрузить изображение');
     }
   };
 

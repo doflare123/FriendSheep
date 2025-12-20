@@ -2,6 +2,7 @@ import authService from '@/api/services/authService';
 import { clearTokens } from '@/api/storage/tokenStorage';
 import { useAuthContext } from '@/components/auth/AuthContext';
 import { useToast } from '@/components/ToastContext';
+import { Colors } from '@/constants/Colors';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
@@ -99,7 +100,7 @@ const Login = () => {
     <View style={[authorizeStyle.container, { backgroundColor: colors.white }]}>
       <View style={authorizeStyle.topContainer}>
         <Logo />
-        <Text style={[authorizeStyle.title, { color: colors.black }]}>
+        <Text style={[authorizeStyle.title, { color: Colors.lightBlue }]}>
           Вход
         </Text>
       </View>
@@ -161,7 +162,7 @@ const Login = () => {
             onPress={() => navigation.navigate('Register' as never)}
             disabled={loading}
           >
-            <Text style={[authorizeStyle.account, { color: colors.blue }]}>
+            <Text style={[authorizeStyle.account, { color: colors.lightBlue }]}>
               Нет аккаунта?
             </Text>
           </TouchableOpacity>

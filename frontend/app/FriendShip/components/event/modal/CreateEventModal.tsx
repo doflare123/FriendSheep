@@ -1,4 +1,5 @@
 import kinopoiskService from '@/api/services/kinopoisk/kinopoiskService';
+import permissionsService from '@/api/services/permissionsService';
 import rawgService from '@/api/services/rawg/rawgService';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { Event } from '@/components/event/EventCard';
@@ -18,6 +19,7 @@ import {
   Dimensions,
   Image,
   ImageBackground,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -180,21 +182,49 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
     { id: 'table_game', label: 'Настолки', icon: require('@/assets/images/event_card/table_game.png') },
     { id: 'other', label: 'Другое', icon: require('@/assets/images/event_card/other.png') },
   ];
+
+  const showPermissionAlert = (onRetry: () => void) => {
+    Alert.alert(
+      'Разрешение на доступ к фото',
+      'Для загрузки изображений необходимо разрешить доступ к галерее. Хотите предоставить разрешение?',
+      [
+        {
+          text: 'Отмена',
+          style: 'cancel',
+        },
+        {
+          text: 'Настройки',
+          onPress: () => {
+            Linking.openSettings();
+          },
+        },
+        {
+          text: 'Разрешить',
+          onPress: onRetry,
+        },
+      ]
+    );
+  };
+
   const handleImagePicker = async () => {
     try {
-      console.log('[CreateEditEventModal] 🖼️ handleImagePicker вызван');
+      console.log('[CreateEditEventModal] 🖼️ Запрос на выбор изображения');
+
+      const hasPermission = await permissionsService.checkMediaPermission();
       
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (!permissionResult.granted) {
-        Alert.alert(
-          'Требуется разрешение',
-          'Для загрузки фото необходимо разрешение на доступ к галерее'
-        );
-        return;
+      if (!hasPermission) {
+        console.log('[CreateEditEventModal] ⚠️ Нет разрешения на медиатеку');
+
+        const granted = await permissionsService.requestMediaPermission();
+        
+        if (!granted) {
+          console.log('[CreateEditEventModal] ❌ Пользователь отклонил разрешение');
+          showPermissionAlert(handleImagePicker);
+          return;
+        }
       }
 
-      console.log('[CreateEditEventModal] ✅ Разрешение получено');
+      console.log('[CreateEditEventModal] ✅ Разрешение получено, открываем галерею');
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -203,7 +233,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
         quality: 0.8,
       });
 
-      console.log('[CreateEditEventModal] 📦 Result:', result);
+      console.log('[CreateEditEventModal] 📦 Результат выбора:', result);
 
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
@@ -220,7 +250,9 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
           type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
         });
         
-        console.log('[CreateEditEventModal] ✅ Состояние обновлено');
+        console.log('[CreateEditEventModal] ✅ Изображение сохранено в состоянии');
+      } else {
+        console.log('[CreateEditEventModal] ℹ️ Пользователь отменил выбор изображения');
       }
     } catch (error) {
       console.error('[CreateEditEventModal] ❌ Ошибка выбора изображения:', error);

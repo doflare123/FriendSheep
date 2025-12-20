@@ -10,15 +10,31 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.FriendShip"
+      "bundleIdentifier": "com.anonymous.FriendShip",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Приложению нужен доступ к вашим фото для загрузки аватара и изображений событий",
+        "NSCameraUsageDescription": "Приложению нужен доступ к камере для создания фото",
+        "NSLocationWhenInUseUsageDescription": "Приложению нужен доступ к вашему местоположению для выбора адреса на карте"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#ffffff"
       },
+      "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.FriendShip"
+      "package": "com.anonymous.FriendShip",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-asset",
@@ -26,16 +42,31 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Приложению нужен доступ к вашим фото для загрузки аватара"
+          "photosPermission": "Приложению нужен доступ к вашим фото для загрузки аватара и изображений событий",
+          "cameraPermission": "Приложению нужен доступ к камере для создания фото"
         }
       ],
-      "expo-secure-store"
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#5DADE2",
+          "sounds": []
+        }
+      ],
+      "expo-secure-store",
+      "@react-native-firebase/app"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "assetBundlePatterns": [
       "**/*"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f4608b88-939e-4da5-ae0f-3247da70e15e"
+      }
+    }
   }
 }

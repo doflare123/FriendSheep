@@ -104,6 +104,19 @@ class NotificationService {
       return new Error(error.message || 'Неизвестная ошибка');
     }
   }
+
+  async updateDeviceToken(token: string, platform: string): Promise<void> {
+    try {
+      await apiClient.post('/users/device-token', {
+        fcm_token: token,
+        platform,
+      });
+      console.log('[NotificationService] ✅ Device token обновлен');
+    } catch (error: any) {
+      console.error('[NotificationService] ❌ Ошибка обновления токена:', error);
+      throw this.handleError(error);
+    }
+  }
 }
 
 export default new NotificationService();

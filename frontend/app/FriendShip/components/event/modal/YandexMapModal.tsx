@@ -1,10 +1,13 @@
+import permissionsService from '@/api/services/permissionsService';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
+import * as Location from 'expo-location';
 import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   Platform,
   StyleSheet,
@@ -35,6 +38,7 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
   const [selectedAddress, setSelectedAddress] = useState(initialAddress);
   const [isSearching, setIsSearching] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
+  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
   const webViewRef = useRef<WebView>(null);
 
   const handleSearch = () => {
@@ -53,6 +57,79 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
     webViewRef.current?.injectJavaScript(jsCode);
   };
 
+  const showLocationPermissionAlert = () => {
+    Alert.alert(
+      'Разрешение на геолокацию',
+      'Для определения вашего местоположения на карте необходимо разрешить доступ к геолокации. Хотите предоставить разрешение?',
+      [
+        {
+          text: 'Отмена',
+          style: 'cancel',
+          onPress: () => setIsRequestingLocation(false),
+        },
+        {
+          text: 'Настройки',
+          onPress: () => {
+            Linking.openSettings();
+            setIsRequestingLocation(false);
+          },
+        },
+        {
+          text: 'Разрешить',
+          onPress: handleRequestLocation,
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
+  const handleRequestLocation = async () => {
+    try {
+      setIsRequestingLocation(true);
+      console.log('[YandexMapModal] 📍 Запрос геолокации...');
+
+      const granted = await permissionsService.requestLocationPermission();
+      
+      if (!granted) {
+        console.log('[YandexMapModal] ❌ Пользователь отклонил разрешение на геолокацию');
+        showLocationPermissionAlert();
+        return;
+      }
+
+      console.log('[YandexMapModal] ✅ Разрешение на геолокацию получено');
+
+      console.log('[YandexMapModal] 🌍 Получение текущих координат...');
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const { latitude, longitude } = location.coords;
+      console.log('[YandexMapModal] ✅ Координаты получены:', latitude, longitude);
+
+      const jsCode = `
+        if (typeof setLocationFromNative === 'function') {
+          setLocationFromNative(${latitude}, ${longitude});
+        }
+        true;
+      `;
+      
+      webViewRef.current?.injectJavaScript(jsCode);
+      
+    } catch (error: any) {
+      console.error('[YandexMapModal] ❌ Ошибка получения геолокации:', error);
+      setIsRequestingLocation(false);
+      
+      if (error.code === 'E_LOCATION_SERVICES_DISABLED') {
+        Alert.alert(
+          'Службы геолокации отключены',
+          'Включите службы определения местоположения в настройках устройства'
+        );
+      } else {
+        Alert.alert('Ошибка', 'Не удалось определить ваше местоположение. Попробуйте еще раз.');
+      }
+    }
+  };
+
   const handleMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
@@ -68,9 +145,13 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
         Alert.alert('Не найдено', 'Адрес не найден. Попробуйте другой запрос.');
       } else if (data.type === 'mapReady') {
         console.log('[YandexMapModal] Карта готова');
+      } else if (data.type === 'locationSet') {
+        console.log('[YandexMapModal] ✅ Местоположение установлено на карте');
+        setIsRequestingLocation(false);
       } else if (data.type === 'error') {
         console.error('[YandexMapModal] Ошибка в WebView:', data.message);
         setIsSearching(false);
+        setIsRequestingLocation(false);
       }
     } catch (error) {
       console.error('[YandexMapModal] Ошибка обработки сообщения:', error);
@@ -89,6 +170,7 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
   const handleClose = () => {
     setSearchQuery(initialAddress);
     setSelectedAddress(initialAddress);
+    setIsRequestingLocation(false);
     onClose();
   };
 
@@ -141,19 +223,10 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
                 myMap = new ymaps.Map("map", {
                     center: [55.751244, 37.618423],
                     zoom: 12,
-                    controls: ['zoomControl', 'geolocationControl']
+                    controls: ['zoomControl']
                 });
                 
                 sendMessage({ type: 'mapReady' });
-                
-                ymaps.geolocation.get({
-                    provider: 'auto',
-                    mapStateAutoApply: false
-                }).then(function(result) {
-                    myMap.setCenter(result.geoObjects.position, 15);
-                }).catch(function() {
-
-                });
 
                 myMap.events.add('click', function (e) {
                     const coords = e.get('coords');
@@ -163,6 +236,18 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
                 
             } catch (error) {
                 sendMessage({ type: 'error', message: error.toString() });
+            }
+        }
+
+        function setLocationFromNative(latitude, longitude) {
+            try {
+                const coords = [latitude, longitude];
+                myMap.setCenter(coords, 15);
+                setPlacemark(coords);
+                getAddress(coords);
+                sendMessage({ type: 'locationSet' });
+            } catch (error) {
+                sendMessage({ type: 'error', message: 'setLocationFromNative: ' + error.toString() });
             }
         }
         
@@ -260,6 +345,18 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <Text style={styles.searchButtonText}>Найти</Text>
+            )}
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.locationButton, {backgroundColor: colors.lightBlue}]}
+            onPress={handleRequestLocation}
+            disabled={isRequestingLocation}
+          >
+            {isRequestingLocation ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Text style={styles.locationButtonText}>📍</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -370,6 +467,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.white,
   },
+  locationButton: {
+    borderRadius: 20,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  locationButtonText: {
+    fontSize: 20,
+  },
   selectedAddressContainer: {
     paddingHorizontal: 16,
     paddingBottom: 12,
@@ -421,9 +528,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingVertical: 8,
     alignItems: 'center',
-  },
-  selectButtonDisabled: {
-
   },
   selectButtonText: {
     fontFamily: Montserrat.bold,

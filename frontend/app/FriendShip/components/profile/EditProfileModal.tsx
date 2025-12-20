@@ -1,3 +1,4 @@
+import permissionsService from '@/api/services/permissionsService';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
@@ -11,6 +12,7 @@ import {
   Image,
   ImageBackground,
   ImageSourcePropType,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -104,17 +106,48 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     onClose();
   };
 
+  const showPermissionAlert = (onRetry: () => void) => {
+    Alert.alert(
+      'Разрешение на доступ к фото',
+      'Для загрузки аватара необходимо разрешить доступ к галерее. Хотите предоставить разрешение?',
+      [
+        {
+          text: 'Отмена',
+          style: 'cancel',
+        },
+        {
+          text: 'Настройки',
+          onPress: () => {
+            Linking.openSettings();
+          },
+        },
+        {
+          text: 'Разрешить',
+          onPress: onRetry,
+        },
+      ]
+    );
+  };
+
   const handleAvatarPress = async () => {
     try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('[EditProfileModal] 🖼️ Запрос на выбор аватара');
+
+      const hasPermission = await permissionsService.checkMediaPermission();
       
-      if (!permissionResult.granted) {
-        Alert.alert(
-          'Требуется разрешение',
-          'Для загрузки фото необходимо разрешение на доступ к галерее'
-        );
-        return;
+      if (!hasPermission) {
+        console.log('[EditProfileModal] ⚠️ Нет разрешения на медиатеку');
+
+        const granted = await permissionsService.requestMediaPermission();
+        
+        if (!granted) {
+          console.log('[EditProfileModal] ❌ Пользователь отклонил разрешение');
+          showPermissionAlert(handleAvatarPress);
+          return;
+        }
       }
+
+      console.log('[EditProfileModal] ✅ Разрешение получено, открываем галерею');
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -123,11 +156,16 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      console.log('[EditProfileModal] 📦 Результат выбора:', result);
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        console.log('[EditProfileModal] ✅ Аватар выбран:', result.assets[0].uri);
         setAvatar({ uri: result.assets[0].uri });
+      } else {
+        console.log('[EditProfileModal] ℹ️ Пользователь отменил выбор аватара');
       }
     } catch (error) {
-      console.error('[EditProfileModal] Ошибка выбора изображения:', error);
+      console.error('[EditProfileModal] ❌ Ошибка выбора изображения:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить изображение');
     }
   };

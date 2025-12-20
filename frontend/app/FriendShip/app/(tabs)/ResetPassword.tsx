@@ -1,5 +1,6 @@
 import authService from '@/api/services/authService';
 import { useToast } from '@/components/ToastContext';
+import { Colors } from '@/constants/Colors';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import { hasRussianChars, validatePassword } from '@/utils/validators';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -90,7 +91,7 @@ const ResetPassword = () => {
     <View style={[authorizeStyle.container, { backgroundColor: colors.white }]}>
       <View style={authorizeStyle.topContainer}>
         <Logo />
-        <Text style={[authorizeStyle.title, { color: colors.black }]}>
+        <Text style={[authorizeStyle.title, { color: Colors.lightBlue }]}>
           Новый пароль
         </Text>
       </View>

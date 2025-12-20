@@ -1,4 +1,5 @@
 import notificationService from '@/api/services/notificationService';
+import permissionsService from '@/api/services/permissionsService';
 import userService from '@/api/services/userService';
 import { GroupInvite, Notification } from '@/api/types/notification';
 import barsStyle from '@/app/styles/barsStyle';
@@ -9,7 +10,9 @@ import { SortingActions, SortingState } from '@/hooks/useSearchState';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Image,
+  Linking,
   StyleSheet,
   TouchableOpacity,
   View
@@ -32,11 +35,27 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
   const [serverError, setServerError] = useState(false);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [notificationsPermissionGranted, setNotificationsPermissionGranted] = useState(false);
 
   const MIN_REFRESH_INTERVAL = 30000;
   let lastRefreshTime = 0;
 
+  useEffect(() => {
+    const checkNotificationsPermission = async () => {
+      const granted = await permissionsService.checkNotificationsPermission();
+      setNotificationsPermissionGranted(granted);
+      console.log('[TopBar] 🔔 Разрешение на уведомления:', granted ? 'Есть' : 'Нет');
+    };
+    
+    checkNotificationsPermission();
+  }, []);
+
   const checkUnreadNotifications = useCallback(async () => {
+    if (!notificationsPermissionGranted) {
+      console.log('[TopBar] ⚠️ Пропускаем проверку - нет разрешения на уведомления');
+      return;
+    }
+
     try {
       const unreadData = await notificationService.checkUnreadNotifications();
       const hasNotifications = unreadData.has_unread;
@@ -46,7 +65,7 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
       console.warn('[TopBar] Не удалось проверить уведомления:', error.message);
       setServerError(true);
     }
-  }, []);
+  }, [notificationsPermissionGranted]);
 
   const loadNotifications = async () => {
     const now = Date.now();
@@ -86,11 +105,18 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
     }
   };
 
+  const handleUnreadStatusChange = useCallback((newHasUnread: boolean) => {
+    console.log('[TopBar] 🔔 Обновление статуса непрочитанных:', newHasUnread);
+    setHasUnread(newHasUnread);
+  }, []);
+
   useEffect(() => {
-    checkUnreadNotifications();
-    const interval = setInterval(checkUnreadNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [checkUnreadNotifications]);
+    if (notificationsPermissionGranted) {
+      checkUnreadNotifications();
+      const interval = setInterval(checkUnreadNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [checkUnreadNotifications, notificationsPermissionGranted]);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -105,7 +131,66 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
     loadUserProfile();
   }, []);
 
+  const requestNotificationsPermission = async (): Promise<boolean> => {
+    try {
+      const granted = await permissionsService.requestNotificationsPermission();
+      setNotificationsPermissionGranted(granted);
+      return granted;
+    } catch (error) {
+      console.error('[TopBar] Ошибка запроса разрешения:', error);
+      return false;
+    }
+  };
+
+  const showPermissionAlert = () => {
+    Alert.alert(
+      'Разрешение на уведомления',
+      'Для просмотра уведомлений необходимо разрешить доступ к уведомлениям. Хотите предоставить разрешение?',
+      [
+        {
+          text: 'Отмена',
+          style: 'cancel',
+        },
+        {
+          text: 'Настройки',
+          onPress: () => {
+            Linking.openSettings();
+          },
+        },
+        {
+          text: 'Разрешить',
+          onPress: async () => {
+            const granted = await requestNotificationsPermission();
+            if (granted) {
+              await openNotifications();
+            } else {
+              Alert.alert(
+                'Разрешение не предоставлено',
+                'Вы можете включить уведомления в настройках устройства',
+                [
+                  { text: 'OK', style: 'cancel' },
+                  { 
+                    text: 'Открыть настройки', 
+                    onPress: () => Linking.openSettings() 
+                  },
+                ]
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const openNotifications = async () => {
+    const hasPermission = await permissionsService.checkNotificationsPermission();
+    
+    if (!hasPermission) {
+      console.log('[TopBar] ⚠️ Нет разрешения на уведомления');
+      showPermissionAlert();
+      return;
+    }
+
     notifIconRef.current?.measureInWindow((x, y, width, height) => {
       const modalWidth = 320;
       const centerX = x + width / 2;
@@ -135,7 +220,9 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
           style={[barsStyle.notifications, {tintColor: colors.darkGrey}]}
           source={require('@/assets/images/top_bar/notifications.png')}
         />
-        {hasUnread && !serverError && <View style={styles.unreadIndicator} />}
+        {hasUnread && !serverError && notificationsPermissionGranted && (
+          <View style={styles.unreadIndicator} />
+        )}
       </TouchableOpacity>
 
       <NotificationsModal
@@ -150,6 +237,7 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
         onReload={loadNotifications}
         onUpdateNotifications={setNotifications}
         onUpdateInvites={setInvites}
+        onUnreadStatusChange={handleUnreadStatusChange}
       />
     </View>
   );

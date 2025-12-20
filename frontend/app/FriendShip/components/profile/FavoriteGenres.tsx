@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
   },
   genresColumn: {
@@ -82,6 +83,7 @@ const styles = StyleSheet.create({
   genreItem: {
     fontSize: 15,
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   emptyText: {
     fontFamily: Montserrat.regular,

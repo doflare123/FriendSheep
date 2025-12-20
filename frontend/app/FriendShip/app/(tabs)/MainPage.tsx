@@ -1,3 +1,4 @@
+import permissionsService from '@/api/services/permissionsService';
 import sessionService from '@/api/services/session';
 import { AdminGroup } from '@/api/types/auth';
 import BottomBar from '@/components/BottomBar';
@@ -9,6 +10,7 @@ import EventModal from '@/components/event/modal/EventModal';
 import VerticalEventList from '@/components/event/VerticalEventList';
 import GroupSelectorModal from '@/components/groups/modal/GroupSelectorModal';
 import PageHeader from '@/components/PageHeader';
+import PermissionsModal from '@/components/permissions/PermissionsModal';
 import SearchResultsSection from '@/components/search/SearchResultsSection';
 import { useToast } from '@/components/ToastContext';
 import TopBar from '@/components/TopBar';
@@ -39,6 +41,7 @@ const MainPage = () => {
   const [createEventModalVisible, setCreateEventModalVisible] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<AdminGroup | null>(null);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [permissionsModalVisible, setPermissionsModalVisible] = useState(false);
   const { showToast } = useToast();
 
   const { sortingState, sortingActions } = useSearchState();
@@ -54,6 +57,79 @@ const MainPage = () => {
     error,
     refreshEvents,
   } = useEvents(sortingState);
+
+  useEffect(() => {
+    const checkAndRequestPermissions = async () => {
+      try {
+        const hasRequested = await permissionsService.hasRequestedPermissions();
+        
+        if (!hasRequested) {
+          console.log('[MainPage] 🔐 Первый запуск - показываем модалку разрешений');
+          setTimeout(() => {
+            setPermissionsModalVisible(true);
+          }, 1000);
+        } else {
+          console.log('[MainPage] ✅ Разрешения уже запрашивались ранее');
+        }
+      } catch (error) {
+        console.error('[MainPage] Ошибка проверки разрешений:', error);
+      }
+    };
+
+    checkAndRequestPermissions();
+  }, []);
+
+  const handleRequestPermissions = async () => {
+    try {
+      console.log('[MainPage] 🚀 Пользователь согласился на разрешения');
+      setPermissionsModalVisible(false);
+      
+      const status = await permissionsService.requestInitialPermissions();
+      
+      if (!status.media) {
+        showToast({
+          type: 'warning',
+          title: 'Внимание',
+          message: 'Доступ к фото не предоставлен. Вы можете разрешить его позже в настройках.',
+        });
+      }
+      
+      if (!status.notifications) {
+        showToast({
+          type: 'warning',
+          title: 'Внимание',
+          message: 'Уведомления отключены. Вы можете включить их позже в настройках.',
+        });
+      }
+      
+      if (status.media && status.notifications) {
+        showToast({
+          type: 'success',
+          title: 'Отлично!',
+          message: 'Все разрешения предоставлены',
+        });
+      }
+    } catch (error) {
+      console.error('[MainPage] Ошибка запроса разрешений:', error);
+      showToast({
+        type: 'error',
+        title: 'Ошибка',
+        message: 'Не удалось запросить разрешения',
+      });
+    }
+  };
+
+  const handleSkipPermissions = async () => {
+    console.log('[MainPage] ⏭️ Пользователь пропустил разрешения');
+    setPermissionsModalVisible(false);
+    await permissionsService.setPermissionsRequested();
+    
+    showToast({
+      type: 'success',
+      title: 'Разрешения пропущены',
+      message: 'Вы можете предоставить их позже в настройках приложения',
+    });
+  };
 
   useEffect(() => {
     if (route.params?.searchQuery) {
@@ -376,6 +452,12 @@ const MainPage = () => {
           onSessionUpdate={refreshEvents}
         />
       )}
+
+      <PermissionsModal
+        visible={permissionsModalVisible}
+        onRequestPermissions={handleRequestPermissions}
+        onSkip={handleSkipPermissions}
+      />
     </SafeAreaView>
   );
 };

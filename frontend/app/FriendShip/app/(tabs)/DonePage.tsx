@@ -1,3 +1,4 @@
+import { Colors } from '@/constants/Colors';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
@@ -16,7 +17,7 @@ const Done = () => {
 
       <View style={authorizeStyle.topContainer}>
         <Logo />
-        <Text style={[authorizeStyle.title, { color: colors.black }]}>
+        <Text style={[authorizeStyle.title, { color: Colors.lightBlue }]}>
           Аккаунт создан!
         </Text>
         <Image 

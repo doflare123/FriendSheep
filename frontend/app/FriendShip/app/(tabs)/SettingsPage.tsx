@@ -1,4 +1,5 @@
 import authService from '@/api/services/authService';
+import pushNotificationService from '@/api/services/pushNotificationService';
 import { useAuthContext } from '@/components/auth/AuthContext';
 import BottomBar from '@/components/BottomBar';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -36,6 +37,8 @@ const SettingsPage = () => {
     try {
       console.log('[Settings] 🚪 Начало выхода из аккаунта');
       
+      await pushNotificationService.removeTokenFromServer();
+      await pushNotificationService.setBadgeCount(0);
       await authService.logout();
       
       console.log('[Settings] ✅ Выход выполнен успешно');

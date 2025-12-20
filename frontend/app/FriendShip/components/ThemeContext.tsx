@@ -1,5 +1,7 @@
+import { Colors } from '@/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 type Theme = 'light' | 'dark';
 
@@ -15,6 +17,7 @@ const THEME_STORAGE_KEY = '@app_theme';
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<Theme>('light');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadTheme();
@@ -28,6 +31,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error('[ThemeContext] Ошибка загрузки темы:', error);
+    } finally {
+      setTimeout(() => setIsLoading(false), 50);
     }
   };
 
@@ -41,6 +46,17 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       console.error('[ThemeContext] Ошибка сохранения темы:', error);
     }
   };
+
+  if (isLoading) {
+    return (
+      <View style={[
+        styles.loadingContainer, 
+        { backgroundColor: theme === 'dark' ? '#1a1a1a' : '#ffffff' }
+      ]}>
+        <ActivityIndicator size="large" color={Colors.lightBlue} />
+      </View>
+    );
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === 'dark' }}>
@@ -56,3 +72,11 @@ export const useTheme = () => {
   }
   return context;
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
