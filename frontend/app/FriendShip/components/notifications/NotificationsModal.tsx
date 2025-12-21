@@ -264,7 +264,7 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
                         source={require('@/assets/images/top_bar/notifications.png')}
                       />
                     </View>
-                    <Text style={styles.notificationText}>{notification.text}</Text>
+                    <Text style={[styles.notificationText, {color: colors.black}]}>{notification.text}</Text>
                     <Text style={[styles.notificationTime, {color: colors.lightGrey}]}>{formatTime(notification.sendAt)}</Text>
                   </TouchableOpacity>
                 ))}

@@ -10,9 +10,11 @@ import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
 import { useThemedColors } from '@/hooks/useThemedColors';
+import * as Notifications from 'expo-notifications';
 import React, { useState } from 'react';
 import {
   Alert,
+  Button,
   Image,
   ScrollView,
   StyleSheet,
@@ -101,6 +103,19 @@ const SettingsPage = () => {
             />
           </TouchableOpacity>
         </View>
+
+        <Button 
+          title="🔔 Тестовое уведомление"
+          onPress={async () => {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: "Тест! 🎉",
+                body: 'Push-уведомления работают!',
+              },
+              trigger: null,
+            });
+          }}
+        />
       </ScrollView>
       <BottomBar />
 

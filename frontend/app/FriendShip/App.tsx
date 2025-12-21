@@ -1,4 +1,4 @@
-import pushNotificationService from '@/api/services/pushNotificationService';
+import { PushNotificationProvider } from '@/api/PushNotificationProvider';
 import ProfilePage from '@/app/(tabs)/ProfilePage';
 import { ThemeProvider } from '@/components/ThemeContext';
 import { ToastProvider } from '@/components/ToastContext';
@@ -6,9 +6,8 @@ import { Montserrat_200ExtraLight, Montserrat_300Light, Montserrat_400Regular, M
 import { MontserratAlternates_500Medium } from '@expo-google-fonts/montserrat-alternates';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AllEventsPage from './app/(tabs)/AllEventsPage';
 import AllGroupsPage from './app/(tabs)/AllGroupsPage';
@@ -35,64 +34,6 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const { isAuthenticated } = useAuthContext();
-  const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
-  const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      initializePushNotifications();
-    } else {
-      notificationListener.current?.remove();
-      responseListener.current?.remove();
-    }
-
-    return () => {
-      notificationListener.current?.remove();
-      responseListener.current?.remove();
-    };
-  }, [isAuthenticated]);
-
-  const initializePushNotifications = async () => {
-    try {
-      console.log('[App] 🔔 Инициализация push-уведомлений...');
-
-      await pushNotificationService.setupBackgroundHandler();
-
-      const expoPushToken = await pushNotificationService.registerForPushNotifications();
-
-      const fcmToken = await pushNotificationService.getFCMToken();
-
-      if (expoPushToken) {
-        await pushNotificationService.sendTokenToServer(expoPushToken, fcmToken);
-      }
-
-      notificationListener.current = pushNotificationService.addNotificationListener(
-        (notification) => {
-          console.log('📨 Получено уведомление:', notification);
-        }
-      );
-
-      responseListener.current = pushNotificationService.addNotificationResponseListener(
-        (response) => {
-          console.log('👆 Нажатие на уведомление:', response);
-          
-          const data = response.notification.request.content.data;
-          
-          if (data.type === 'group_invite') {
-            console.log('[App] Переход к приглашениям в группу');
-          } else if (data.type === 'event_update') {
-            console.log('[App] Переход к событию:', data.eventId);
-          } else if (data.type === 'notification') {
-            console.log('[App] Общее уведомление');
-          }
-        }
-      );
-
-      console.log('[App] ✅ Push-уведомления инициализированы успешно');
-    } catch (error) {
-      console.error('[App] ❌ Ошибка инициализации push-уведомлений:', error);
-    }
-  };
 
   return (
     <Stack.Navigator
@@ -178,11 +119,21 @@ export default function App() {
         <ToastProvider>
           <SafeAreaProvider>
             <NavigationContainer>
-              <RootNavigator />
+              <AuthWrapper />
             </NavigationContainer>
           </SafeAreaProvider>
         </ToastProvider>   
       </AuthProvider>
     </ThemeProvider>
+  );
+}
+
+function AuthWrapper() {
+  const { isAuthenticated } = useAuthContext();
+  
+  return (
+    <PushNotificationProvider isAuthenticated={isAuthenticated}>
+      <RootNavigator />
+    </PushNotificationProvider>
   );
 }
