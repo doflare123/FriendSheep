@@ -450,6 +450,23 @@ definitions:
     - password
     - session_id
     type: object
+  services.DeviceTokenResponse:
+    properties:
+      created_at:
+        type: string
+      device_token:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      last_used:
+        type: string
+      platform:
+        type: string
+      user_id:
+        type: integer
+    type: object
   services.GenreStats:
     properties:
       count:
@@ -748,6 +765,22 @@ definitions:
       total_pages:
         type: integer
     type: object
+  services.RegisterDeviceTokenRequest:
+    properties:
+      device_info:
+        type: string
+      device_token:
+        type: string
+      platform:
+        enum:
+        - ios
+        - android
+        - web
+        type: string
+    required:
+    - device_token
+    - platform
+    type: object
   services.ResetPasswordRequest:
     properties:
       email:
@@ -930,6 +963,8 @@ definitions:
       image:
         type: string
       name:
+        type: string
+      us:
         type: string
     type: object
   services.VerifySessionInput:
@@ -1563,6 +1598,177 @@ paths:
       summary: Обновить информацию о сессии
       tags:
       - Сессии_админ
+  /api/device-tokens:
+    delete:
+      consumes:
+      - application/json
+      description: Полностью удаляет токен из системы
+      parameters:
+      - description: Токен устройства
+        in: query
+        name: device_token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Токен удален
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Токен не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить токен устройства
+      tags:
+      - Device Tokens
+    get:
+      description: Возвращает все зарегистрированные устройства текущего пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список устройств
+          schema:
+            items:
+              $ref: '#/definitions/services.DeviceTokenResponse'
+            type: array
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить список устройств пользователя
+      tags:
+      - Device Tokens
+  /api/device-tokens/deactivate:
+    post:
+      consumes:
+      - application/json
+      description: Помечает токен как неактивный (перестанут приходить уведомления)
+      parameters:
+      - description: Токен устройства
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Токен деактивирован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Токен не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Деактивировать токен устройства
+      tags:
+      - Device Tokens
+  /api/device-tokens/register:
+    post:
+      consumes:
+      - application/json
+      description: Регистрирует или обновляет FCM токен для получения push-уведомлений
+      parameters:
+      - description: Данные токена устройства
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.RegisterDeviceTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Токен успешно зарегистрирован
+          schema:
+            $ref: '#/definitions/services.DeviceTokenResponse'
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Регистрация FCM токена устройства
+      tags:
+      - Device Tokens
   /api/groups/{groupId}:
     get:
       description: Получает информацию о группе по ID, включая список участников,
