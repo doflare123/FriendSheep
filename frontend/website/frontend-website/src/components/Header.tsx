@@ -244,7 +244,7 @@ export default function Header() {
     const handleConfirmLogout = () => {
         logout();
         setShowLogoutModal(false);
-        router.push('/');
+        router.push('/login');
     };
 
     const handleCancelLogout = () => {
