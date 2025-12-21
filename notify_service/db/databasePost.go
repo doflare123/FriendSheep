@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"log"
+	"notify_service/models"
 	"notify_service/models/sessions"
 	"os"
 
@@ -27,7 +28,7 @@ func InitDatabase() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %v", err)
 	}
-	err = db.AutoMigrate(&sessions.Notification{}, &sessions.NotificationType{})
+	err = db.AutoMigrate(&sessions.Notification{}, &sessions.NotificationType{}, &models.DeviceUser{})
 	if err != nil {
 		return fmt.Errorf("failed to migrate database: %v", err)
 	}

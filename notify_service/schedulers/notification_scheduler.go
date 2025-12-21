@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
 
+	"notify_service/firebase"
 	"notify_service/models"
 	"notify_service/models/sessions"
 )
@@ -50,23 +52,23 @@ func processSessions(db *gorm.DB) {
 	for _, st := range statuses {
 		statusIDs[st.Status] = st.ID
 	}
-	log.Println("Loaded statuses:", statusIDs)
 
 	var types []sessions.NotificationType
 	if err := db.Find(&types).Error; err != nil {
 		log.Println("Error fetching notification types:", err)
 		return
 	}
-	log.Printf("Loaded %d notification types\n", len(types))
 
+	maxLookAhead := 24 * time.Hour
 	var sessionsList []sessions.Session
 	if err := db.Preload("User").
 		Where("status_id = ?", statusIDs["Набор"]).
+		Where("start_time BETWEEN ? AND ?", now, now.Add(maxLookAhead)).
 		Find(&sessionsList).Error; err != nil {
 		log.Println("Error fetching sessions:", err)
 		return
 	}
-	log.Printf("Found %d sessions with status 'Набор'\n", len(sessionsList))
+	log.Printf("Found %d sessions with status 'Набор' for notification check\n", len(sessionsList))
 
 	for _, s := range sessionsList {
 		for _, nt := range types {
@@ -102,7 +104,7 @@ func processSessions(db *gorm.DB) {
 		Where("status_id = ?", statusIDs["В процессе"]).
 		Where("end_time <= ?", now).
 		Update("status_id", statusIDs["Завершена"]).Error; err != nil {
-		log.Println("Error updating sessions to 'В процессе':", err)
+		log.Println("Error updating sessions to 'Завершена':", err)
 	}
 
 	var completedSessions []sessions.Session
@@ -124,7 +126,11 @@ func sendSessionNotification(db *gorm.DB, s sessions.Session, nt sessions.Notifi
 	}
 
 	telegramIDs := []int64{}
+	userIDs := []uint{}
+
 	for _, p := range participants {
+		userIDs = append(userIDs, p.UserID)
+
 		var user models.User
 		if err := db.First(&user, p.UserID).Error; err == nil && user.TelegramID != nil {
 			if tid, err := parseTelegramID(*user.TelegramID); err == nil {
@@ -145,13 +151,15 @@ func sendSessionNotification(db *gorm.DB, s sessions.Session, nt sessions.Notifi
 		notifyTypeText[nt.Name],
 	)
 
+	randomTitle := firebase.GetRandomEventTitle()
+
 	notif := sessions.Notification{
 		UserID:             s.UserID,
 		SessionID:          s.ID,
 		NotificationTypeID: nt.ID,
 		SendAt:             time.Now(),
 		Sent:               true,
-		Title:              "Напоминание о мероприятии",
+		Title:              randomTitle,
 		Text:               text,
 		ImageURL:           s.ImageURL,
 	}
@@ -159,23 +167,65 @@ func sendSessionNotification(db *gorm.DB, s sessions.Session, nt sessions.Notifi
 		log.Println("Error creating notification:", err)
 	}
 
-	if len(telegramIDs) == 0 {
-		log.Printf("No Telegram IDs found for session %d\n", s.ID)
+	if len(telegramIDs) > 0 {
+		msg := TelegramMessage{
+			Items: []TelegramItem{
+				{
+					TelegramIDs: telegramIDs,
+					ImageURL:    s.ImageURL,
+					Title:       randomTitle,
+					Text:        text,
+				},
+			},
+		}
+		sendToTelegramBot(msg)
+	}
+
+	if len(userIDs) > 0 {
+		sendFCMNotifications(db, userIDs, randomTitle, text, s.ImageURL, s.ID)
+	}
+}
+
+func sendFCMNotifications(db *gorm.DB, userIDs []uint, title, text, imageURL string, sessionID uint) {
+	var deviceTokens []models.DeviceUser
+	isActive := true
+	if err := db.Where("user_id IN ? AND is_active = ?", userIDs, isActive).
+		Find(&deviceTokens).Error; err != nil {
+		log.Println("Error fetching device tokens:", err)
 		return
 	}
 
-	msg := TelegramMessage{
-		Items: []TelegramItem{
-			{
-				TelegramIDs: telegramIDs,
-				ImageURL:    s.ImageURL,
-				Title:       "Напоминание о мероприятии",
-				Text:        text,
-			},
-		},
+	if len(deviceTokens) == 0 {
+		log.Printf("No active device tokens found for session %d\n", sessionID)
+		return
 	}
 
-	sendToTelegramBot(msg)
+	log.Printf("Sending FCM notifications to %d devices for session %d\n", len(deviceTokens), sessionID)
+
+	for _, dt := range deviceTokens {
+		if dt.DeviceToken == nil || dt.UserID == nil {
+			continue
+		}
+
+		data := map[string]string{
+			"session_id": fmt.Sprintf("%d", sessionID),
+			"type":       "session_reminder",
+		}
+
+		err := firebase.SendPushNotification(*dt.DeviceToken, title, text, imageURL, data)
+		if err != nil {
+			log.Printf("Error sending FCM to user %d (token: %s): %v\n", *dt.UserID, (*dt.DeviceToken)[:20]+"...", err)
+
+			if strings.Contains(err.Error(), "registration-token-not-registered") ||
+				strings.Contains(err.Error(), "invalid-registration-token") {
+				log.Printf("Deactivating invalid token for user %d\n", *dt.UserID)
+				isActive := false
+				db.Model(&dt).Update("is_active", isActive)
+			}
+		} else {
+			log.Printf("Successfully sent FCM notification to user %d\n", *dt.UserID)
+		}
+	}
 }
 
 func sendToTelegramBot(msg TelegramMessage) {
