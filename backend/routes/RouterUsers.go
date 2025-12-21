@@ -48,4 +48,12 @@ func RouterUsersInfo(r *gin.Engine) {
 		UserInfGroup.DELETE("/delete", handlers.DeleteAccount)
 		UserInfGroup.GET("/:us", handlers.GettingUserId)
 	}
+	deviceTokens := r.Group("api/device-tokens")
+	deviceTokens.Use(middlewares.JWTAuthMiddleware())
+	{
+		deviceTokens.POST("/register", handlers.RegisterDeviceToken)
+		deviceTokens.GET("", handlers.GetMyDevices)
+		deviceTokens.POST("/deactivate", handlers.DeactivateDeviceToken)
+		deviceTokens.DELETE("", handlers.DeleteDeviceToken)
+	}
 }

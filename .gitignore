@@ -20,3 +20,4 @@ nginx/
 nginx/.htpasswd
 nginx/.htpasswd
 nginx/nginx.conf.full
+notify_service/firebase-credentials.json
