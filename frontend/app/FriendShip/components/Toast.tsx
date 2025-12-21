@@ -2,7 +2,7 @@ import { Colors } from "@/constants/Colors";
 import { Montserrat } from "@/constants/Montserrat";
 import { useThemedColors } from "@/hooks/useThemedColors";
 import React, { useEffect, useRef } from "react";
-import { Animated, Easing, Image, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
+import { Animated, Easing, Image, PanResponder, StyleSheet, Text } from "react-native";
 
 interface ToastProps {
   visible: boolean;
@@ -32,7 +32,7 @@ const Toast: React.FC<ToastProps> = ({
   onHide,
 }) => {
   const colors = useThemedColors();
-  const slideAnim = useRef(new Animated.Value(300)).current;
+  const translateX = useRef(new Animated.Value(300)).current;
   const hideCalled = useRef(false);
   const timerRef = useRef<number | null>(null);
 
@@ -42,32 +42,84 @@ const Toast: React.FC<ToastProps> = ({
 
     if (timerRef.current !== null) {
       clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
 
-    Animated.timing(slideAnim, {
+    Animated.timing(translateX, {
       toValue: 300,
       duration: 300,
       easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
-    }).start(() => onHide());
+    }).start(() => {
+      onHide();
+    });
   };
 
-  useEffect(() => {
-    hideCalled.current = false;
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 5;
+      },
+      onPanResponderGrant: () => {
+        if (timerRef.current !== null) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx > 0) {
+          translateX.setValue(gestureState.dx);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx > 80) {
+          hideCalled.current = true;
+          
+          if (timerRef.current !== null) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+          }
 
+          Animated.timing(translateX, {
+            toValue: 400,
+            duration: 200,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }).start(() => {
+            onHide();
+          });
+        } else {
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+            friction: 8,
+          }).start();
+          
+          timerRef.current = setTimeout(hideToast, 3000) as unknown as number;
+        }
+      },
+    })
+  ).current;
+
+  useEffect(() => {
     if (visible) {
-      Animated.timing(slideAnim, {
+      hideCalled.current = false;
+      translateX.setValue(300);
+      
+      Animated.timing(translateX, {
         toValue: 0,
         duration: 400,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start();
 
-      timerRef.current = setTimeout(hideToast, 3000);
+      timerRef.current = setTimeout(hideToast, 3000) as unknown as number;
 
       return () => {
         if (timerRef.current !== null) {
           clearTimeout(timerRef.current);
+          timerRef.current = null;
         }
       };
     }
@@ -76,30 +128,29 @@ const Toast: React.FC<ToastProps> = ({
   if (!visible) return null;
 
   return (
-    <TouchableWithoutFeedback onPress={hideToast}>
-      <Animated.View
-        style={[
-          styles.container,
-          {
-            transform: [{ translateX: slideAnim }],
-            backgroundColor: colors.white,
-            borderColor: borderColors[type],
-          },
-        ]}
-      >
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={[styles.title, { color: colors.black }]}>
-              {title}
-            </Text>
-            <Image source={icons[type]} style={styles.icon} />
-          </View>
-          <Text style={[styles.message, { color: colors.black }]}>
-            {message}
+    <Animated.View
+      {...panResponder.panHandlers}
+      style={[
+        styles.container,
+        {
+          transform: [{ translateX }],
+          backgroundColor: colors.white,
+          borderColor: borderColors[type],
+        },
+      ]}
+    >
+      <Animated.View style={{ flex: 1 }}>
+        <Animated.View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={[styles.title, { color: colors.black }]}>
+            {title}
           </Text>
-        </View>
+          <Image source={icons[type]} style={styles.icon} />
+        </Animated.View>
+        <Text style={[styles.message, { color: colors.black }]}>
+          {message}
+        </Text>
       </Animated.View>
-    </TouchableWithoutFeedback>
+    </Animated.View>
   );
 };
 
@@ -117,7 +168,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 10,
+    zIndex: 9999,
     maxWidth: "90%",
   },
   icon: { 

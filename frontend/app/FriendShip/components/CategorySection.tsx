@@ -73,12 +73,12 @@ const lineImage = showLineVariant === 'line2'
             <TouchableOpacity onPress={customNavigationButtons.leftButton.onPress}>
               <Image
                 source={customNavigationButtons.leftButton.icon}
-                style={[styles.navigationIcon, { tintColor: colors.blue }]}
+                style={[styles.navigationIcon, { tintColor: colors.blue2 }]}
               />
             </TouchableOpacity>
             
             <View style={styles.titleWithLineContainer}>
-              <Text style={[styles.resultsText, centerTitle && { textAlign: 'center' }, { color: colors.blue }]}>
+              <Text style={[styles.resultsText, centerTitle && { textAlign: 'center' }, { color: colors.blue2 }]}>
                 {title}
               </Text>
             </View>
@@ -86,7 +86,7 @@ const lineImage = showLineVariant === 'line2'
             <TouchableOpacity onPress={customNavigationButtons.rightButton.onPress}>
               <Image
                 source={customNavigationButtons.rightButton.icon}
-                style={[styles.navigationIcon, { tintColor: colors.blue }]}
+                style={[styles.navigationIcon, { tintColor: colors.blue2 }]}
               />
             </TouchableOpacity>
           </View>
@@ -114,11 +114,11 @@ const lineImage = showLineVariant === 'line2'
               <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
                 <Image
                   source={require('../assets/images/arrowLeft.png')}
-                  style={[styles.navigationIcon, { tintColor: colors.blue }]}
+                  style={[styles.navigationIcon, { tintColor: colors.blue2 }]}
                 />
               </TouchableOpacity>
             )}
-            <Text style={[styles.resultsText, centerTitle && { textAlign: 'center' }, { color: colors.blue }]}>
+            <Text style={[styles.resultsText, centerTitle && { textAlign: 'center' }, { color: colors.blue2 }]}>
               {title}
             </Text>
           </View>
@@ -130,7 +130,7 @@ const lineImage = showLineVariant === 'line2'
                   <Image
                     source={customActionButton.icon}
                     style={{ resizeMode: 'contain', width: 30, height: 30 }}
-                    tintColor={customActionButton.tintColor || colors.blue}
+                    tintColor={customActionButton.tintColor || colors.blue2}
                   />
                 </TouchableOpacity>
               )}
@@ -140,7 +140,7 @@ const lineImage = showLineVariant === 'line2'
                   <Image
                     source={secondaryActionButton.icon}
                     style={{ resizeMode: 'contain', width: 30, height: 30 }}
-                    tintColor={secondaryActionButton.tintColor || colors.blue}
+                    tintColor={secondaryActionButton.tintColor || colors.blue2}
                   />
                 </TouchableOpacity>
               )}
@@ -149,7 +149,7 @@ const lineImage = showLineVariant === 'line2'
                 <TouchableOpacity onPress={onArrowPress}>
                   <Image
                     source={require('../assets/images/more.png')}
-                    style={[styles.navigationIcon, { tintColor: colors.blue }]}
+                    style={[styles.navigationIcon, { tintColor: colors.blue2 }]}
                   />
                 </TouchableOpacity>
               )}

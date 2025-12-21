@@ -1,7 +1,7 @@
 import { Colors } from '@/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StatusBar, StyleSheet, View } from 'react-native';
 
 type Theme = 'light' | 'dark';
 
@@ -23,16 +23,23 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     loadTheme();
   }, []);
 
+  useEffect(() => {
+    StatusBar.setBarStyle(theme === 'dark' ? 'light-content' : 'dark-content', true);
+    StatusBar.setBackgroundColor(theme === 'dark' ? '#1A1A1A' : '#FFFFFF', true);
+  }, [theme]);
+
   const loadTheme = async () => {
     try {
       const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
       if (savedTheme === 'dark' || savedTheme === 'light') {
         setTheme(savedTheme);
+        StatusBar.setBarStyle(savedTheme === 'dark' ? 'light-content' : 'dark-content', false);
+        StatusBar.setBackgroundColor(savedTheme === 'dark' ? '#1A1A1A' : '#FFFFFF', false);
       }
     } catch (error) {
       console.error('[ThemeContext] Ошибка загрузки темы:', error);
     } finally {
-      setTimeout(() => setIsLoading(false), 50);
+      setIsLoading(false);
     }
   };
 
@@ -51,7 +58,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     return (
       <View style={[
         styles.loadingContainer, 
-        { backgroundColor: theme === 'dark' ? '#1a1a1a' : '#ffffff' }
+        { backgroundColor: theme === 'dark' ? '#1A1A1A' : '#FFFFFF' }
       ]}>
         <ActivityIndicator size="large" color={Colors.lightBlue} />
       </View>

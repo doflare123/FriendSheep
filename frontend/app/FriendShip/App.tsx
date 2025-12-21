@@ -1,13 +1,14 @@
-import { PushNotificationProvider } from '@/api/PushNotificationProvider';
 import ProfilePage from '@/app/(tabs)/ProfilePage';
-import { ThemeProvider } from '@/components/ThemeContext';
+import { PushNotificationProvider } from '@/components/PushNotificationProvider';
+import { ThemeProvider, useTheme } from '@/components/ThemeContext';
 import { ToastProvider } from '@/components/ToastContext';
 import { Montserrat_200ExtraLight, Montserrat_300Light, Montserrat_400Regular, Montserrat_500Medium, Montserrat_600SemiBold, Montserrat_700Bold, useFonts } from '@expo-google-fonts/montserrat';
 import { MontserratAlternates_500Medium } from '@expo-google-fonts/montserrat-alternates';
-import { NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AllEventsPage from './app/(tabs)/AllEventsPage';
 import AllGroupsPage from './app/(tabs)/AllGroupsPage';
@@ -34,14 +35,52 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const { isAuthenticated } = useAuthContext();
+  const { isDark } = useTheme();
+
+  const backgroundColor = isDark ? '#1A1A1A' : '#FFFFFF';
+
+  // Кастомная плавная анимация
+  const customCardStyleInterpolator = ({ current, layouts }: any) => {
+    return {
+      cardStyle: {
+        opacity: current.progress.interpolate({
+          inputRange: [0, 0.5, 1],
+          outputRange: [0, 0.5, 1],
+        }),
+        transform: [
+          {
+            scale: current.progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.95, 1],
+            }),
+          },
+        ],
+        backgroundColor,
+      },
+    };
+  };
 
   return (
     <Stack.Navigator
       screenOptions={{
-        gestureEnabled: false,
+        gestureEnabled: true, // Включаем жесты для свайпа назад
         headerShown: false,
-        animation: 'scale_from_center',
-        cardStyle: { backgroundColor: 'transparent' },
+        // Убрали animation: 'scale_from_center'
+        cardStyleInterpolator: customCardStyleInterpolator,
+        transitionSpec: {
+          open: {
+            animation: 'timing',
+            config: {
+              duration: 300, // Длительность анимации (можно уменьшить до 250 или увеличить до 400)
+            },
+          },
+          close: {
+            animation: 'timing',
+            config: {
+              duration: 300,
+            },
+          },
+        },
       }}
     >
       {isAuthenticated ? (
@@ -118,13 +157,47 @@ export default function App() {
       <AuthProvider>
         <ToastProvider>
           <SafeAreaProvider>
-            <NavigationContainer>
-              <AuthWrapper />
-            </NavigationContainer>
+            <ThemedNavigationContainer />
           </SafeAreaProvider>
         </ToastProvider>   
       </AuthProvider>
     </ThemeProvider>
+  );
+}
+
+function ThemedNavigationContainer() {
+  const { isDark } = useTheme();
+
+  const lightTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: '#FFFFFF',
+      card: '#FFFFFF',
+      text: '#000000',
+      border: '#E2EAEF',
+      primary: '#408DD2',
+    },
+  };
+
+  const darkTheme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      background: '#1A1A1A',
+      card: '#2F2F2F',
+      text: '#EDEDED',
+      border: '#3A3A3A',
+      primary: '#408DD2',
+    },
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF' }]}>
+      <NavigationContainer theme={isDark ? darkTheme : lightTheme}>
+        <AuthWrapper />
+      </NavigationContainer>
+    </View>
   );
 }
 
@@ -137,3 +210,9 @@ function AuthWrapper() {
     </PushNotificationProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

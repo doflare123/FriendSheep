@@ -18,8 +18,7 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
     if (isAuthenticated) {
       initializePushNotifications();
     } else {
-      notificationListener.current?.remove();
-      responseListener.current?.remove();
+      cleanupPushNotifications();
     }
 
     return () => {
@@ -32,17 +31,14 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
     try {
       console.log('[PushNotificationProvider] 🔔 Инициализация push-уведомлений...');
 
-      await pushNotificationService.setupBackgroundHandler();
-
-      const expoPushToken = await pushNotificationService.registerForPushNotifications();
-
-      const fcmToken = await pushNotificationService.getFCMToken();
-
-      if (expoPushToken) {
-        await pushNotificationService.sendTokenToServer(expoPushToken, fcmToken);
+      const success = await pushNotificationService.registerForPushNotifications();
+      
+      if (!success) {
+        console.warn('[PushNotificationProvider] ⚠️ Не удалось зарегистрировать push-уведомления');
+        return;
       }
 
-      await pushNotificationService.setupForegroundHandler();
+      await pushNotificationService.setupNotificationHandlers();
 
       notificationListener.current = pushNotificationService.addNotificationListener(
         (notification) => {
@@ -60,15 +56,26 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
             console.log('[PushNotificationProvider] Переход к приглашениям в группу');
           } else if (data.type === 'event_update') {
             console.log('[PushNotificationProvider] Переход к событию:', data.eventId);
-          } else if (data.type === 'notification') {
-            console.log('[PushNotificationProvider] Общее уведомление');
           }
         }
       );
 
       console.log('[PushNotificationProvider] ✅ Push-уведомления успешно инициализированы');
     } catch (error) {
-      console.error('[PushNotificationProvider] ❌ Ошибка инициализации push-уведомлений:', error);
+      console.error('[PushNotificationProvider] ❌ Ошибка инициализации:', error);
+    }
+  };
+
+  const cleanupPushNotifications = async () => {
+    try {
+      await pushNotificationService.removeTokenFromServer();
+
+      notificationListener.current?.remove();
+      responseListener.current?.remove();
+      
+      console.log('[PushNotificationProvider] 🗑️ Push-уведомления очищены');
+    } catch (error) {
+      console.error('[PushNotificationProvider] ❌ Ошибка очистки:', error);
     }
   };
 

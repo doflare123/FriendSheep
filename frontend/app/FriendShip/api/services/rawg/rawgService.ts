@@ -105,8 +105,8 @@ class RawgService {
       const rawDescription = gameDetails.description_raw || '';
       let translatedDescription = await this.translateText(rawDescription);
 
-      if (translatedDescription.length > 500) {
-        translatedDescription = translatedDescription.substring(0, 497) + '...';
+      if (translatedDescription.length > 300) {
+        translatedDescription = translatedDescription.substring(0, 297) + '...';
       }
 
       const autoFillData: GameAutoFillData = {
@@ -142,7 +142,7 @@ class RawgService {
         return text;
       }
 
-      const textToTranslate = text.length > 400 ? text.substring(0, 397) + '...' : text;
+      const textToTranslate = text.length > 300 ? text.substring(0, 297) + '...' : text;
 
       console.log('[RawgService] 🔄 Перевод описания...');
 
@@ -182,7 +182,7 @@ class RawgService {
       }
     } catch (error: any) {
       console.error('[RawgService] ⚠️ Все сервисы перевода недоступны, используем оригинал:', error.message);
-      return text.length > 400 ? text.substring(0, 397) + '...' : text;
+      return text.length > 300 ? text.substring(0, 297) + '...' : text;
     }
   }
 
@@ -219,10 +219,10 @@ class RawgService {
   }
 
   private truncateDescription(description: string): string {
-    if (description.length <= 500) {
+    if (description.length <= 300) {
       return description;
     }
-    return description.substring(0, 497) + '...';
+    return description.substring(0, 297) + '...';
   }
 
   private formatEsrbRating(rating?: string): string {

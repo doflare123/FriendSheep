@@ -11,6 +11,7 @@ import GenreSelector from '@/components/event/modal/GenreSelector';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
+import { validateFullDescription } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import {
@@ -452,6 +453,22 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
       return false;
     }
 
+    if (eventName.trim().length < 5) {
+      Alert.alert('Ошибка', 'Название должно содержать минимум 5 символов');
+      return false;
+    }
+
+    if (description.trim()) {
+      const descValidation = validateFullDescription(description);
+      if (!descValidation.isValid) {
+        Alert.alert(
+          'Ошибка', 
+          `Описание: ${descValidation.missingRequirements.join(', ')}`
+        );
+        return false;
+      }
+    }
+
     if (!selectedCategory) {
       Alert.alert('Ошибка', 'Выберите категорию события');
       return false;
@@ -568,8 +585,12 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   const showRawgButton = selectedCategory === 'game' && !editMode;
 
   const isFormValid = (): boolean => {
+    const isDescriptionValid = description.trim() === '' || 
+    (description.trim().length >= 5 && description.trim().length <= 300);
     return !!(
       eventName.trim() &&
+      eventName.trim().length >= 5 &&
+      isDescriptionValid &&
       selectedCategory &&
       selectedGenres.length > 0 &&
       duration &&
@@ -680,7 +701,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
-                  maxLength={500}
+                  maxLength={300}
                   editable={!isLoading}
                 />
                 <TouchableOpacity
@@ -696,7 +717,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
               </View>
               {description.length > 0 && (
                 <Text style={[styles.charCounter, { color: colors.grey }]}>
-                  {description.length} / 500 {description.length < 5 && '(мин. 5)'}
+                  {description.length} / 300 {description.length < 5 && '(мин. 5)'}
                 </Text>
               )}
 

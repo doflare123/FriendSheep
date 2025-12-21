@@ -136,7 +136,7 @@ const ForgotPassword = () => {
             onPress={() => navigation.goBack()}
             disabled={loading}
           >
-            <Text style={[authorizeStyle.account, { color: colors.blue }]}>
+            <Text style={[authorizeStyle.account, { color: Colors.lightBlue }]}>
               Вернуться к входу
             </Text>
           </TouchableOpacity>

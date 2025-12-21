@@ -231,7 +231,7 @@ const Register = () => {
             onPress={() => navigation.navigate('Login' as never)}
             disabled={loading}
           >
-            <Text style={[authorizeStyle.account, { color: colors.blue }]}>
+            <Text style={[authorizeStyle.account, { color: Colors.lightBlue }]}>
               Есть аккаунт?
             </Text>
           </TouchableOpacity>
@@ -240,7 +240,7 @@ const Register = () => {
         <Text style={[authorizeStyle.terms, { color: colors.grey }]}>
           При создании аккаунта вы соглашаетесь с условиями{' '}
           <Text
-            style={[authorizeStyle.link, { color: colors.blue }]}
+            style={[authorizeStyle.link, { color: Colors.lightBlue }]}
             onPress={() =>
               openURL('https://friendsheep.ru/info/privacy')
             }
@@ -249,7 +249,7 @@ const Register = () => {
           </Text>{' '}
           и{' '}
           <Text
-            style={[authorizeStyle.link, { color: colors.blue }]}
+            style={[authorizeStyle.link, { color: Colors.lightBlue }]}
             onPress={() =>
               openURL(
                 'https://friendsheep.ru/info/privacy',

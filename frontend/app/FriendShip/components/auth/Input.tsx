@@ -19,7 +19,7 @@ const Input = ({ isValid = true, borderColor, ...props }: InputProps) => {
           styles.input,
           {
             color: colors.black,
-            borderColor: borderColor || colors.lightBlue
+            borderColor: borderColor || colors.auth
           },
           !isValid && { borderColor: colors.red }
         ]}

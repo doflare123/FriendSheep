@@ -154,7 +154,7 @@ const Login = () => {
             onPress={() => navigation.navigate('ForgotPassword' as never)}
             disabled={loading}
           >
-            <Text style={[authorizeStyle.password, { color: colors.blue }]}>
+            <Text style={[authorizeStyle.password, { color: Colors.lightBlue }]}>
               Забыли пароль?
             </Text>
           </TouchableOpacity>

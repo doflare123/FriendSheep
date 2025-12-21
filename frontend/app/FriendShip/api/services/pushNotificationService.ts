@@ -1,11 +1,11 @@
-import Constants from 'expo-constants';
+import apiClient from '@/api/apiClient';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+// Настройка обработчика уведомлений
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,
@@ -14,16 +14,19 @@ Notifications.setNotificationHandler({
 });
 
 class PushNotificationService {
-  private expoPushToken: string | null = null;
   private fcmToken: string | null = null;
 
-  async registerForPushNotifications(): Promise<string | null> {
+  /**
+   * Запросить разрешения и зарегистрировать устройство
+   */
+  async registerForPushNotifications(): Promise<boolean> {
     if (!Device.isDevice) {
       console.warn('[PushNotificationService] Push-уведомления работают только на реальных устройствах');
-      return null;
+      return false;
     }
 
     try {
+      // 1. Запросить разрешения
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
 
@@ -34,25 +37,10 @@ class PushNotificationService {
 
       if (finalStatus !== 'granted') {
         console.warn('[PushNotificationService] Разрешение на уведомления не получено');
-        return null;
+        return false;
       }
 
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-
-      let tokenData;
-      if (projectId) {
-        tokenData = await Notifications.getExpoPushTokenAsync({
-          projectId: projectId,
-        });
-        this.expoPushToken = tokenData.data;
-        console.log('[PushNotificationService] ✅ Expo Push-токен:', this.expoPushToken);
-      } else {
-        console.warn('[PushNotificationService] ⚠️ projectId не найден, используется режим разработки');
-        tokenData = await Notifications.getDevicePushTokenAsync();
-        console.log('[PushNotificationService] 📱 Device Push Token:', tokenData.data);
-        this.expoPushToken = JSON.stringify(tokenData.data);
-      }
-
+      // 2. Настройка канала для Android
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('default', {
           name: 'По умолчанию',
@@ -65,19 +53,28 @@ class PushNotificationService {
         });
       }
 
+      // 3. Получить FCM токен
       const fcmToken = await this.getFCMToken();
+      
+      if (!fcmToken) {
+        console.warn('[PushNotificationService] Не удалось получить FCM токен');
+        return false;
+      }
 
-      console.log('[PushNotificationService] ✅ Токены готовы:');
-      console.log('  📱 Expo Token:', this.expoPushToken);
-      console.log('  🔥 FCM Token:', fcmToken);
+      // 4. Отправить токен на сервер
+      await this.sendTokenToServer(fcmToken);
 
-      return this.expoPushToken;
+      console.log('[PushNotificationService] ✅ Push-уведомления зарегистрированы');
+      return true;
     } catch (error) {
       console.error('[PushNotificationService] ❌ Ошибка регистрации:', error);
-      return null;
+      return false;
     }
   }
 
+  /**
+   * Получить FCM токен
+   */
   async getFCMToken(): Promise<string | null> {
     try {
       if (Platform.OS === 'android') {
@@ -87,37 +84,161 @@ class PushNotificationService {
         const token = await getToken(messaging);
         
         this.fcmToken = token;
-        console.log('[PushNotificationService] ✅ FCM токен:', token);
+        console.log('[PushNotificationService] ✅ FCM токен получен');
         return token;
       }
+      
+      // Для iOS тоже можно получить FCM токен
+      if (Platform.OS === 'ios') {
+        const { getMessaging, getToken } = require('@react-native-firebase/messaging');
+        
+        const messaging = getMessaging();
+        const token = await getToken(messaging);
+        
+        this.fcmToken = token;
+        console.log('[PushNotificationService] ✅ FCM токен получен (iOS)');
+        return token;
+      }
+      
       return null;
     } catch (error) {
-      console.warn('[PushNotificationService] ⚠️ FCM токен недоступен:', error);
+      console.error('[PushNotificationService] ❌ Ошибка получения FCM токена:', error);
       return null;
     }
   }
 
-  async sendTokenToServer(expoPushToken: string, fcmToken?: string | null): Promise<void> {
+  /**
+   * Отправить токен на сервер
+   */
+  async sendTokenToServer(fcmToken: string): Promise<void> {
+    try {
+      const deviceInfo = {
+        model: Device.modelName,
+        os_version: Device.osVersion,
+        brand: Device.brand,
+        manufacturer: Device.manufacturer,
+      };
 
-    console.log('[PushNotificationService] 📝 Токены (готовы к отправке на сервер):');
-    console.log('  📱 Expo Token:', expoPushToken);
-    console.log('  🔥 FCM Token:', fcmToken || 'не получен');
-    console.log('  📲 Platform:', Platform.OS);
-    console.log('  📱 Device:', Device.modelName);
-    console.log('  🔢 OS Version:', Device.osVersion);
+      const response = await apiClient.post('/api/device-tokens/register', {
+        device_token: fcmToken,
+        platform: Platform.OS,
+        device_info: JSON.stringify(deviceInfo),
+      });
+
+      console.log('[PushNotificationService] ✅ Токен отправлен на сервер:', response.data);
+    } catch (error: any) {
+      console.error('[PushNotificationService] ❌ Ошибка отправки токена:', error);
+      
+      if (error.response?.status === 401) {
+        console.error('Пользователь не авторизован');
+      } else if (error.response?.status === 400) {
+        console.error('Некорректные данные:', error.response.data);
+      }
+      
+      throw error;
+    }
   }
 
+  /**
+   * Удалить токен с сервера (при выходе)
+   */
   async removeTokenFromServer(): Promise<void> {
-    if (!this.expoPushToken) return;
+    if (!this.fcmToken) {
+      console.warn('[PushNotificationService] Нет токена для удаления');
+      return;
+    }
 
     try {
-      this.expoPushToken = null;
+      await apiClient.delete('/api/device-tokens', {
+        params: { device_token: this.fcmToken },
+      });
+      
+      console.log('[PushNotificationService] ✅ Токен удален с сервера');
       this.fcmToken = null;
     } catch (error) {
       console.error('[PushNotificationService] ❌ Ошибка удаления токена:', error);
     }
   }
 
+  /**
+   * Деактивировать токен (временно отключить уведомления)
+   */
+  async deactivateToken(): Promise<void> {
+    if (!this.fcmToken) return;
+
+    try {
+      await apiClient.post('/api/device-tokens/deactivate', {
+        device_token: this.fcmToken,
+      });
+      
+      console.log('[PushNotificationService] ✅ Токен деактивирован');
+    } catch (error) {
+      console.error('[PushNotificationService] ❌ Ошибка деактивации токена:', error);
+    }
+  }
+
+  /**
+   * Настроить обработчики foreground/background уведомлений
+   */
+  async setupNotificationHandlers(): Promise<void> {
+    if (Platform.OS === 'android' || Platform.OS === 'ios') {
+      try {
+        const { getMessaging, onMessage } = require('@react-native-firebase/messaging');
+        
+        const messaging = getMessaging();
+        
+        // Foreground handler
+        onMessage(messaging, async (remoteMessage: any) => {
+          console.log('[PushNotificationService] 📨 Foreground уведомление:', remoteMessage);
+          
+          // Показываем локальное уведомление
+          if (remoteMessage.notification) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: remoteMessage.notification.title || 'Уведомление',
+                body: remoteMessage.notification.body || '',
+                data: remoteMessage.data || {},
+              },
+              trigger: null,
+            });
+          }
+        });
+        
+        console.log('[PushNotificationService] ✅ Notification handlers настроены');
+      } catch (error) {
+        console.warn('[PushNotificationService] ⚠️ Не удалось настроить handlers:', error);
+      }
+    }
+  }
+
+  /**
+   * Badge count
+   */
+  async getBadgeCount(): Promise<number> {
+    return await Notifications.getBadgeCountAsync();
+  }
+
+  async setBadgeCount(count: number): Promise<void> {
+    await Notifications.setBadgeCountAsync(count);
+  }
+
+  /**
+   * Локальные уведомления
+   */
+  async sendLocalNotification(title: string, body: string, data?: any): Promise<void> {
+    await Notifications.scheduleNotificationAsync({
+      content: { title, body, data: data || {} },
+      trigger: null,
+    });
+  }
+
+  async clearAllNotifications(): Promise<void> {
+    await Notifications.dismissAllNotificationsAsync();
+  }
+
+  /**
+   * Слушатели
+   */
   addNotificationListener(
     callback: (notification: Notifications.Notification) => void
   ): Notifications.Subscription {
@@ -130,69 +251,9 @@ class PushNotificationService {
     return Notifications.addNotificationResponseReceivedListener(callback);
   }
 
-  async getBadgeCount(): Promise<number> {
-    return await Notifications.getBadgeCountAsync();
-  }
-
-  async setBadgeCount(count: number): Promise<void> {
-    await Notifications.setBadgeCountAsync(count);
-  }
-
-  async clearAllNotifications(): Promise<void> {
-    await Notifications.dismissAllNotificationsAsync();
-  }
-
-  async setupBackgroundHandler(): Promise<void> {
-    if (Platform.OS === 'android') {
-      try {
-        const { getMessaging, onBackgroundMessage } = require('@react-native-firebase/messaging');
-        
-        const messaging = getMessaging();
-        
-        onBackgroundMessage(messaging, async (remoteMessage: any) => {
-          console.log('[PushNotificationService] 📨 Фоновое уведомление:', remoteMessage);
-        });
-        
-        console.log('[PushNotificationService] ✅ Background handler настроен');
-      } catch (error) {
-        console.warn('[PushNotificationService] ⚠️ Background handler недоступен:', error);
-      }
-    }
-  }
-
-  async setupForegroundHandler(): Promise<void> {
-    if (Platform.OS === 'android') {
-      try {
-        const { getMessaging, onMessage } = require('@react-native-firebase/messaging');
-        
-        const messaging = getMessaging();
-        
-        onMessage(messaging, async (remoteMessage: any) => {
-          console.log('[PushNotificationService] 📨 Foreground уведомление:', remoteMessage);
-
-          if (remoteMessage.notification) {
-            await Notifications.scheduleNotificationAsync({
-              content: {
-                title: remoteMessage.notification.title || 'Уведомление',
-                body: remoteMessage.notification.body || '',
-                data: remoteMessage.data,
-              },
-              trigger: null,
-            });
-          }
-        });
-        
-        console.log('[PushNotificationService] ✅ Foreground handler настроен');
-      } catch (error) {
-        console.warn('[PushNotificationService] ⚠️ Foreground handler недоступен:', error);
-      }
-    }
-  }
-
-  getExpoPushToken(): string | null {
-    return this.expoPushToken;
-  }
-
+  /**
+   * Получить сохраненный FCM токен
+   */
   getFCMTokenSync(): string | null {
     return this.fcmToken;
   }

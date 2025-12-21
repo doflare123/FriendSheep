@@ -1,6 +1,6 @@
 import Toast from '@/components/Toast';
 import React, { createContext, useContext, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
 
 interface ToastData {
   type?: 'success' | 'error' | 'warning';
@@ -29,9 +29,15 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <ToastContext.Provider value={{ showToast }}>
-      <View style={styles.container}>
-        {children}
-        {toastVisible && (
+      {children}
+      <Modal
+        visible={toastVisible}
+        transparent={true}
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={() => setToastVisible(false)}
+      >
+        <View style={styles.modalContainer} pointerEvents="box-none">
           <Toast
             visible={toastVisible}
             type={toastData.type}
@@ -39,8 +45,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             message={toastData.message}
             onHide={() => setToastVisible(false)}
           />
-        )}
-      </View>
+        </View>
+      </Modal>
     </ToastContext.Provider>
   );
 };
@@ -54,7 +60,8 @@ export const useToast = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  modalContainer: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
 });
