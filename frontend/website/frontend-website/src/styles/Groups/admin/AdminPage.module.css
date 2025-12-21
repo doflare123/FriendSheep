@@ -10,9 +10,9 @@
 
 .adminPage {
   display: flex;
-  background: white;
+  background: var(--color-bg-primary);
   border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-xl);
   width: 90%;
   max-width: 1200px;
   height: 60%; /* Возвращаем 60% */
@@ -21,7 +21,7 @@
 }
 
 .sidebar {
-  background: #565555;
+  background: var(--color-bg-gray-dark);
   width: 18%;
   min-width: 200px;
   padding: 20px 0;
@@ -42,18 +42,18 @@
 }
 
 .sidebarItem:hover {
-  background: rgba(217, 217, 217, 0.2);
+  background: var(--overlay-blue);
 }
 
 .sidebarItem.active {
-  background: rgba(217, 217, 217, 0.3);
+  background: var(--overlay-blue);
   font-weight: 500;
 }
 
 .mainContent {
   flex: 1;
   padding: 0;
-  background: white;
+  background: var(--color-bg-primary);
   border-top-right-radius: 20px;
   border-bottom-right-radius: 20px;
   overflow: hidden; /* Убираем скролл отсюда */
@@ -63,8 +63,8 @@
 
 .contentHeader {
   padding: 20px 30px;
-  border-bottom: 1px solid #eee;
-  background: white;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg-primary);
   border-top-right-radius: 20px;
   display: flex;
   justify-content: center;
@@ -73,7 +73,7 @@
 }
 
 .contentHeader h2 {
-  color: #000;
+  color: var(--color-text-primary);
   font-size: 24px;
   font-weight: 600;
   margin: 0;
@@ -81,7 +81,7 @@
 
 .contentBody {
   flex: 1; /* Занимает оставшееся место */
-  background: white;
+  background: var(--color-bg-primary);
   overflow: hidden; /* Убираем скролл отсюда тоже */
   display: flex;
   flex-direction: column;
@@ -94,7 +94,7 @@
   align-items: center;
   justify-content: center;
   min-height: 300px;
-  color: #666;
+  color: var(--color-text-primary);
   font-size: 18px;
 }
 

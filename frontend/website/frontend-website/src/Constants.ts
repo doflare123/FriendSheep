@@ -7,6 +7,19 @@ import { getUserInfo } from './api/profile/getOwnProfile';
 import { refreshAccessToken, isTokenValid, getCookie, setCookie } from '@/api/auth';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
+export const MOBILE_APP_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+
+export function checkDeviceAndRedirect(router: AppRouterInstance) {
+    if (typeof window === 'undefined') return;
+    
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(userAgent);
+    
+    if (isMobile) {
+        router.push('/');
+    }
+}
+
 export const convertCategoriesToIds = (categories: string[]): number[] => {
     const categoryMap: { [key: string]: number } = {
       'movies': 1,    // Фильмы
@@ -76,8 +89,7 @@ export const getAccesToken = async (router?: AppRouterInstance): Promise<string>
     
     if (!refreshToken) {
       if (router) {
-        console.log("LOGIN3");
-        router.push('/login');
+        router.push('/');
       }
       return '';
     }
@@ -92,8 +104,7 @@ export const getAccesToken = async (router?: AppRouterInstance): Promise<string>
     
   } catch (error) {
     if (router) {
-      console.log("LOGIN4");
-      router.push('/login');
+      router.push('/');
     }
     return '';
   }
@@ -193,7 +204,7 @@ export const updateUserData = async (): UserDataResponse | null => {
   let UserInfo;
 
   try {
-    UserInfo = getUserInfo(accessToken);
+    UserInfo = await getUserInfo(accessToken); // Добавил await!
     localStorage.setItem('userData', JSON.stringify(UserInfo));
   } catch (error) {
     console.error('Ошибка сохранения в localStorage:', error);
@@ -216,18 +227,22 @@ export const getCategoryIcon = (category: string): string => {
   }
 };
 
-export const getSocialIcon = (name: string, link?: string, ): string => {
-  const lowerLink = (link|| " ").toLowerCase();
-  const lowerName = name.toLowerCase();
+export const getSocialIcon = (link: string, name?: string): string => {
+  const lowerLink = link.toLowerCase();
+  const lowerName = name?.toLowerCase() || "";
 
-  if (lowerLink.includes('discord') || lowerName.includes('discord') || lowerName.includes('ds')) {
+  if (lowerLink.includes('discord.gg') || lowerName.includes('discord') || lowerName.includes('ds')) {
     return '/social/ds.png';
   } else if (lowerLink.includes('t.me') || lowerLink.includes('telegram') || lowerName.includes('telegram') || lowerName.includes('tg')) {
     return '/social/tg.png';
   } else if (lowerLink.includes('vk.com') || lowerName.includes('вконтакте') || lowerName.includes('vk')) {
     return '/social/vk.png';
-  } else if (lowerName.includes('max') || lowerLink.includes('max')) {
+  } else if (lowerName.includes('max') || lowerLink.includes('max.')) {
     return '/social/max.png';
+  } else if (lowerName.includes('youtube') || lowerLink.includes('www.youtube.com')) {
+    return '/social/yt.png';
+  } else if (lowerName.includes('donationalerts') || lowerLink.includes('www.donationalerts.com')) {
+    return '/social/da.png';
   } else {
     return '/default/soc_net.png';
   }

@@ -20,7 +20,7 @@ import (
 )
 
 type SessionInput struct {
-	Title        string    `form:"title" binding:"required,min=5,max=40"`
+	Title        string    `form:"title" binding:"required,min=3,max=40"`
 	SessionType  string    `form:"session_type" binding:"required"`
 	SessionPlace uint      `form:"session_place" binding:"required"`
 	GroupID      uint      `form:"group_id" binding:"required"`

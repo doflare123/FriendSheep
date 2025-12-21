@@ -13,18 +13,13 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onSubmit }
       <div 
         className={styles.modalContent} 
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: 'white',
-          borderRadius: '20px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
-        }}
       >
         <div className={styles.modalHeader}>
           <h2>Основная информация</h2>
           <button className={styles.closeButton} onClick={onClose}>×</button>
         </div>
         <div className={styles.modalBody}>
-          <CreateGroupForm onSubmit={onSubmit} />
+          <CreateGroupForm onSubmit={onSubmit} showTitle={false} />
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
-import styles from '../../styles/profile/ProfileSection2.module.css';
+import styles from '../../styles/profile/ProfileSection4.module.css';
 
 interface StatisticsTileProps {
   title: string;
@@ -21,7 +21,7 @@ const StatisticsTile: React.FC<StatisticsTileProps> = ({
         <div className={styles.tileTitle}>{title}</div>
       </div>
       <div className={styles.tileIcon}>
-        <Image src={icon} alt={title} width={100} height={100} />
+        <Image src={icon} alt={title} width={85} height={85} /> {/* Уменьшено с 100 до 85 (~15%) */}
       </div>
       <div className={styles.tileValue}>{value}</div>
       {subtitle && (

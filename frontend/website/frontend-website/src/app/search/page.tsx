@@ -11,6 +11,8 @@ import AddUserModal from '../../components/search/AddUserModal';
 import { searchGroup } from '@/api/search/searchGroup';
 import { searchUsers } from '@/api/search/searchUsers';
 import { joinGroup } from '@/api/groups/joinGroup';
+import { getOwnGroups } from '@/api/get_owngroups';
+import { getGroups } from '@/api/get_groups';
 import { showNotification } from '@/utils';
 import LoadingIndicator from '@/components/LoadingIndicator';
 
@@ -47,7 +49,8 @@ interface GroupsResponse {
   total: number;
 }
 
-const ITEMS_PER_PAGE = 5;
+const GROUPS_PER_PAGE = 5;
+const USERS_PER_PAGE = 4;
 
 export default function SearchPage() {
   const router = useRouter();
@@ -73,6 +76,8 @@ export default function SearchPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [hasAccess, setHasAccess] = useState(false);
+  const [userGroupIds, setUserGroupIds] = useState<Set<number>>(new Set());
+  const [ownGroupIds, setOwnGroupIds] = useState<Set<number>>(new Set());
   
   const filterRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
@@ -80,18 +85,48 @@ export default function SearchPage() {
 
   // Проверка токена при монтировании
   useEffect(() => {
-  const checkAuth = async () => {
-    const accessToken = await getAccesToken(router);
-    if (!accessToken) {
-      console.log("LOGIN2");
-      router.push('/login');
-    } else {
-      setHasAccess(true);
-    }
-  };
-  
-  checkAuth();
-}, [router]);
+    const checkAuth = async () => {
+      const accessToken = await getAccesToken(router);
+      if (!accessToken) {
+        console.log("LOGIN2");
+        router.push('/login');
+      } else {
+        setHasAccess(true);
+      }
+    };
+    
+    checkAuth();
+  }, [router]);
+
+  // Загрузка групп пользователя при монтировании
+  useEffect(() => {
+    if (!hasAccess) return;
+
+    const loadUserGroups = async () => {
+      try {
+        const accessToken = await getAccesToken(router);
+        
+        // Загружаем группы, в которых состоит пользователь
+        const subscribedGroups = await getGroups(accessToken);
+        const subscribedIds = new Set(subscribedGroups.map((g: any) => g.id));
+        setUserGroupIds(subscribedIds);
+
+        // Загружаем группы, созданные пользователем
+        const createdGroups = await getOwnGroups(accessToken);
+        const createdIds = new Set(createdGroups.map((g: any) => g.id));
+        setOwnGroupIds(createdIds);
+
+        console.log('Группы пользователя загружены:', {
+          subscribed: Array.from(subscribedIds),
+          created: Array.from(createdIds)
+        });
+      } catch (error: any) {
+        console.error('Ошибка при загрузке групп пользователя:', error);
+      }
+    };
+
+    loadUserGroups();
+  }, [hasAccess, router]);
 
   // Обновление searchType при изменении URL параметра
   useEffect(() => {
@@ -164,7 +199,7 @@ export default function SearchPage() {
 
           if (response && response.groups) {
             setGroups(response.groups);
-            const totalPagesCalc = Math.ceil(response.total / ITEMS_PER_PAGE);
+            const totalPagesCalc = Math.ceil(response.total / GROUPS_PER_PAGE);
             setTotalPages(totalPagesCalc || 1);
           } else {
             setGroups([]);
@@ -184,7 +219,7 @@ export default function SearchPage() {
 
           if (response && response.users) {
             setUsers(response.users);
-            const totalPagesCalc = Math.ceil(response.total / ITEMS_PER_PAGE);
+            const totalPagesCalc = Math.ceil(response.total / USERS_PER_PAGE);
             setTotalPages(totalPagesCalc || 1);
           } else {
             setUsers([]);
@@ -211,7 +246,7 @@ export default function SearchPage() {
     };
 
     loadData();
-  }, [hasAccess, searchType, currentPage, debouncedQuery, selectedCategory, selectedParticipantSort, selectedRegistrationSort]);
+  }, [hasAccess, searchType, currentPage, debouncedQuery, selectedCategory, selectedParticipantSort, selectedRegistrationSort, router]);
 
   // Сброс страницы и данных при изменении фильтров или типа поиска
   useEffect(() => {
@@ -239,7 +274,7 @@ export default function SearchPage() {
   }, []);
 
   const handleJoinGroup = async (groupId: number, isPrivate: boolean, e: React.MouseEvent) => {
-    e.stopPropagation(); // Предотвращаем переход на профиль при клике на кнопку
+    e.stopPropagation();
     setLoadingGroups(prev => new Set([...prev, groupId]));
 
     try {
@@ -251,6 +286,7 @@ export default function SearchPage() {
         showNotification(200, 'Заявка на вступление отправлена');
       } else {
         setJoinedGroups(prev => new Set([...prev, groupId]));
+        setUserGroupIds(prev => new Set([...prev, groupId]));
         showNotification(200, 'Вы успешно присоединились к группе');
       }
     } catch (error: any) {
@@ -262,6 +298,7 @@ export default function SearchPage() {
           showNotification(400, 'Вы уже отправили заявку в эту группу');
         } else {
           setJoinedGroups(prev => new Set([...prev, groupId]));
+          setUserGroupIds(prev => new Set([...prev, groupId]));
           showNotification(400, 'Вы уже присоединены к этой группе');
         }
       } else {
@@ -280,7 +317,7 @@ export default function SearchPage() {
   };
 
   const handleAddUser = (userId: number, e: React.MouseEvent) => {
-    e.stopPropagation(); // Предотвращаем переход на профиль при клике на кнопку
+    e.stopPropagation();
     setSelectedUserId(userId);
     setIsModalOpen(true);
   };
@@ -297,6 +334,22 @@ export default function SearchPage() {
     const newType = searchType === 'groups' ? 'users' : 'groups';
     setSearchType(newType);
     router.push(`/search?type=${newType}`);
+  };
+
+  const getGroupButtonText = (groupId: number, isPrivate: boolean) => {
+    if (loadingGroups.has(groupId)) return 'Загрузка...';
+    if (ownGroupIds.has(groupId)) return 'Вы создатель';
+    if (userGroupIds.has(groupId) || joinedGroups.has(groupId)) return 'Присоединен';
+    if (requestedGroups.has(groupId)) return 'Заявка отправлена';
+    return isPrivate ? 'Подать заявку' : 'Присоединиться';
+  };
+
+  const isGroupButtonDisabled = (groupId: number) => {
+    return ownGroupIds.has(groupId) || 
+           userGroupIds.has(groupId) || 
+           joinedGroups.has(groupId) || 
+           requestedGroups.has(groupId) || 
+           loadingGroups.has(groupId);
   };
 
   const renderPagination = () => {
@@ -351,6 +404,11 @@ export default function SearchPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className={styles.searchInput}
                 />
+                {searchType === 'users' && searchQuery.length > 0 && (
+                  <div className={styles.searchHint}>
+                    Используйте @ для поиска по us
+                  </div>
+                )}
                 {searchType === 'groups' && (
                   <div className={styles.filterWrapper} ref={filterRef}>
                     <button
@@ -470,19 +528,21 @@ export default function SearchPage() {
               >
                 <div className={`${styles.toggleSide} ${searchType === 'groups' ? styles.active : styles.inactive}`}>
                   <Image 
-                    src='/icons/persons.png'
+                    src='/icons/groups.png'
                     alt='Groups' 
                     width={20} 
                     height={20} 
+                    title="Группы"
                   />
                 </div>
                 <div className={styles.toggleDivider} />
                 <div className={`${styles.toggleSide} ${searchType === 'users' ? styles.active : styles.inactive}`}>
                   <Image 
-                    src='/icons/groups.png'
+                    src='/icons/persons.png'
                     alt='Users' 
                     width={30} 
                     height={30} 
+                    title="Люди"
                   />
                 </div>
               </button>
@@ -551,20 +611,14 @@ export default function SearchPage() {
                             <div className={styles.groupActions}>
                               <button
                                 className={`${styles.joinButton} ${
-                                  joinedGroups.has(group.id) ? styles.joinedButton :
+                                  ownGroupIds.has(group.id) ? styles.creatorButton :
+                                  userGroupIds.has(group.id) || joinedGroups.has(group.id) ? styles.joinedButton :
                                   requestedGroups.has(group.id) ? styles.requestedButton : ''
                                 }`}
                                 onClick={(e) => handleJoinGroup(group.id, group.isPrivate || false, e)}
-                                disabled={
-                                  joinedGroups.has(group.id) || 
-                                  requestedGroups.has(group.id) || 
-                                  loadingGroups.has(group.id)
-                                }
+                                disabled={isGroupButtonDisabled(group.id)}
                               >
-                                {loadingGroups.has(group.id) ? 'Загрузка...' :
-                                 joinedGroups.has(group.id) ? 'Присоединен' :
-                                 requestedGroups.has(group.id) ? 'Заявка отправлена' : 
-                                 group.isPrivate ? 'Подать заявку' : 'Присоединиться'}
+                                {getGroupButtonText(group.id, group.isPrivate || false)}
                               </button>
                               <span className={styles.memberCount}>{group.count} участников</span>
                             </div>
@@ -574,7 +628,7 @@ export default function SearchPage() {
                         <div style={{ 
                           textAlign: 'center', 
                           padding: '60px 20px', 
-                          color: '#666',
+                          color: 'var(--color-text-primary)',
                           fontSize: '18px'
                         }}>
                           Групп не найдено
@@ -626,7 +680,7 @@ export default function SearchPage() {
                         <div style={{ 
                           textAlign: 'center', 
                           padding: '60px 20px', 
-                          color: '#666',
+                          color: 'var(--color-text-primary)',
                           fontSize: '18px'
                         }}>
                           Пользователей не найдено

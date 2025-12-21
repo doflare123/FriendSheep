@@ -1,11 +1,10 @@
-/* Стили для основного модального окна создания группы */
 div.modalOverlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--overlay-medium);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -14,15 +13,14 @@ div.modalOverlay {
 }
 
 div.modalOverlay .modalContent {
-    background: white !important;
-    border-radius: 20px !important;
+    background: var(--color-bg-primary);
+    border-radius: 20px;
     width: 90%;
     max-width: 800px;
     max-height: 90vh;
     overflow-y: auto;
     position: relative;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
-    border: none !important;
+    box-shadow: var(--shadow-xl);
 }
 
 .modalHeader {
@@ -30,12 +28,12 @@ div.modalOverlay .modalContent {
     justify-content: center;
     align-items: center;
     padding: 20px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--color-border-light);
     position: relative;
 }
 
 .modalHeader h2 {
-    color: #000;
+    color: var(--color-text-primary);
     font-size: 24px;
     font-weight: 600;
     margin: 0;
@@ -47,7 +45,7 @@ div.modalOverlay .modalContent {
     background: none;
     border: none;
     font-size: 32px;
-    color: #666;
+    color: var(--color-text-primary);
     cursor: pointer;
     width: 40px;
     height: 40px;
@@ -59,8 +57,8 @@ div.modalOverlay .modalContent {
 }
 
 .closeButton:hover {
-    background: #f0f0f0;
-    color: #000;
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
 }
 
 .modalBody {
@@ -70,6 +68,17 @@ div.modalOverlay .modalContent {
 .modalContent .createGroupForm {
     margin: 0;
     padding: 0;
+}
+
+.formTitleSection {
+    margin-bottom: 30px;
+}
+
+.formTitle {
+    color: var(--color-text-primary);
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
 }
 
 .createGroupForm {
@@ -97,89 +106,88 @@ div.modalOverlay .modalContent {
 .formLabel {
     display: block;
     margin-bottom: 8px;
-    color: #000;
+    color: var(--color-text-primary);
     font-weight: 500;
     font-size: 16px;
 }
 
-/* Стили для названия (без рамки, только подчеркивание) */
 .nameInput {
     width: 100%;
     padding: 12px 0;
     border: none;
-    border-bottom: 2px solid #316BC2;
+    border-bottom: 2px solid var(--color-primary-blue-dark);
     font-size: 18px;
-    color: #000;
+    color: var(--color-text-primary);
     background: transparent;
     transition: border-color 0.2s ease;
 }
 
 .nameInput:focus {
     outline: none;
-    border-bottom-color: #37A2E6;
+    border-bottom-color: var(--color-primary-blue);
 }
 
 .nameInput::placeholder {
-    color: #000;
+    color: var(--color-text-primary);
     font-size: 18px;
 }
 
-/* Стили для города (аналогично названию) */
 .cityInput {
     width: 100%;
     padding: 12px 0;
     border: none;
-    border-bottom: 2px solid #316BC2;
+    border-bottom: 2px solid var(--color-primary-blue-dark);
     font-size: 16px;
-    color: #000;
+    color: var(--color-text-primary);
     background: transparent;
     transition: border-color 0.2s ease;
 }
 
 .cityInput:focus {
     outline: none;
-    border-bottom-color: #37A2E6;
+    border-bottom-color: var(--color-primary-blue);
 }
 
 .cityInput::placeholder {
-    color: #999;
+    color: var(--color-text-muted);
     font-size: 16px;
 }
 
 .formInput {
     width: 100%;
     padding: 12px 16px;
-    border: 2px solid #316BC2;
+    border: 2px solid var(--color-primary-blue-dark);
     border-radius: 12px;
     font-size: 16px;
-    color: #000;
+    color: var(--color-text-primary);
+    background: var(--color-bg-primary);
     transition: border-color 0.2s ease;
 }
 
 .formInput:focus {
     outline: none;
-    border-color: #37A2E6;
+    border-color: var(--color-primary-blue);
 }
 
 .formTextarea {
     width: 100%;
     padding: 12px 16px;
-    border: 2px solid #316BC2;
+    border: 2px solid var(--color-primary-blue-dark);
     border-radius: 12px;
     font-size: 16px;
-    color: #000;
-    resize: none; /* Отключаем возможность изменения размера */
-    height: 120px; /* Увеличили высоту с 100px до 120px */
+    color: var(--color-text-primary);
+    background: var(--color-bg-primary);
+    resize: none;
+    height: 120px;
     font-family: 'Inter', sans-serif;
     transition: border-color 0.2s ease;
 }
 
 .formTextarea:focus {
     outline: none;
-    border-color: #37A2E6;
+    border-color: var(--color-primary-blue);
 }
 
-/* Стили для контактов */
 .socialIcons {
     display: flex;
     align-items: center;
@@ -190,7 +198,7 @@ div.modalOverlay .modalContent {
 .socialIcon {
     width: 40px;
     height: 40px;
-    background: white;
+    background: var(--color-bg-primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -236,7 +244,7 @@ div.modalOverlay .modalContent {
 
 .groupImagePreview:hover {
     transform: scale(1.02);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
 }
 
 .previewImage {
@@ -250,17 +258,16 @@ div.modalOverlay .modalContent {
     align-items: center;
     gap: 12px;
     font-size: 16px;
-    color: #000;
+    color: var(--color-text-primary);
     cursor: pointer;
 }
 
-/* Стили для приватного чекбокса */
 .privateCheckbox {
     width: 20px;
     height: 20px;
     appearance: none;
-    background: white;
-    border: 2px solid #316BC2;
+    background: var(--color-bg-primary);
+    border: 2px solid var(--color-primary-blue-dark);
     border-radius: 4px;
     cursor: pointer;
     position: relative;
@@ -268,8 +275,8 @@ div.modalOverlay .modalContent {
 }
 
 .privateCheckbox:checked {
-    background: #316BC2;
-    border-color: #316BC2;
+    background: var(--color-primary-blue-dark);
+    border-color: var(--color-primary-blue-dark);
 }
 
 .privateCheckbox:checked::after {
@@ -278,12 +285,11 @@ div.modalOverlay .modalContent {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: white;
+    color: var(--color-text-white);
     font-size: 14px;
     font-weight: bold;
 }
 
-/* Стили для категорий */
 .categoriesRow {
     display: flex;
     gap: 8px;
@@ -296,29 +302,27 @@ div.modalOverlay .modalContent {
     justify-content: center;
     width: 40px;
     height: 40px;
-    background: #565555;
+    background: var(--color-bg-gray-dark);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .categoryItem.selected {
-    background: #37A2E6;
+    background: var(--color-primary-blue);
 }
 
-/* Контейнер для кнопок действий */
 .actionButtons {
   display: flex;
   gap: 12px;
   justify-content: center;
-  margin-top: 10px; /* Поднимаем кнопки на 10px относительно обычного положения */
+  margin-top: 10px;
 }
 
-/* Обновленный стиль .createButton */
 .createButton {
-  background: #37A2E6;
-  color: white;
-  border: 2px solid #316BC2;
+  background: var(--color-primary-blue);
+  color: var(--color-text-white);
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 12px;
   padding: 16px 32px;
   font-size: 18px;
@@ -329,23 +333,22 @@ div.modalOverlay .modalContent {
 }
 
 .createButton:hover:not(:disabled) {
-  background: #2d93d5;
+  background: var(--color-primary-blue-dark);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(55, 162, 230, 0.3);
+  box-shadow: var(--shadow-blue);
 }
 
 .createButton:disabled {
-  background-color: #cccccc;
-  border-color: #999;
+  background-color: var(--color-text-disabled);
+  border-color: var(--color-text-muted);
   cursor: not-allowed;
   opacity: 0.7;
 }
 
-/* Кнопка удаления */
 .deleteButton {
-  background-color: #E6374B;
-  color: white;
-  border: 2px solid #d32636;
+  background-color: var(--color-danger);
+  color: var(--color-text-white);
+  border: 2px solid var(--color-danger-dark);
   border-radius: 12px;
   padding: 16px 32px;
   font-size: 18px;
@@ -356,46 +359,44 @@ div.modalOverlay .modalContent {
 }
 
 .deleteButton:hover:not(:disabled) {
-  background-color: #d32636;
+  background-color: var(--color-danger-dark);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(230, 55, 75, 0.3);
+  box-shadow: var(--shadow-danger);
 }
 
 .deleteButton:disabled {
-  background-color: #cccccc;
-  border-color: #999;
+  background-color: var(--color-text-disabled);
+  border-color: var(--color-text-muted);
   cursor: not-allowed;
   opacity: 0.7;
 }
 
-/* Адаптивность для кнопок */
-@media (max-width: 768px) {
-  .actionButtons {
-    flex-direction: column;
-    width: 100%;
-    gap: 12px;
-  }
-
-  .createButton,
-  .deleteButton {
-    width: 100%;
-    min-width: unset;
-  }
-}
-
-/* Стили для ошибок */
 .error {
-    border-color: #ff4444 !important;
+    border-color: var(--color-danger) !important;
 }
 
 .errorMessage {
-    color: #ff4444;
+    color: var(--color-danger);
     font-size: 12px;
     margin-top: 4px;
     display: block;
 }
 
-/* Адаптивность для мобильных устройств */
+.socialIconWrapper {
+  display: inline-block;
+}
+
+.socialIconWrapper :global(.social-icon) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.socialIconWrapper :global(.social-icon:hover) {
+  transform: scale(1.1);
+}
+
 @media (max-width: 768px) {
     .modalContent {
         width: 95%;
@@ -419,5 +420,17 @@ div.modalOverlay .modalContent {
     .categoryItem {
         width: 100%;
         justify-content: flex-start;
+    }
+
+    .actionButtons {
+        flex-direction: column;
+        width: 100%;
+        gap: 12px;
+    }
+
+    .createButton,
+    .deleteButton {
+        width: 100%;
+        min-width: unset;
     }
 }

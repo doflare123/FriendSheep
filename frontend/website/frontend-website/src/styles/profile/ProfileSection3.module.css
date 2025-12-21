@@ -1,10 +1,11 @@
+/* ProfileSection3.module.css */
 .subscriptionsSection {
-  border: 2px solid #37A2E6;
+  border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   padding: 20px;
   grid-row: 2;
   grid-column: 1;
-  background: #fff;
+  background: var(--color-bg-primary);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -13,7 +14,7 @@
 .subscriptionsTitle {
   font-size: 30px;
   font-weight: 100;
-  color: #000;
+  color: var(--color-text-primary);
   margin-top: -10px;
   text-align: center;
 }
@@ -43,36 +44,18 @@
     black calc(100% - 20px),
     transparent 100%);
   scrollbar-width: thin;
-  scrollbar-color: #37A2E6 transparent;
-}
-
-.groupsList::-webkit-scrollbar {
-  width: 4px;
-}
-
-.groupsList::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.groupsList::-webkit-scrollbar-thumb {
-  background: #37A2E6;
-  border-radius: 2px;
-}
-
-.groupsList::-webkit-scrollbar-thumb:hover {
-  background: #2a8bc7;
 }
 
 .groupItem {
   display: flex;
   align-items: center;
   padding: 12px;
-  border: 2px solid #37A2E6;
+  border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   margin-bottom: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: white;
+  background: var(--color-bg-primary);
 }
 
 .groupItem:last-child {
@@ -80,7 +63,7 @@
 }
 
 .groupItem:hover {
-  background: rgba(55, 162, 230, 0.05);
+  background: var(--overlay-blue);
   transform: translateY(-1px);
 }
 
@@ -125,40 +108,8 @@
 
 .memberCount {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.scrollArrow {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  cursor: pointer;
-  font-size: 18px;
-  font-weight: bold;
-  color: #316BC2;
-  background: white;
-  border: 3px solid #316BC2;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s ease;
-  z-index: 10;
-}
-
-.scrollArrow:hover {
-  background: #f0f7ff;
-}
-
-.topArrow {
-  top: -18px;
-}
-
-.bottomArrow {
-  bottom: -18px;
 }

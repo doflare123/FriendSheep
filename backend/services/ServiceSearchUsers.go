@@ -3,6 +3,7 @@ package services
 import (
 	"friendship/db"
 	"friendship/models"
+	"strings"
 )
 
 type GetUsersResponse struct {
@@ -29,8 +30,14 @@ func SearchUsers(name string, page int, userId uint) (*GetUsersResponse, error) 
 	query := db.GetDB().Model(&models.User{}).Where("id != ?", userId)
 
 	if name != "" {
-		searchPattern := "%" + name + "%"
-		query = query.Where("name ILIKE ?", searchPattern)
+		if strings.HasPrefix(name, "@") {
+			usSearch := strings.TrimPrefix(name, "@")
+			searchPattern := "%" + usSearch + "%"
+			query = query.Where("us ILIKE ?", searchPattern)
+		} else {
+			searchPattern := "%" + name + "%"
+			query = query.Where("name ILIKE ?", searchPattern)
+		}
 	}
 
 	if err := query.Count(&total).Error; err != nil {

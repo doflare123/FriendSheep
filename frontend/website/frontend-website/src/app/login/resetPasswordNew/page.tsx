@@ -2,13 +2,14 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import FormContainer from '@/components/FormContainer';
 import FormInput from '@/components/FormInput';
 import FormButton from '@/components/FormButton';
 import { showNotification } from '@/utils';
 import { resetPassword } from '@/api/resetPassword';
+import {checkDeviceAndRedirect} from '@/Constants';
 
 export default function ResetPasswordNewPage() {
   const [password, setPassword] = useState('');
@@ -22,6 +23,10 @@ export default function ResetPasswordNewPage() {
   
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+      checkDeviceAndRedirect(router);
+  }, [router]);
   
   const email = searchParams.get('email') || '';
   const sessionId = searchParams.get('sessionId') || '';

@@ -61,6 +61,7 @@ export interface GroupData {
   name: string;
   sessions: EventCardProps[];
   users: User[];
+  creater: string;
   small_description?: string;
   private?: boolean;
   subscribers?: Subscriber[];

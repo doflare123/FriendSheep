@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import styles from '../../styles/Events/EventModal.module.css';
 import MapModal from './MapModal';
+import ImageCropModal from '@/components/ImageCropModal';
 import { EventCardProps } from '../../types/Events';
 import { GroupData } from '../../types/Groups';
 import { kinopoiskAPI, PlaceInfo } from '../../lib/api';
@@ -33,7 +34,6 @@ const CATEGORIES = [
   { id: 'other', icon: getCategoryIcon("other") }
 ];
 
-// Константы для валидации
 const VALIDATION_RULES = {
   title: { min: 5, max: 40 },
   description: { min: 5, max: 300 }
@@ -59,6 +59,61 @@ interface ValidationErrors {
   date?: string;
   location?: string;
 }
+
+// RAWG API интерфейсы
+interface RAWGGame {
+  id: number;
+  name: string;
+  released: string;
+  background_image: string;
+  rating: number;
+  genres: { id: number; name: string; }[];
+  publishers: { id: number; name: string; }[];
+  playtime: number;
+  esrb_rating?: { id: number; name: string; };
+  description_raw?: string;
+}
+
+// Функция для поиска игр через RAWG API
+const searchRAWGGames = async (query: string): Promise<RAWGGame[]> => {
+  const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || 'YOUR_API_KEY';
+  
+  try {
+    const response = await fetch(
+      `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&lang=ru&page_size=5`
+    );
+    
+    if (!response.ok) {
+      throw new Error('Ошибка при поиске игр');
+    }
+    
+    const data = await response.json();
+    return data.results || [];
+  } catch (error) {
+    console.error('Ошибка RAWG API:', error);
+    throw error;
+  }
+};
+
+// Функция для получения деталей игры
+const getRAWGGameDetails = async (gameId: number): Promise<RAWGGame> => {
+  const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || 'YOUR_API_KEY';
+  
+  try {
+    const response = await fetch(
+      `https://api.rawg.io/api/games/${gameId}?key=${RAWG_API_KEY}&lang=ru`
+    );
+    
+    if (!response.ok) {
+      throw new Error('Ошибка при получении деталей игры');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Ошибка получения деталей игры:', error);
+    throw error;
+  }
+};
 
 export default function EventModal({ 
   isOpen, 
@@ -110,6 +165,14 @@ export default function EventModal({
   const [genres, setGenres] = useState<string[]>([]);
   const [genresLoading, setGenresLoading] = useState(false);
   const [genresError, setGenresError] = useState<string | null>(null);
+  const [genreSearchQuery, setGenreSearchQuery] = useState('');
+
+  const [showImageCropModal, setShowImageCropModal] = useState(false);
+  const [tempImageFile, setTempImageFile] = useState<File | null>(null);
+
+  // Новые состояния для API селектора
+  const [showApiSelector, setShowApiSelector] = useState(false);
+  const apiSelectorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && mode === 'create') {
@@ -119,6 +182,34 @@ export default function EventModal({
       loadGenres();
     }
   }, [isOpen, mode]);
+
+  // Закрытие селектора API при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (apiSelectorRef.current && !apiSelectorRef.current.contains(event.target as Node)) {
+        setShowApiSelector(false);
+      }
+    };
+
+    if (showApiSelector) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showApiSelector]);
+
+  const filteredGenres = genres.filter(genre =>
+    genre.toLowerCase().includes(genreSearchQuery.toLowerCase())
+  );
+
+  const handleGenreSelectorToggle = () => {
+    setShowGenreSelector(!showGenreSelector);
+    if (!showGenreSelector) {
+      setGenreSearchQuery('');
+    }
+  };
 
   const checkGroupsAndLoad = async () => {
     setGroupsLoading(true);
@@ -228,7 +319,6 @@ export default function EventModal({
       setAgeLimit(eventData.ageLimit || '');
       
       setSelectedGroup(groupId || null);
-      console.log('selectedGroup установлен из props groupId:', groupId);
       
       const isEventOnline = eventData.location === 'online';
       setIsOnline(isEventOnline);
@@ -262,7 +352,7 @@ export default function EventModal({
         participants: 0,
         maxParticipants: 0,
         genres: [],
-        image: ''
+        image: '/default/event_card.jpg'
       };
       setFormData(defaultData);
       setOriginalData(defaultData);
@@ -276,7 +366,6 @@ export default function EventModal({
       setIsOnline(false);
       
       setSelectedGroup(groupId || null);
-      console.log('selectedGroup установлен из props groupId при создании:', groupId);
       
       setImageFile(null);
       setKinopoiskImageUrl(null);
@@ -290,7 +379,6 @@ export default function EventModal({
   const validateForm = (): boolean => {
     const errors: ValidationErrors = {};
 
-    // Валидация названия
     if (!formData.title || formData.title.trim() === '') {
       errors.title = 'Название обязательно для заполнения';
     } else if (formData.title.trim().length < VALIDATION_RULES.title.min) {
@@ -299,7 +387,6 @@ export default function EventModal({
       errors.title = `Название не должно превышать ${VALIDATION_RULES.title.max} символов`;
     }
 
-    // Валидация описания (если заполнено)
     if (description && description.trim() !== '') {
       if (description.trim().length < VALIDATION_RULES.description.min) {
         errors.description = `Описание должно содержать минимум ${VALIDATION_RULES.description.min} символов`;
@@ -321,7 +408,7 @@ export default function EventModal({
         errors.selectedGroup = 'Необходимо выбрать группу';
       }
 
-      if (!imageFile && !kinopoiskImageUrl && !formData.image) {
+      if (!imageFile && !kinopoiskImageUrl && (!formData.image || formData.image === '/default/event_card.jpg')) {
         errors.image = 'Необходимо загрузить изображение';
       }
 
@@ -470,17 +557,13 @@ export default function EventModal({
       
       const fieldsString = buildFieldsString();
 
-      // ИЗМЕНЕНИЕ: Определяем URL изображения для передачи
       let imageToSend: string | undefined;
       
       if (imageFile) {
-        // Если загружен локальный файл - сначала загружаем на сервер и получаем URL
         imageToSend = await getImage(accessToken, imageFile);
       } else if (kinopoiskImageUrl) {
-        // Если получена ссылка с Кинопоиска - передаем URL напрямую
         imageToSend = kinopoiskImageUrl;
-      } else if (formData.image) {
-        // Если есть существующее изображение
+      } else if (formData.image && formData.image !== '/default/event_card.jpg') {
         imageToSend = formData.image;
       }
 
@@ -500,7 +583,7 @@ export default function EventModal({
         undefined,
         ageLimit || undefined,
         description || undefined,
-        imageToSend // Передаем URL строку
+        imageToSend
       );
 
       showNotification(200, 'Событие успешно создано!');
@@ -533,17 +616,13 @@ export default function EventModal({
         return;
       }
 
-      // ИЗМЕНЕНИЕ: Определяем URL изображения
       let imageUrl: string | undefined = undefined;
       
       if (imageFile) {
-        // Загружаем локальный файл и получаем URL
         imageUrl = await getImage(accessToken, imageFile);
       } else if (kinopoiskImageUrl && kinopoiskImageUrl !== originalData.image) {
-        // Используем URL с Кинопоиска напрямую
         imageUrl = kinopoiskImageUrl;
       }
-      // Если ничего не изменилось - imageUrl останется undefined
 
       const updatedTitle = formData.title !== originalData.title ? formData.title : undefined;
       const updatedMaxParticipants = formData.maxParticipants !== originalData.maxParticipants 
@@ -588,7 +667,7 @@ export default function EventModal({
         finalYear,
         updatedMaxParticipants,
         updatedDuration,
-        imageUrl, // Передаем URL строку (или undefined)
+        imageUrl,
         updatedStartTime,
         updatedTitle,
         updatedAgeLimit,
@@ -613,6 +692,10 @@ export default function EventModal({
     }
   };
 
+  const capitalizeFirstLetter = (str: string): string => {
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
   const handleKinopoiskSearch = async () => {
     if (!formData.title) {
       showNotification(400, 'Введите название фильма для поиска');
@@ -620,14 +703,16 @@ export default function EventModal({
     }
     
     setIsLoading(true);
+    setShowApiSelector(false);
+    
     try {
       const movies = await kinopoiskAPI.searchMovies(formData.title);
       
       if (movies.length > 0) {
         const movie = movies[0];
         
-        console.log('Данные фильма из Кинопоиска:', movie);
-        console.log('Длительность фильма:', movie.filmLength);
+        // Автоматически выбираем категорию "movies"
+        setFormData(prev => ({ ...prev, type: 'movies' }));
         
         const movieDescription = movie.description || movie.shortDescription || '';
         const truncatedDescription = movieDescription.length > VALIDATION_RULES.description.max 
@@ -651,7 +736,6 @@ export default function EventModal({
             totalMinutes = parseInt(movie.filmLength) || 0;
           }
           
-          console.log('Длительность в минутах:', totalMinutes);
           setFormData(prev => ({ 
             ...prev, 
             duration: `${totalMinutes}`
@@ -659,7 +743,7 @@ export default function EventModal({
         }
         
         if (movie.genres) {
-          const movieGenres = movie.genres.map(g => g.genre);
+          const movieGenres = movie.genres.map(g => capitalizeFirstLetter(g.genre));
           
           const matchedGenres: string[] = [];
           const unmatchedGenres: string[] = [];
@@ -705,8 +789,6 @@ export default function EventModal({
         if (movie.posterUrl || movie.posterUrlPreview) {
           const imageUrl = movie.posterUrl || movie.posterUrlPreview;
           
-          console.log('URL постера:', imageUrl);
-          
           setFormData(prev => ({ 
             ...prev, 
             image: imageUrl! 
@@ -735,13 +817,134 @@ export default function EventModal({
     }
   };
 
+  const handleRAWGSearch = async () => {
+    if (!formData.title) {
+      showNotification(400, 'Введите название игры для поиска');
+      return;
+    }
+    
+    setIsLoading(true);
+    setShowApiSelector(false);
+    
+    try {
+      const games = await searchRAWGGames(formData.title);
+      
+      if (games.length > 0) {
+        const game = games[0];
+        const gameDetails = await getRAWGGameDetails(game.id);
+        
+        // Автоматически выбираем категорию "games"
+        setFormData(prev => ({ ...prev, type: 'games' }));
+        
+        // Описание игры
+        const gameDescription = gameDetails.description_raw || '';
+        const truncatedDescription = gameDescription.length > VALIDATION_RULES.description.max 
+          ? gameDescription.substring(0, VALIDATION_RULES.description.max - 3).trim() + '...'
+          : gameDescription;
+        
+        setDescription(truncatedDescription);
+        
+        // Издатель
+        if (gameDetails.publishers && gameDetails.publishers.length > 0) {
+          setPublisher(gameDetails.publishers[0].name);
+        }
+        
+        // Год релиза
+        if (gameDetails.released) {
+          const releaseYear = new Date(gameDetails.released).getFullYear();
+          setYear(releaseYear.toString());
+        }
+        
+        // Возрастной рейтинг
+        if (gameDetails.esrb_rating) {
+          setAgeLimit(gameDetails.esrb_rating.name);
+        }
+        
+        // Длительность НЕ заполняем (убрали автозаполнение часов)
+        
+        // Жанры с заглавной буквы
+        if (gameDetails.genres && gameDetails.genres.length > 0) {
+          const gameGenres = gameDetails.genres.map(g => capitalizeFirstLetter(g.name));
+          
+          const matchedGenres: string[] = [];
+          const unmatchedGenres: string[] = [];
+          
+          gameGenres.forEach(gameGenre => {
+            const exactMatch = genres.find(apiGenre => 
+              apiGenre.toLowerCase() === gameGenre.toLowerCase()
+            );
+            
+            if (exactMatch) {
+              matchedGenres.push(exactMatch);
+            } else {
+              const partialMatch = genres.find(apiGenre => 
+                apiGenre.toLowerCase().includes(gameGenre.toLowerCase()) ||
+                gameGenre.toLowerCase().includes(apiGenre.toLowerCase())
+              );
+              
+              if (partialMatch) {
+                matchedGenres.push(partialMatch);
+              } else {
+                unmatchedGenres.push(gameGenre);
+              }
+            }
+          });
+          
+          const finalGenres = [...matchedGenres, ...unmatchedGenres];
+          
+          if (unmatchedGenres.length > 0) {
+            setGenres(prev => [...prev, ...unmatchedGenres]);
+          }
+          
+          setFormData(prev => ({ 
+            ...prev, 
+            genres: finalGenres
+          }));
+          
+          setValidationErrors(prev => ({ 
+            ...prev, 
+            genres: undefined
+          }));
+        }
+        
+        // Изображение
+        if (gameDetails.background_image) {
+          setFormData(prev => ({ 
+            ...prev, 
+            image: gameDetails.background_image
+          }));
+          
+          setKinopoiskImageUrl(gameDetails.background_image);
+          
+          setValidationErrors(prev => ({ 
+            ...prev, 
+            image: undefined 
+          }));
+          
+          setImageFile(null);
+        }
+        
+        showNotification(200, `Данные игры "${gameDetails.name}" успешно загружены`);
+      } else {
+        showNotification(404, 'Игра не найдена в RAWG');
+      }
+    } catch (error) {
+      console.error('Ошибка поиска игры:', error);
+      showNotification(500, 'Ошибка при поиске игры. Проверьте настройки API');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleApiSelector = () => {
+    setShowApiSelector(!showApiSelector);
+  };
+
   const handleMapSelect = () => {
     setShowMapModal(true);
   };
 
   const handlePlaceSelected = (place: PlaceInfo) => {
-    console.log('Выбрано место:', place);
-    
     setFormData(prev => ({ 
       ...prev, 
       adress: place.address
@@ -767,18 +970,36 @@ export default function EventModal({
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setImageFile(file);
-      setKinopoiskImageUrl(null);
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFormData(prev => ({ ...prev, image: e.target?.result as string }));
-        if (validationErrors.image) {
-          setValidationErrors(prev => ({ ...prev, image: undefined }));
-        }
-      };
-      reader.readAsDataURL(file);
+      setTempImageFile(file);
+      setShowImageCropModal(true);
     }
+  };
+
+  const handleImageCropSave = (blob: Blob) => {
+    const file = new File([blob], tempImageFile?.name || 'cropped-image.jpg', {
+      type: 'image/jpeg',
+      lastModified: Date.now(),
+    });
+    
+    setImageFile(file);
+    setKinopoiskImageUrl(null);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setFormData(prev => ({ ...prev, image: e.target?.result as string }));
+      if (validationErrors.image) {
+        setValidationErrors(prev => ({ ...prev, image: undefined }));
+      }
+    };
+    reader.readAsDataURL(file);
+    
+    setShowImageCropModal(false);
+    setTempImageFile(null);
+  };
+
+  const handleImageCropCancel = () => {
+    setShowImageCropModal(false);
+    setTempImageFile(null);
   };
 
   const handleOnlineToggle = () => {
@@ -867,7 +1088,8 @@ export default function EventModal({
   }
 
   return (
-    <div className={styles.modalOverlay} onClick={handleOverlayClick}>
+    <>
+      <div className={styles.modalOverlay} onClick={handleOverlayClick}>
         <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
           <button className={styles.closeButton} onClick={onClose}>
             <Image src="/icons/close.png" alt="Закрыть" width={24} height={24} />
@@ -876,7 +1098,7 @@ export default function EventModal({
           <div className={styles.modalContent}>
             <div className={styles.leftColumn}>
               <div className={styles.fieldGroup}>
-                <div className={styles.titleRow}>
+                <div className={styles.titleRowContainer}>
                   <input
                     type="text"
                     className={`${styles.input} ${validationErrors.title ? 'error' : ''}`}
@@ -886,18 +1108,41 @@ export default function EventModal({
                     maxLength={VALIDATION_RULES.title.max}
                   />
                   {mode === 'create' && (
-                    <button 
-                      className={styles.kinopoiskButton} 
-                      onClick={handleKinopoiskSearch}
-                      disabled={isLoading}
-                      title="Поиск в Кинопоиске"
-                    >
-                      {isLoading ? (
-                        <span>...</span>
-                      ) : (
-                        <Image src="/social/kp.png" alt="Кинопоиск" width={24} height={24} />
+                    <div className={styles.apiSelectorWrapper} ref={apiSelectorRef}>
+                      <button 
+                        className={styles.apiSelectorButton} 
+                        onClick={toggleApiSelector}
+                        disabled={isLoading}
+                        title="Выбрать источник данных"
+                      >
+                        {isLoading ? (
+                          <span>...</span>
+                        ) : (
+                          <Image src="/icons/arrow_down.png" alt="Выбрать API" width={20} height={20} />
+                        )}
+                      </button>
+                      
+                      {showApiSelector && (
+                        <div className={styles.apiDropdown}>
+                          <button 
+                            className={styles.apiOption}
+                            onClick={handleKinopoiskSearch}
+                            title="Поиск в Кинопоиске"
+                          >
+                            <Image src="/social/kp.png" alt="Кинопоиск" width={24} height={24} />
+                            <span>Кинопоиск</span>
+                          </button>
+                          <button 
+                            className={styles.apiOption}
+                            onClick={handleRAWGSearch}
+                            title="Поиск игр в RAWG"
+                          >
+                            <Image src="/social/games.png" alt="RAWG" width={24} height={24} />
+                            <span>Игры</span>
+                          </button>
+                        </div>
                       )}
-                    </button>
+                    </div>
                   )}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -906,7 +1151,7 @@ export default function EventModal({
                   )}
                   <span style={{ 
                     fontSize: '12px', 
-                    color: '#999',
+                    color: 'var(--color-text-muted)',
                     marginLeft: 'auto',
                     marginTop: '4px'
                   }}>
@@ -931,7 +1176,7 @@ export default function EventModal({
                   )}
                   <span style={{ 
                     fontSize: '12px', 
-                    color: '#999',
+                    color: 'var(--color-text-muted)',
                     marginLeft: 'auto'
                   }}>
                     {description.length}/{VALIDATION_RULES.description.max}
@@ -962,7 +1207,7 @@ export default function EventModal({
                 <button
                   type="button"
                   className={`${styles.genreButton} ${validationErrors.genres ? 'error' : ''}`}
-                  onClick={() => setShowGenreSelector(!showGenreSelector)}
+                  onClick={handleGenreSelectorToggle}
                   disabled={genresLoading || isFieldDisabled}
                 >
                   {genresLoading 
@@ -988,17 +1233,31 @@ export default function EventModal({
                 )}
                 {showGenreSelector && !genresLoading && genres.length > 0 && (
                   <div className={styles.genreSelector}>
-                    {genres.map((genre) => (
-                      <label key={genre} className={styles.genreOption}>
-                        <input
-                          type="checkbox"
-                          checked={formData.genres?.includes(genre) || false}
-                          onChange={() => handleGenreToggle(genre)}
-                          disabled={isFieldDisabled}
-                        />
-                        {genre}
-                      </label>
-                    ))}
+                    <input
+                      type="text"
+                      className={styles.genreSearchInput}
+                      placeholder="Поиск жанров..."
+                      value={genreSearchQuery}
+                      onChange={(e) => setGenreSearchQuery(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className={styles.genreList}>
+                      {filteredGenres.length > 0 ? (
+                        filteredGenres.map((genre) => (
+                          <label key={genre} className={styles.genreOption}>
+                            <input
+                              type="checkbox"
+                              checked={formData.genres?.includes(genre) || false}
+                              onChange={() => handleGenreToggle(genre)}
+                              disabled={isFieldDisabled}
+                            />
+                            {genre}
+                          </label>
+                        ))
+                      ) : (
+                        <div className={styles.noGenresFound}>Жанры не найдены</div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1188,12 +1447,11 @@ export default function EventModal({
                   className={`${styles.uploadLabel} ${validationErrors.image ? 'error' : ''}`}
                 >
                   {formData.image ? (
-                    <div className={styles.imagePreview}>
+                    <div className={styles.imagePreviewLong}>
                       <Image 
                         src={formData.image} 
                         alt="Preview" 
-                        width={360} 
-                        height={360}
+                        fill
                         style={{ objectFit: 'cover' }}
                       />
                     </div>
@@ -1224,10 +1482,23 @@ export default function EventModal({
         </div>
 
         <MapModal
-            isOpen={showMapModal}
-            onClose={() => setShowMapModal(false)}
-            onPlaceSelected={handlePlaceSelected}
+          isOpen={showMapModal}
+          onClose={() => setShowMapModal(false)}
+          onPlaceSelected={handlePlaceSelected}
         />
       </div>
+
+      {showImageCropModal && tempImageFile && (
+        <ImageCropModal
+          imageFile={tempImageFile}
+          onSave={handleImageCropSave}
+          onCancel={handleImageCropCancel}
+          title="Настройте изображение события"
+          cropShape="rectangle"
+          aspectRatio={2.25}
+          finalSize={600}
+        />
+      )}
+    </>
   );
 }

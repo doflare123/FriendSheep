@@ -27,22 +27,22 @@
 .searchInput {
   width: 100%;
   padding: 12px 50px 12px 16px;
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 20px;
   font-size: 14px;
-  background: white;
+  background: var(--color-bg-primary);
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
 
 .searchInput:focus {
   outline: none;
-  border-color: #316BC2;
-  box-shadow: 0 0 0 3px rgba(49, 107, 194, 0.1);
+  border-color: var(--color-primary-blue-dark);
+  box-shadow: 0 0 0 3px var(--overlay-blue);
 }
 
 .searchInput::placeholder {
-  color: #8899a6;
+  color: var(--color-text-muted);
 }
 
 .sortButton {
@@ -62,12 +62,12 @@
 }
 
 .sortButton:hover {
-  background-color: rgba(49, 107, 194, 0.1);
+  background-color: var(--overlay-blue);
 }
 
 /* Кнопка создания */
 .createButton {
-  background-color: #37A2E6;
+  background-color: var(--color-primary-blue);
   color: white;
   border: none;
   border-radius: 20px;
@@ -81,7 +81,7 @@
 }
 
 .createButton:hover {
-  background-color: #2B8BC9;
+  background-color: var(--color-primary-blue);
   transform: translateY(-1px);
 }
 
@@ -94,11 +94,11 @@
   position: absolute;
   top: 100%;
   right: 0;
-  background: white;
-  border: 2px solid #37A2E6;
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-primary-blue);
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   z-index: 1000;
   min-width: 250px;
   margin-top: 4px;
@@ -116,7 +116,7 @@
   font-size: 14px;
   font-weight: 600;
   margin: 0 0 8px 0;
-  color: #333;
+  color: var(--color-text-primary);
   text-align: left;
 }
 
@@ -127,14 +127,14 @@
   padding: 4px 0;
   cursor: pointer;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   text-align: left;
 }
 
 .sortOption input[type="radio"] {
   width: 16px;
   height: 16px;
-  accent-color: #37A2E6;
+  accent-color: var(--color-primary-blue);
 }
 
 .sortOption span {
@@ -157,7 +157,7 @@
   overflow-x: hidden; /* Убираем горизонтальный скролл */
   padding-right: 8px;
   scrollbar-width: thin;
-  scrollbar-color: #ccd6dd #f7f9fa;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .scrollContainer::-webkit-scrollbar {
@@ -165,17 +165,17 @@
 }
 
 .scrollContainer::-webkit-scrollbar-track {
-  background: #f7f9fa;
+  background: var(--scrollbar-track);
   border-radius: 3px;
 }
 
 .scrollContainer::-webkit-scrollbar-thumb {
-  background: #ccd6dd;
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
 .scrollContainer::-webkit-scrollbar-thumb:hover {
-  background: #aab8c2;
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Сетка событий в 2 столбца с минимальным отступом */
@@ -212,9 +212,9 @@
 .scrollButton {
   position: absolute;
   right: 10px;
-  background: white;
-  color: #316BC2;
-  border: 2px solid #316BC2;
+  background: var(--color-bg-primary);
+  color: var(--color-primary-blue-dark);
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -230,7 +230,7 @@
 }
 
 .scrollButton:hover {
-  background: #316BC2;
+  background: var(--color-primary-blue-dark);
   color: white;
   transform: scale(1.05);
 }
@@ -249,7 +249,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #8899a6;
+  color: var(--color-text-muted);
   gap: 2px;
   height: 100%; /* Занимает всю высоту доступной области */
 }
@@ -257,7 +257,7 @@
 .emptyText {
   font-size: 16px;
   font-weight: 500;
-  color: #666;
+  color: var(--color-text-primary);
 }
 
 /* Адаптивность */

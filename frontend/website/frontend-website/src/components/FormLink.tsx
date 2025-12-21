@@ -12,16 +12,16 @@ const FormLink: React.FC<FormLinkProps> = ({
   href = "#", 
   children, 
   className = "hover:underline",
-  color = "#37A2E6",
+  color = "var(--color-primary-blue)",
   onClick 
 }) => {
-  const linkStyle = color !== "#37A2E6" ? { color } : {};
+  const linkStyle = color !== "var(--color-primary-blue)" ? { color } : {};
   
   return (
     <a 
       href={href} 
-      className={`${className} ${color === "#37A2E6" ? "text-[#37A2E6]" : ""}`}
-      style={color !== "#37A2E6" ? linkStyle : {}}
+      className={`${className} ${color === "var(--color-primary-blue)" ? "text-[var(--color-primary-blue)]" : ""}`}
+      style={color !== "var(--color-primary-blue)" ? linkStyle : {}}
       onClick={onClick}
     >
       {children}

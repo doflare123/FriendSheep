@@ -3,16 +3,16 @@
 }
 
 .sectionTitle {
-    color: #37A2E6;
+    color: var(--color-primary-blue);
     font-size: 24px;
     font-weight: 600;
     margin-bottom: 20px;
     text-align: left;
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--color-bg-primary);
     padding: 10px 20px;
     border-radius: 12px;
     display: inline-block;
-    border: 2px solid #316BC2;
+    border: 2px solid var(--color-primary-blue-dark);
 }
 
 .categoriesHeader {
@@ -21,15 +21,15 @@
 }
 
 .categoriesHeader h2 {
-    color: #316BC2;
+    color: var(--color-primary-blue-dark);
     font-size: 38px;
     font-weight: 700;
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--color-bg-primary);
     padding: 15px 40px;
     border-radius: 38px;
     display: inline-block;
-    border: 3px solid #316BC2;
-    box-shadow: 0 4px 12px rgba(49, 107, 194, 0.3);
+    border: 3px solid var(--color-primary-blue-dark);
+    box-shadow: var(--shadow-blue);
     width: 75%;
 }
 
@@ -40,27 +40,27 @@
 .categoryHeader {
     margin-bottom: 15px;
     margin-left: 2%;
-    width: 15%;
+    width: auto;
     max-width: 300px;
 }
 
 .categoryTitle {
-    color: #316BC2;
+    color: var(--color-primary-blue-dark);
     font-size: 20px;
     font-weight: 600;
     margin: 0;
     cursor: pointer;
     transition: color 0.2s ease;
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--color-bg-primary);
     padding: 8px 16px;
     border-radius: 10px;
     display: inline-block;
-    border: 2px solid #316BC2;
+    border: 2px solid var(--color-primary-blue-dark);
 }
 
 .categoryTitle:hover {
-    color: #37A2E6;
-    background: rgba(255, 255, 255, 0.95);
+    color: var(--color-primary-blue);
+    background: var(--color-bg-primary);
 }
 
 .cardsContainer {
@@ -74,13 +74,13 @@
 .scrollButton {
     position: absolute;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-25%);
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: white;
-    border: 2px solid #316BC2;
-    color: #316BC2;
+    background: var(--color-bg-primary);
+    border: 2px solid var(--color-primary-blue-dark);
+    color: var(--color-primary-blue-dark);
     font-size: 20px;
     font-weight: bold;
     cursor: pointer;
@@ -162,22 +162,17 @@
     align-items: center;
     min-height: 70vh;
     padding: 40px 20px;
-    color: #515151;
-}
-
-.footerWrapper {
-    position: relative;
-    z-index: 1;
+    color: var(--color-bg-gray-dark);
 }
 
 .contentWrapper {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 24px;
     padding: 40px 20px;
     margin: 20px auto;
     width: 75%;
     max-width: none;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-lg);
 }
 
 /* Адаптивные стили для подложки */
@@ -344,7 +339,7 @@
         padding: 12px 30px;
         border-radius: 28px;
         width: 85%;
-        border: 2px solid #316BC2;
+        border: 2px solid var(--color-primary-blue-dark);
     }
 
     .categoryHeader {
@@ -413,7 +408,7 @@
         font-size: 18px;
         padding: 6px 12px;
         border-radius: 8px;
-        border: 1.5px solid #316BC2;
+        border: 1.5px solid var(--color-primary-blue-dark);
     }
 
     .categoriesHeader {
@@ -425,7 +420,7 @@
         padding: 10px 20px;
         border-radius: 20px;
         width: 90%;
-        border: 2px solid #316BC2;
+        border: 2px solid var(--color-primary-blue-dark);
         box-shadow: 0 2px 8px rgba(49, 107, 194, 0.3);
     }
 
@@ -442,14 +437,14 @@
         font-size: 16px;
         padding: 6px 12px;
         border-radius: 8px;
-        border: 1.5px solid #316BC2;
+        border: 1.5px solid var(--color-primary-blue-dark);
     }
 
     .scrollButton {
         width: 30px;
         height: 30px;
         font-size: 16px;
-        border: 1.5px solid #316BC2;
+        border: 1.5px solid var(--color-primary-blue-dark);
     }
 
     .scrollButton:hover {

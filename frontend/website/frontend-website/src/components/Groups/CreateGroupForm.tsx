@@ -4,18 +4,20 @@ import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import SocialContactsModal from './SocialContactsModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
+import ImageCropModal from '@/components/ImageCropModal';
+import SocialIcon from '@/components/SocialIcon';
 import { GroupData } from '../../types/Groups';
 import styles from '../../styles/Groups/CreateGroupModal.module.css';
-import { getCategoryIcon, getSocialIcon } from '../../Constants';
+import { getCategoryIcon } from '../../Constants';
 
 interface CreateGroupFormProps {
   onSubmit: (groupData: any) => void;
-  onDelete?: () => void; // Колбэк для удаления группы
+  onDelete?: () => void;
   initialData?: Partial<GroupData & { shortDescription?: string; isPrivate?: boolean; imagePreview?: string; socialContacts?: { name: string; link: string }[] }>;
   showTitle?: boolean;
   isLoading?: boolean;
-  isEditMode?: boolean; // Флаг режима редактирования
-  groupName?: string; // Название группы для модального окна
+  isEditMode?: boolean;
+  groupName?: string;
 }
 
 const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ 
@@ -44,6 +46,8 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [tempImageFile, setTempImageFile] = useState<File | null>(null);
   const [errors, setErrors] = useState({
     name: '',
     shortDescription: '',
@@ -52,7 +56,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Константы для валидации
   const VALIDATION_RULES = {
     name: { min: 5, max: 40 },
     shortDescription: { min: 5, max: 50 },
@@ -60,20 +63,18 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   };
 
   const categories = [
-    { id: 'movies', name: 'Фильмы', icon: getCategoryIcon("movies") },
-    { id: 'games', name: 'Игры', icon: getCategoryIcon("games") },
+    { id: 'movies', name: 'Медиа', icon: getCategoryIcon("movies") },
+    { id: 'games', name: 'Видеоигры', icon: getCategoryIcon("games") },
     { id: 'board', name: 'Настолки', icon: getCategoryIcon("boards") },
     { id: 'other', name: 'Другое', icon: getCategoryIcon("other") }
   ];
 
-  const baseSocialNetworks = [
-    { name: 'Discord', icon: getSocialIcon("ds") },
-    { name: 'Telegram', icon: getSocialIcon("tg") },
-    { name: 'VKontakte', icon: getSocialIcon("vk") },
-    { name: 'Max', icon: getSocialIcon("max") }
-  ];
-
   useEffect(() => {
+    console.log('initialData changed:', {
+      imagePreview: initialData?.imagePreview,
+      selectedImage: selectedImage,
+      selectedImageFile: selectedImageFile
+    });
     if (initialData) {
       const newCategories = Array.isArray(initialData.categories) ? [...initialData.categories] : [];
       
@@ -187,14 +188,28 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setSelectedImageFile(file);
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setSelectedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      setTempImageFile(file);
+      setShowCropModal(true);
     }
+  };
+
+  const handleCropSave = (blob: Blob) => {
+    const file = new File([blob], 'group-image.jpg', { type: 'image/jpeg' });
+    setSelectedImageFile(file);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setSelectedImage(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    setShowCropModal(false);
+    setTempImageFile(null);
+  };
+
+  const handleCropCancel = () => {
+    setShowCropModal(false);
+    setTempImageFile(null);
   };
 
   const handleImageClick = () => {
@@ -206,17 +221,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
       ...prev,
       socialContacts: contacts
     }));
-  };
-
-  const handleSocialIconClick = (link: string) => {
-    if (link) {
-      window.open(link, '_blank');
-    }
-  };
-
-  const getBaseSocialIcon = (name: string) => {
-    const baseSocial = baseSocialNetworks.find(social => social.name === name);
-    return baseSocial ? baseSocial.icon : '/default/soc_net.png';
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -261,24 +265,18 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
   };
 
   return (
-    <>
-      {showTitle && (
-        <div style={{ marginBottom: '30px' }}>
-          <h2 style={{ 
-            color: '#000', 
-            fontSize: '24px', 
-            fontWeight: '600', 
-            margin: 0 
-          }}>
-            Основная информация
-          </h2>
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className={styles.createGroupForm}>
+  <>
+    {showTitle && (
+      <div className={styles.formTitleSection}>
+        <h2 className={styles.formTitle}>
+          Основная информация
+        </h2>
+      </div>
+    )}
+    
+    <form onSubmit={handleSubmit} className={styles.createGroupForm}>
         <div className={styles.formRow}>
           <div className={styles.leftColumn}>
-            {/* Название */}
             <div className={styles.formGroup}>
               <input
                 type="text"
@@ -292,7 +290,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                 {errors.name && <span className={styles.errorMessage}>{errors.name}</span>}
                 <span style={{ 
                   fontSize: '12px', 
-                  color: '#999',
+                  color: 'var(--color-text-muted)',
                   marginLeft: 'auto',
                   marginTop: '4px'
                 }}>
@@ -301,7 +299,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
               </div>
             </div>
 
-            {/* Краткое описание */}
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Краткое описание *</label>
               <input
@@ -315,7 +312,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                 {errors.shortDescription && <span className={styles.errorMessage}>{errors.shortDescription}</span>}
                 <span style={{ 
                   fontSize: '12px', 
-                  color: '#999',
+                  color: 'var(--color-text-muted)',
                   marginLeft: 'auto',
                   marginTop: '4px'
                 }}>
@@ -324,7 +321,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
               </div>
             </div>
 
-            {/* Описание */}
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Описание *</label>
               <textarea
@@ -338,7 +334,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                 {errors.description && <span className={styles.errorMessage}>{errors.description}</span>}
                 <span style={{ 
                   fontSize: '12px', 
-                  color: '#999',
+                  color: 'var(--color-text-muted)',
                   marginLeft: 'auto',
                   marginTop: '4px'
                 }}>
@@ -347,22 +343,15 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
               </div>
             </div>
 
-            {/* Контакты */}
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Контакты</label>
               <div className={styles.socialIcons}>
                 {formData.socialContacts.map((contact, index) => (
-                  <div
-                    key={index}
-                    className={styles.socialIcon}
-                    title={`${contact.name}: ${contact.link}`}
-                    onClick={() => handleSocialIconClick(contact.link)}
-                  >
-                    <Image
-                      src={getBaseSocialIcon(contact.name)}
+                  <div key={index} className={styles.socialIconWrapper}>
+                    <SocialIcon
+                      href={contact.link}
                       alt={contact.name}
-                      width={50}
-                      height={50}
+                      size={50}
                     />
                   </div>
                 ))}
@@ -382,7 +371,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
           </div>
 
           <div className={styles.rightColumn}>
-            {/* Изображение группы */}
             <div className={styles.groupImageSection}>
               <div className={styles.groupImagePreview} onClick={handleImageClick}>
                 <Image
@@ -402,7 +390,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
               </div>
             </div>
 
-            {/* Город */}
             <div className={styles.formGroup}>
               <input
                 type="text"
@@ -413,7 +400,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
               />
             </div>
 
-            {/* Приватная группа */}
             <div className={styles.formGroup}>
               <label className={styles.checkboxLabel}>
                 <input
@@ -426,7 +412,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
               </label>
             </div>
 
-            {/* Категории */}
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Категории: *</label>
               <div className={`${styles.categoriesRow} ${errors.categories ? styles.error : ''}`}>
@@ -451,7 +436,6 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
           </div>
         </div>
 
-        {/* Кнопки действий */}
         <div className={styles.actionButtons}>
           <button 
             type="submit" 
@@ -492,6 +476,17 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
         step={deleteStep}
         groupName={groupName || formData.name}
       />
+
+      {showCropModal && tempImageFile && (
+        <ImageCropModal
+          imageFile={tempImageFile}
+          onSave={handleCropSave}
+          onCancel={handleCropCancel}
+          title="Настройте изображение группы"
+          cropShape="square"
+          finalSize={500}
+        />
+      )}
     </>
   );
 };

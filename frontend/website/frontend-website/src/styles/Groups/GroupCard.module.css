@@ -4,10 +4,10 @@
     flex-shrink: 0;
     width: 350px;
     height: 250px;
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 16px;
-    border: 2px solid #316BC2;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 2px solid var(--color-primary-blue-dark);
+    box-shadow: var(--shadow-lg);
     overflow: hidden;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
@@ -19,7 +19,7 @@
 
 .groupCard:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-card-hover);
 }
 
 .groupImageContainer {
@@ -52,7 +52,7 @@
 }
 
 .groupName {
-    color: #000000;
+    color: var(--color-text-primary);
     font-size: 18px;
     margin: 0;
     line-height: 1.2;
@@ -81,13 +81,13 @@
 }
 
 .groupMemberCount {
-    color: #000000;
+    color: var(--color-text-primary);
     font-size: 14px;
     margin: 0;
 }
 
 .groupDescription {
-    color: #000000;
+    color: var(--color-text-primary);
     font-size: 14px;
     line-height: 1.4;
     overflow: hidden;
@@ -100,7 +100,7 @@
 
 .actionButton {
     width: 85%;
-    background: #37A2E6;
+    background: var(--color-primary-blue);
     color: white;
     border: none;
     padding: 10px 16px;
@@ -114,5 +114,5 @@
 }
 
 .actionButton:hover {
-    background: #2d93d5;
+    background: var(--color-primary-blue);
 }

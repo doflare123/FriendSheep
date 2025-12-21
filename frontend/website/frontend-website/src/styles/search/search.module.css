@@ -9,7 +9,7 @@
 }
 
 .contentWrapper {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--color-bg-primary);
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -34,20 +34,21 @@
   width: 100%;
   padding: 12px 16px;
   padding-right: 50px;
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 20px;
-  background: white;
+  background: var(--color-bg-primary);
   font-size: 16px;
   outline: none;
   transition: border-color 0.3s ease;
+  color: var(--color-text-primary);
 }
 
 .searchInput:focus {
-  border-color: #37A2E6;
+  border-color: var(--color-primary-blue);
 }
 
 .searchInput::placeholder {
-  color: black;
+  color: var(--color-text-primary);
 }
 
 .filterWrapper {
@@ -72,15 +73,15 @@
 }
 
 .filterButton:hover {
-  background: rgba(55, 162, 230, 0.1);
+  background: var(--overlay-blue);
 }
 
 .filterMenu {
   position: absolute;
   top: 50%;
   left: 50%;
-  background: white;
-  border: 2px solid #37A2E6;
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-primary-blue);
   border-radius: 0px 12px 12px 12px;
   padding: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -99,7 +100,7 @@
 .filterTitle {
   font-size: 14px;
   font-weight: 200;
-  color: black;
+  color: var(--color-text-primary);
   margin: 0 0 8px 0;
 }
 
@@ -110,7 +111,7 @@
   margin-bottom: 6px;
   cursor: pointer;
   font-size: 14px;
-  color: black;
+  color: var(--color-text-primary);
 }
 
 .filterOption:last-child {
@@ -118,7 +119,7 @@
 }
 
 .filterOption input[type="radio"] {
-  accent-color: #316BC2;
+  accent-color: var(--color-primary-blue-dark);
 }
 
 .filterOption span {
@@ -131,9 +132,9 @@
   right: 0;
   width: 88px;
   height: 44px;
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 8px;
-  background: white;
+  background: var(--color-bg-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -158,17 +159,17 @@
 }
 
 .toggleSide.active {
-  background-color: #37A2E6;
+  background-color: var(--color-primary-blue);
 }
 
 .toggleSide.inactive {
-  background-color: white;
+  background-color: var(--color-bg-primary);
 }
 
 .toggleDivider {
   width: 2px;
   height: 100%;
-  background-color: #316BC2;
+  background-color: var(--color-primary-blue-dark);
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -177,7 +178,7 @@
 
 .resultsContainer {
   margin-bottom: 30px;
-  height: 480px;
+  min-height: 480px;
   display: flex;
   flex-direction: column;
 }
@@ -187,12 +188,11 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  flex: 1;
 }
 
 .groupItem {
-  background: white;
-  border: 2px solid #37A2E6;
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-primary-blue);
   border-radius: 16px;
   padding: 16px;
   display: flex;
@@ -204,7 +204,7 @@
 
 .groupItem:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(55, 162, 230, 0.2);
+  box-shadow: var(--shadow-blue-light);
 }
 
 .groupContent {
@@ -220,7 +220,7 @@
   height: 60px;
   border-radius: 50%;
   overflow: hidden;
-  background: #f0f0f0;
+  background: var(--color-bg-hover);
   cursor: pointer;
 }
 
@@ -247,7 +247,7 @@
 .groupName {
   font-size: 18px;
   font-weight: 400;
-  color: black;
+  color: var(--color-text-primary);
   margin: 0 0 4px 0;
   line-height: 1.2;
   display: inline;
@@ -256,7 +256,7 @@
 }
 
 .groupName:hover {
-  color: #2a8bc7;
+  color: var(--color-primary-blue);
 }
 
 .groupIcons {
@@ -274,7 +274,7 @@
 
 .groupDescription {
   font-size: 14px;
-  color: black;
+  color: var(--color-text-primary);
   margin: 0;
   white-space: pre-line;
 }
@@ -289,8 +289,8 @@
 
 .joinButton {
   padding: 8px 16px;
-  background: #37A2E6;
-  color: white;
+  background: var(--color-primary-blue);
+  color: var(--color-text-white);
   border: none;
   border-radius: 12px;
   font-size: 14px;
@@ -301,7 +301,7 @@
 }
 
 .joinButton:hover {
-  background: #2a8bc7;
+  background: var(--color-primary-blue-dark);
   transform: translateY(-1px);
 }
 
@@ -311,24 +311,32 @@
 }
 
 .joinedButton {
-  background: #4CAF50 !important;
+  background: var(--color-success) !important;
 }
 
 .joinedButton:hover {
-  background: #45a049 !important;
+  background: var(--color-success-dark) !important;
 }
 
 .requestedButton {
-  background: #FF9800 !important;
+  background: var(--color-warning) !important;
 }
 
 .requestedButton:hover {
-  background: #e68900 !important;
+  background: var(--color-warning-dark) !important;
+}
+
+.creatorButton {
+  background: var(--color-primary-blue-dark) !important;
+}
+
+.creatorButton:hover {
+  background: var(--color-primary-blue-dark) !important;
 }
 
 .memberCount {
   font-size: 14px;
-  color: black;
+  color: var(--color-text-primary);
   white-space: nowrap;
 }
 
@@ -337,12 +345,11 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  flex: 1;
 }
 
 .userItem {
-  background: white;
-  border: 2px solid #37A2E6;
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-primary-blue);
   border-radius: 16px;
   padding: 16px;
   display: flex;
@@ -354,7 +361,7 @@
 
 .userItem:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(55, 162, 230, 0.2);
+  box-shadow: var(--shadow-blue-light);
 }
 
 .userContent {
@@ -387,33 +394,33 @@
 .userName {
   font-size: 18px;
   font-weight: 400;
-  color: black;
+  color: var(--color-text-primary);
   margin: 0 0 4px 0;
   cursor: pointer;
   transition: color 0.2s ease;
 }
 
 .userName:hover {
-  color: #2a8bc7;
+  color: var(--color-primary-blue);
 }
 
 .userStatus {
   font-size: 14px;
-  color: #37A2E6;
+  color: var(--color-primary-blue);
   margin: 0 0 4px 0;
   font-weight: 500;
 }
 
 .userDescription {
   font-size: 14px;
-  color: black;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .addButton {
   padding: 8px 16px;
-  background: #37A2E6;
-  color: white;
+  background: var(--color-primary-blue);
+  color: var(--color-text-white);
   border: none;
   border-radius: 12px;
   font-size: 14px;
@@ -425,7 +432,7 @@
 }
 
 .addButton:hover {
-  background: #2a8bc7;
+  background: var(--color-primary-blue-dark);
   transform: translateY(-1px);
 }
 
@@ -441,7 +448,7 @@
 .arrowButton {
   background: none;
   border: none;
-  color: #37A2E6;
+  color: var(--color-primary-blue);
   font-size: 18px;
   cursor: pointer;
   padding: 4px 8px;
@@ -449,18 +456,18 @@
 }
 
 .arrowButton:hover:not(:disabled) {
-  color: #2a8bc7;
+  color: var(--color-primary-blue-dark);
 }
 
 .arrowButton:disabled {
-  color: #ccc;
+  color: var(--color-border-gray);
   cursor: not-allowed;
 }
 
 .pageNumber {
   background: none;
   border: none;
-  color: #37A2E6;
+  color: var(--color-primary-blue);
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
@@ -470,11 +477,11 @@
 }
 
 .pageNumber:hover {
-  color: #2a8bc7;
+  color: var(--color-primary-blue-dark);
 }
 
 .activePage {
-  color: #2a8bc7 !important;
+  color: var(--color-primary-blue-dark) !important;
   font-weight: 600;
 }
 
@@ -500,8 +507,7 @@
   }
 
   .resultsContainer {
-    height: auto;
-    min-height: 400px;
+    height: 400px;
   }
   
   .groupItem,
@@ -544,5 +550,46 @@
   
   .arrowButton {
     font-size: 16px;
+  }
+}
+
+.searchHint {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--color-bg-selected);
+  border: 1px solid var(--color-primary-blue);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  z-index: 10;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .searchHint {
+    font-size: 0.8rem;
+    padding: 0.6rem 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .searchHint {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.7rem;
   }
 }

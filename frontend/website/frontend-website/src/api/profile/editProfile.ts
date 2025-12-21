@@ -8,9 +8,19 @@ export async function editProfile(
   data: UpdateProfileRequest
 ): Promise<void> {
   try {
+    
+    // Убираем пустые поля (undefined, null, пустые строки)
     const body = Object.fromEntries(
-      Object.entries(data).filter(([_, v]) => v !== undefined)
+      Object.entries(data).filter(([_, v]) => {
+        return v !== undefined && v !== null && v !== '';
+      })
     );
+
+    // Если нет полей для обновления, не выполняем запрос
+    if (Object.keys(body).length === 0) {
+      console.log('Нет данных для обновления профиля');
+      return;
+    }
 
     await axios.patch(`${API_URL}/api/users/user/profile`, body, {
       headers: {

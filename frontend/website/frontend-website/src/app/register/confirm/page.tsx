@@ -2,12 +2,14 @@
 
 export const dynamic = 'force-dynamic';
 
+import { useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { registerSession } from '../../../api/register_sessions';
 import { confirm_code } from '../../../api/confirm_code';
 import { createUser } from '../../../api/create_user';
 import { usePageProtection, PAGE_KEYS } from '../../../api/pageProtection';
 import CodeVerification from '../../../components/CodeVerification';
+import {checkDeviceAndRedirect} from '@/Constants';
 
 export default function ConfirmCode() {
     // usePageProtection({ 
@@ -17,6 +19,10 @@ export default function ConfirmCode() {
 
     const searchParams = useSearchParams();
     const router = useRouter();
+
+    useEffect(() => {
+        checkDeviceAndRedirect(router);
+    }, [router]);
 
     const email: string = searchParams.get('email') || "";
     const userName: string = searchParams.get('username') || "";

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import styles from '../../styles/Groups/SocialContactsModal.module.css';
-import {getSocialIcon} from '../../Constants'
+import { getSocialIcon } from '../../Constants';
 
 interface SocialContactsModalProps {
   isOpen: boolean;
@@ -11,11 +11,10 @@ interface SocialContactsModalProps {
   initialContacts: { name: string; link: string }[] | any;
 }
 
-interface SocialNetwork {
+interface Contact {
   id: string;
   name: string;
-  icon: string;
-  isCustom?: boolean;
+  link: string;
 }
 
 const SocialContactsModal: React.FC<SocialContactsModalProps> = ({ 
@@ -24,132 +23,77 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
   onSave, 
   initialContacts 
 }) => {
-  const baseSocialNetworks: SocialNetwork[] = [
-    { id: 'discord', name: 'Discord', icon: getSocialIcon("ds") },
-    { id: 'telegram', name: 'Telegram', icon: getSocialIcon("tg")  },
-    { id: 'vkontakte', name: 'VKontakte', icon: getSocialIcon("vk")  },
-    { id: 'max', name: 'Max', icon: getSocialIcon("max")  }
-  ];
-
-  const [socialNetworks, setSocialNetworks] = useState<SocialNetwork[]>(baseSocialNetworks);
-  const [contacts, setContacts] = useState<Record<string, { name: string; link: string }>>({});
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [mounted, setMounted] = useState(false);
 
-  // Монтируем компонент только на клиенте
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Инициализация контактов при открытии модального окна
   useEffect(() => {
     if (isOpen) {
-      const contactsMap: Record<string, { name: string; link: string }> = {};
-      
-      // Проверяем, что initialContacts является массивом
       const contactsArray = Array.isArray(initialContacts) ? initialContacts : [];
       
-      // Инициализируем базовые социальные сети
-      baseSocialNetworks.forEach(social => {
-        const existingContact = contactsArray.find(contact => contact?.name === social.name);
-        contactsMap[social.id] = {
-          name: social.name,
-          link: existingContact?.link || ''
-        };
-      });
-
-      // Добавляем кастомные социальные сети из initialContacts
-      const customNetworks: SocialNetwork[] = [];
-      contactsArray.forEach(contact => {
-        if (contact && contact.name && contact.link) {
-          const isBaseSocial = baseSocialNetworks.some(social => social.name === contact.name);
-          if (!isBaseSocial) {
-            const customId = `custom_${Date.now()}_${Math.random()}`;
-            const customNetwork: SocialNetwork = {
-              id: customId,
-              name: contact.name,
-              icon: '/default/soc_net.png',
-              isCustom: true
-            };
-            customNetworks.push(customNetwork);
-            contactsMap[customId] = {
-              name: contact.name,
-              link: contact.link
-            };
-          }
-        }
-      });
-
-      setSocialNetworks([...baseSocialNetworks, ...customNetworks]);
-      setContacts(contactsMap);
+      if (contactsArray.length > 0) {
+        const mappedContacts = contactsArray.map((contact, index) => ({
+          id: `contact_${Date.now()}_${index}`,
+          name: contact?.name || '',
+          link: contact?.link || ''
+        }));
+        setContacts(mappedContacts);
+      } else {
+        // Если нет контактов, добавляем один пустой
+        setContacts([{
+          id: `contact_${Date.now()}`,
+          name: '',
+          link: ''
+        }]);
+      }
     }
   }, [isOpen, initialContacts]);
 
-  const handleContactChange = (socialId: string, field: string, value: string) => {
-    setContacts(prev => ({
-      ...prev,
-      [socialId]: {
-        ...prev[socialId],
-        [field]: value
-      }
-    }));
+  const handleContactChange = (contactId: string, field: 'name' | 'link', value: string) => {
+    setContacts(prev => prev.map(contact => 
+      contact.id === contactId 
+        ? { ...contact, [field]: value }
+        : contact
+    ));
   };
 
-  const addCustomSocialNetwork = () => {
-    const customId = `custom_${Date.now()}`;
-    const newCustomNetwork: SocialNetwork = {
-      id: customId,
+  const addContact = () => {
+    const newContact: Contact = {
+      id: `contact_${Date.now()}`,
       name: '',
-      icon: '/default/soc_net.png',
-      isCustom: true
+      link: ''
     };
-    
-    setSocialNetworks(prev => [...prev, newCustomNetwork]);
-    
-    setContacts(prev => ({
-      ...prev,
-      [customId]: {
-        name: '',
-        link: ''
-      }
-    }));
+    setContacts(prev => [...prev, newContact]);
   };
 
-  const convertToArray = (contactsData: Record<string, { name: string; link: string }>) => {
-    const result: { name: string; link: string }[] = [];
-    
-    socialNetworks.forEach(social => {
-      const contact = contactsData[social.id];
-      if (contact && contact.link.trim()) {
-        result.push({
-          name: contact.name.trim(),
-          link: contact.link.trim()
-        });
-      }
-    });
-    
-    return result;
-  };
-
-  const removeEmptyCustomNetworks = () => {
-    const networksToKeep = socialNetworks.filter(social => {
-      if (!social.isCustom) return true;
-      const contact = contacts[social.id];
-      return contact && (contact.name.trim() || contact.link.trim());
-    });
-    setSocialNetworks(networksToKeep);
+  const removeContact = (contactId: string) => {
+    setContacts(prev => prev.filter(contact => contact.id !== contactId));
   };
 
   const handleSave = () => {
-    removeEmptyCustomNetworks();
-    const contactsArray = convertToArray(contacts);
-    onSave(contactsArray);
+    const validContacts = contacts
+      .filter(contact => contact.link.trim() && contact.name.trim())
+      .map(contact => ({
+        name: contact.name.trim(),
+        link: contact.link.trim()
+      }));
+    
+    onSave(validContacts);
     onClose();
   };
 
   const handleClose = () => {
-    removeEmptyCustomNetworks();
-    const contactsArray = convertToArray(contacts);
-    onSave(contactsArray);
+    const validContacts = contacts
+      .filter(contact => contact.link.trim() && contact.name.trim())
+      .map(contact => ({
+        name: contact.name.trim(),
+        link: contact.link.trim()
+      }));
+    
+    onSave(validContacts);
     onClose();
   };
 
@@ -163,7 +107,7 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'var(--overlay-medium)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -173,63 +117,83 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
     >
       <div className={styles.socialModalContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.socialModalHeader}>
-          <h3>Выберите и заполните контакты</h3>
+          <h3>Контакты группы</h3>
           <button className={styles.closeButton} onClick={handleClose}>×</button>
         </div>
+        
         <div className={styles.socialModalBody}>
-          {socialNetworks.map((social) => (
-            <div key={social.id} className={styles.socialContactRow}>
-              <div className={styles.socialIconContainer}>
-                <Image
-                  src={social.icon}
-                  alt={social.name}
-                  width={80}
-                  height={80}
-                />
-              </div>
-              <div className={styles.socialContactInputs}>
-                <div className={styles.inputGroup}>
-                  <span className={styles.inputLabel}>Имя:</span>
-                  {social.isCustom ? (
+          {contacts.map((contact) => {
+            const icon = getSocialIcon(contact.name, contact.link);
+            const isDiscord = contact.link.toLowerCase().includes('discord') || 
+                             contact.name.toLowerCase().includes('discord') || 
+                             contact.name.toLowerCase().includes('ds');
+            
+            return (
+              <div key={contact.id} className={styles.socialContactRow}>
+                <div 
+                  className={styles.socialIconContainer}
+                  title={isDiscord ? "*Деятельность организации запрещена на территории РФ" : undefined}
+                >
+                  <Image
+                    src={icon}
+                    alt={contact.name || 'Иконка'}
+                    width={80}
+                    height={80}
+                  />
+                </div>
+                
+                <div className={styles.socialContactInputs}>
+                  <div className={styles.inputGroup}>
+                    <span className={styles.inputLabel}>Имя:</span>
                     <input
                       type="text"
                       className={styles.socialContactInput}
-                      value={contacts[social.id]?.name || ''}
-                      onChange={(e) => handleContactChange(social.id, 'name', e.target.value)}
-                      placeholder="Введите название"
+                      value={contact.name}
+                      onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)}
+                      placeholder="Например: Max"
                     />
-                  ) : (
-                    <span className={styles.fixedSocialName}>{social.name}</span>
-                  )}
+                  </div>
+                  
+                  <div className={styles.inputGroup}>
+                    <span className={styles.inputLabel}>Ссылка:</span>
+                    <input
+                      type="text"
+                      className={styles.socialContactInput}
+                      value={contact.link}
+                      onChange={(e) => handleContactChange(contact.id, 'link', e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
                 </div>
-                <div className={styles.inputGroup}>
-                  <span className={styles.inputLabel}>Ссылка:</span>
-                  <input
-                    type="text"
-                    className={styles.socialContactInput}
-                    value={contacts[social.id]?.link || ''}
-                    onChange={(e) => handleContactChange(social.id, 'link', e.target.value)}
-                    placeholder="Введите ссылку"
-                  />
-                </div>
+                
+                {contacts.length > 1 && (
+                  <button
+                    className={styles.removeContactButton}
+                    onClick={() => removeContact(contact.id)}
+                    title="Удалить контакт"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
           
           <div className={styles.addCustomSocialRow}>
             <div
               className={styles.addCustomSocialButton}
-              onClick={addCustomSocialNetwork}
+              onClick={addContact}
             >
               <Image
                 src="/add_button.png"
-                alt="Добавить кастомную соц. сеть"
+                alt="Добавить контакт"
                 width={40}
                 height={40}
               />
             </div>
           </div>
         </div>
+        
         <button className={styles.saveSocialButton} onClick={handleSave}>
           Сохранить
         </button>
@@ -237,7 +201,6 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
     </div>
   );
 
-  // Рендерим через портал в body
   return createPortal(modalContent, document.body);
 };
 

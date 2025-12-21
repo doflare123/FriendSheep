@@ -14,16 +14,15 @@ import CategorySection from '@/components/Events/CategorySection';
 import { getSocialIcon, getAccesToken } from '@/Constants';
 import GenrePieChart from '@/components/profile/GenrePieChart';
 import AddUserModal from '@/components/search/AddUserModal';
+import ImageCropModal from '@/components/ImageCropModal';
 import { UserDataResponse } from '@/types/UserData';
-import {SmallGroup} from '@/types/Groups';
-import {Counters, UpdateProfileRequest} from '@/types/apiTypes';
-import {editProfile} from '@/api/profile/editProfile';
-import {editTiles} from '@/api/profile/editTiles';
-import {getImage} from '@/api/getImage';
-
-import {useAuth} from '@/contexts/AuthContext'
-
-import {showNotification} from '@/utils';
+import { SmallGroup } from '@/types/Groups';
+import { Counters, UpdateProfileRequest } from '@/types/apiTypes';
+import { editProfile } from '@/api/profile/editProfile';
+import { editTiles } from '@/api/profile/editTiles';
+import { getImage } from '@/api/getImage';
+import { useAuth } from '@/contexts/AuthContext';
+import { showNotification } from '@/utils';
 
 interface ProfilePageProps {
   params: {
@@ -35,7 +34,6 @@ interface ProfilePageProps {
 }
 
 export default function ProfilePage({ params }: ProfilePageProps) {
-  // Проверка наличия данных
   if (!params.data) {
     notFound();
   }
@@ -56,25 +54,21 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [animatedChart, setAnimatedChart] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-
   const [errors, setErrors] = useState({
     name: '',
     us: '',
     status: ''
   });
 
-  const scrollRef = useRef<HTMLDivElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const [showUpArrow, setShowUpArrow] = useState(false);
-  const [showDownArrow, setShowDownArrow] = useState(false);
-  const [activeTab, setActiveTab] = useState<'recent' | 'upcoming'>('recent');
+  const [activeTab, setActiveTab] = useState<'recent' | 'upcoming'>('upcoming');
   const [isOwnProfile, setOwnProfile] = useState(params.isOwn || false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [tempImageFile, setTempImageFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
 
-  // Функция валидации
   const validateFields = () => {
     const newErrors = {
       name: '',
@@ -82,7 +76,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       status: ''
     };
 
-    // Валидация имени (мин. 5, макс. 40)
     if (!editedData.name.trim()) {
       newErrors.name = 'Имя обязательно для заполнения';
     } else if (editedData.name.trim().length < 5) {
@@ -91,7 +84,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       newErrors.name = 'Имя должно содержать максимум 40 символов';
     }
 
-    // Валидация username (мин. 5, макс. 40)
     if (!editedData.us.trim()) {
       newErrors.us = 'Username обязателен для заполнения';
     } else if (editedData.us.trim().length < 5) {
@@ -100,7 +92,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       newErrors.us = 'Username должен содержать максимум 40 символов';
     }
 
-    // Валидация статуса (мин. 1 если есть, макс. 50)
     if (editedData.status.trim() && editedData.status.trim().length < 1) {
       newErrors.status = 'Статус должен содержать минимум 1 символ';
     } else if (editedData.status.length > 50) {
@@ -111,7 +102,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     return !newErrors.name && !newErrors.us && !newErrors.status;
   };
 
-  // Функция для расчета размера шрифта в зависимости от длины текста
   const calculateFontSize = (text: string, maxSize: number, minSize: number, maxLength: number) => {
     const length = text.length;
     if (length === 0) return maxSize;
@@ -126,7 +116,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const statusFontSize = calculateFontSize(editedData.status, 16, 12, 50);
   const usFontSize = calculateFontSize(editedData.us, 16, 12, 40);
 
-  // Анимация диаграммы при загрузке
   useEffect(() => {
     const timer = setTimeout(() => {
       setAnimatedChart(true);
@@ -134,10 +123,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Цвета для диаграммы
-  const chartColors = ['#316BC2', '#1E5CB9', '#1851A6', '#134693', '#0D3E86', '#0A3677'];
-
-  // Все доступные типы плиток
+  const chartColors = ['var(--color-primary-blue-dark)', '#1E5CB9', '#1851A6', '#134693', '#0D3E86', '#0A3677'];
   const availableTiles = ['count_all', 'count_films', 'count_games', 'count_other', 'count_table', 'spent_time'];
 
   const getTileIcon = (tileType: string) => {
@@ -153,7 +139,32 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       count_table: "Настолки",
       spent_time: "Часов"
     };
+    
+    if (tileType === 'spent_time') {
+      const hours = getTileValue(tileType);
+      return getHoursLabel(hours);
+    }
+    
     return labels[tileType] || tileType;
+  };
+
+  const getHoursLabel = (hours: number) => {
+    const lastDigit = hours % 10;
+    const lastTwoDigits = hours % 100;
+    
+    if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
+      return "Часов";
+    }
+    
+    if (lastDigit === 1) {
+      return "Час";
+    }
+    
+    if (lastDigit >= 2 && lastDigit <= 4) {
+      return "Часа";
+    }
+    
+    return "Часов";
   };
 
   const getTileValue = (tileType: string) => {
@@ -164,21 +175,16 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       count_games: stats.count_games,
       count_other: stats.count_another,
       count_table: stats.count_table_games,
-      spent_time: stats.spent_time
+      spent_time: Math.floor(stats.spent_time/60)
     };
     return values[tileType] || 0;
   };
 
   const handleSettingsClick = () => {
-    if (isEditMode) {
-      // Показать кнопки сохранения/отмены
-    } else {
-      setIsEditMode(true);
-    }
+    setIsEditMode(true);
   };
 
   const handleSave = async () => {
-    // Валидация перед сохранением
     if (!validateFields()) {
       showNotification(400, "Проверьте правильность заполнения полей");
       return;
@@ -200,14 +206,14 @@ export default function ProfilePage({ params }: ProfilePageProps) {
         imageUrl = await getImage(accessToken, avatarFile);
       }
 
-      const profileData: UpdateProfileRequest = {
+      const profileDataRequest: UpdateProfileRequest = {
         name: editedData.name,
         us: editedData.us,
         status: editedData.status,
         image: imageUrl,
       };
 
-      await editProfile(accessToken, profileData);
+      await editProfile(accessToken, profileDataRequest);
 
       const counters: Counters = {
         count_all: editedData.tiles.includes("count_all"),
@@ -220,16 +226,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
       await editTiles(accessToken, counters);
       await forceRefreshToken();
-      router.replace('/profile/' + editedData.us);
 
-      // Выходим из режима редактирования перед навигацией
       setIsEditMode(false);
       setIsSaving(false);
 
       showNotification(200, "Изменения успешно сохранены");
-      
-      // Используем replace для избежания записи в историю
-      
+      router.replace('/profile/' + editedData.us);
 
     } catch (error: any) {
       console.error("❌ Ошибка при сохранении профиля:", error);
@@ -240,7 +242,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       setIsSaving(false);
     }
   };
-
 
   const handleCancel = () => {
     setEditedData({
@@ -263,7 +264,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
   const handleTileChange = (newTileType: string) => {
     if (selectedTileIndex !== null) {
-      // Проверяем, используется ли уже эта плитка
       const isAlreadyUsed = editedData.tiles.some(
         (tile, index) => tile === newTileType && index !== selectedTileIndex
       );
@@ -295,38 +295,29 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditedData({...editedData, image: reader.result as string});
-      };
-      reader.readAsDataURL(file);
+      setTempImageFile(file);
+      setShowCropModal(true);
     }
   };
 
-  const handleScroll = () => {
-    if (scrollRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-      setShowUpArrow(scrollTop > 0);
-      setShowDownArrow(scrollTop + clientHeight < scrollHeight);
-    }
+  const handleCropSave = (blob: Blob) => {
+    const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+    setAvatarFile(file);
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditedData({...editedData, image: reader.result as string});
+    };
+    reader.readAsDataURL(file);
+    
+    setShowCropModal(false);
+    setTempImageFile(null);
   };
 
-  const scrollUp = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ top: -100, behavior: 'smooth' });
-    }
+  const handleCropCancel = () => {
+    setShowCropModal(false);
+    setTempImageFile(null);
   };
-
-  const scrollDown = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ top: 100, behavior: 'smooth' });
-    }
-  };
-
-  useEffect(() => {
-    handleScroll();
-  }, []);
 
   const chartData = useMemo(() => {
     const topGenres = profileData.popular_genres.slice(0, 5);
@@ -353,7 +344,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   return (
     <div className="bgPage">
       <div className={styles.profileContainer}>
-        {/* Секция 1: Краткая информация */}
         <div className={section1Styles.profileInfo}>
           <div className={section1Styles.settingsButton}>
             {!isOwnProfile ? (
@@ -469,7 +459,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                       onClick={handleTelegramClick}
                     >
                       <Image 
-                        src={!profileData.telegram_link ? "/social/tg_grey.png" : getSocialIcon("tg")} 
+                        src={!profileData.telegram_link ? "/social/tg_grey.png" : getSocialIcon("t.me")} 
                         alt="telegram" 
                         width={24} 
                         height={24}
@@ -574,7 +564,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
             </div>
           </div>
 
-          {/* Статистические плитки */}
           <div className={section1Styles.statsTiles}>
             {editedData.tiles.map((tileType, index) => (
               <div key={index} className={section1Styles.statTile} onClick={() => handleTileClick(index)}>
@@ -597,7 +586,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
             ))}
           </div>
 
-          {/* Модальное окно выбора плитки */}
           {selectedTileIndex !== null && (
             <div className={section1Styles.tileModal}>
               <div className={section1Styles.tileModalContent}>
@@ -621,7 +609,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
             </div>
           )}
 
-          {/* Топ жанров */}
           {profileData.popular_genres.length > 0 && (
             <div className={section1Styles.topGenres}>
               <h4>Топ любимых жанров:</h4>
@@ -638,76 +625,74 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           )}
         </div>
 
-        {/* Секция 2: Статистика */}
+        {/* СЕКЦИЯ 2: СОБЫТИЯ (было Статистика) */}
         <div className={section2Styles.statisticsSection}>
-          <h3>{isOwnProfile ? 'Ваша статистика' : 'Статистика'}</h3>
+          <h3>События</h3>
+          
           <div className={section2Styles.statisticsContent}>
-            {/* Диаграмма жанров */}
-            <div className={section2Styles.chartContainer}>
-              <div className={section2Styles.chartWrapper}>
-                {profileData.popular_genres.length > 0 ? (
-                  <div className={section2Styles.chartWithLegend}>
-                    <GenrePieChart data={chartData} animated={animatedChart} />
-                    <div className={section2Styles.customLegend}>
-                      <h4 className={section2Styles.genresTitle}>Жанры:</h4>
-                      {chartData.map((entry, index) => (
-                        <div key={index} className={section2Styles.legendItem}>
-                          <span className={section2Styles.legendNumber}>{index + 1}.</span>
-                          <span className={section2Styles.legendName}>{entry.name}</span>
-                        </div>
-                      ))}
+            {/* Предстоящие события */}
+            <div className={section2Styles.eventsBlock}>
+              <h4 className={section2Styles.eventsBlockTitle}>Предстоящие</h4>
+              <div className={section2Styles.eventsBlockContent}>
+                {(() => {
+                  const upcomingSessions = profileData.upcoming_sessions || [];
+                  const hasEvents = upcomingSessions && upcomingSessions.length > 0;
+                  
+                  return hasEvents ? (
+                    <CategorySection
+                      section={{
+                        categories: upcomingSessions,
+                        pattern: ""
+                      }}
+                      title=""
+                      showCategoryLabel={false}
+                    />
+                  ) : (
+                    <div className={styles.emptyPlaceholderEvents}>
+                      Здесь пока пусто
                     </div>
-                  </div>
-                ) : (
-                  <div className={styles.emptyPlaceholder}>
-                    Здесь пока пусто
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
 
-            {/* Плитки статистики */}
-            <div className={section2Styles.statisticsTiles}>
-              <StatisticsTile
-                title="Самый популярный день"
-                value={profileData.user_stats.most_pop_day}
-                icon="/profile/calendar.png"
-              />
-              <StatisticsTile
-                title="Создано сессий"
-                value={profileData.user_stats.count_create_session}
-                icon="/profile/create_session.png"
-              />
-              <StatisticsTile
-                title="Серия сессий"
-                value={`${profileData.user_stats.series_session_count} подряд`}
-                icon="/profile/series.png"
-              />
-            </div>
+            {/* Завершенные события (только для своего профиля) */}
+            {isOwnProfile && (
+              <div className={section2Styles.eventsBlock}>
+                <h4 className={section2Styles.eventsBlockTitle}>Завершенные</h4>
+                <div className={section2Styles.eventsBlockContent}>
+                  {(() => {
+                    const recentSessions = profileData.recent_sessions || [];
+                    const hasEvents = recentSessions && recentSessions.length > 0;
+                    
+                    return hasEvents ? (
+                      <CategorySection
+                        section={{
+                          categories: recentSessions,
+                          pattern: ""
+                        }}
+                        title=""
+                        showCategoryLabel={false}
+                      />
+                    ) : (
+                      <div className={styles.emptyPlaceholderEvents}>
+                        Здесь пока пусто
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Секция 3: Подписки */}
         <div className={section3Styles.subscriptionsSection}>
           <h3 className={section3Styles.subscriptionsTitle}>
             {isOwnProfile ? 'Ваши подписки' : 'Подписки'}
           </h3>
 
           <div className={section3Styles.scrollWrapper}>
-            {showUpArrow && (
-              <button
-                className={`${section3Styles.scrollArrow} ${section3Styles.topArrow}`}
-                onClick={scrollUp}
-              >
-                ↑
-              </button>
-            )}
-
-            <div
-              className={section3Styles.groupsList}
-              ref={scrollRef}
-              onScroll={handleScroll}
-            >
+            <div className={section3Styles.groupsList}>
               {subsData && subsData.length > 0 ? (
                 subsData.map((group) => (
                   <SubscriptionItem
@@ -724,81 +709,55 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                 </div>
               )}
             </div>
-
-            {showDownArrow && (
-              <button
-                className={`${section3Styles.scrollArrow} ${section3Styles.bottomArrow}`}
-                onClick={scrollDown}
-              >
-                ↓
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Секция 4: События */}
+        {/* СЕКЦИЯ 4: СТАТИСТИКА (было События) */}
         <div className={section4Styles.eventsSection}>
+          <h3>{isOwnProfile ? 'Ваша статистика' : 'Статистика'}</h3>
           <div className={section4Styles.header}>
-            <h3>События</h3>
-            
-            {isOwnProfile && (
-              <div className={section4Styles.buttonsGroup}>
-                <button
-                  type="button"
-                  className={`${section4Styles.tabButton} ${activeTab === 'recent' ? section4Styles.active : ''}`}
-                  onClick={() => setActiveTab('recent')}
-                  aria-pressed={activeTab === 'recent'}
-                  title = "Завершенные события"
-                >
-                  <Image
-                    src="/profile/recent_sessions.png"
-                    alt="Завершённые"
-                    width={32}
-                    height={32}
-                  />
-                </button>
-
-                <button
-                  type="button"
-                  className={`${section4Styles.tabButton} ${activeTab === 'upcoming' ? section4Styles.active : ''}`}
-                  onClick={() => setActiveTab('upcoming')}
-                  aria-pressed={activeTab === 'upcoming'}
-                  title = "Наступающие события"
-                >
-                  <Image
-                    src="/profile/upcoming_sessions.png"
-                    alt="Будущие"
-                    width={32}
-                    height={32}
-                  />
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className={section4Styles.content}>
-            {(() => {
-              const sessions = isOwnProfile 
-                ? (activeTab === 'recent' ? profileData.recent_sessions : profileData.upcoming_sessions)
-                : profileData.recent_sessions;
-              
-              const hasEvents = sessions && sessions.length > 0;
-              
-              return hasEvents ? (
-                <CategorySection
-                  section={{
-                    categories: sessions,
-                    pattern: "" // или любой паттерн если нужен
-                  }}
-                  title=""
-                  showCategoryLabel={false}
-                />
-              ) : (
-                <div className={styles.emptyPlaceholderEvents}>
-                  Здесь пока пусто
+            <div className={section4Styles.content}>
+              <div className={section4Styles.chartContainer}>
+                <div className={section4Styles.chartWrapper}>
+                  {profileData.popular_genres.length > 0 ? (
+                    <div className={section4Styles.chartWithLegend}>
+                      <GenrePieChart data={chartData} animated={animatedChart} />
+                      <div className={section4Styles.customLegend}>
+                        <h4 className={section4Styles.genresTitle}>Жанры:</h4>
+                        {chartData.map((entry, index) => (
+                          <div key={index} className={section4Styles.legendItem}>
+                            <span className={section4Styles.legendNumber}>{index + 1}.</span>
+                            <span className={section4Styles.legendName}>{entry.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={styles.emptyPlaceholder}>
+                      Здесь пока пусто
+                    </div>
+                  )}
                 </div>
-              );
-            })()}
+              </div>
+
+              <div className={section4Styles.statisticsTiles}>
+                <StatisticsTile
+                  title="Самый популярный день"
+                  value={profileData.user_stats.most_pop_day}
+                  icon="/profile/calendar.png"
+                />
+                <StatisticsTile
+                  title="Создано сессий"
+                  value={profileData.user_stats.count_create_session}
+                  icon="/profile/create_session.png"
+                />
+                <StatisticsTile
+                  title="Серия сессий"
+                  value={`${profileData.user_stats.series_session_count} подряд`}
+                  icon="/profile/series.png"
+                />
+              </div>
+            </div>
           </div>
         </div>
         
@@ -807,6 +766,17 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           onClose={() => setIsAddUserModalOpen(false)}
           userId={userId}
         />
+
+        {showCropModal && tempImageFile && (
+          <ImageCropModal
+            imageFile={tempImageFile}
+            onSave={handleCropSave}
+            onCancel={handleCropCancel}
+            title="Настройте аватар"
+            cropShape="circle"
+            finalSize={300}
+          />
+        )}
       </div>
     </div>
   );

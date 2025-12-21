@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import section2Styles from '../../styles/profile/ProfileSection2.module.css';
+import section2Styles from '../../styles/profile/ProfileSection4.module.css';
 
 interface ChartEntry {
   name: string;
@@ -75,7 +75,7 @@ const CustomTooltip = ({ active, payload }: any) => {
     return (
       <div style={{
         background: 'white',
-        border: '2px solid #37A2E6',
+        border: '2px solid var(--color-primary-blue)',
         borderRadius: '8px',
         padding: '8px 12px',
         fontSize: '14px',
@@ -84,7 +84,7 @@ const CustomTooltip = ({ active, payload }: any) => {
         zIndex: 1000
       }}>
         <p style={{ margin: 0, fontWeight: 'bold' }}>{data.name}</p>
-        <p style={{ margin: 0, color: '#666' }}>Количество: {data.value}</p>
+        <p style={{ margin: 0, color: 'var(--color-text-primary)' }}>Количество: {data.value}</p>
       </div>
     );
   }

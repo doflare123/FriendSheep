@@ -17,9 +17,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 12px;
-  background: white;
+  background: var(--color-bg-primary);
   flex-shrink: 0; /* Не сжимается */
 }
 
@@ -32,12 +32,12 @@
 .countNumber {
   font-size: 18px;
   font-weight: 600;
-  color: #000000;
+  color: var(--color-text-primary);
 }
 
 .countText {
   font-size: 16px;
-  color: #000000;
+  color: var(--color-text-primary);
 }
 
 .massActions {
@@ -54,28 +54,28 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  color: #FFFFFF;
+  color: var(--color-bg-primary);
 }
 
 .acceptAllBtn {
-  background-color: #37A2E6;
+  background-color: var(--color-primary-blue);
 }
 
 .acceptAllBtn:hover:not(:disabled) {
-  background-color: #2691d9;
+  background-color: var(--color-primary-blue);
 }
 
 .rejectAllBtn {
-  background-color: #E6374B;
+  background-color: var(--color-danger);
 }
 
 .rejectAllBtn:hover:not(:disabled) {
-  background-color: #d32636;
+  background-color: var(--color-danger-dark);
 }
 
 .acceptAllBtn:disabled,
 .rejectAllBtn:disabled {
-  background-color: #cccccc;
+  background-color: var(--color-text-disabled);
   cursor: not-allowed;
 }
 
@@ -88,7 +88,7 @@
 .searchInput {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 12px;
   font-size: 14px;
   outline: none;
@@ -97,11 +97,11 @@
 }
 
 .searchInput:focus {
-  border-color: #37A2E6;
+  border-color: var(--color-primary-blue);
 }
 
 .searchInput::placeholder {
-  color: #999;
+  color: var(--color-text-muted);
 }
 
 /* Контейнер списка заявок */
@@ -109,9 +109,9 @@
   position: relative;
   flex: 1; /* Занимает оставшееся место */
   min-height: 0; /* Важно для flex элементов со скроллом */
-  border: 2px solid #316BC2;
+  border: 2px solid var(--color-primary-blue-dark);
   border-radius: 12px;
-  background: white;
+  background: var(--color-bg-primary);
   display: flex;
   flex-direction: column;
   overflow: hidden; /* Скрываем переполнение у контейнера */
@@ -125,9 +125,9 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: white;
-  border: 2px solid #316BC2;
-  color: #316BC2;
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-primary-blue-dark);
+  color: var(--color-primary-blue-dark);
   font-size: 20px;
   font-weight: bold;
   cursor: pointer;
@@ -192,8 +192,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: #f8f9fa;
-  border: 1px solid #37A2E6;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-primary-blue);
   border-radius: 12px;
   transition: all 0.2s;
   min-height: 72px;
@@ -201,7 +201,7 @@
 }
 
 .requestItem:hover {
-  background: #f1f3f4;
+  background: var(--color-bg-primary);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -230,7 +230,7 @@
 .userName {
   font-size: 18px;
   font-weight: 600;
-  color: #000000;
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -238,7 +238,7 @@
 
 .userEmail {
   font-size: 14px;
-  color: #000000;
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -261,24 +261,24 @@
   cursor: pointer;
   transition: all 0.2s;
   min-width: 80px;
-  color: #FFFFFF;
+  color: var(--color-bg-primary);
 }
 
 .acceptBtn {
-  background-color: #37A2E6;
+  background-color: var(--color-primary-blue);
 }
 
 .acceptBtn:hover {
-  background-color: #2691d9;
+  background-color: var(--color-primary-blue);
   transform: translateY(-1px);
 }
 
 .rejectBtn {
-  background-color: #E6374B;
+  background-color: var(--color-danger);
 }
 
 .rejectBtn:hover {
-  background-color: #d32636;
+  background-color: var(--color-danger-dark);
   transform: translateY(-1px);
 }
 
@@ -290,13 +290,13 @@
   justify-content: center;
   height: 100%;
   gap: 16px;
-  color: #000000;
+  color: var(--color-text-primary);
 }
 
 .emptyText {
   font-size: 16px;
   text-align: center;
-  color: #666;
+  color: var(--color-text-primary);
 }
 
 /* Адаптивность */

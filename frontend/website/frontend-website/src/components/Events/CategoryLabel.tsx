@@ -24,7 +24,7 @@ const CategoryLabel: React.FC<CategoryLabelProps> = ({
         <div
             className={`categoryLabel ${clickable ? 'categoryLabel--clickable' : 'categoryLabel--static'}`}
             style={{
-                backgroundImage: `url(${patternUrl}), linear-gradient(#316BC2, #316BC2)`,
+                backgroundImage: `url(${patternUrl}), linear-gradient(var(--color-primary-blue-dark), var(--color-primary-blue-dark))`,
             }}
             onClick={handleClick}
         >

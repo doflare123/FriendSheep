@@ -35,9 +35,10 @@ type Notification = NewsNotification | InviteNotification;
 
 interface NotificationDropdownProps {
   onClose: () => void;
+  hasTelegramLink: boolean;
 }
 
-export default function NotificationDropdown({ onClose }: NotificationDropdownProps) {
+export default function NotificationDropdown({ onClose, hasTelegramLink }: NotificationDropdownProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
@@ -208,6 +209,10 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
     }
   };
 
+  const handleBotLinkClick = () => {
+    window.open('https://t.me/FriendShipNotify_bot', '_blank');
+  };
+
   // Обновление времени каждую секунду
   useEffect(() => {
     const interval = setInterval(() => {
@@ -233,7 +238,18 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
   return (
     <div className={styles.notificationDropdown}>
       <div className={styles.notificationHeader}>
-        У вас {unreadCount} непрочитанных уведомлений:
+        {!hasTelegramLink && (
+          <div className={styles.telegramWarning}>
+            Получайте уведомления в телеграмме!{' '}
+            <span 
+              className={styles.botLink}
+              onClick={handleBotLinkClick}
+            >
+              @FriendShipNotify_bot
+            </span>
+          </div>
+        )}
+        <div>У вас {unreadCount} непрочитанных уведомлений:</div>
       </div>
 
       <div className={styles.notificationList}>

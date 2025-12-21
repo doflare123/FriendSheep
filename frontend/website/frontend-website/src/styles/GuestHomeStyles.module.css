@@ -1,0 +1,482 @@
+.container {
+  min-height: 100vh;
+  background-image: url('/bg2.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-color: var(--color-primary-blue-dark);
+  overflow-x: hidden;
+  width: 100%;
+}
+
+.hero {
+  padding: 80px 40px 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  gap: 40px;
+  text-align: center;
+  overflow: hidden;
+  width: 100%;
+}
+
+.heroContent {
+  max-width: 800px;
+}
+
+.heroTitle {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--color-text-white);
+  margin: 0 0 20px 0;
+  line-height: 1.2;
+  text-shadow: var(--shadow-text);
+}
+
+.heroSubtitle {
+  font-size: 18px;
+  color: var(--color-text-white);
+  margin: 0 0 40px 0;
+  line-height: 1.6;
+  text-shadow: var(--shadow-text);
+}
+
+.heroButtons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.createAccountButton,
+.learnMoreButton {
+  padding: 14px 32px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 2px solid var(--color-text-white);
+}
+
+.createAccountButton {
+  background: var(--color-text-white);
+  color: var(--color-primary-blue-dark);
+}
+
+.createAccountButton:hover {
+  background: var(--color-bg-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.learnMoreButton {
+  background: transparent;
+  color: var(--color-text-white);
+}
+
+.learnMoreButton:hover {
+  background: var(--overlay-light);
+  transform: translateY(-2px);
+}
+
+.cardsPreview {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 40px;
+  cursor: grab;
+  user-select: none;
+}
+
+.cardsPreview:active {
+  cursor: grabbing;
+}
+
+.cardWrapper {
+  position: absolute;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              z-index 0s;
+  filter: drop-shadow(0 10px 30px var(--overlay-medium));
+  pointer-events: none;
+  touch-action: none;
+  will-change: transform, opacity;
+}
+
+.features {
+  background: var(--color-bg-primary);
+  padding: 80px 40px;
+  text-align: center;
+  width: 100%;
+  overflow: hidden;
+}
+
+.featuresTitle {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 12px 0;
+}
+
+.featuresSubtitle {
+  font-size: 18px;
+  color: var(--color-text-muted);
+  margin: 0 0 60px 0;
+}
+
+.featuresList {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.featureCard {
+  padding: 40px 30px;
+  background: var(--color-bg-primary);
+  border-radius: 16px;
+  border: 2px solid var(--color-border-light);
+  transition: all 0.3s ease;
+}
+
+.featureCard:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary-blue);
+}
+
+.featureIcon {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.featureTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 16px 0;
+}
+
+.featureDescription {
+  font-size: 15px;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.howItWorks {
+  padding: 80px 40px;
+  text-align: center;
+  width: 100%;
+  overflow: hidden;
+}
+
+.howItWorksTitle {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--color-text-white);
+  margin: 0 0 12px 0;
+}
+
+.howItWorksSubtitle {
+  font-size: 18px;
+  color: var(--color-text-white);
+  margin: 0 0 60px 0;
+}
+
+.stepsList {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.stepCard {
+  background: var(--color-bg-primary);
+  padding: 40px 30px;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.stepCard:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
+}
+
+.stepNumber {
+  width: 60px;
+  height: 60px;
+  background: var(--color-primary-blue);
+  color: var(--color-text-white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 auto 24px;
+}
+
+.stepTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 16px 0;
+}
+
+.stepDescription {
+  font-size: 15px;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.cta {
+  padding: 100px 40px;
+  text-align: center;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.cta > * {
+  position: relative;
+  z-index: 1;
+}
+
+.cta::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 1300px;
+  height: calc(100% - 80px);
+  background: var(--color-secondary-blue);
+  border-radius: 24px;
+  z-index: 0;
+  top: 40px;
+}
+
+.ctaTitle {
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--color-text-white);
+  margin: 0 0 16px 0;
+}
+
+.ctaSubtitle {
+  font-size: 18px;
+  color: var(--color-text-white);
+  margin: 0 0 40px 0;
+  opacity: 0.9;
+}
+
+.ctaButtons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+.ctaButton {
+  display: inline-block;
+  padding: 16px 48px;
+  background: var(--color-bg-primary);
+  color: var(--color-secondary-blue);
+  border-radius: 30px;
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: 2px solid var(--color-bg-primary);
+}
+
+.ctaButton:hover {
+  background: var(--color-bg-primary);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+}
+
+.ctaButtonSecondary {
+  display: inline-block;
+  padding: 16px 48px;
+  background: transparent;
+  color: var(--color-text-white);
+  border-radius: 30px;
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: 2px solid var(--color-text-white);
+}
+
+.ctaButtonSecondary:hover {
+  background: var(--overlay-light);
+  transform: translateY(-4px);
+}
+
+.ctaFooter {
+  font-size: 14px;
+  color: var(--color-text-white);
+  margin: 24px 0 0 0;
+  opacity: 0.8;
+}
+
+@media (max-width: 1024px) {
+  .hero {
+    padding: 60px 30px 80px;
+  }
+
+  .cardsPreview {
+    height: 350px;
+    transform: scale(0.85);
+  }
+
+  .featuresList,
+  .stepsList {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: 36px;
+  }
+
+  .heroSubtitle {
+    font-size: 16px;
+  }
+
+  .heroButtons {
+    flex-direction: column;
+  }
+
+  .cardsPreview {
+    height: 300px;
+    max-width: 320px;
+    transform: scale(0.7);
+  }
+
+  .features,
+  .howItWorks {
+    padding: 60px 20px;
+  }
+
+  .featuresTitle,
+  .howItWorksTitle {
+    font-size: 28px;
+  }
+
+  .cta {
+    padding: 80px 20px;
+  }
+
+  .ctaTitle {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 600px) {
+  .cardsPreview {
+    max-width: 280px;
+    height: 280px;
+    transform: scale(0.6);
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    padding: 40px 20px 60px;
+  }
+
+  .heroTitle {
+    font-size: 28px;
+  }
+
+  .heroSubtitle {
+    font-size: 14px;
+  }
+
+  .cardsPreview {
+    max-width: 240px;
+    height: 260px;
+    transform: scale(0.5);
+  }
+
+  .cardWrapper {
+    transform-origin: center center;
+  }
+
+  .carouselButton {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+
+  .carouselButton:first-of-type {
+    left: -20px;
+  }
+
+  .carouselButton:last-of-type {
+    right: -20px;
+  }
+
+  .createAccountButton,
+  .learnMoreButton {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+
+  .featuresTitle,
+  .howItWorksTitle {
+    font-size: 24px;
+  }
+
+  .featuresSubtitle,
+  .howItWorksSubtitle {
+    font-size: 16px;
+  }
+
+  .featureCard,
+  .stepCard {
+    padding: 30px 20px;
+  }
+
+  .ctaTitle {
+    font-size: 28px;
+  }
+
+  .ctaButton {
+    padding: 14px 36px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .cardsPreview {
+    max-width: 220px;
+    height: 240px;
+    transform: scale(0.45);
+  }
+}
+
+@media (max-width: 320px) {
+  .cardsPreview {
+    max-width: 200px;
+    height: 220px;
+    transform: scale(0.35);
+  }
+}

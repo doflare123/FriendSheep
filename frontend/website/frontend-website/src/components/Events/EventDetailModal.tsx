@@ -7,8 +7,9 @@ import { joinEvent } from '@/api/events/joinEvent';
 import { leaveEvent } from '@/api/events/leaveEvent';
 import { getAccesToken, convertSingleCategRuToEng, convertSessionPlaceToLocation } from '@/Constants';
 import { showNotification } from '@/utils';
+import { getOwnGroups } from '@/api/get_owngroups';
 import LoadingIndicator from '@/components/LoadingIndicator';
-import type { EventFullResponse } from '@/types/apiTypes'; // импортируй откуда у тебя интерфейсы
+import type { EventFullResponse } from '@/types/apiTypes';
 import { useRouter } from 'next/navigation';
 
 interface EventDetailModalProps {
@@ -27,6 +28,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
   const [eventData, setEventData] = useState<EventFullResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -37,8 +39,20 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
     // Очищаем данные при закрытии
     if (!isOpen) {
       setEventData(null);
+      setIsCreator(false);
     }
   }, [isOpen, eventId]);
+
+  const checkIfCreator = async (groupId: number, accessToken: string) => {
+    try {
+      const ownGroups = await getOwnGroups(accessToken);
+      const isOwner = ownGroups.some((group: any) => group.id === groupId);
+      setIsCreator(isOwner);
+    } catch (error) {
+      console.error('Ошибка при проверке создателя:', error);
+      setIsCreator(false);
+    }
+  };
 
   const loadEventData = async () => {
     if (!eventId) return;
@@ -48,6 +62,9 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
       const accessToken = await getAccesToken(router);
       const response = await getEventInfo(accessToken, eventId);
       setEventData(response as EventFullResponse);
+      
+      // Проверяем, является ли пользователь создателем
+      await checkIfCreator(response.session.group_id, accessToken);
     } catch (error: any) {
       console.error('Ошибка загрузки события:', error);
       const errorMessage = error.response?.data?.message || 'Не удалось загрузить данные события';
@@ -60,7 +77,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
   };
 
   const handleJoinOrLeave = async () => {
-    if (!eventData || isActionLoading) return;
+    if (!eventData || isActionLoading || isCreator) return;
 
     setIsActionLoading(true);
     try {
@@ -84,6 +101,11 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
       // Перезагружаем данные события чтобы обновить статус IsSub
       await loadEventData();
+
+      // Обновляем текущую страницу принудительно
+      if (typeof window !== 'undefined') {
+        //window.location.reload();
+      }
     } catch (error: any) {
       console.error('Ошибка при присоединении/отписке:', error);
       const errorMessage = error.response?.data?.message || 'Не удалось выполнить действие';
@@ -190,7 +212,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
         {/* Информация о дате и времени */}
         <div className={styles.eventInfo}>
           <div className={styles.dateInfo}>
-            <span className={styles.dateValue}>Дата проведения: {formatDate(session.start_time)}</span>
+            <span className={styles.dateValue} title="По местному времени">Дата проведения: {formatDate(session.start_time)}</span>
           </div>
           <div className={styles.durationInfo}>
             <span>{formatDuration(session.duration)}</span>
@@ -266,14 +288,20 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
           </div>
         )}
 
-        {/* Кнопка присоединиться/отписаться */}
-        <button 
-          className={`${styles.joinButton} ${session.is_sub ? styles.leaveButton : ''}`}
-          onClick={handleJoinOrLeave}
-          disabled={isActionLoading}
-        >
-          {isActionLoading ? 'Загрузка...' : (session.is_sub ? 'Отписаться' : 'Присоединиться')}
-        </button>
+        {/* Кнопка присоединиться/отписаться или статус создателя */}
+        {isCreator ? (
+          <div className={`${styles.joinButton} ${styles.creatorButton}`}>
+            Вы создатель
+          </div>
+        ) : (
+          <button 
+            className={`${styles.joinButton} ${session.is_sub ? styles.leaveButton : ''}`}
+            onClick={handleJoinOrLeave}
+            disabled={isActionLoading}
+          >
+            {isActionLoading ? 'Загрузка...' : (session.is_sub ? 'Отписаться' : 'Присоединиться')}
+          </button>
+        )}
       </div>
     </div>
   );
