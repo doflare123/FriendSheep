@@ -51,7 +51,7 @@ export default function NotificationDropdown({ onClose, hasTelegramLink }: Notif
         return '/notification/24_hours.png';
       case '6_hours':
         return '/notification/6_hours.png';
-      case '1_hours':
+      case '1_hour':
         return '/notification/1_hours.png';
       default:
         return '/notification/24_hours.png';
