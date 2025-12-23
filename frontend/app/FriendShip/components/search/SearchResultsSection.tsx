@@ -27,7 +27,7 @@ const SearchResultsSection: React.FC<SearchResultsSectionProps> = ({
       <PageHeader title={title} showWave={showWave} />
       
       <View style={styles.resultsHeader}>
-        <Text style={[styles.resultsText, { color: colors.blue }]}>
+        <Text style={[styles.resultsText, { color: colors.blue2 }]}>
           Результаты поиска:
         </Text>
         <Image

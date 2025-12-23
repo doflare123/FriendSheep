@@ -4,6 +4,7 @@ import { ThemeProvider, useTheme } from '@/components/ThemeContext';
 import { ToastProvider } from '@/components/ToastContext';
 import { Montserrat_200ExtraLight, Montserrat_300Light, Montserrat_400Regular, Montserrat_500Medium, Montserrat_600SemiBold, Montserrat_700Bold, useFonts } from '@expo-google-fonts/montserrat';
 import { MontserratAlternates_500Medium } from '@expo-google-fonts/montserrat-alternates';
+import messaging from '@react-native-firebase/messaging';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
@@ -33,13 +34,16 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 SplashScreen.preventAutoHideAsync();
 
+messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+  console.log('[Background] Получено уведомление:', remoteMessage);
+});
+
 function RootNavigator() {
   const { isAuthenticated } = useAuthContext();
   const { isDark } = useTheme();
 
   const backgroundColor = isDark ? '#1A1A1A' : '#FFFFFF';
 
-  // Кастомная плавная анимация
   const customCardStyleInterpolator = ({ current, layouts }: any) => {
     return {
       cardStyle: {
@@ -63,15 +67,14 @@ function RootNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        gestureEnabled: true, // Включаем жесты для свайпа назад
+        gestureEnabled: true,
         headerShown: false,
-        // Убрали animation: 'scale_from_center'
         cardStyleInterpolator: customCardStyleInterpolator,
         transitionSpec: {
           open: {
             animation: 'timing',
             config: {
-              duration: 300, // Длительность анимации (можно уменьшить до 250 или увеличить до 400)
+              duration: 300,
             },
           },
           close: {

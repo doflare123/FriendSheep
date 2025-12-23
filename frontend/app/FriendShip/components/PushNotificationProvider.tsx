@@ -13,11 +13,16 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
 }) => {
   const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
   const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
+  const hasRegistered = useRef(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      initializePushNotifications();
-    } else {
+    if (isAuthenticated && !hasRegistered.current) {
+      const timer = setTimeout(() => {
+        initializePushNotifications();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    } else if (!isAuthenticated && hasRegistered.current) {
       cleanupPushNotifications();
     }
 
@@ -31,6 +36,8 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
     try {
       console.log('[PushNotificationProvider] 🔔 Инициализация push-уведомлений...');
 
+      await pushNotificationService.setupNotificationHandlers();
+
       const success = await pushNotificationService.registerForPushNotifications();
       
       if (!success) {
@@ -38,7 +45,7 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
         return;
       }
 
-      await pushNotificationService.setupNotificationHandlers();
+      hasRegistered.current = true;
 
       notificationListener.current = pushNotificationService.addNotificationListener(
         (notification) => {
@@ -56,6 +63,8 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
             console.log('[PushNotificationProvider] Переход к приглашениям в группу');
           } else if (data.type === 'event_update') {
             console.log('[PushNotificationProvider] Переход к событию:', data.eventId);
+          } else if (data.type === 'friend_request') {
+            console.log('[PushNotificationProvider] Переход к запросам в друзья');
           }
         }
       );
@@ -68,12 +77,16 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
 
   const cleanupPushNotifications = async () => {
     try {
+      console.log('[PushNotificationProvider] 🗑️ Очистка push-уведомлений...');
+
       await pushNotificationService.removeTokenFromServer();
 
       notificationListener.current?.remove();
       responseListener.current?.remove();
       
-      console.log('[PushNotificationProvider] 🗑️ Push-уведомления очищены');
+      hasRegistered.current = false;
+      
+      console.log('[PushNotificationProvider] ✅ Push-уведомления очищены');
     } catch (error) {
       console.error('[PushNotificationProvider] ❌ Ошибка очистки:', error);
     }

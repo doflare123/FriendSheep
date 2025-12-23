@@ -79,7 +79,8 @@
         }
       ],
       "expo-secure-store",
-      "@react-native-firebase/app"
+      "@react-native-firebase/app",
+      "expo-dev-client"
     ],
     "experiments": {
       "typedRoutes": true

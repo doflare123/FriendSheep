@@ -10,4 +10,11 @@ module.exports = {
   ...defaultConfig,
   projectRoot,
   watchFolders: [projectRoot],
+  server: {
+    port: 8081,
+  },
+  resolver: {
+    ...defaultConfig.resolver,
+    sourceExts: [...defaultConfig.resolver.sourceExts, 'jsx', 'js', 'ts', 'tsx', 'json'],
+  },
 };

@@ -178,7 +178,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ navigation }) => {
           <VerticalEventList events={addOnPressToEvents(eventsToShow)} />
         ) : (
           <View style={styles.noEventsContainer}>
-            <Text style={[styles.noEventsText, { color: colors.blue }]}>
+            <Text style={[styles.noEventsText, { color: colors.blue2 }]}>
               {sortingState.searchQuery.trim() 
                 ? `Ничего не найдено по запросу "${sortingState.searchQuery}"` 
                 : `В этой категории пока нет событий`
