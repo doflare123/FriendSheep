@@ -188,7 +188,7 @@ const AllEventsPage: React.FC<AllEventsPageProps> = ({ navigation }) => {
           <VerticalEventList events={eventsToShow} />
         ) : (
           <View style={styles.noEventsContainer}>
-            <Text style={[styles.noEventsText, { color: colors.blue }]}>
+            <Text style={[styles.noEventsText, { color: colors.blue2 }]}>
               {getEmptyText()}
             </Text>
           </View>

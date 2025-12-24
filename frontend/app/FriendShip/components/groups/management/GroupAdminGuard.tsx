@@ -38,7 +38,7 @@ export const GroupAdminGuard: React.FC<GroupAdminGuardProps> = ({
   if (isAuthorized === null) {
     return (
       <View style={[styles.container, { backgroundColor: colors.white }]}>
-        <ActivityIndicator size="large" color={colors.blue} />
+        <ActivityIndicator size="large" color={colors.blue2} />
         <Text style={[styles.text, { color: colors.grey }]}>
           Проверка прав доступа...
         </Text>

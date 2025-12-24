@@ -269,7 +269,7 @@ const Register = () => {
         {loading && (
           <ActivityIndicator 
             size="large" 
-            color={colors.blue}
+            color={colors.blue2}
             style={{ marginTop: 16 }} 
           />
         )}

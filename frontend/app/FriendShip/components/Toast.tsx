@@ -2,7 +2,7 @@ import { Colors } from "@/constants/Colors";
 import { Montserrat } from "@/constants/Montserrat";
 import { useThemedColors } from "@/hooks/useThemedColors";
 import React, { useEffect, useRef } from "react";
-import { Animated, Easing, Image, PanResponder, StyleSheet, Text } from "react-native";
+import { Animated, Easing, Image, PanResponder, StyleSheet, Text, View } from "react-native";
 
 interface ToastProps {
   visible: boolean;
@@ -139,17 +139,25 @@ const Toast: React.FC<ToastProps> = ({
         },
       ]}
     >
-      <Animated.View style={{ flex: 1 }}>
-        <Animated.View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={[styles.title, { color: colors.black }]}>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Image source={icons[type]} style={styles.icon} />
+          <Text 
+            style={[styles.title, { color: colors.black }]} 
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
             {title}
           </Text>
-          <Image source={icons[type]} style={styles.icon} />
-        </Animated.View>
-        <Text style={[styles.message, { color: colors.black }]}>
+        </View>
+        <Text 
+          style={[styles.message, { color: colors.black }]} 
+          numberOfLines={3}
+          ellipsizeMode="tail"
+        >
           {message}
         </Text>
-      </Animated.View>
+      </View>
     </Animated.View>
   );
 };
@@ -159,8 +167,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 100,
     right: 10,
-    flexDirection: "row",
-    alignItems: "center",
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
@@ -172,19 +178,30 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     maxWidth: "90%",
   },
+  content: {
+    width: '100%',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+    width: '100%',
+  },
   icon: { 
     width: 24, 
     height: 24, 
-    marginLeft: 4, 
-    resizeMode: "contain" 
+    marginRight: 4,
+    resizeMode: "contain",
   },
   title: { 
     fontFamily: Montserrat.bold, 
-    fontSize: 14 
+    fontSize: 14,
+    flex: 1,
   },
   message: { 
     fontFamily: Montserrat.regular, 
-    fontSize: 13 
+    fontSize: 13,
+    width: '100%',
   },
 });
 

@@ -89,9 +89,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     style={styles.radioItem}
                     onPress={() => sortingActions.toggleCategoryCheckbox(cat)}
                   >
-                    <View style={[styles.radioSquareEmpty, { borderColor: colors.lightBlue }]}>
+                    <View style={[styles.radioSquareEmpty, { borderColor: colors.lightBlue2 }]}>
                       {sortingState.checkedCategories.includes(cat) && (
-                        <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue }]} />
+                        <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue2 }]} />
                       )}
                     </View>
                     <Text style={[styles.radioLabel, { color: colors.black }]}>
@@ -109,9 +109,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     style={styles.radioItem}
                     onPress={() => sortingActions.setSortByDate(order)}
                   >
-                    <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue }]}>
+                    <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue2 }]}>
                       {sortingState.sortByDate === order && (
-                        <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue }]} />
+                        <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue2 }]} />
                       )}
                     </View>
                     <Text style={[styles.radioLabel, { color: colors.black }]}>
@@ -129,9 +129,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     style={styles.radioItem}
                     onPress={() => sortingActions.setSortByParticipants(order)}
                   >
-                    <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue }]}>
+                    <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue2 }]}>
                       {sortingState.sortByParticipants === order && (
-                        <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue }]} />
+                        <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue2 }]} />
                       )}
                     </View>
                     <Text style={[styles.radioLabel, { color: colors.black }]}>
@@ -153,9 +153,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   style={styles.radioItem}
                   onPress={() => groupSearchActions.setSortByParticipants(order)}
                 >
-                  <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue }]}>
+                  <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue2 }]}>
                     {groupSearchState.sortByParticipants === order && (
-                      <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue }]} />
+                      <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue2 }]} />
                     )}
                   </View>
                   <Text style={[styles.radioLabel, { color: colors.black }]}>
@@ -185,13 +185,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     }
                   }}
                 >
-                  <View style={[styles.radioSquareEmpty, { borderColor: colors.lightBlue }]}>
+                  <View style={[styles.radioSquareEmpty, { borderColor: colors.lightBlue2 }]}>
                     {value === null
                       ? groupSearchState.checkedCategories.length === 0 && (
-                          <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue }]} />
+                          <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue2 }]} />
                         )
                       : groupSearchState.checkedCategories.includes(value) && (
-                          <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue }]} />
+                          <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue2 }]} />
                         )}
                   </View>
                   <Text style={[styles.radioLabel, { color: colors.black }]}>
@@ -209,9 +209,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   style={styles.radioItem}
                   onPress={() => groupSearchActions.setSortByRegistration(order)}
                 >
-                  <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue }]}>
+                  <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue2 }]}>
                     {groupSearchState.sortByRegistration === order && (
-                      <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue }]} />
+                      <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue2 }]} />
                     )}
                   </View>
                   <Text style={[styles.radioLabel, { color: colors.black }]}>

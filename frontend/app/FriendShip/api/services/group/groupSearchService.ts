@@ -4,11 +4,8 @@ import { handleApiError } from './groupHelpers';
 import { SearchGroupsParams, SearchGroupsResponse } from './groupTypes';
 
 class GroupSearchService {
-
   async searchGroups(params: SearchGroupsParams): Promise<SearchGroupsResponse> {
     try {
-      console.log('[GroupSearchService] Поиск групп с параметрами:', params);
-      
       const response = await apiClient.get<SearchGroupsResponse>('/groups/search', {
         params: {
           name: sanitizeSearchQuery(params.name || ''),
@@ -19,8 +16,24 @@ class GroupSearchService {
         },
       });
 
-      console.log('[GroupSearchService] ✅ Найдено групп:', response.data.groups.length);
-      return response.data;
+      const normalizedGroups = response.data.groups
+        .map(group => ({
+          ...group,
+          category: Array.isArray(group.category) ? group.category : [],
+        }))
+        .filter(group => group.category.length > 0);
+
+      if (response.data.groups.length > normalizedGroups.length) {
+        console.warn(
+          `[GroupSearchService] Исключено ${response.data.groups.length - normalizedGroups.length} групп без категорий`
+        );
+      }
+
+      return {
+        ...response.data,
+        groups: normalizedGroups,
+        total: response.data.total,
+      };
     } catch (error: any) {
       return handleApiError(error, 'Ошибка поиска групп');
     }

@@ -313,7 +313,7 @@ const GroupPage = () => {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
         <TopBar sortingState={sortingState} sortingActions={sortingActions} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.blue} />
+          <ActivityIndicator size="large" color={colors.blue2} />
           <Text style={[styles.loadingText, { color: colors.grey }]}>
             Загрузка группы...
           </Text>

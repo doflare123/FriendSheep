@@ -9,7 +9,7 @@ const CategoryButton = ({ title, onPress, imageSource }: { title: string; imageS
   return (
     <TouchableOpacity 
       onPress={onPress} 
-      style={[styles.button, { backgroundColor: colors.blue }]}
+      style={[styles.button, { backgroundColor: colors.blue2 }]}
     >
       {imageSource && (
         <Image source={imageSource} style={styles.backgroundImage} />

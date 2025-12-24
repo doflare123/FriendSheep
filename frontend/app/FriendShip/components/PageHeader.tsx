@@ -33,39 +33,27 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     return 16;
   };
 
-  const getTextContainerStyle = () => {
-    const baseStyle = { flex: 1, alignItems: 'center' as const };
-    
-    if (showBackButton && actionButton) {
-      return { ...baseStyle, paddingHorizontal: 46 };
-    } else if (showBackButton || actionButton) {
-      return { 
-        ...baseStyle, 
-        paddingLeft: showBackButton ? 46 : 0,
-        paddingRight: actionButton ? 46 : 0
-      };
-    }
-    
-    return baseStyle;
-  };
-
   return (
     <>
       <View style={[styles.headerContainer, { backgroundColor: colors.lightBlue2 }]}>
-        {showBackButton && onBackPress && (
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={onBackPress}
-            activeOpacity={0.7}
-          >
-            <Image 
-              source={require('@/assets/images/arrowLeft.png')} 
-              style={styles.backIcon}
-            />
-          </TouchableOpacity>
-        )}
+        <View style={styles.sideButton}>
+          {showBackButton && onBackPress ? (
+            <TouchableOpacity 
+              onPress={onBackPress}
+              activeOpacity={0.7}
+              style={styles.buttonTouchable}
+            >
+              <Image 
+                source={require('@/assets/images/arrowLeft.png')} 
+                style={styles.icon}
+              />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.buttonTouchable} />
+          )}
+        </View>
         
-        <View style={getTextContainerStyle()}>
+        <View style={styles.textContainer}>
           <Text 
             style={[styles.headerTitle, { fontSize: getFontSize() }]}
             numberOfLines={2}
@@ -76,18 +64,22 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           </Text>
         </View>
         
-        {actionButton && (
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={actionButton.onPress}
-            activeOpacity={0.7}
-          >
-            <Image 
-              source={actionButton.icon} 
-              style={styles.actionIcon}
-            />
-          </TouchableOpacity>
-        )}
+        <View style={styles.sideButton}>
+          {actionButton ? (
+            <TouchableOpacity 
+              onPress={actionButton.onPress}
+              activeOpacity={0.7}
+              style={styles.buttonTouchable}
+            >
+              <Image 
+                source={actionButton.icon} 
+                style={styles.icon}
+              />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.buttonTouchable} />
+          )}
+        </View>
       </View>
       {showWave && (
         <Image
@@ -104,9 +96,26 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 16,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
     flexDirection: 'row',
+  },
+  sideButton: {
+    width: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonTouchable: {
+    width: 46,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   headerTitle: {
     fontFamily: Montserrat_Alternates.medium,
@@ -114,24 +123,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
     textAlign: 'center',
   },
-  backButton: {
-    position: 'absolute',
-    left: 16,
-    padding: 8,
-    zIndex: 10,
-  },
-  backIcon: {
-    width: 30,
-    height: 30,
-    tintColor: Colors.white
-  },
-  actionButton: {
-    position: 'absolute',
-    right: 16,
-    padding: 8,
-    zIndex: 10,
-  },
-  actionIcon: {
+  icon: {
     width: 30,
     height: 30,
     tintColor: Colors.white

@@ -143,7 +143,7 @@ const GroupsPage = () => {
       
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.blue} />
+          <ActivityIndicator size="large" color={colors.blue2} />
           <Text style={[styles.loadingText, { color: colors.grey }]}>
             Загрузка групп...
           </Text>
@@ -154,8 +154,8 @@ const GroupsPage = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={[colors.blue]}
-              tintColor={colors.blue}
+              colors={[colors.blue2]}
+              tintColor={colors.blue2}
             />
           }
         >
@@ -164,14 +164,14 @@ const GroupsPage = () => {
             customActionButton={{
               icon: require('../../assets/images/groups/group_add.png'),
               onPress: handleAddGroup,
-              tintColor: colors.blue,
+              tintColor: colors.blue2,
             }}
           >
             {managedGroups.length > 0 ? (
               <GroupCarousel 
                 groups={managedGroups} 
                 actionText="Управлять"
-                actionColor={[colors.lightBlue, colors.blue]}
+                actionColor={[colors.lightBlue, colors.blue2]}
               />
             ) : (
               <View style={styles.emptyContainer}>
@@ -190,7 +190,7 @@ const GroupsPage = () => {
               <GroupCarousel 
                 groups={subscriptions} 
                 actionText="Перейти"
-                actionColor={[colors.lightBlue, colors.blue]}
+                actionColor={[colors.lightBlue, colors.blue2]}
               />
             </CategorySection>
           )}

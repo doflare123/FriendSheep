@@ -132,9 +132,9 @@ const CategorySearchBar: React.FC<CategorySearchBarProps> = ({
                     style={styles.radioItem}
                     onPress={() => toggleCategoryCheckbox(cat)}
                   >
-                    <View style={[styles.radioSquareEmpty, { borderColor: colors.lightBlue }]}>
+                    <View style={[styles.radioSquareEmpty, { borderColor: colors.lightBlue2 }]}>
                       {checkedCategories.includes(cat) && (
-                        <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue }]} />
+                        <View style={[styles.radioInnerSquare, { backgroundColor: colors.blue2 }]} />
                       )}
                     </View>
                     <Text style={[styles.radioLabel, { color: colors.black }]}>
@@ -154,9 +154,9 @@ const CategorySearchBar: React.FC<CategorySearchBarProps> = ({
                 style={styles.radioItem}
                 onPress={() => setSortByDate(order as 'asc' | 'desc' | 'none')}
               >
-                <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue }]}>
+                <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue2 }]}>
                   {sortByDate === order && (
-                    <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue }]} />
+                    <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue2 }]} />
                   )}
                 </View>
                 <Text style={[styles.radioLabel, { color: colors.black }]}>
@@ -174,9 +174,9 @@ const CategorySearchBar: React.FC<CategorySearchBarProps> = ({
                 style={styles.radioItem}
                 onPress={() => setSortByParticipants(order as 'asc' | 'desc' | 'none')}
               >
-                <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue }]}>
+                <View style={[styles.radioCircleEmpty, { borderColor: colors.lightBlue2 }]}>
                   {sortByParticipants === order && (
-                    <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue }]} />
+                    <View style={[styles.radioInnerCircle, { backgroundColor: colors.blue2 }]} />
                   )}
                 </View>
                 <Text style={[styles.radioLabel, { color: colors.black }]}>

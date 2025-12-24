@@ -320,7 +320,7 @@ const InfoTabContent: React.FC<InfoTabContentProps> = ({
             disabled={isSaving}
           >
             {isSaving ? (
-              <ActivityIndicator color={Colors.blue} />
+              <ActivityIndicator color={Colors.blue2} />
             ) : (
               <Text style={styles.saveButtonText}>Сохранить изменения</Text>
             )}

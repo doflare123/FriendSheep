@@ -235,9 +235,9 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
                   style={styles.genreItem}
                   onPress={() => handleGenreToggle(genre)}
                 >
-                  <View style={[styles.checkbox, { borderColor: colors.blue }]}>
+                  <View style={[styles.checkbox, { borderColor: colors.blue2 }]}>
                     {selected.includes(genre) && (
-                      <View style={[styles.checkboxSelected, { backgroundColor: colors.blue }]} />
+                      <View style={[styles.checkboxSelected, { backgroundColor: colors.blue2 }]} />
                     )}
                   </View>
                   <Text style={[styles.genreText, { color: colors.black }]}>

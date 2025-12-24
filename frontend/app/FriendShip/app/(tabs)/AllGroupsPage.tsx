@@ -150,7 +150,7 @@ const AllGroupsPage: React.FC<AllGroupsPageProps> = ({ navigation }) => {
           <VerticalGroupList groups={groups} />
         ) : (
           <View style={styles.noGroupsContainer}>
-            <Text style={[styles.noGroupsText, { color: colors.blue }]}>
+            <Text style={[styles.noGroupsText, { color: colors.blue2 }]}>
               {getEmptyText()}
             </Text>
           </View>

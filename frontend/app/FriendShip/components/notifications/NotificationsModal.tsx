@@ -74,12 +74,6 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
       onUpdateNotifications(updatedNotifications);
 
       checkAndUpdateUnreadStatus(updatedNotifications, invites);
-      
-      showToast({
-        type: 'success',
-        title: 'Готово',
-        message: 'Уведомление отмечено как просмотренное',
-      });
     } catch (error: any) {
       showToast({
         type: 'error',
@@ -272,7 +266,6 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
                 {totalCount === 0 && !serverError && (
                   <Text style={[styles.emptyText, {color: colors.lightGrey}]}>Здесь пока ничего нет</Text>
                 )}
-                <Text style={[styles.hintText, {color: colors.lightGrey}]}>В данной версии приложения уведомления доступны только внутри приложения или через Telegram-бота</Text>
               </ScrollView>
             </>
           )}
@@ -407,11 +400,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     paddingVertical: 24,
-  },
-  hintText: {
-    fontFamily: Montserrat.regular,
-    fontSize: 8,
-    paddingVertical: 4,
   },
 });
 
