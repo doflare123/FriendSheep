@@ -49,8 +49,8 @@ interface GroupsResponse {
   total: number;
 }
 
-const GROUPS_PER_PAGE = 5;
-const USERS_PER_PAGE = 4;
+const GROUPS_PER_PAGE = 4;
+const USERS_PER_PAGE = 5;
 
 export default function SearchPage() {
   const router = useRouter();
@@ -439,8 +439,8 @@ export default function SearchPage() {
                             <input
                               type="radio"
                               name="categories"
-                              checked={selectedCategory === 'Фильмы'}
-                              onChange={() => setSelectedCategory('Фильмы')}
+                              checked={selectedCategory === 'Медиа'}
+                              onChange={() => setSelectedCategory('Медиа')}
                             />
                             <span>Кино</span>
                           </label>
@@ -448,10 +448,10 @@ export default function SearchPage() {
                             <input
                               type="radio"
                               name="categories"
-                              checked={selectedCategory === 'Игры'}
-                              onChange={() => setSelectedCategory('Игры')}
+                              checked={selectedCategory === 'Видеоигры'}
+                              onChange={() => setSelectedCategory('Видеоигры')}
                             />
-                            <span>Игры</span>
+                            <span>Видеоигры</span>
                           </label>
                           <label className={styles.filterOption}>
                             <input
@@ -530,8 +530,8 @@ export default function SearchPage() {
                   <Image 
                     src='/icons/groups.png'
                     alt='Groups' 
-                    width={20} 
-                    height={20} 
+                    width={30} 
+                    height={30} 
                     title="Группы"
                   />
                 </div>

@@ -60,7 +60,6 @@ interface ValidationErrors {
   location?: string;
 }
 
-// RAWG API интерфейсы
 interface RAWGGame {
   id: number;
   name: string;
@@ -74,7 +73,6 @@ interface RAWGGame {
   description_raw?: string;
 }
 
-// Функция для поиска игр через RAWG API
 const searchRAWGGames = async (query: string): Promise<RAWGGame[]> => {
   const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || 'YOUR_API_KEY';
   
@@ -95,7 +93,6 @@ const searchRAWGGames = async (query: string): Promise<RAWGGame[]> => {
   }
 };
 
-// Функция для получения деталей игры
 const getRAWGGameDetails = async (gameId: number): Promise<RAWGGame> => {
   const RAWG_API_KEY = process.env.NEXT_PUBLIC_RAWG_API_KEY || 'YOUR_API_KEY';
   
@@ -170,20 +167,23 @@ export default function EventModal({
   const [showImageCropModal, setShowImageCropModal] = useState(false);
   const [tempImageFile, setTempImageFile] = useState<File | null>(null);
 
-  // Новые состояния для API селектора
   const [showApiSelector, setShowApiSelector] = useState(false);
   const apiSelectorRef = useRef<HTMLDivElement>(null);
 
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+
   useEffect(() => {
-    if (isOpen && mode === 'create') {
-      checkGroupsAndLoad();
-    } else if (isOpen) {
-      loadGroups();
-      loadGenres();
+    if (isOpen) {
+      if (mode === 'create') {
+        loadGroups();
+        loadGenres();
+      } else {
+        loadGroups();
+        loadGenres();
+      }
     }
   }, [isOpen, mode]);
 
-  // Закрытие селектора API при клике вне его
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (apiSelectorRef.current && !apiSelectorRef.current.contains(event.target as Node)) {
@@ -212,29 +212,34 @@ export default function EventModal({
   };
 
   const checkGroupsAndLoad = async () => {
-    setGroupsLoading(true);
+    setIsInitialLoading(true);
     setGroupsError(null);
     
     try {
       const accessToken = await getAccesToken(router) || '';
       const groupsData = await getOwnGroups(accessToken);
       
-      if (groupsData.length === 0) {
-        showNotification(400, 'У вас нет групп. Создайте группу, чтобы создавать события.');
+      if (!groupsData || groupsData.length === 0) {
+        setIsInitialLoading(false);
         onClose();
+        setTimeout(() => {
+          showNotification(400, 'Для создания события необходимо иметь собственную группу');
+        }, 150);
         return;
       }
       
       setGroups(groupsData);
-      loadGenres();
+      await loadGenres();
+      setIsInitialLoading(false);
     } catch (error) {
       console.error('Ошибка загрузки групп:', error);
       setGroupsError('Не удалось загрузить группы');
       setGroups([]);
-      showNotification(500, 'Не удалось загрузить список групп');
+      setIsInitialLoading(false);
       onClose();
-    } finally {
-      setGroupsLoading(false);
+      setTimeout(() => {
+        showNotification(500, 'Не удалось загрузить список групп');
+      }, 150);
     }
   };
 
@@ -711,7 +716,6 @@ export default function EventModal({
       if (movies.length > 0) {
         const movie = movies[0];
         
-        // Автоматически выбираем категорию "movies"
         setFormData(prev => ({ ...prev, type: 'movies' }));
         
         const movieDescription = movie.description || movie.shortDescription || '';
@@ -833,10 +837,8 @@ export default function EventModal({
         const game = games[0];
         const gameDetails = await getRAWGGameDetails(game.id);
         
-        // Автоматически выбираем категорию "games"
         setFormData(prev => ({ ...prev, type: 'games' }));
         
-        // Описание игры
         const gameDescription = gameDetails.description_raw || '';
         const truncatedDescription = gameDescription.length > VALIDATION_RULES.description.max 
           ? gameDescription.substring(0, VALIDATION_RULES.description.max - 3).trim() + '...'
@@ -844,25 +846,19 @@ export default function EventModal({
         
         setDescription(truncatedDescription);
         
-        // Издатель
         if (gameDetails.publishers && gameDetails.publishers.length > 0) {
           setPublisher(gameDetails.publishers[0].name);
         }
         
-        // Год релиза
         if (gameDetails.released) {
           const releaseYear = new Date(gameDetails.released).getFullYear();
           setYear(releaseYear.toString());
         }
         
-        // Возрастной рейтинг
         if (gameDetails.esrb_rating) {
           setAgeLimit(gameDetails.esrb_rating.name);
         }
         
-        // Длительность НЕ заполняем (убрали автозаполнение часов)
-        
-        // Жанры с заглавной буквы
         if (gameDetails.genres && gameDetails.genres.length > 0) {
           const gameGenres = gameDetails.genres.map(g => capitalizeFirstLetter(g.name));
           
@@ -907,7 +903,6 @@ export default function EventModal({
           }));
         }
         
-        // Изображение
         if (gameDetails.background_image) {
           setFormData(prev => ({ 
             ...prev, 

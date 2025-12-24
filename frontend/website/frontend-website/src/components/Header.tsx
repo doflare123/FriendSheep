@@ -5,10 +5,13 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import NotificationDropdown from './NotificationDropdown';
 import EventModal from './Events/EventModal';
+import LoadingIndicator from './LoadingIndicator';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getNotif } from '@/api/notification/getNotif';
 import { getAccesToken, getUserData, MOBILE_APP_URL } from '@/Constants';
+import { getOwnGroups } from '@/api/get_owngroups';
+import { showNotification } from '@/utils';
 import styles from '../styles/Header.module.css';
 
 interface Notification {
@@ -44,6 +47,7 @@ export default function Header() {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [hasTelegramLink, setHasTelegramLink] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
+    const [isCheckingGroups, setIsCheckingGroups] = useState(false);
     const router = useRouter();
     const searchMenuRef = useRef<HTMLDivElement>(null);
     const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -251,8 +255,26 @@ export default function Header() {
         setShowLogoutModal(false);
     };
 
-    const handleCreateClick = () => {
-        setIsCreateModalOpen(true);
+    const handleCreateClick = async () => {
+        setIsCheckingGroups(true);
+        
+        try {
+            const accessToken = await getAccesToken(router) || '';
+            const groupsData = await getOwnGroups(accessToken);
+            
+            if (!groupsData || groupsData.length === 0) {
+                showNotification(400, 'Для создания события необходимо иметь собственную группу');
+                setIsCheckingGroups(false);
+                return;
+            }
+            
+            setIsCheckingGroups(false);
+            setIsCreateModalOpen(true);
+        } catch (error) {
+            console.error('Ошибка загрузки групп:', error);
+            showNotification(500, 'Не удалось загрузить список групп');
+            setIsCheckingGroups(false);
+        }
     };
 
     const handleModalClose = () => {
@@ -361,8 +383,12 @@ export default function Header() {
                 <div className={styles.authSection}>
                     {isLoggedIn ? (
                         <>
-                            <button className={styles.createButton} onClick={handleCreateClick}>
-                                Создать
+                            <button 
+                                className={styles.createButton} 
+                                onClick={handleCreateClick}
+                                disabled={isCheckingGroups}
+                            >
+                                {isCheckingGroups ? 'Проверка...' : 'Создать'}
                             </button>
                             
                             <div className={styles.notificationContainer}>
@@ -450,7 +476,6 @@ export default function Header() {
                 </div>
             </header>
 
-            {/* Модалка подтверждения выхода */}
             {showLogoutModal && (
                 <div className={styles.modalOverlay} onClick={handleCancelLogout}>
                     <div className={styles.logoutModal} onClick={(e) => e.stopPropagation()}>
@@ -470,6 +495,19 @@ export default function Header() {
                                 Выйти
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {isCheckingGroups && (
+                <div className={styles.modalOverlay}>
+                    <div style={{
+                        background: 'var(--color-bg-primary)',
+                        borderRadius: '12px',
+                        padding: '40px',
+                        minWidth: '300px'
+                    }}>
+                        <LoadingIndicator text="Проверка групп..." />
                     </div>
                 </div>
             )}

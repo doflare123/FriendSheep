@@ -1,4 +1,3 @@
-// statusNotif.tsx
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -24,7 +23,6 @@ function NotifItem({
   const [closing, setClosing] = useState(false);
   const onCloseRef = useRef(onClose);
 
-  // Обновляем ref при изменении onClose
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
@@ -35,15 +33,13 @@ function NotifItem({
     }
     setClosing(true);
     setTimeout(() => onCloseRef.current(), 300);
-  }, []); // Пустой массив зависимостей!
+  }, []);
 
-  // Автозакрытие через 3 секунды
   useEffect(() => {
     const timer = setTimeout(() => handleClose(), 3000);
     return () => clearTimeout(timer);
-  }, []); // Пустой массив зависимостей!
+  }, [handleClose]);
 
-  // Свайп
   useEffect(() => {
     let startX = 0;
     const el = document.getElementById(`notif-${id}`);
@@ -90,6 +86,8 @@ function NotifItem({
     <div
       id={`notif-${id}`}
       className={`${styles.notif} ${closing ? styles.closing : ""}`}
+      onClick={handleClose}
+      style={{ cursor: 'pointer' }}
     >
       <svg className={styles.progress} xmlns="http://www.w3.org/2000/svg">
         <rect
@@ -121,6 +119,53 @@ function NotifItem({
         <p className={styles.desc}>{description}</p>
         <span className={styles.code}>Статус код: {code}</span>
       </div>
+    </div>
+  );
+}
+
+export default function StatusNotif() {
+  const [notifs, setNotifs] = useState<NotifProps[]>([]);
+
+  useEffect(() => {
+    console.log("StatusNotif mounted, setting up listener");
+    
+    const handlePush = (e: Event) => {
+      const event = e as CustomEvent;
+      console.log("push-notif event received:", event.detail);
+      
+      const newNotif: NotifProps = {
+        id: idCounter++,
+        code: event.detail.code,
+        description: event.detail.description,
+        type: event.detail.type,
+      };
+      
+      setNotifs((prev) => [...prev, newNotif]);
+      console.log("Notification added to state");
+    };
+
+    window.addEventListener("push-notif", handlePush);
+    console.log("Event listener registered");
+
+    return () => {
+      console.log("StatusNotif unmounting, removing listener");
+      window.removeEventListener("push-notif", handlePush);
+    };
+  }, []);
+
+  const removeNotif = useCallback((id: number) => {
+    setNotifs((prev) => prev.filter((n) => n.id !== id));
+  }, []);
+
+  return (
+    <div className={styles.container}>
+      {notifs.map((notif) => (
+        <NotifItem
+          key={notif.id}
+          {...notif}
+          onClose={() => removeNotif(notif.id)}
+        />
+      ))}
     </div>
   );
 }

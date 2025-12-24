@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import styles from '@/styles/Events/EventDetailModal.module.css';
 import { getEventInfo } from '@/api/events/getEventInfo';
 import { joinEvent } from '@/api/events/joinEvent';
 import { leaveEvent } from '@/api/events/leaveEvent';
+import { getGroupInfo } from '@/api/get_group_info';
+import { getOtherUserInfo } from '@/api/profile/getProfile';
 import { getAccesToken, convertSingleCategRuToEng, convertSessionPlaceToLocation } from '@/Constants';
 import { showNotification } from '@/utils';
 import { getOwnGroups } from '@/api/get_owngroups';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import type { EventFullResponse } from '@/types/apiTypes';
-import { useRouter } from 'next/navigation';
 
 interface EventDetailModalProps {
   isOpen: boolean;
@@ -29,6 +31,9 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
+  const [groupName, setGroupName] = useState<string>('');
+  const [groupId, setGroupId] = useState<number | null>(null);
+  const [isVerifiedCreator, setIsVerifiedCreator] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -36,10 +41,12 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
       loadEventData();
     }
     
-    // Очищаем данные при закрытии
     if (!isOpen) {
       setEventData(null);
       setIsCreator(false);
+      setGroupName('');
+      setGroupId(null);
+      setIsVerifiedCreator(false);
     }
   }, [isOpen, eventId]);
 
@@ -54,6 +61,30 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
     }
   };
 
+  const loadGroupInfo = async (groupId: number, accessToken: string) => {
+    try {
+      const groupData = await getGroupInfo(accessToken, groupId);
+      setGroupName(groupData.name);
+      setGroupId(groupId);
+      
+      console.log("groupData.creater", groupData.creater)
+
+      // Проверяем, является ли создатель группы верифицированным
+      if (groupData.creater) {
+        try {
+          const creatorData = await getOtherUserInfo(accessToken, groupData.creater);
+          console.log("creatorData", creatorData)
+          setIsVerifiedCreator(creatorData.enterprise || false);
+        } catch (error) {
+          console.error('Ошибка при получении данных создателя:', error);
+          setIsVerifiedCreator(false);
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке информации о группе:', error);
+    }
+  };
+
   const loadEventData = async () => {
     if (!eventId) return;
 
@@ -63,8 +94,8 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
       const response = await getEventInfo(accessToken, eventId);
       setEventData(response as EventFullResponse);
       
-      // Проверяем, является ли пользователь создателем
       await checkIfCreator(response.session.group_id, accessToken);
+      await loadGroupInfo(response.session.group_id, accessToken);
     } catch (error: any) {
       console.error('Ошибка загрузки события:', error);
       const errorMessage = error.response?.data?.message || 'Не удалось загрузить данные события';
@@ -85,27 +116,18 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
       const { session } = eventData;
 
       if (session.is_sub) {
-        // Отписаться
         await leaveEvent(accessToken, session.id);
         showNotification(200, 'Вы успешно отписались от события');
       } else {
-        // Присоединиться
         await joinEvent(accessToken, session.group_id, session.id);
         showNotification(200, 'Вы успешно присоединились к событию');
       }
 
-      // Вызываем onJoin если он передан
       if (onJoin) {
         onJoin();
       }
 
-      // Перезагружаем данные события чтобы обновить статус IsSub
       await loadEventData();
-
-      // Обновляем текущую страницу принудительно
-      if (typeof window !== 'undefined') {
-        //window.location.reload();
-      }
     } catch (error: any) {
       console.error('Ошибка при присоединении/отписке:', error);
       const errorMessage = error.response?.data?.message || 'Не удалось выполнить действие';
@@ -113,6 +135,12 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
       showNotification(errorCode, errorMessage);
     } finally {
       setIsActionLoading(false);
+    }
+  };
+
+  const handleGroupClick = () => {
+    if (groupId) {
+      router.push(`/groups/profile/${groupId}`);
     }
   };
 
@@ -154,7 +182,6 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
     return `https://yandex.ru/search/?text=${encodeURIComponent(location)}`;
   };
 
-  // Показываем лоадер во время загрузки
   if (isLoading || !eventData) {
     const modalContent = (
       <div className={styles.modalOverlay} onClick={onClose}>
@@ -167,18 +194,13 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
   }
 
   const { session, metadata } = eventData;
-  
-  // Показываем только первые 9 жанров
   const displayGenres = metadata.Genres.slice(0, 9);
-
-  // Получаем тип события для иконки
   const eventType = convertSingleCategRuToEng(session.session_type);
   const locationIcon = convertSessionPlaceToLocation(session.session_place);
 
   const modalContent = (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
-        {/* Заголовок и кнопка закрытия */}
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>{session.title}</h2>
           <button className={styles.closeButton} onClick={onClose}>
@@ -191,7 +213,6 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
           </button>
         </div>
 
-        {/* Изображение события */}
         <div className={styles.eventImageContainer}>
           <Image
             src={session.image_url}
@@ -209,7 +230,6 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
           </div>
         </div>
 
-        {/* Информация о дате и времени */}
         <div className={styles.eventInfo}>
           <div className={styles.dateInfo}>
             <span className={styles.dateValue} title="По местному времени">Дата проведения: {formatDate(session.start_time)}</span>
@@ -225,12 +245,10 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
           </div>
         </div>
 
-        {/* Описание события */}
         <div className={styles.eventDescription}>
           <p>{metadata.Notes}</p>
         </div>
 
-        {/* Жанры */}
         {displayGenres.length > 0 && (
           <div className={styles.genresSection}>
             <span className={styles.genresLabel}>Жанры:</span>
@@ -244,9 +262,28 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
           </div>
         )}
 
-        {/* Информация об издателе */}
-        {(metadata.Fields?.publisher || metadata.Year || metadata.Location || metadata.AgeLimit) && (
+        {(groupName || metadata.Fields?.publisher || metadata.Year || metadata.Location || metadata.AgeLimit) && (
           <div className={styles.publisherInfo}>
+            {groupName && (
+              <div className={styles.publisherRow}>
+                <span className={styles.publisherLabel}>Группа:</span>
+                <div 
+                  className={`${styles.publisherValue} ${styles.underlined} ${styles.groupName}`}
+                  onClick={handleGroupClick}
+                >
+                  {groupName}
+                  {isVerifiedCreator && (
+                    <Image 
+                      src="/profile/mark.png" 
+                      alt="verified" 
+                      width={16} 
+                      height={16}
+                      className={styles.verifiedIcon}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
             {metadata.Fields?.publisher && (
               <div className={styles.publisherRow}>
                 <span className={styles.publisherLabel}>Издатель:</span>
@@ -288,7 +325,6 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
           </div>
         )}
 
-        {/* Кнопка присоединиться/отписаться или статус создателя */}
         {isCreator ? (
           <div className={`${styles.joinButton} ${styles.creatorButton}`}>
             Вы создатель

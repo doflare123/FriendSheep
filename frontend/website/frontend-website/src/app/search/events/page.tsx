@@ -15,10 +15,9 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 import { searchEvents } from '@/api/search/searchEvents';
 import { yandexMapsAPI } from '@/lib/api/index';
 
-// Маппинг категорий к паттернам фоновых изображений
 const categoryPatterns: Record<string, string> = {
-  'Фильмы': '/events/movie_bg.png',
-  'Игры': '/events/game_bg.png',
+  'Медиа': '/events/movie_bg.png',
+  'Видеоигры': '/events/game_bg.png',
   'Настольные игры': '/events/board_bg.png',
   'Другое': '/events/other_bg.png'
 };
@@ -52,7 +51,6 @@ export default function EventsSearchPage() {
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
   const citySearchTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Маппинг категорий для categoryID
   const getCategoryID = (categoryName: string): number | undefined => {
     const typeArray = convertCategRuToEng([categoryName]);
     if (typeArray.length > 0) {
@@ -62,7 +60,6 @@ export default function EventsSearchPage() {
     return undefined;
   };
 
-  // Обработчик изменения категории
   const handleCategoryChange = (category: string) => {
     setSelectedCategorySort(category);
     
@@ -75,7 +72,6 @@ export default function EventsSearchPage() {
     }
   };
 
-  // Поиск городов через Яндекс.Карты
   useEffect(() => {
     if (cityQuery.length >= 2) {
       if (citySearchTimeoutRef.current) {
@@ -104,7 +100,6 @@ export default function EventsSearchPage() {
     };
   }, [cityQuery]);
 
-  // Функция загрузки событий
   const loadEvents = useCallback(async (page: number, resetEvents: boolean = false) => {
     if (isLoading || (!hasMore && !resetEvents)) return;
 
@@ -122,7 +117,6 @@ export default function EventsSearchPage() {
         params.query = searchQuery.trim();
       }
 
-      // Фильтр по категории через categoryID
       if (selectedCategorySort !== 'Все') {
         const categoryID = getCategoryID(selectedCategorySort);
         if (categoryID) {
@@ -134,11 +128,10 @@ export default function EventsSearchPage() {
         params.sessionType = selectedLocation === 'Онлайн' ? 'Онлайн' : 'Оффлайн';
       }
 
-      if (selectedCity.trim()) {
-        params.city = selectedCity.trim();
+      if (cityQuery.trim()) {
+        params.city = cityQuery.trim();
       }
 
-      // Сортировка: приоритет участники > дата
       if (selectedParticipantSort !== 'По возрастанию') {
         params.sort_by = 'users';
         params.order = selectedParticipantSort === 'По возрастанию' ? 'asc' : 'desc';
@@ -189,23 +182,20 @@ export default function EventsSearchPage() {
       setIsLoading(false);
       setIsInitialLoading(false);
     }
-  }, [searchQuery, selectedCategorySort, selectedDateSort, selectedParticipantSort, selectedLocation, selectedCity, isLoading, hasMore]);
+  }, [searchQuery, selectedCategorySort, selectedDateSort, selectedParticipantSort, selectedLocation, cityQuery, isLoading, hasMore]);
 
-  // Загрузка следующей страницы
   const loadMoreEvents = useCallback(() => {
     if (!isLoading && hasMore) {
       loadEvents(currentPage + 1, false);
     }
   }, [currentPage, isLoading, hasMore, loadEvents]);
 
-  // Начальная загрузка и перезагрузка при изменении фильтров
   useEffect(() => {
     setCurrentPage(1);
     setHasMore(true);
     loadEvents(1, true);
-  }, [selectedCategorySort, selectedDateSort, selectedParticipantSort, selectedLocation, selectedCity]);
+  }, [selectedCategorySort, selectedDateSort, selectedParticipantSort, selectedLocation, cityQuery]);
 
-  // Поиск с задержкой
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -224,7 +214,6 @@ export default function EventsSearchPage() {
     };
   }, [searchQuery]);
 
-  // Закрытие фильтра при клике вне его
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
@@ -238,7 +227,6 @@ export default function EventsSearchPage() {
     };
   }, []);
 
-  // Бесконечный скролл
   useEffect(() => {
     const handleScroll = () => {
       if (containerRef.current) {
@@ -258,18 +246,18 @@ export default function EventsSearchPage() {
     }
   }, [loadMoreEvents, isLoading, hasMore]);
 
-  // Обработчик выбора города
   const handleCitySelect = (city: string) => {
-    setSelectedCity(city);
     setCityQuery(city);
     setShowCitySuggestions(false);
   };
 
-  // Очистка города
   const handleClearCity = () => {
-    setSelectedCity('');
     setCityQuery('');
     setShowCitySuggestions(false);
+  };
+
+  const handleCityInputBlur = () => {
+    setTimeout(() => setShowCitySuggestions(false), 200);
   };
 
   return (
@@ -324,19 +312,19 @@ export default function EventsSearchPage() {
                         <input
                           type="radio"
                           name="categories"
-                          checked={selectedCategorySort === 'Фильмы'}
-                          onChange={() => handleCategoryChange('Фильмы')}
+                          checked={selectedCategorySort === 'Медиа'}
+                          onChange={() => handleCategoryChange('Медиа')}
                         />
-                        <span>Фильмы</span>
+                        <span>Медиа</span>
                       </label>
                       <label className={styles.filterOption}>
                         <input
                           type="radio"
                           name="categories"
-                          checked={selectedCategorySort === 'Игры'}
-                          onChange={() => handleCategoryChange('Игры')}
+                          checked={selectedCategorySort === 'Видеоигры'}
+                          onChange={() => handleCategoryChange('Видеоигры')}
                         />
-                        <span>Игры</span>
+                        <span>Видеоигры</span>
                       </label>
                       <label className={styles.filterOption}>
                         <input
@@ -396,10 +384,11 @@ export default function EventsSearchPage() {
                           type="text"
                           value={cityQuery}
                           onChange={(e) => setCityQuery(e.target.value)}
-                          placeholder="Начните вводить город..."
+                          onBlur={handleCityInputBlur}
+                          placeholder="Введите город..."
                           className={styles.cityInput}
                         />
-                        {selectedCity && (
+                        {cityQuery && (
                           <button
                             onClick={handleClearCity}
                             className={styles.clearCityButton}
@@ -413,7 +402,7 @@ export default function EventsSearchPage() {
                             {citySuggestions.map((city, index) => (
                               <div
                                 key={index}
-                                onClick={() => handleCitySelect(city)}
+                                onMouseDown={() => handleCitySelect(city)}
                                 className={styles.citySuggestionItem}
                               >
                                 {city}

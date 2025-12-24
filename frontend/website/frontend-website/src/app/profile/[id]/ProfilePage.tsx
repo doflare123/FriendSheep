@@ -134,7 +134,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     const labels: { [key: string]: string } = {
       count_all: "Всего",
       count_films: "Кино",
-      count_games: "Игры", 
+      count_games: "Видеоигры", 
       count_other: "Другое",
       count_table: "Настолки",
       spent_time: "Часов"
@@ -447,31 +447,43 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                       {editedData.name}
                     </h2>
                   )}
-                  {profileData.enterprise && !isEditMode && (
-                    <Image src="/profile/mark.png" alt="verified" width={20} height={20} className={section1Styles.verifiedMark} />
-                  )}
-                </div>
-                
-                {isOwnProfile && !isEditMode && (
-                  <div className={section1Styles.telegramContainer}>
-                    <div 
-                      className={section1Styles.telegramIcon}
-                      onClick={handleTelegramClick}
-                    >
-                      <Image 
-                        src={!profileData.telegram_link ? "/social/tg_grey.png" : getSocialIcon("t.me")} 
-                        alt="telegram" 
-                        width={24} 
-                        height={24}
-                      />
-                      {!profileData.telegram_link && (
-                        <div className={section1Styles.tooltip}>
-                          У вас не привязан телеграм, чтобы получать напоминания о событиях, на которые вы записались. Но это можно исправить зайдя в этого бота в телеграме: <span className={section1Styles.botLink}>@FriendShipNotify_bot</span>
+                  
+                  {/* Иконки в одном ряду */}
+                  <div className={section1Styles.userBadges}>
+                    {profileData.enterprise && !isEditMode && (
+                      <div className={section1Styles.verifiedBadge}>
+                        <Image 
+                          src="/profile/mark.png" 
+                          alt="verified" 
+                          width={20} 
+                          height={20} 
+                        />
+                        <div className={section1Styles.verifiedTooltip}>
+                          Этот пользователь надёжен
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+                    
+                    {isOwnProfile && !isEditMode && (
+                      <div 
+                        className={section1Styles.telegramBadge}
+                        onClick={handleTelegramClick}
+                      >
+                        <Image 
+                          src={!profileData.telegram_link ? "/social/tg_grey.png" : getSocialIcon("t.me")} 
+                          alt="telegram" 
+                          width={20} 
+                          height={20}
+                        />
+                        {!profileData.telegram_link && (
+                          <div className={section1Styles.telegramTooltip}>
+                            У вас не привязан телеграм, чтобы получать напоминания о событиях, на которые вы записались. Но это можно исправить зайдя в этого бота в телеграме: <span className={section1Styles.botLink}>@FriendShipNotify_bot</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
               <div className={section1Styles.userUsContainer}>

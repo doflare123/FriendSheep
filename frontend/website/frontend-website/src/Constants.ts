@@ -33,8 +33,8 @@ export const convertCategoriesToIds = (categories: string[]): number[] => {
 
 export const convertCategRuToEng = (categoryIds: string[]): ('games' | 'movies' | 'board' | 'other')[] => {
     const idMap: { [key: string]: 'games' | 'movies' | 'board' | 'other' } = {
-      'Фильмы': 'movies',    // Фильмы
-      'Игры': 'games',     // Игры
+      'Медиа': 'movies',    // Фильмы
+      'Видеоигры': 'games',     // Игры
       'Настольные игры': 'board',     // Настольные игры
       'Другое': 'other'      // Другое
     };
@@ -44,8 +44,8 @@ export const convertCategRuToEng = (categoryIds: string[]): ('games' | 'movies' 
 
 export const convertCategEngToRu = (categories: ('games' | 'movies' | 'board' | 'other')[]): string[] => {
   const categoryMap: { [key: string]: string } = {
-    'movies': 'Фильмы',
-    'games': 'Игры',
+    'movies': 'Медиа',
+    'games': 'Видеоигры',
     'board': 'Настольные игры',
     'other': 'Другое'
   };
@@ -216,9 +216,9 @@ export const updateUserData = async (): UserDataResponse | null => {
 export const getCategoryIcon = (category: string): string => {
   const lowerCategory = category.toLowerCase();
   
-  if (lowerCategory.includes('games') || lowerCategory =='игры') {
+  if (lowerCategory.includes('games') || lowerCategory =='видеоигры') {
     return '/events/games.png';
-  } else if (lowerCategory.includes('movies') || lowerCategory.includes('фильмы')) {
+  } else if (lowerCategory.includes('movies') || lowerCategory.includes('медиа')) {
     return '/events/movies.png';
   } else if (lowerCategory.includes('boards') || lowerCategory.includes('board') || lowerCategory.includes('настолки') || lowerCategory.includes('настольные игры')) {
     return '/events/board.png';

@@ -237,7 +237,7 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
                     checked={sortOptions.category === 'games'}
                     onChange={() => handleCategoryChange('games')}
                   />
-                  <span>Игры</span>
+                  <span>Видеоигры</span>
                 </label>
                 <label className={styles.sortOption}>
                   <input
@@ -246,7 +246,7 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
                     checked={sortOptions.category === 'movies'}
                     onChange={() => handleCategoryChange('movies')}
                   />
-                  <span>Фильмы</span>
+                  <span>Медиа</span>
                 </label>
                 <label className={styles.sortOption}>
                   <input

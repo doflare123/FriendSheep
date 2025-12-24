@@ -11,7 +11,7 @@
 
 .settingsButton {
   position: absolute;
-  top: 15px;
+  top: 8px;
   right: 15px;
   z-index: 10;
 }
@@ -91,7 +91,7 @@
 .nameWrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   position: relative;
 }
 
@@ -121,30 +121,79 @@
   white-space: nowrap;
 }
 
-.verifiedMark {
-  margin-left: 4px;
+/* Компактное расположение иконок */
+.userBadges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
-.telegramContainer {
+.verifiedBadge, .telegramBadge {
   position: relative;
-  z-index: 10;
-}
-
-.telegramIcon {
   cursor: pointer;
   transition: opacity 0.2s;
-  position: relative;
+  display: flex;
+  align-items: center;
 }
 
-.telegramIcon:hover {
+.verifiedBadge:hover, .telegramBadge:hover {
   opacity: 0.8;
 }
 
-.telegramIcon:hover .tooltip {
+.verifiedBadge:hover .verifiedTooltip,
+.telegramBadge:hover .telegramTooltip {
   display: block;
 }
 
-.tooltip {
+/* Tooltip для галочки */
+.verifiedTooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 2px solid var(--color-primary-blue);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  white-space: nowrap;
+  z-index: 9999;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.verifiedTooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--color-primary-blue);
+}
+
+.verifiedTooltip::before {
+  content: '';
+  position: absolute;
+  top: calc(100% - 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--color-bg-primary);
+  z-index: 1;
+}
+
+/* Tooltip для телеграмма */
+.telegramTooltip {
   display: none;
   position: absolute;
   bottom: calc(100% + 8px);
@@ -165,7 +214,7 @@
   pointer-events: none;
 }
 
-.tooltip::after {
+.telegramTooltip::after {
   content: '';
   position: absolute;
   top: 100%;
@@ -178,7 +227,7 @@
   border-top: 8px solid var(--color-primary-blue);
 }
 
-.tooltip::before {
+.telegramTooltip::before {
   content: '';
   position: absolute;
   top: calc(100% - 2px);
@@ -304,6 +353,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 200px;
+  cursor: default;
 }
 
 .usEditWrapper {

@@ -193,6 +193,7 @@ div.modalOverlay .modalContent {
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+    min-height: 50px;
 }
 
 .socialIcon {
@@ -316,7 +317,7 @@ div.modalOverlay .modalContent {
   display: flex;
   gap: 12px;
   justify-content: center;
-  margin-top: 10px;
+  margin-top: 30px;
 }
 
 .createButton {

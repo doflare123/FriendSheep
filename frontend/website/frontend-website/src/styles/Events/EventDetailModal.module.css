@@ -666,3 +666,19 @@
 .joinButton:disabled:hover {
   transform: none;
 }
+
+.groupName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.groupName:hover {
+  opacity: 0.8;
+}
+
+.verifiedIcon {
+  flex-shrink: 0;
+}
