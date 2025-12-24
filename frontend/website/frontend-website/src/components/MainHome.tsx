@@ -21,7 +21,7 @@ export default function MainHome({ token }: MainHomeProps) {
   const [loadingStage, setLoadingStage] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
-  const clickableCategories = ['Медиа', 'Игры', 'Настольные игры', 'Другое'];
+  const clickableCategories = ['Медиа', 'Видеоигры', 'Настольные игры', 'Другое'];
 
   useEffect(() => {
     const loadData = async () => {
