@@ -7,46 +7,69 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterGroupsRoutes(r *gin.Engine, groupH handlers.GroupHandler, jwtAuth *middlewares.AuthMiddleware) {
-	group := r.Group("api/v2/groups")
+func RegisterGroupsRoutes(
+	router *gin.Engine,
+	groupHandler handlers.GroupHandler,
+	authMiddleware *middlewares.AuthMiddleware,
+	groupRoleMiddleware *middlewares.GroupRoleMiddleware,
+) {
+	// Публичные эндпоинты (требуют только авторизацию)
+	groupsPublic := router.Group("/api/v2/groups")
+	groupsPublic.Use(authMiddleware.RequireAuth())
 	{
-		group.POST("/create", jwtAuth.RequireAuth(), groupH.CreateGroup)
+		// Создание группы (любой авторизованный пользователь)
+		groupsPublic.POST("", groupHandler.CreateGroup)
+
+		// Вступление в группу (любой авторизованный пользователь)
+		groupsPublic.POST("/:groupId/join", groupHandler.JoinGroup)
+
+		// Выход из группы (любой авторизованный пользователь)
+		groupsPublic.POST("/:groupId/leave", groupHandler.LeaveGroup)
+
+		// Приглашения - принятие и отклонение (любой авторизованный пользователь)
+		groupsPublic.POST("/invites/:inviteId/accept", groupHandler.AcceptJoinInvite)
+		groupsPublic.POST("/invites/:inviteId/reject", groupHandler.RejectJoinInvite)
+		groupsPublic.POST("/requests/:requestId/approve", groupHandler.ApproveJoinRequest)
+		groupsPublic.POST("/requests/:requestId/reject", groupHandler.RejectJoinRequest)
+	}
+
+	// Эндпоинты для операторов и админов
+	groupsOperator := router.Group("/api/v2/groups")
+	groupsOperator.Use(authMiddleware.RequireAuth())
+	groupsOperator.Use(groupRoleMiddleware.RequireOperatorOrAdmin())
+	{
+		// Обновление группы (admin, operator)
+		groupsOperator.PUT("", groupHandler.UpdateGroup)
+
+		// Управление заявками (admin, operator)
+		groupsOperator.POST("/:groupId/requests/approve-all", groupHandler.ApproveAllJoinRequests)
+		groupsOperator.POST("/:groupId/requests/reject-all", groupHandler.RejectAllJoinRequests)
+
+		// Получение данных
+		groupsOperator.GET("/:groupId/blacklist", groupHandler.GetGroupBlacklist)
+		groupsOperator.GET("/:groupId/requests", groupHandler.GetJoinRequests)
+
+		// Управление участниками (admin, operator)
+		groupsOperator.DELETE("/:groupId/members/:userId", groupHandler.DeleteUserFromGroup)
+		groupsOperator.DELETE("/:groupId/blacklist/:userId", groupHandler.RemoveFromBlacklist)
+
+		// Отправка приглашений (admin, operator)
+		groupsOperator.POST("/invites", groupHandler.CreateJoinInvite)
+	}
+
+	// Эндпоинты только для админов
+	groupsAdmin := router.Group("/api/v2/groups")
+	groupsAdmin.Use(authMiddleware.RequireAuth())
+	// groupsAdmin.Use(groupRoleMiddleware.RequireAdmin()) // Раскомментировать для проверки роли через middleware
+	{
+		// Удаление группы (только admin)
+		groupsAdmin.DELETE("/:groupId", groupHandler.DeleteGroup)
+
+		// Управление правами (только admin)
+		groupsAdmin.POST("/permissions/add", groupHandler.AddPermissions)
+		groupsAdmin.POST("/permissions/remove", groupHandler.RemovePermissions)
+
+		// Просмотр истории действий
+		groupsAdmin.GET("/:groupId/actions", groupHandler.WatchRecentActions)
 	}
 }
-
-// func RouterGroups(r *gin.Engine) {
-// 	GroupGroup := r.Group("/api/groups")
-// 	{
-// 		GroupGroup.POST("/createGroup", middlewares.JWTAuthMiddleware(), handlers.CreateGroup)
-// 		GroupGroup.POST("/joinToGroup", middlewares.JWTAuthMiddleware(), handlers.JoinGroup)
-// 		GroupGroup.GET("/requests/:groupId", middlewares.JWTAuthMiddleware(), handlers.GetJoinRequests)
-// 		GroupGroup.DELETE("/:groupId/leave", middlewares.JWTAuthMiddleware(), handlers.LeaveGroupHandler)
-// 		GroupGroup.GET("/:groupId", middlewares.JWTAuthMiddleware(), handlers.GetGroupInf)
-// 		GroupGroup.GET("/search", middlewares.JWTAuthMiddleware(), handlers.SearchGroups)
-// 	}
-
-// 	GroupAdminGroups := r.Group("api/admin/groups")
-// 	{
-// 		GroupAdminGroups.GET("", middlewares.JWTAuthMiddleware(), handlers.GetAdminGroups)
-// 		GroupAdminGroups.POST("/requestsForUser", middlewares.JWTAuthMiddleware(), handlers.SentJoinRequests)
-// 		GroupAdminGroups.POST("/requests/:requestId/approve", middlewares.JWTAuthMiddleware(), handlers.ApproveJoinRequest)
-// 		GroupAdminGroups.POST("/requests/:requestId/reject", middlewares.JWTAuthMiddleware(), handlers.RejectJoinRequest)
-// 		GroupAdminGroups.POST("/requests/all/:groupId/approveAll", middlewares.JWTAuthMiddleware(), handlers.ApproveJoinAllRequest)
-// 		GroupAdminGroups.POST("/requests/all/:groupId/rejectAll", middlewares.JWTAuthMiddleware(), handlers.RejectJoinAllRequest)
-// 		// GroupAdminGroups.POST("/UploadPhoto", middlewares.JWTAuthMiddleware(), handlers.ChangePhoto)
-
-// 		// Роуты, требующие прав администратора или оператора
-// 		moderatorRequired := GroupAdminGroups.Group("/:groupId", middlewares.JWTAuthMiddleware(), middlewares.GroupRoleMiddleware("admin", "operator"))
-// 		{
-// 			moderatorRequired.DELETE("/members/:userId", handlers.RemoveUserHandler)
-// 			moderatorRequired.GET("/infGroup", handlers.GetInfAdminGroup)
-// 		}
-
-// 		// Роуты, требующие прав только администратора
-// 		adminRequired := GroupAdminGroups.Group("/:groupId", middlewares.JWTAuthMiddleware(), middlewares.GroupRoleMiddleware("admin"))
-// 		{
-// 			adminRequired.DELETE("/", handlers.DeleteGroups)
-// 			adminRequired.PATCH("/", handlers.UpdateGroupHandler)
-// 		}
-// 	}
-// }

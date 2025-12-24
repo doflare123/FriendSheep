@@ -9,7 +9,7 @@ import (
 
 type Role_in_group struct {
 	Id   uint
-	Name string
+	Name string `gorm:"uniqueIndex;not null"`
 }
 
 func (r *Role_in_group) GetIdRole(str string, post repository.PostgresRepository) uint {

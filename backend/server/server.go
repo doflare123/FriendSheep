@@ -51,7 +51,7 @@ func InitServer() (*Server, error) {
 		gin.SetMode(gin.DebugMode)
 		if err := db.AutoMigDB(postgres, &models.User{}, &news.News{}, &news.ContentNews{}, &news.Comments{}, &statsusers.SideStats_users{}, &statsusers.SessionStats_users{}, &statsusers.SessionsStatsGenres_users{},
 			&statsusers.Genre{}, statsusers.PopSessionType{}, statsusers.SettingTile{}, &models.User{}, models.StatsProcessedEvent{},
-			&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{}, &groups.GroupJoinInvite{},
+			&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{}, &groups.GroupJoinInvite{}, &groups.GroupBlacklist{}, &groups.GroupActionLog{},
 			&sessions.Session{}, &sessions.SessionGroupType{}, &sessions.SessionMetadata{}, sessions.Status{}, &sessions.SessionUser{}); err != nil {
 			logger.Error("Error with auto migration: %s", err)
 		}

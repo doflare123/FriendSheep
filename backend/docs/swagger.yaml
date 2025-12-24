@@ -43,7 +43,95 @@ definitions:
       updatedAt:
         type: string
     type: object
+  group.BlacklistUser:
+    properties:
+      bannedBy:
+        type: integer
+      bannedByName:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      reason:
+        type: string
+      us:
+        type: string
+      userId:
+        type: integer
+    type: object
   group.CreateGroupInput:
+    type: object
+  group.GroupAction:
+    properties:
+      action:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      groupId:
+        type: integer
+      id:
+        type: integer
+      role:
+        type: string
+      us:
+        type: string
+      userId:
+        type: integer
+      username:
+        type: string
+    type: object
+  group.GroupResult:
+    properties:
+      joined:
+        type: boolean
+      message:
+        type: string
+    type: object
+  group.JoinInviteInput:
+    properties:
+      groupId:
+        type: integer
+      userId:
+        type: integer
+    required:
+    - groupId
+    - userId
+    type: object
+  group.JoinRequestInfo:
+    properties:
+      createdAt:
+        type: string
+      groupId:
+        type: integer
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      us:
+        type: string
+      userId:
+        type: integer
+    type: object
+  group.PermissionInput:
+    properties:
+      groupId:
+        type: integer
+      userId:
+        type: integer
+    required:
+    - groupId
+    - userId
     type: object
   handlers.AuthResponse:
     properties:
@@ -55,6 +143,31 @@ definitions:
         type: array
       refresh_token:
         type: string
+    type: object
+  handlers.GroupUpdateRequest:
+    properties:
+      categories:
+        items:
+          type: integer
+        type: array
+      city:
+        type: string
+      contacts:
+        type: string
+      description:
+        type: string
+      groupId:
+        type: integer
+      image:
+        type: string
+      isPrivate:
+        type: boolean
+      name:
+        type: string
+      smallDescription:
+        type: string
+    required:
+    - groupId
     type: object
   handlers.RefreshRequest:
     properties:
@@ -860,7 +973,7 @@ paths:
       summary: Аутентификация пользователя
       tags:
       - auth
-  /api/v2/groups/create:
+  /api/v2/groups:
     post:
       consumes:
       - application/json
@@ -900,6 +1013,860 @@ paths:
       security:
       - BearerAuth: []
       summary: Создание группы
+      tags:
+      - groups
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию о группе. Все поля кроме groupId опциональны
+      parameters:
+      - description: Данные для обновления группы
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.GroupUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Группа успешно обновлена
+          schema:
+            $ref: '#/definitions/dto.GroupDto'
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Группа не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновление группы
+      tags:
+      - groups_admin
+  /api/v2/groups/{groupId}:
+    delete:
+      description: Удаляет группу. Доступно только для админа группы
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Группа успешно удалена
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Группа не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удаление группы
+      tags:
+      - groups_admin
+  /api/v2/groups/{groupId}/actions:
+    get:
+      description: Возвращает список последних действий операторов и админов в группе
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      - description: Количество записей (по умолчанию 50, максимум 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: История действий
+          schema:
+            items:
+              $ref: '#/definitions/group.GroupAction'
+            type: array
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить историю действий в группе
+      tags:
+      - groups
+  /api/v2/groups/{groupId}/blacklist:
+    get:
+      description: Возвращает список забаненных пользователей. Доступно для админов
+        и операторов
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      - description: Количество записей (по умолчанию 50, максимум 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Черный список
+          schema:
+            items:
+              $ref: '#/definitions/group.BlacklistUser'
+            type: array
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить черный список группы
+      tags:
+      - groups_admin
+  /api/v2/groups/{groupId}/blacklist/{userId}:
+    delete:
+      description: Удаляет пользователя из черного списка группы. Доступно для админов
+        и операторов
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      - description: ID пользователя
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пользователь удален из черного списка
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден в черном списке
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Убрать из черного списка
+      tags:
+      - groups_admin
+  /api/v2/groups/{groupId}/join:
+    post:
+      consumes:
+      - application/json
+      description: Для открытых групп - сразу добавляет пользователя. Для приватных
+        - создает заявку на вступление
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Результат вступления в группу
+          schema:
+            $ref: '#/definitions/group.GroupResult'
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Группа не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Уже в группе или заявка уже отправлена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Вступление в группу
+      tags:
+      - groups
+  /api/v2/groups/{groupId}/leave:
+    post:
+      description: Пользователь покидает группу. Админ не может покинуть группу
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Вы покинули группу
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Админ не может покинуть группу
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Вы не состоите в группе
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Выход из группы
+      tags:
+      - groups
+  /api/v2/groups/{groupId}/members/{userId}:
+    delete:
+      description: Удаляет пользователя из группы и добавляет в черный список. Доступно
+        для админов и операторов
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      - description: ID пользователя
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пользователь удален из группы
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить пользователя из группы
+      tags:
+      - groups_admin
+  /api/v2/groups/{groupId}/requests:
+    get:
+      description: Возвращает список заявок на вступление в группу. Доступно для админов
+        и операторов
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      - description: Статус заявки (pending, approved, rejected)
+        in: query
+        name: status
+        type: string
+      - description: Количество записей (по умолчанию 50, максимум 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список заявок
+          schema:
+            items:
+              $ref: '#/definitions/group.JoinRequestInfo'
+            type: array
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить заявки на вступление
+      tags:
+      - groups_admin
+  /api/v2/groups/{groupId}/requests/approve-all:
+    post:
+      description: Одобряет все ожидающие заявки на вступление в группу. Доступно
+        для админов и операторов
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Количество одобренных заявок
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Одобрить все заявки на вступление
+      tags:
+      - groups_admin
+  /api/v2/groups/{groupId}/requests/reject-all:
+    post:
+      description: Отклоняет все ожидающие заявки на вступление в группу. Доступно
+        для админов и операторов
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Количество отклоненных заявок
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отклонить все заявки на вступление
+      tags:
+      - groups_admin
+  /api/v2/groups/invites:
+    post:
+      consumes:
+      - application/json
+      description: Отправляет приглашение пользователю вступить в группу. Доступно
+        для админов и операторов
+      parameters:
+      - description: ID группы и пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/group.JoinInviteInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Приглашение отправлено
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Приглашение уже существует или пользователь уже в группе
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать приглашение в группу
+      tags:
+      - groups_admin
+  /api/v2/groups/invites/{inviteId}/accept:
+    post:
+      description: Принимает приглашение и добавляет пользователя в группу
+      parameters:
+      - description: ID приглашения
+        in: path
+        name: inviteId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Приглашение принято
+          schema:
+            $ref: '#/definitions/group.GroupResult'
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Пользователь в черном списке
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Приглашение не найдено
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Принять приглашение в группу
+      tags:
+      - groups
+  /api/v2/groups/invites/{inviteId}/reject:
+    post:
+      description: Отклоняет приглашение вступить в группу
+      parameters:
+      - description: ID приглашения
+        in: path
+        name: inviteId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Приглашение отклонено
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Приглашение не найдено
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отклонить приглашение в группу
+      tags:
+      - groups
+  /api/v2/groups/permissions/add:
+    post:
+      consumes:
+      - application/json
+      description: Назначает пользователя оператором группы. Доступно только для админа
+      parameters:
+      - description: ID группы и пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/group.PermissionInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Права успешно назначены
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Назначить оператора
+      tags:
+      - groups_admin
+  /api/v2/groups/permissions/remove:
+    post:
+      consumes:
+      - application/json
+      description: Снимает с пользователя права оператора группы. Доступно только
+        для админа
+      parameters:
+      - description: ID группы и пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/group.PermissionInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Права успешно сняты
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Снять права оператора
+      tags:
+      - groups_admin
+  /api/v2/groups/requests/{requestId}/approve:
+    post:
+      description: Одобряет конкретную заявку на вступление в группу. Доступно для
+        админов и операторов
+      parameters:
+      - description: ID заявки
+        in: path
+        name: requestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Заявка одобрена
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Заявка не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Одобрить заявку на вступление
+      tags:
+      - groups_admin
+  /api/v2/groups/requests/{requestId}/reject:
+    post:
+      description: Отклоняет конкретную заявку на вступление в группу. Доступно для
+        админов и операторов
+      parameters:
+      - description: ID заявки
+        in: path
+        name: requestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Заявка отклонена
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Заявка не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отклонить заявку на вступление
       tags:
       - groups_admin
   /api/v2/register/:

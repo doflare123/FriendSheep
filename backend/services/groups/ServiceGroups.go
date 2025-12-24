@@ -3,24 +3,32 @@ package group
 import (
 	"errors"
 	"fmt"
-	"friendship/db"
 	"friendship/logger"
 	"friendship/models"
 	"friendship/models/dto"
 	"friendship/models/groups"
 	"friendship/repository"
 	"friendship/services"
-	"log"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
 
 var (
-	ErrUserNotFound       = errors.New("пользователь не найден")
-	ErrCategoriesNotFound = errors.New("категории не найдены")
-	ErrInvalidInput       = errors.New("невалидная структура данных")
-	ErrGroupCreation      = errors.New("ошибка создания группы")
+	ErrUserNotFound         = errors.New("пользователь не найден")
+	ErrCategoriesNotFound   = errors.New("категории не найдены")
+	ErrInvalidInput         = errors.New("невалидная структура данных")
+	ErrGroupCreation        = errors.New("ошибка создания группы")
+	ErrGroupNotFound        = errors.New("группа не найдена")
+	ErrPermissionDenied     = errors.New("недостаточно прав")
+	ErrAlreadyInGroup       = errors.New("пользователь уже в группе")
+	ErrNotInGroup           = errors.New("пользователь не в группе")
+	ErrRequestAlreadyExists = errors.New("заявка уже существует")
+	ErrInviteAlreadyExists  = errors.New("приглашение уже существует")
+	ErrUserInBlacklist      = errors.New("пользователь в черном списке")
+	ErrCannotRemoveSelf     = errors.New("нельзя удалить самого себя")
+	ErrCannotChangeOwnRole  = errors.New("нельзя изменить собственную роль")
 )
 
 type CreateGroupInput struct {
@@ -34,53 +42,106 @@ type CreateGroupInput struct {
 	Contacts         string  `json:"contacts,omitempty" form:"contacts" example:"vk:https://vk.com/mygroup, tg:https://t.me/mygroup"`
 }
 
+type GroupUpdateInput struct {
+	GroupID          uint
+	Name             *string
+	Description      *string
+	SmallDescription *string
+	Image            *string
+	IsPrivate        *bool
+	City             *string
+	Categories       []*uint
+	Contacts         *string
+}
+
+type PermissionInput struct {
+	GroupID uint `json:"groupId" binding:"required"`
+	UserID  uint `json:"userId" binding:"required"`
+}
+
+type JoinInviteInput struct {
+	GroupID uint `json:"groupId" binding:"required"`
+	UserID  uint `json:"userId" binding:"required"`
+}
+
+type GroupResult struct {
+	Message string `json:"message"`
+	Joined  bool   `json:"joined"`
+}
+
+type GroupAction struct {
+	ID          uint      `json:"id"`
+	GroupID     uint      `json:"groupId"`
+	UserID      uint      `json:"userId"`
+	Username    string    `json:"username"`
+	Us          string    `json:"us"`
+	Role        string    `json:"role"`
+	Action      string    `json:"action"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
+type BlacklistUser struct {
+	ID           uint      `json:"id"`
+	UserID       uint      `json:"userId"`
+	Name         string    `json:"name"`
+	Us           string    `json:"us"`
+	Image        string    `json:"image"`
+	BannedBy     uint      `json:"bannedBy"`
+	BannedByName string    `json:"bannedByName"`
+	Reason       string    `json:"reason"`
+	CreatedAt    time.Time `json:"createdAt"`
+}
+
+type JoinRequestInfo struct {
+	ID        uint      `json:"id"`
+	UserID    uint      `json:"userId"`
+	Name      string    `json:"name"`
+	Us        string    `json:"us"`
+	Image     string    `json:"image"`
+	GroupID   uint      `json:"groupId"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 type GroupsService interface {
+	// Базовые операции с группами
 	CreateGroup(id uint, inf CreateGroupInput) (*dto.GroupDto, error)
-	UpdateGroup(inf GroupUpdateInput) (dto.GroupDto, error)
-	DeleteGroup(idGroup int) (bool, error)
-	ApproveAllJoinRequests(idGroup int) (bool, error)
-	RejectAllJoinRequests(idGroup int) (bool, error)
-	ApproveJoinRequests(id int) (bool, error)
-	RejectJoinRequests(id int) (bool, error)
-	JoinGroup(idGroup int, idUser int) (GroupResult, error)
-	LeaveGroup(idGroup int, idUser int) (GroupResult, error)
+	UpdateGroup(actorID uint, inf GroupUpdateInput) (*dto.GroupDto, error)
+	DeleteGroup(actorID uint, groupID uint) (bool, error)
+
+	// Управление заявками
+	ApproveAllJoinRequests(actorID uint, groupID uint) (int, error)
+	RejectAllJoinRequests(actorID uint, groupID uint) (int, error)
+	ApproveJoinRequest(actorID uint, requestID uint) (bool, error)
+	RejectJoinRequest(actorID uint, requestID uint) (bool, error)
+	GetJoinRequests(actorID uint, groupID uint, status string, limit int) ([]JoinRequestInfo, error)
+
+	// Вступление/выход
+	JoinGroup(userID uint, groupID uint) (*GroupResult, error)
+	LeaveGroup(userID uint, groupID uint) (bool, error)
+
+	// Управление правами
+	AddPermissions(actorID uint, input PermissionInput) (bool, error)
+	RemovePermissions(actorID uint, input PermissionInput) (bool, error)
+
+	// Управление участниками
+	DeleteUserFromGroup(actorID uint, groupID uint, targetUserID uint) (bool, error)
+	RemoveFromBlacklist(actorID uint, groupID uint, targetUserID uint) (bool, error)
+	GetGroupBlacklist(actorID uint, groupID uint, limit int) ([]BlacklistUser, error)
+
+	// Приглашения
+	CreateJoinInvite(actorID uint, input JoinInviteInput) (bool, error)
+	AcceptJoinInvite(userID uint, inviteID uint) (*GroupResult, error)
+	RejectJoinInvite(userID uint, inviteID uint) (bool, error)
+
+	// История действий
+	WatchRecentActions(userID uint, groupID uint, limit int) ([]GroupAction, error)
 }
 
 type groupService struct {
 	logger logger.Logger
 	post   repository.PostgresRepository
-}
-
-func (g *groupService) JoinGroup(idGroup int, idUser int) (GroupResult, error) {
-	panic("unimplemented")
-}
-
-func (g *groupService) LeaveGroup(idGroup int, idUser int) (GroupResult, error) {
-	panic("unimplemented")
-}
-
-func (g *groupService) ApproveAllJoinRequests(idGroup int) (bool, error) {
-	panic("unimplemented")
-}
-
-func (g *groupService) ApproveJoinRequests(id int) (bool, error) {
-	panic("unimplemented")
-}
-
-func (g *groupService) DeleteGroup(idGroup int) (bool, error) {
-	panic("unimplemented")
-}
-
-func (g *groupService) RejectAllJoinRequests(idGroup int) (bool, error) {
-	panic("unimplemented")
-}
-
-func (g *groupService) RejectJoinRequests(id int) (bool, error) {
-	panic("unimplemented")
-}
-
-func (g *groupService) UpdateGroup(inf GroupUpdateInput) (dto.GroupDto, error) {
-	panic("unimplemented")
 }
 
 func NewGroupService(logger logger.Logger, rep repository.PostgresRepository) GroupsService {
@@ -90,6 +151,7 @@ func NewGroupService(logger logger.Logger, rep repository.PostgresRepository) Gr
 	}
 }
 
+// CreateGroup создает новую группу
 func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupDto, error) {
 	if err := services.ValidateInput(input); err != nil {
 		return nil, fmt.Errorf("невалидная структура данных: %v", err)
@@ -104,7 +166,7 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupD
 	if _, err := creator.FindUserByID(id, s.post); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			s.logger.Error("Creator not found", "Id", id)
-			return nil, fmt.Errorf("%w по email: %s", ErrUserNotFound, id)
+			return nil, fmt.Errorf("%w: %d", ErrUserNotFound, id)
 		}
 		s.logger.Error("Database error while finding creator", "Id", id, "error", err)
 		return nil, fmt.Errorf("ошибка поиска пользователя: %w", err)
@@ -139,10 +201,15 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupD
 			return fmt.Errorf("ошибка создания группы: %w", err)
 		}
 
+		roleID := new(groups.Role_in_group).GetIdRole("Админ", s.post)
+		if roleID == 0 {
+			return fmt.Errorf("роль Админ не найдена")
+		}
+
 		groupUser := groups.GroupUsers{
 			UserID:        id,
 			GroupID:       newGroup.ID,
-			RoleInGroupID: new(groups.Role_in_group).GetIdRole("Админ", s.post),
+			RoleInGroupID: roleID,
 		}
 
 		if err := tx.Create(&groupUser).Error; err != nil {
@@ -168,6 +235,12 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupD
 			}
 		}
 
+		// Логируем действие
+		action := fmt.Sprintf("Создал группу '%s'", newGroup.Name)
+		if err := s.logAction(tx, newGroup.ID, id, creator.Name, creator.Us, "Админ", "create_group", action); err != nil {
+			s.logger.Warn("Failed to log action", "error", err)
+		}
+
 		return nil
 	})
 
@@ -190,7 +263,983 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupD
 	return groupDto, nil
 }
 
-// парсинга контактов
+// UpdateGroup обновляет группу
+func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.GroupDto, error) {
+	// Проверяем права доступа
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{"Админ", "Модератор"})
+	if err != nil {
+		return nil, err
+	}
+	if !hasAccess {
+		return nil, ErrPermissionDenied
+	}
+
+	var group groups.Group
+	var actor models.User
+
+	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+		if err := tx.First(&group, input.GroupID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrGroupNotFound
+			}
+			return fmt.Errorf("ошибка поиска группы: %w", err)
+		}
+
+		if err := tx.First(&actor, actorID).Error; err != nil {
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		// Обновляем только переданные поля
+		updates := make(map[string]interface{})
+		if input.Name != nil {
+			updates["name"] = *input.Name
+		}
+		if input.Description != nil {
+			updates["description"] = *input.Description
+		}
+		if input.SmallDescription != nil {
+			updates["small_description"] = *input.SmallDescription
+		}
+		if input.Image != nil {
+			updates["image"] = *input.Image
+		}
+		if input.IsPrivate != nil {
+			updates["is_private"] = *input.IsPrivate
+		}
+		if input.City != nil {
+			updates["city"] = *input.City
+		}
+
+		if len(updates) > 0 {
+			if err := tx.Model(&group).Updates(updates).Error; err != nil {
+				return fmt.Errorf("не удалось сохранить изменения группы: %w", err)
+			}
+		}
+
+		// Обновляем категории только если они переданы
+		if input.Categories != nil {
+			// Очищаем старые категории
+			if err := tx.Model(&group).Association("Categories").Clear(); err != nil {
+				return fmt.Errorf("не удалось очистить старые категории: %w", err)
+			}
+
+			// Добавляем новые категории (если массив не пустой)
+			if len(input.Categories) > 0 {
+				var newCategories []models.Category
+				if err := tx.Where("id IN ?", input.Categories).Find(&newCategories).Error; err != nil {
+					return fmt.Errorf("не удалось найти переданные категории: %w", err)
+				}
+				if err := tx.Model(&group).Association("Categories").Replace(&newCategories); err != nil {
+					return fmt.Errorf("не удалось назначить новые категории: %w", err)
+				}
+			}
+		}
+
+		// Обновляем контакты только если они переданы
+		if input.Contacts != nil {
+			newContacts := parseContacts(*input.Contacts)
+			if err := updateContactsInTx(tx, &group.ID, newContacts); err != nil {
+				return fmt.Errorf("ошибка обновления контактов: %w", err)
+			}
+		}
+
+		// Логируем действие
+		action := fmt.Sprintf("Обновил информацию группы '%s'", group.Name)
+		if err := s.logAction(tx, group.ID, actorID, actor.Name, actor.Us, role, "update_group", action); err != nil {
+			s.logger.Warn("Failed to log action", "error", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		s.logger.Error("Failed to update group", "groupID", input.GroupID, "error", err)
+		return nil, err
+	}
+
+	if err := s.post.
+		Preload("Categories").
+		Preload("Contacts").
+		Preload("Creater").
+		First(&group, group.ID).Error; err != nil {
+		s.logger.Warn("Failed to reload group with associations", "groupID", group.ID, "error", err)
+	}
+
+	s.logger.Info("Group updated successfully", "groupID", group.ID, "actorID", actorID)
+
+	groupDto := convertGroupToDto(&group)
+	return groupDto, nil
+}
+
+// DeleteGroup удаляет группу (только админ)
+func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{"Админ"})
+	if err != nil {
+		return false, err
+	}
+	if !hasAccess {
+		return false, ErrPermissionDenied
+	}
+
+	var actor models.User
+	var group groups.Group
+
+	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+		if err := tx.First(&group, groupID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrGroupNotFound
+			}
+			return fmt.Errorf("ошибка поиска группы: %w", err)
+		}
+
+		if err := tx.First(&actor, actorID).Error; err != nil {
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		// Удаляем группу (каскадно удалятся связи)
+		if err := tx.Delete(&group).Error; err != nil {
+			return fmt.Errorf("ошибка удаления группы: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		s.logger.Error("Failed to delete group", "groupID", groupID, "error", err)
+		return false, err
+	}
+
+	s.logger.Info("Group deleted successfully", "groupID", groupID, "actorID", actorID, "role", role)
+	return true, nil
+}
+
+// ApproveAllJoinRequests одобряет все заявки
+func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, error) {
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	if err != nil {
+		return 0, err
+	}
+	if !hasAccess {
+		return 0, ErrPermissionDenied
+	}
+
+	var requests []groups.GroupJoinRequest
+	var actor models.User
+	count := 0
+
+	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+		if err := tx.First(&actor, actorID).Error; err != nil {
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		if err := tx.Where("group_id = ? AND status = ?", groupID, "pending").
+			Preload("User").
+			Find(&requests).Error; err != nil {
+			return fmt.Errorf("ошибка получения заявок: %w", err)
+		}
+
+		memberRoleID := new(groups.Role_in_group).GetIdRole("Участник", s.post)
+		if memberRoleID == 0 {
+			return fmt.Errorf("роль member не найдена")
+		}
+
+		for _, req := range requests {
+			// Проверяем черный список
+			var blacklistCount int64
+			if err := tx.Model(&groups.GroupBlacklist{}).
+				Where("group_id = ? AND user_id = ?", groupID, req.UserID).
+				Count(&blacklistCount).Error; err != nil {
+				return fmt.Errorf("ошибка проверки черного списка: %w", err)
+			}
+			if blacklistCount > 0 {
+				continue
+			}
+
+			// Добавляем в группу
+			groupUser := groups.GroupUsers{
+				UserID:        req.UserID,
+				GroupID:       groupID,
+				RoleInGroupID: memberRoleID,
+			}
+			if err := tx.Create(&groupUser).Error; err != nil {
+				s.logger.Warn("Failed to add user to group", "userID", req.UserID, "error", err)
+				continue
+			}
+
+			// Обновляем статус заявки
+			if err := tx.Model(&req).Update("status", "approved").Error; err != nil {
+				s.logger.Warn("Failed to update request status", "requestID", req.ID, "error", err)
+			}
+
+			count++
+
+			// Логируем действие
+			action := fmt.Sprintf("Одобрил заявку пользователя '%s' (@%s)", req.User.Name, req.User.Us)
+			if err := s.logAction(tx, groupID, actorID, actor.Name, actor.Us, role, "approve_request", action); err != nil {
+				s.logger.Warn("Failed to log action", "error", err)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		s.logger.Error("Failed to approve all requests", "groupID", groupID, "error", err)
+		return 0, err
+	}
+
+	s.logger.Info("Approved all join requests", "groupID", groupID, "count", count, "actorID", actorID)
+	return count, nil
+}
+
+// RejectAllJoinRequests отклоняет все заявки
+func (s *groupService) RejectAllJoinRequests(actorID uint, groupID uint) (int, error) {
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	if err != nil {
+		return 0, err
+	}
+	if !hasAccess {
+		return 0, ErrPermissionDenied
+	}
+
+	var actor models.User
+	count := 0
+
+	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+		if err := tx.First(&actor, actorID).Error; err != nil {
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		result := tx.Model(&groups.GroupJoinRequest{}).
+			Where("group_id = ? AND status = ?", groupID, "pending").
+			Update("status", "rejected")
+
+		if result.Error != nil {
+			return fmt.Errorf("ошибка отклонения заявок: %w", result.Error)
+		}
+
+		count = int(result.RowsAffected)
+
+		// Логируем действие
+		action := fmt.Sprintf("Отклонил все заявки на вступление (%d шт.)", count)
+		if err := s.logAction(tx, groupID, actorID, actor.Name, actor.Us, role, "reject_all_requests", action); err != nil {
+			s.logger.Warn("Failed to log action", "error", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		s.logger.Error("Failed to reject all requests", "groupID", groupID, "error", err)
+		return 0, err
+	}
+
+	s.logger.Info("Rejected all join requests", "groupID", groupID, "count", count, "actorID", actorID)
+	return count, nil
+}
+
+// ApproveJoinRequest одобряет конкретную заявку
+func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, error) {
+	var request groups.GroupJoinRequest
+	var actor models.User
+
+	err := s.post.Transaction(func(tx repository.PostgresRepository) error {
+		if err := tx.Preload("User").First(&request, requestID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return fmt.Errorf("заявка не найдена")
+			}
+			return fmt.Errorf("ошибка поиска заявки: %w", err)
+		}
+
+		hasAccess, role, err := s.checkGroupAccess(actorID, request.GroupID, []string{"Админ", "Модератор"})
+		if err != nil {
+			return err
+		}
+		if !hasAccess {
+			return ErrPermissionDenied
+		}
+
+		if err := tx.First(&actor, actorID).Error; err != nil {
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		if request.Status != "pending" {
+			return fmt.Errorf("заявка уже обработана")
+		}
+
+		// Проверяем черный список
+		var blacklistCount int64
+		if err := tx.Model(&groups.GroupBlacklist{}).
+			Where("group_id = ? AND user_id = ?", request.GroupID, request.UserID).
+			Count(&blacklistCount).Error; err != nil {
+			return fmt.Errorf("ошибка проверки черного списка: %w", err)
+		}
+		if blacklistCount > 0 {
+			return ErrUserInBlacklist
+		}
+
+		memberRoleID := new(groups.Role_in_group).GetIdRole("Участник", s.post)
+		if memberRoleID == 0 {
+			return fmt.Errorf("роль member не найдена")
+		}
+
+		groupUser := groups.GroupUsers{
+			UserID:        request.UserID,
+			GroupID:       request.GroupID,
+			RoleInGroupID: memberRoleID,
+		}
+		if err := tx.Create(&groupUser).Error; err != nil {
+			return fmt.Errorf("ошибка добавления пользователя в группу: %w", err)
+		}
+
+		if err := tx.Model(&request).Update("status", "approved").Error; err != nil {
+			return fmt.Errorf("ошибка обновления статуса заявки: %w", err)
+		}
+
+		// Логируем действие
+		action := fmt.Sprintf("Одобрил заявку пользователя '%s' (@%s)", request.User.Name, request.User.Us)
+		if err := s.logAction(tx, request.GroupID, actorID, actor.Name, actor.Us, role, "approve_request", action); err != nil {
+			s.logger.Warn("Failed to log action", "error", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		s.logger.Error("Failed to approve request", "requestID", requestID, "error", err)
+		return false, err
+	}
+
+	s.logger.Info("Approved join request", "requestID", requestID, "actorID", actorID)
+	return true, nil
+}
+
+// RejectJoinRequest отклоняет конкретную заявку
+func (s *groupService) RejectJoinRequest(actorID uint, requestID uint) (bool, error) {
+	var request groups.GroupJoinRequest
+	var actor models.User
+
+	err := s.post.Transaction(func(tx repository.PostgresRepository) error {
+		if err := tx.Preload("User").First(&request, requestID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return fmt.Errorf("заявка не найдена")
+			}
+			return fmt.Errorf("ошибка поиска заявки: %w", err)
+		}
+
+		hasAccess, role, err := s.checkGroupAccess(actorID, request.GroupID, []string{"Админ", "Модератор"})
+		if err != nil {
+			return err
+		}
+		if !hasAccess {
+			return ErrPermissionDenied
+		}
+
+		if err := tx.First(&actor, actorID).Error; err != nil {
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		if request.Status != "pending" {
+			return fmt.Errorf("заявка уже обработана")
+		}
+
+		if err := tx.Model(&request).Update("status", "rejected").Error; err != nil {
+			return fmt.Errorf("ошибка обновления статуса заявки: %w", err)
+		}
+
+		// Логируем действие
+		action := fmt.Sprintf("Отклонил заявку пользователя '%s' (@%s)", request.User.Name, request.User.Us)
+		if err := s.logAction(tx, request.GroupID, actorID, actor.Name, actor.Us, role, "reject_request", action); err != nil {
+			s.logger.Warn("Failed to log action", "error", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		s.logger.Error("Failed to reject request", "requestID", requestID, "error", err)
+		return false, err
+	}
+
+	s.logger.Info("Rejected join request", "requestID", requestID, "actorID", actorID)
+	return true, nil
+}
+
+// AddPermissions добавляет права оператора (только админ)
+func (s *groupService) AddPermissions(actorID uint, input PermissionInput) (bool, error) {
+	if actorID == input.UserID {
+		return false, ErrCannotChangeOwnRole
+	}
+
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{"Админ"})
+	if err != nil {
+		return false, err
+	}
+	if !hasAccess {
+		return false, ErrPermissionDenied
+	}
+
+	var targetUser models.User
+	var actor models.User
+	var groupUser groups.GroupUsers
+
+	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+		if err := tx.First(&actor, actorID).Error; err != nil {
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		if err := tx.First(&targetUser, input.UserID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrUserNotFound
+			}
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		err := tx.Where("user_id = ? AND group_id = ?", input.UserID, input.GroupID).
+			First(&groupUser).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrNotInGroup
+			}
+			return fmt.Errorf("ошибка поиска участника: %w", err)
+		}
+
+		operatorRoleID := new(groups.Role_in_group).GetIdRole("Модератор", s.post)
+		if operatorRoleID == 0 {
+			return fmt.Errorf("роль Модератор не найдена")
+		}
+
+		if err := tx.Model(&groupUser).Update("role_in_group_id", operatorRoleID).Error; err != nil {
+			return fmt.Errorf("ошибка обновления роли: %w", err)
+		}
+
+		// Логируем действие
+		action := fmt.Sprintf("Назначил пользователя '%s' (@%s) оператором группы", targetUser.Name, targetUser.Us)
+		if err := s.logAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, "add_operator", action); err != nil {
+			s.logger.Warn("Failed to log action", "error", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		s.logger.Error("Failed to add permissions", "actorID", actorID, "targetUserID", input.UserID, "error", err)
+		return false, err
+	}
+
+	s.logger.Info("Added operator permissions", "actorID", actorID, "targetUserID", input.UserID, "groupID", input.GroupID)
+	return true, nil
+}
+
+// RemovePermissions убирает права оператора (только админ)
+func (s *groupService) RemovePermissions(actorID uint, input PermissionInput) (bool, error) {
+	if actorID == input.UserID {
+		return false, ErrCannotChangeOwnRole
+	}
+
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{"Админ"})
+	if err != nil {
+		return false, err
+	}
+	if !hasAccess {
+		return false, ErrPermissionDenied
+	}
+
+	var targetUser models.User
+	var actor models.User
+	var groupUser groups.GroupUsers
+
+	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+		if err := tx.First(&actor, actorID).Error; err != nil {
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		if err := tx.First(&targetUser, input.UserID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrUserNotFound
+			}
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		err := tx.Where("user_id = ? AND group_id = ?", input.UserID, input.GroupID).
+			First(&groupUser).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrNotInGroup
+			}
+			return fmt.Errorf("ошибка поиска участника: %w", err)
+		}
+
+		memberRoleID := new(groups.Role_in_group).GetIdRole("Участник", s.post)
+		if memberRoleID == 0 {
+			return fmt.Errorf("роль Участник не найдена")
+		}
+
+		if err := tx.Model(&groupUser).Update("role_in_group_id", memberRoleID).Error; err != nil {
+			return fmt.Errorf("ошибка обновления роли: %w", err)
+		}
+
+		// Логируем действие
+		action := fmt.Sprintf("Снял с пользователя '%s' (@%s) права оператора", targetUser.Name, targetUser.Us)
+		if err := s.logAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, "remove_operator", action); err != nil {
+			s.logger.Warn("Failed to log action", "error", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		s.logger.Error("Failed to remove permissions", "actorID", actorID, "targetUserID", input.UserID, "error", err)
+		return false, err
+	}
+
+	s.logger.Info("Removed operator permissions", "actorID", actorID, "targetUserID", input.UserID, "groupID", input.GroupID)
+	return true, nil
+}
+
+// DeleteUserFromGroup удаляет пользователя из группы и добавляет в черный список
+func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUserID uint) (bool, error) {
+	if actorID == targetUserID {
+		return false, ErrCannotRemoveSelf
+	}
+
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	if err != nil {
+		return false, err
+	}
+	if !hasAccess {
+		return false, ErrPermissionDenied
+	}
+
+	var targetUser models.User
+	var actor models.User
+	var groupUser groups.GroupUsers
+
+	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+		if err := tx.First(&actor, actorID).Error; err != nil {
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		if _, err := targetUser.FindUserByID(targetUserID, tx); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrUserNotFound
+			}
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		err := tx.Where("user_id = ? AND group_id = ?", targetUserID, groupID).
+			First(&groupUser).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrNotInGroup
+			}
+			return fmt.Errorf("ошибка поиска участника: %w", err)
+		}
+
+		// Проверяем, что целевой пользователь не админ
+		var targetRole groups.Role_in_group
+		if err := tx.First(&targetRole, groupUser.RoleInGroupID).Error; err == nil {
+			if targetRole.Name == "Админ" {
+				return fmt.Errorf("нельзя удалить администратора группы")
+			}
+		}
+
+		// Удаляем из группы
+		if err := tx.Delete(&groupUser).Error; err != nil {
+			return fmt.Errorf("ошибка удаления участника: %w", err)
+		}
+
+		// Добавляем в черный список
+		blacklist := groups.GroupBlacklist{
+			GroupID:   groupID,
+			UserID:    targetUserID,
+			BannedBy:  actorID,
+			Reason:    "Удален из группы",
+			CreatedAt: time.Now(),
+		}
+		if err := tx.Create(&blacklist).Error; err != nil {
+			return fmt.Errorf("ошибка добавления в черный список: %w", err)
+		}
+
+		// Логируем действие
+		action := fmt.Sprintf("Удалил пользователя '%s' (@%s) из группы и добавил в черный список", targetUser.Name, targetUser.Us)
+		if err := s.logAction(tx, groupID, actorID, actor.Name, actor.Us, role, "ban_user", action); err != nil {
+			s.logger.Warn("Failed to log action", "error", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		s.logger.Error("Failed to delete user from group", "actorID", actorID, "targetUserID", targetUserID, "error", err)
+		return false, err
+	}
+
+	s.logger.Info("Deleted user from group and added to blacklist", "actorID", actorID, "targetUserID", targetUserID, "groupID", groupID)
+	return true, nil
+}
+
+// RemoveFromBlacklist убирает пользователя из черного списка
+func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUserID uint) (bool, error) {
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	if err != nil {
+		return false, err
+	}
+	if !hasAccess {
+		return false, ErrPermissionDenied
+	}
+
+	var targetUser models.User
+	var actor models.User
+
+	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+		if err := tx.First(&actor, actorID).Error; err != nil {
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		if _, err := targetUser.FindUserByID(targetUserID, tx); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrUserNotFound
+			}
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		result := tx.Where("group_id = ? AND user_id = ?", groupID, targetUserID).
+			Delete(&groups.GroupBlacklist{})
+
+		if result.Error != nil {
+			return fmt.Errorf("ошибка удаления из черного списка: %w", result.Error)
+		}
+
+		if result.RowsAffected == 0 {
+			return fmt.Errorf("пользователь не найден в черном списке")
+		}
+
+		// Логируем действие
+		action := fmt.Sprintf("Убрал пользователя '%s' (@%s) из черного списка", targetUser.Name, targetUser.Us)
+		if err := s.logAction(tx, groupID, actorID, actor.Name, actor.Us, role, "unban_user", action); err != nil {
+			s.logger.Warn("Failed to log action", "error", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		s.logger.Error("Failed to remove from blacklist", "actorID", actorID, "targetUserID", targetUserID, "error", err)
+		return false, err
+	}
+
+	s.logger.Info("Removed from blacklist", "actorID", actorID, "targetUserID", targetUserID, "groupID", groupID)
+	return true, nil
+}
+
+// CreateJoinInvite создает приглашение в группу
+func (s *groupService) CreateJoinInvite(actorID uint, input JoinInviteInput) (bool, error) {
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{"Админ", "Модератор"})
+	if err != nil {
+		return false, err
+	}
+	if !hasAccess {
+		return false, ErrPermissionDenied
+	}
+
+	var targetUser models.User
+	var actor models.User
+
+	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+		if err := tx.First(&actor, actorID).Error; err != nil {
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+
+		if err := tx.First(&actor, actorID).Error; err != nil {
+			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		}
+		// Проверяем, состоит ли уже в группе
+		var existingCount int64
+		if err := tx.Model(&groups.GroupUsers{}).
+			Where("user_id = ? AND group_id = ?", input.UserID, input.GroupID).
+			Count(&existingCount).Error; err != nil {
+			return fmt.Errorf("ошибка проверки членства: %w", err)
+		}
+		if existingCount > 0 {
+			return ErrAlreadyInGroup
+		}
+
+		// Проверяем существующие приглашения
+		var existingInvite groups.GroupJoinInvite
+		err := tx.Where("user_id = ? AND group_id = ? AND status = ?", input.UserID, input.GroupID, "pending").
+			First(&existingInvite).Error
+		if err == nil {
+			return ErrInviteAlreadyExists
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("ошибка проверки приглашений: %w", err)
+		}
+
+		// Создаем приглашение
+		invite := groups.GroupJoinInvite{
+			UserID:    input.UserID,
+			GroupID:   input.GroupID,
+			Status:    "pending",
+			CreatedAt: time.Now(),
+		}
+		if err := tx.Create(&invite).Error; err != nil {
+			return fmt.Errorf("ошибка создания приглашения: %w", err)
+		}
+
+		// Логируем действие
+		action := fmt.Sprintf("Отправил приглашение пользователю '%s' (@%s)", targetUser.Name, targetUser.Us)
+		if err := s.logAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, "send_invite", action); err != nil {
+			s.logger.Warn("Failed to log action", "error", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		s.logger.Error("Failed to create invite", "actorID", actorID, "targetUserID", input.UserID, "error", err)
+		return false, err
+	}
+
+	s.logger.Info("Created join invite", "actorID", actorID, "targetUserID", input.UserID, "groupID", input.GroupID)
+	return true, nil
+}
+
+// WatchRecentActions получает историю действий в группе
+func (s *groupService) WatchRecentActions(userID uint, groupID uint, limit int) ([]GroupAction, error) {
+	// Проверяем, что пользователь в группе
+	hasAccess, _, err := s.checkGroupAccess(userID, groupID, []string{"Админ", "Модератор", "Участник"})
+	if err != nil {
+		return nil, err
+	}
+	if !hasAccess {
+		return nil, ErrPermissionDenied
+	}
+
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	var actions []GroupAction
+	err = s.post.Model(&groups.GroupActionLog{}).
+		Where("group_id = ?", groupID).
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&actions).Error
+
+	if err != nil {
+		s.logger.Error("Failed to fetch group actions", "groupID", groupID, "error", err)
+		return nil, fmt.Errorf("ошибка получения истории действий: %w", err)
+	}
+
+	return actions, nil
+}
+
+// Вспомогательные функции
+
+// checkGroupAccess проверяет, имеет ли пользователь доступ к группе с нужной ролью
+func (s *groupService) checkGroupAccess(userID uint, groupID uint, allowedRoles []string) (bool, string, error) {
+	var groupUser groups.GroupUsers
+	if userID != 0 || groupID != 0 {
+		s.logger.Info("Тут прикол?", "Пользователь", userID, "Группа", groupID)
+	}
+	err := s.post.
+		Preload("RoleInGroup").
+		Where("user_id = ? AND group_id = ?", userID, groupID).
+		First(&groupUser).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, "", ErrNotInGroup
+		}
+		return false, "", fmt.Errorf("ошибка проверки доступа: %w", err)
+	}
+
+	var role groups.Role_in_group
+	if err := s.post.First(&role, groupUser.RoleInGroupID).Error; err != nil {
+		return false, "", fmt.Errorf("ошибка получения роли: %w", err)
+	}
+
+	for _, allowedRole := range allowedRoles {
+		if strings.EqualFold(role.Name, allowedRole) {
+			return true, role.Name, nil
+		}
+	}
+
+	return false, role.Name, nil
+}
+
+// GetGroupBlacklist получает черный список группы
+func (s *groupService) GetGroupBlacklist(actorID uint, groupID uint, limit int) ([]BlacklistUser, error) {
+	// Проверяем права доступа (admin или operator)
+	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	if err != nil {
+		return nil, err
+	}
+	if !hasAccess {
+		return nil, ErrPermissionDenied
+	}
+
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	var blacklist []groups.GroupBlacklist
+	err = s.post.
+		Preload("User").
+		Preload("Banner").
+		Where("group_id = ?", groupID).
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&blacklist).Error
+
+	if err != nil {
+		s.logger.Error("Failed to fetch blacklist", "groupID", groupID, "error", err)
+		return nil, fmt.Errorf("ошибка получения черного списка: %w", err)
+	}
+
+	result := make([]BlacklistUser, 0, len(blacklist))
+	for _, bl := range blacklist {
+		result = append(result, BlacklistUser{
+			ID:           bl.ID,
+			UserID:       bl.UserID,
+			Name:         bl.User.Name,
+			Us:           bl.User.Us,
+			Image:        bl.User.Image,
+			BannedBy:     bl.BannedBy,
+			BannedByName: bl.Banner.Name,
+			Reason:       bl.Reason,
+			CreatedAt:    bl.CreatedAt,
+		})
+	}
+
+	return result, nil
+}
+
+// GetJoinRequests получает все заявки на вступление в группу
+func (s *groupService) GetJoinRequests(actorID uint, groupID uint, status string, limit int) ([]JoinRequestInfo, error) {
+	// Проверяем права доступа (admin или operator)
+	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	if err != nil {
+		return nil, err
+	}
+	if !hasAccess {
+		return nil, ErrPermissionDenied
+	}
+
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	query := s.post.
+		Preload("User").
+		Where("group_id = ?", groupID)
+
+	// Фильтр по статусу (опционально)
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	var requests []groups.GroupJoinRequest
+	err = query.
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&requests).Error
+
+	if err != nil {
+		s.logger.Error("Failed to fetch join requests", "groupID", groupID, "error", err)
+		return nil, fmt.Errorf("ошибка получения заявок: %w", err)
+	}
+
+	result := make([]JoinRequestInfo, 0, len(requests))
+	for _, req := range requests {
+		result = append(result, JoinRequestInfo{
+			ID:        req.ID,
+			UserID:    req.UserID,
+			Name:      req.User.Name,
+			Us:        req.User.Us,
+			Image:     req.User.Image,
+			GroupID:   req.GroupID,
+			Status:    req.Status,
+			CreatedAt: req.CreatedAt,
+		})
+	}
+
+	return result, nil
+}
+
+// updateContactsInTx обновляет контакты в транзакции
+func updateContactsInTx(tx repository.PostgresRepository, groupID *uint, newContacts map[string]string) error {
+	var existingContacts []groups.GroupContact
+	if err := tx.Where("group_id = ?", groupID).Find(&existingContacts).Error; err != nil {
+		return fmt.Errorf("ошибка получения существующих контактов: %v", err)
+	}
+
+	existingMap := make(map[string]groups.GroupContact)
+	for _, c := range existingContacts {
+		if c.Name != "" {
+			existingMap[c.Name] = c
+		}
+	}
+
+	for name, link := range newContacts {
+		if existingContact, ok := existingMap[name]; ok {
+			if existingContact.Link != "" && existingContact.Link != link {
+				if err := tx.Model(&existingContact).Update("link", link).Error; err != nil {
+					return fmt.Errorf("ошибка обновления контакта '%s': %v", name, err)
+				}
+			}
+			delete(existingMap, name)
+		} else {
+			newContact := groups.GroupContact{
+				GroupID: *groupID,
+				Name:    name,
+				Link:    link,
+			}
+			if err := tx.Create(&newContact).Error; err != nil {
+				return fmt.Errorf("ошибка добавления контакта '%s': %v", name, err)
+			}
+		}
+	}
+
+	for _, contactToDelete := range existingMap {
+		if err := tx.Delete(&contactToDelete).Error; err != nil {
+			contactName := "unknown"
+			if contactToDelete.Name != "" {
+				contactName = contactToDelete.Name
+			}
+			return fmt.Errorf("ошибка удаления старого контакта '%s': %v", contactName, err)
+		}
+	}
+
+	return nil
+}
+
+// logAction записывает действие в лог
+func (s *groupService) logAction(tx repository.PostgresRepository, groupID uint, userID uint, username, us, role, actionType, description string) error {
+	action := groups.GroupActionLog{
+		GroupID:     groupID,
+		UserID:      userID,
+		Username:    username,
+		Us:          us,
+		Role:        role,
+		Action:      actionType,
+		Description: description,
+		CreatedAt:   time.Now(),
+	}
+
+	return tx.Create(&action).Error
+}
+
+// parseContacts парсит строку контактов
 func parseContacts(contactsStr string) map[string]string {
 	contacts := make(map[string]string)
 	if contactsStr == "" {
@@ -213,7 +1262,7 @@ func parseContacts(contactsStr string) map[string]string {
 	return contacts
 }
 
-// Конвертация в GroupDto
+// convertGroupToDto конвертирует группу в DTO
 func convertGroupToDto(group *groups.Group) *dto.GroupDto {
 	if group == nil {
 		return nil
@@ -249,585 +1298,3 @@ func convertGroupToDto(group *groups.Group) *dto.GroupDto {
 		UpdatedAt:        group.UpdatedAt,
 	}
 }
-
-type GroupResult struct {
-	Message string `json:"message"`
-	Joined  bool   `json:"joined"`
-}
-
-type JoinGroupInput struct {
-	GroupID uint `json:"groupId" binding:"required"`
-}
-
-func CreateGroup(email *string, input CreateGroupInput) (group *groups.Group, err error) {
-
-	// Парсим контакты из строки
-	var contacts map[string]string
-	if input.Contacts != "" {
-		contacts = parseContacts(input.Contacts)
-	}
-
-	var creator models.User
-	if err := db.GetDB().Where("email = ?", email).First(&creator).Error; err != nil {
-		return nil, fmt.Errorf("создатель не найден по email (%s): %v", *email, err)
-	}
-
-	// Загрузка категорий
-	var categories []models.Category
-	if len(input.Categories) > 0 {
-		if err := db.GetDB().Where("id IN ?", input.Categories).Find(&categories).Error; err != nil {
-			return nil, fmt.Errorf("ошибка загрузки категорий: %v", err)
-		}
-	}
-
-	tx := db.GetDB().Begin()
-	if tx.Error != nil {
-		return nil, fmt.Errorf("не удалось начать транзакцию: %v", tx.Error)
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			err = fmt.Errorf("паника в CreateGroup: %v", r)
-		} else if err != nil {
-			tx.Rollback()
-		}
-	}()
-
-	newGroup := &groups.Group{
-		Name:             input.Name,
-		Description:      input.Description,
-		SmallDescription: input.SmallDescription,
-		Image:            input.Image,
-		CreaterID:        creator.ID,
-		IsPrivate:        *input.IsPrivate,
-		City:             input.City,
-		Categories:       categories,
-	}
-
-	if err = tx.Create(newGroup).Error; err != nil {
-		return nil, fmt.Errorf("ошибка создания группы: %v", err)
-	}
-
-	groupUser := groups.GroupUsers{
-		UserID:  creator.ID,
-		GroupID: newGroup.ID,
-	}
-	if err = tx.Create(&groupUser).Error; err != nil {
-		return nil, fmt.Errorf("ошибка добавления пользователя в группу: %v", err)
-	}
-
-	if len(contacts) > 0 {
-		groupContacts := make([]groups.GroupContact, 0, len(contacts))
-		for name, link := range contacts {
-			if name != "" && link != "" {
-				groupContacts = append(groupContacts, groups.GroupContact{
-					GroupID: newGroup.ID,
-					Name:    name,
-					Link:    link,
-				})
-			}
-		}
-
-		if len(groupContacts) > 0 {
-			if err = tx.Create(&groupContacts).Error; err != nil {
-				return nil, fmt.Errorf("ошибка сохранения контактов группы: %v", err)
-			}
-		}
-	}
-
-	if err = tx.Commit().Error; err != nil {
-		return nil, fmt.Errorf("не удалось закоммитить транзакцию: %v", err)
-	}
-
-	if errReload := db.GetDB().Preload("Categories").Preload("Contacts").Preload("Creater").First(newGroup, newGroup.ID).Error; errReload != nil {
-		log.Printf("Не удалось перезагрузить группу с ассоциациями: %v", errReload)
-	}
-
-	return newGroup, nil
-}
-
-func JoinGroup(email string, input JoinGroupInput) (*GroupResult, error) {
-	var user models.User
-	if err := db.GetDB().Where("email = ?", email).First(&user).Error; err != nil {
-		return nil, fmt.Errorf("пользователь не найден")
-	}
-
-	var existing groups.GroupUsers
-	if err := db.GetDB().
-		Where("user_id = ? AND group_id = ?", user.ID, input.GroupID).
-		First(&existing).Error; err == nil {
-		return nil, fmt.Errorf("пользователь уже в группе")
-	}
-
-	var existingRequest groups.GroupJoinRequest
-	if err := db.GetDB().
-		Where("user_id = ? AND group_id = ?", user.ID, input.GroupID).
-		First(&existingRequest).Error; err == nil {
-		if existingRequest.Status == "pending" {
-			return nil, fmt.Errorf("заявка уже отправлена и ожидает подтверждения")
-		}
-	}
-
-	var group groups.Group
-	if err := db.GetDB().Where("id = ?", input.GroupID).First(&group).Error; err != nil {
-		return nil, fmt.Errorf("группа не найдена")
-	}
-
-	if group.IsPrivate {
-		request := groups.GroupJoinRequest{
-			UserID:  user.ID,
-			GroupID: group.ID,
-			Status:  "pending",
-		}
-		if err := db.GetDB().Create(&request).Error; err != nil {
-			return nil, fmt.Errorf("ошибка создания заявки: %v", err)
-		}
-		return &GroupResult{
-			Message: "Заявка на вступление отправлена, ожидайте подтверждения от администратора группы",
-			Joined:  false,
-		}, nil
-	} else {
-		member := groups.GroupUsers{
-			UserID:  user.ID,
-			GroupID: group.ID,
-		}
-		if err := db.GetDB().Create(&member).Error; err != nil {
-			return nil, fmt.Errorf("ошибка добавления пользователя в группу: %v", err)
-		}
-		return &GroupResult{
-			Message: "Пользователь успешно присоединился к группе",
-			Joined:  true,
-		}, nil
-	}
-}
-
-func DeleteGroup(groupID uint) error {
-	group := groups.Group{ID: groupID}
-	result := db.GetDB().Select("Categories").Delete(&group)
-
-	if result.Error != nil {
-		return fmt.Errorf("ошибка при удалении группы: %w", result.Error)
-	}
-
-	if result.RowsAffected == 0 {
-		return errors.New("группа не найдена или уже удалена")
-	}
-
-	return nil
-}
-
-type GroupInf struct {
-	ID           uint          `json:"id"`
-	Name         string        `json:"name"`
-	Description  string        `json:"description"`
-	Image        string        `json:"image"`
-	City         string        `json:"city"`
-	Creater      string        `json:"creater"`
-	CountMembers int64         `json:"count_members"`
-	Subscription bool          `json:"subscription"`
-	Users        []UsersGroups `json:"users"`
-	Categories   []*string     `json:"categories"`
-	Contacts     []*Contacts   `json:"contacts"`
-	// Sessions     []SessionDetailResponse `json:"sessions"`
-}
-
-type UsersGroups struct {
-	Name  string `json:"name"`
-	Image string `json:"image"`
-}
-
-type Contacts struct {
-	Name *string `json:"name"`
-	Link *string `json:"link"`
-}
-
-func GetGroupInf(groupID *uint64, email *string) (*GroupInf, error) {
-	if *groupID == 0 {
-		return nil, errors.New("некорректный ID группы")
-	}
-	user := models.User{}
-	// if err != nil {
-	// 	return nil, fmt.Errorf("пользователь не найден: %v", err)
-	// }
-
-	var group groups.Group
-	var information GroupInf
-
-	err := db.GetDB().Preload("Categories").
-		Preload("Contacts").
-		Where("id = ?", groupID).
-		First(&group).Error
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("группа не найдена")
-		}
-		return nil, err
-	}
-
-	if group.IsPrivate {
-		isMember, err := checkGroupMembership(groupID, &user.ID)
-		if err != nil {
-			return nil, err
-		}
-		if !isMember {
-			return nil, errors.New("доступ к приватной группе запрещен")
-		}
-	}
-
-	information.ID = group.ID
-	information.Name = group.Name
-	information.Description = group.Description
-	information.Image = group.Image
-	information.City = group.City
-	information.Creater = group.Creater.Name
-
-	users, err := getGroupUsers(*groupID)
-	if err != nil {
-		return nil, err
-	}
-	information.Users = users
-
-	var subscriptionCount int64
-	err = db.GetDB().Model(&groups.GroupUsers{}).
-		Where("group_id = ? AND user_id = ?", groupID, user.ID).
-		Count(&subscriptionCount).Error
-	if err != nil {
-		return nil, err
-	}
-	information.Subscription = subscriptionCount > 0
-
-	var totalMembers int64
-	err = db.GetDB().Model(&groups.GroupUsers{}).
-		Where("group_id = ?", groupID).
-		Count(&totalMembers).Error
-	if err != nil {
-		return nil, err
-	}
-	information.CountMembers = totalMembers
-
-	categories := make([]*string, len(group.Categories))
-	for i, category := range group.Categories {
-		if category.Name != "" {
-			categoryName := category.Name
-			categories[i] = &categoryName
-		}
-	}
-	information.Categories = categories
-
-	contacts := make([]*Contacts, 0, len(group.Contacts))
-	for _, contact := range group.Contacts {
-		if contact.Name != "" && contact.Link != "" {
-			contactName := &contact.Name
-			contactLink := &contact.Link
-
-			contacts = append(contacts, &Contacts{
-				Name: contactName,
-				Link: contactLink,
-			})
-		}
-	}
-	information.Contacts = contacts
-
-	// sessions, err := getGroupSessions(*groupID)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// information.Sessions = sessions
-
-	return &information, nil
-}
-
-//Admin часть групп
-
-type GroupUpdateInput struct {
-	Name             *string `json:"name"`
-	Description      *string `json:"description"`
-	SmallDescription *string `json:"small_description"`
-	Image            *string `json:"image"`
-	IsPrivate        *bool   `json:"is_private"`
-	City             *string `json:"city"`
-	Categories       []*uint `json:"categories"`
-	Contacts         *string `json:"contacts"`
-}
-
-func UpdateGroup(groupID uint, input GroupUpdateInput) (err error) {
-	tx := db.GetDB().Begin()
-	if tx.Error != nil {
-		return fmt.Errorf("не удалось начать транзакцию: %v", tx.Error)
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			err = fmt.Errorf("паника в UpdateGroup: %v", r)
-		} else if err != nil {
-			tx.Rollback()
-		}
-	}()
-
-	var group groups.Group
-	if err = tx.First(&group, groupID).Error; err != nil {
-		return fmt.Errorf("группа не найдена")
-	}
-
-	updates := make(map[string]interface{})
-	if input.Name != nil {
-		updates["name"] = *input.Name
-	}
-	if input.Description != nil {
-		updates["description"] = *input.Description
-	}
-	if input.SmallDescription != nil {
-		updates["small_description"] = *input.SmallDescription
-	}
-	if input.Image != nil {
-		updates["image"] = *input.Image
-	}
-	if input.IsPrivate != nil {
-		updates["is_private"] = *input.IsPrivate
-	}
-	if input.City != nil {
-		updates["city"] = *input.City
-	}
-
-	if len(updates) > 0 {
-		if err = tx.Model(&group).Updates(updates).Error; err != nil {
-			return fmt.Errorf("не удалось сохранить изменения группы: %v", err)
-		}
-	}
-
-	if input.Categories != nil {
-		if err = tx.Model(&group).Association("Categories").Clear(); err != nil {
-			return fmt.Errorf("не удалось очистить старые категории: %v", err)
-		}
-
-		if len(input.Categories) > 0 {
-			var newCategories []models.Category
-			if err = tx.Where("id IN ?", input.Categories).Find(&newCategories).Error; err != nil {
-				return fmt.Errorf("не удалось найти переданные категории: %v", err)
-			}
-			if err = tx.Model(&group).Association("Categories").Replace(&newCategories); err != nil {
-				return fmt.Errorf("не удалось назначить новые категории: %v", err)
-			}
-		}
-	}
-
-	if input.Contacts != nil {
-		newContacts := parseContacts(*input.Contacts)
-		if err = updateContactsInTx(tx, &groupID, newContacts); err != nil {
-			return fmt.Errorf("ошибка обновления контактов: %v", err)
-		}
-	}
-
-	return tx.Commit().Error
-}
-
-func updateContactsInTx(tx *gorm.DB, groupID *uint, newContacts map[string]string) error {
-	var existingContacts []groups.GroupContact
-	if err := tx.Where("group_id = ?", groupID).Find(&existingContacts).Error; err != nil {
-		return fmt.Errorf("ошибка получения существующих контактов: %v", err)
-	}
-
-	existingMap := make(map[string]groups.GroupContact)
-	for _, c := range existingContacts {
-		if c.Name != "" {
-			existingMap[c.Name] = c
-		}
-	}
-
-	// Обрабатываем новые контакты
-	for name, link := range newContacts {
-		if existingContact, ok := existingMap[name]; ok {
-			if existingContact.Link != "" && existingContact.Link != link {
-				if err := tx.Model(&existingContact).Update("link", link).Error; err != nil {
-					return fmt.Errorf("ошибка обновления контакта '%s': %v", name, err)
-				}
-			}
-			delete(existingMap, name)
-		} else {
-			newContact := groups.GroupContact{
-				GroupID: *groupID,
-				Name:    name,
-				Link:    link,
-			}
-			if err := tx.Create(&newContact).Error; err != nil {
-				return fmt.Errorf("ошибка добавления контакта '%s': %v", name, err)
-			}
-		}
-	}
-
-	for _, contactToDelete := range existingMap {
-		if err := tx.Delete(&contactToDelete).Error; err != nil {
-			contactName := "unknown"
-			if contactToDelete.Name != "" {
-				contactName = contactToDelete.Name
-			}
-			return fmt.Errorf("ошибка удаления старого контакта '%s': %v", contactName, err)
-		}
-	}
-
-	return nil
-}
-
-// вспомогательные для получения данных о группе
-func checkGroupMembership(groupID *uint64, userID *uint) (bool, error) {
-	var count int64
-	err := db.GetDB().Model(&groups.GroupUsers{}).
-		Where("group_id = ? AND user_id = ?", groupID, userID).
-		Count(&count).Error
-
-	if err != nil {
-		return false, err
-	}
-
-	return count > 0, nil
-}
-
-func getGroupUsers(groupID uint64) ([]UsersGroups, error) {
-	var groupUsers []groups.GroupUsers
-
-	err := db.GetDB().
-		Preload("User").
-		Where("group_id = ?", groupID).
-		Limit(6).
-		Find(&groupUsers).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	users := make([]UsersGroups, 0, len(groupUsers))
-	for _, groupUser := range groupUsers {
-		if groupUser.User.Name != "" {
-			userName := groupUser.User.Name
-			var userImage *string
-			if groupUser.User.Image != "" {
-				userImageCopy := groupUser.User.Image
-				userImage = &userImageCopy
-			}
-
-			users = append(users, UsersGroups{
-				Name:  userName,
-				Image: *userImage,
-			})
-		}
-	}
-
-	return users, nil
-}
-
-// func getGroupSessions(groupID uint64) ([]SessionDetailResponse, error) {
-// 	var Gsessions []sessions.Session
-
-// 	err := db.GetDB().
-// 		Preload("SessionType").
-// 		Preload("SessionPlace").
-// 		Where("group_id = ?", groupID).
-// 		Order("start_time ASC").
-// 		Find(&Gsessions).Error
-
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	if len(Gsessions) == 0 {
-// 		return []SessionDetailResponse{}, nil
-// 	}
-
-// 	sessionIDs := make([]uint, len(Gsessions))
-// 	for i, session := range Gsessions {
-// 		sessionIDs[i] = session.ID
-// 	}
-
-// 	metadataMap, err := db.GetSessionsMetadata(sessionIDs)
-// 	if err != nil {
-// 		log.Printf("Ошибка получения метаданных: %v", err)
-// 		metadataMap = make(map[uint]*sessions.SessionMetadata)
-// 	}
-
-// 	sessionResponses := make([]SessionDetailResponse, 0, len(Gsessions))
-// 	for _, session := range Gsessions {
-// 		if session.ID == 0 {
-// 			continue
-// 		}
-
-// 		var sessionTypeName *string
-// 		if session.SessionType.Name != "" {
-// 			typeName := session.SessionType.Name
-// 			sessionTypeName = &typeName
-// 		}
-
-// 		var sessionPlaceName *string
-// 		if session.SessionPlace.Title != "" {
-// 			placeName := session.SessionPlace.Title
-// 			sessionPlaceName = &placeName
-// 		}
-
-// 		var title, imageURL *string
-// 		if session.Title != "" {
-// 			titleCopy := session.Title
-// 			title = &titleCopy
-// 		}
-// 		if session.ImageURL != "" {
-// 			imageURLCopy := session.ImageURL
-// 			imageURL = &imageURLCopy
-// 		}
-
-// 		var duration, currentUsers, countUsersMax *uint16
-// 		if session.Duration != 0 {
-// 			durationCopy := session.Duration
-// 			duration = &durationCopy
-// 		}
-// 		if session.CurrentUsers != 0 {
-// 			currentUsersCopy := session.CurrentUsers
-// 			currentUsers = &currentUsersCopy
-// 		}
-// 		if session.CountUsersMax != 0 {
-// 			countUsersMaxCopy := session.CountUsersMax
-// 			countUsersMax = &countUsersMaxCopy
-// 		}
-
-// 		var groupIDCopy *uint
-// 		if session.GroupID != 0 {
-// 			groupID := session.GroupID
-// 			groupIDCopy = &groupID
-// 		}
-
-// 		var sessionIDCopy *uint
-// 		if session.ID != 0 {
-// 			sessionID := session.ID
-// 			sessionIDCopy = &sessionID
-// 		}
-
-// 		subSession := SubSessionDetail{
-// 			ID:            *sessionIDCopy,
-// 			Title:         *title,
-// 			SessionType:   *sessionTypeName,
-// 			SessionPlace:  *sessionPlaceName,
-// 			GroupID:       *groupIDCopy,
-// 			StartTime:     session.StartTime,
-// 			EndTime:       session.EndTime,
-// 			Duration:      *duration,
-// 			CurrantUsers:  *currentUsers,
-// 			CountUsersMax: *countUsersMax,
-// 			ImageURL:      *imageURL,
-// 		}
-
-// 		// Получаем метаданные для текущей сессии
-// 		var metadata *sessions.SessionMetadata
-// 		if metaData, exists := metadataMap[session.ID]; exists {
-// 			metadata = metaData
-// 		}
-
-// 		sessionResponse := SessionDetailResponse{
-// 			Session:  subSession,
-// 			Metadata: metadata,
-// 		}
-
-// 		sessionResponses = append(sessionResponses, sessionResponse)
-// 	}
-
-// 	return sessionResponses, nil
-// }

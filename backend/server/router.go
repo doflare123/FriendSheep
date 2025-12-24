@@ -16,6 +16,8 @@ func (s *Server) initRouters() {
 	jwtService := utils.NewJWTUtils(s.cfg.JWTSecretKey)
 	jwtMiddleware := middlewares.NewAuthMiddleware(jwtService)
 
+	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(s.postgres)
+
 	//регистрация и авторизация
 	authsrv := services.NewAuthService(s.logger, jwtService, s.postgres)
 	authH := handlers.NewAuthHandler(authsrv)
@@ -32,5 +34,5 @@ func (s *Server) initRouters() {
 	//регистрация групп
 	groupsrv := group.NewGroupService(s.logger, s.postgres)
 	groupH := handlers.NewGroupHandler(groupsrv)
-	routes.RegisterGroupsRoutes(s.engine, groupH, jwtMiddleware)
+	routes.RegisterGroupsRoutes(s.engine, groupH, jwtMiddleware, groupRoleMiddleware)
 }

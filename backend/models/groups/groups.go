@@ -43,8 +43,9 @@ func (g *Group) GetAdminGroups(userID uint, rep repository.PostgresRepository) (
 			"COUNT(DISTINCT gu2.user_id) as member_count",
 		).
 		Joins("JOIN group_users gu ON gu.group_id = groups.id").
+		Joins("JOIN role_in_groups rig ON gu.role_in_group_id = rig.id"). // Добавляем join с таблицей ролей
 		Joins("LEFT JOIN group_users gu2 ON gu2.group_id = groups.id").
-		Where("gu.user_id = ? AND gu.role_in_group = ?", userID, "admin").
+		Where("gu.user_id = ? AND (rig.name = ? OR rig.name = ?)", userID, "Админ", "Модератор").
 		Group("groups.id, groups.name, groups.image, groups.small_description, groups.is_private").
 		Order("groups.id DESC").
 		Scan(&adminGroups).Error
