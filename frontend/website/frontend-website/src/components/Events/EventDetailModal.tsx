@@ -17,14 +17,14 @@ import type { EventFullResponse } from '@/types/apiTypes';
 interface EventDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onJoin?: () => void;
+  onParticipantsChange?: (newCount: number) => void;
   eventId?: number;
 }
 
 const EventDetailModal: React.FC<EventDetailModalProps> = ({ 
   isOpen, 
   onClose, 
-  onJoin,
+  onParticipantsChange,
   eventId 
 }) => {
   const [eventData, setEventData] = useState<EventFullResponse | null>(null);
@@ -69,7 +69,6 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
       
       console.log("groupData.creater", groupData.creater)
 
-      // Проверяем, является ли создатель группы верифицированным
       if (groupData.creater) {
         try {
           const creatorData = await getOtherUserInfo(accessToken, groupData.creater);
@@ -118,13 +117,17 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
       if (session.is_sub) {
         await leaveEvent(accessToken, session.id);
         showNotification(200, 'Вы успешно отписались от события');
+        
+        if (onParticipantsChange) {
+          onParticipantsChange(session.current_users - 1);
+        }
       } else {
         await joinEvent(accessToken, session.group_id, session.id);
         showNotification(200, 'Вы успешно присоединились к событию');
-      }
-
-      if (onJoin) {
-        onJoin();
+        
+        if (onParticipantsChange) {
+          onParticipantsChange(session.current_users + 1);
+        }
       }
 
       await loadEventData();

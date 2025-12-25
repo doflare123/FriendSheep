@@ -45,7 +45,7 @@
   font-size: 20px;
   font-weight: 700;
   margin: 0;
-  color: #000;
+  color: var(--color-text-primary);
   text-align: center;
   flex: 1;
 }
@@ -109,7 +109,7 @@
 
 .dateValue {
   background: var(--color-primary-blue);
-  color: white;
+  color: var(--color-text-white);
   padding: 4px 10px;
   border-radius: 12px;
   font-size: 12px;
@@ -122,7 +122,7 @@
   gap: 6px;
   font-size: 12px;
   font-weight: 500;
-  color: #000;
+  color: var(--color-text-primary);
 }
 
 .eventDescription {
@@ -154,7 +154,7 @@
 .genresLabel {
   font-size: 12px;
   font-weight: 600;
-  color: #000;
+  color: var(--color-text-primary);
   white-space: nowrap;
   margin-top: 6px;
 }
@@ -168,7 +168,7 @@
 
 .genreTag {
   background: var(--color-primary-blue);
-  color: white;
+  color: var(--color-text-white);
   padding: 6px 12px;
   border-radius: 16px;
   font-size: 10px;
@@ -216,12 +216,12 @@
 }
 
 .publisherLabel {
-  color: #000;
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 
 .publisherValue {
-  color: #000;
+  color: var(--color-text-primary);
   font-weight: 400;
 }
 
@@ -240,7 +240,7 @@
   margin: 16px auto;
   padding: 12px;
   background: var(--color-primary-blue);
-  color: white;
+  color: var(--color-text-white);
   border: 2px solid var(--color-primary-blue-dark);
   border-radius: 16px;
   font-size: 14px;
@@ -283,7 +283,7 @@
   left: 50%;
   transform: translateX(-50%);
   background: var(--overlay-tooltip);
-  color: white;
+  color: var(--color-text-white);
   padding: 8px 12px;
   border-radius: 8px;
   font-size: 12px;
@@ -303,7 +303,6 @@
   }
 }
 
-/* Стили скроллбара для модального окна */
 .modalContainer::-webkit-scrollbar {
   width: 8px;
 }
@@ -322,7 +321,6 @@
   background: var(--scrollbar-thumb-hover);
 }
 
-/* Анимации */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -343,9 +341,6 @@
   }
 }
 
-/* ========== ДЕСКТОПНЫЕ АДАПТАЦИИ ========== */
-
-/* Большие десктопы (1440px+) */
 @media (min-width: 1440px) {
   .modalContainer {
     max-width: 1100px;
@@ -417,7 +412,6 @@
   }
 }
 
-/* Средние десктопы (1200px - 1439px) */
 @media (min-width: 1200px) and (max-width: 1439px) {
   .modalContainer {
     max-width: 1000px;
@@ -489,7 +483,6 @@
   }
 }
 
-/* Стандартные десктопы (1024px - 1199px) */
 @media (min-width: 1024px) and (max-width: 1199px) {
   .modalContainer {
     max-width: 950px;
@@ -526,7 +519,6 @@
   }
 }
 
-/* Планшеты и малые десктопы (768px - 1023px) */
 @media (min-width: 768px) and (max-width: 1023px) {
   .modalContainer {
     max-width: 700px;
@@ -550,7 +542,6 @@
   }
 }
 
-/* Мобильные устройства (до 767px) */
 @media (max-width: 767px) {
   .modalOverlay {
     padding: 10px;

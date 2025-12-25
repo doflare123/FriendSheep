@@ -1,0 +1,181 @@
+.dotsAnimation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 42px;
+    gap: 16px;
+    height: 24px;
+    position: relative;
+}
+
+.dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--color-primary-blue);
+    position: relative;
+}
+
+.dot1 {
+    animation: jump 1.5s ease-in-out infinite;
+}
+
+.dot2 {
+    animation: slideLeft1 1.5s ease-in-out infinite;
+}
+
+.dot3 {
+    animation: slideLeft2 1.5s ease-in-out infinite;
+}
+
+@keyframes jump {
+    0% {
+        transform: translateX(0) translateY(0);
+        z-index: 1;
+    }
+    20% {
+        transform: translateX(16px) translateY(-20px);
+    }
+    40% {
+        transform: translateX(32px) translateY(0);
+    }
+    60% {
+        transform: translateX(48px) translateY(-20px);
+    }
+    80% {
+        transform: translateX(64px) translateY(0);
+    }
+    100% {
+        transform: translateX(64px) translateY(0);
+    }
+}
+
+@keyframes slideLeft1 {
+    0% {
+        transform: translateX(0);
+    }
+    45% {
+        transform: translateX(-32px);
+    }
+    85% {
+        transform: translateX(-32px);
+    }
+    100% {
+        transform: translateX(-32px);
+    }
+}
+
+@keyframes slideLeft2 {
+    0% {
+        transform: translateX(0);
+    }
+    45% {
+        transform: translateX(0);
+    }
+    85% {
+        transform: translateX(-32px);
+    }
+    100% {
+        transform: translateX(-32px);
+    }
+}
+
+.verificationContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--color-bg-primary);
+    padding: 20px;
+}
+
+.verificationCard {
+    width: 100%;
+    max-width: 600px;
+    padding: 40px;
+    background-color: var(--color-bg-primary);
+    border: 2px solid var(--color-primary-blue-dark);
+    border-radius: 20px;
+    box-shadow: var(--shadow-xl);
+}
+
+.verificationTitle {
+    font-size: 32px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 24px;
+    color: var(--color-text-primary);
+}
+
+.verificationText {
+    text-align: center;
+    font-size: 16px;
+    color: var(--color-text-primary);
+}
+
+.verificationTextBold {
+    font-weight: 700;
+}
+
+.codeInputContainer {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 32px;
+}
+
+.codeInput {
+    width: 64px;
+    height: 68px;
+    border: 2px solid var(--color-primary-blue-dark);
+    border-radius: 8px;
+    text-align: center;
+    font-size: 24px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.codeInput:focus {
+    border-color: var(--color-primary-blue);
+    box-shadow: 0 0 0 3px var(--overlay-blue-focus);
+}
+
+.codeInputError {
+    border-color: var(--color-danger);
+}
+
+.errorMessage {
+    text-align: center;
+    margin-top: 8px;
+    color: var(--color-danger);
+    font-size: 14px;
+}
+
+.resendContainer {
+    text-align: center;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    margin-top: 16px;
+}
+
+.resendButton {
+    font-size: 20px;
+    color: var(--color-text-primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.resendButton:hover {
+    text-decoration: underline;
+}
+
+.resendButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.submitButtonContainer {
+    margin-top: 100px;
+}

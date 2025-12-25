@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import "@/styles/ConfirmCode.css";
+import styles from "@/styles/ConfirmCode.module.css";
 import { showNotification } from "@/utils";
 import FormButton from './FormButton';
 import VerifiContainer from './VerifiContainer';
@@ -247,11 +247,11 @@ export default function CodeVerification({
     return (
         <VerifiContainer title="Код подтверждения" onSubmit={handleSubmit}>
             
-            <div className="text-center text-base text-black">
-                Введите код подтверждения из письма, отправленного на почту <span className="font-bold">{email}</span>
+            <div className={styles.verificationText}>
+                Введите код подтверждения из письма, отправленного на почту <span className={styles.verificationTextBold}>{email}</span>
             </div>
 
-            <div className="flex gap-3 justify-center mt-8">
+            <div className={styles.codeInputContainer}>
                 {values.map((val, index) => (
                     <input
                         key={index}
@@ -259,9 +259,7 @@ export default function CodeVerification({
                         type="text"
                         inputMode="text"
                         maxLength={1}
-                        className={`w-16 h-17 border-2 rounded-lg text-center text-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 ${
-                            errors.code ? 'border-[var(--color-danger)]' : 'border-[var(--color-primary-blue-dark)]'
-                        }`}
+                        className={`${styles.codeInput} ${errors.code ? styles.codeInputError : ''}`}
                         value={val}
                         onChange={(e) => handleChange(index, e.target.value)}
                         onKeyDown={(e) => handleKeyDown(index, e)}
@@ -272,16 +270,16 @@ export default function CodeVerification({
             </div>
 
             {errors.code && (
-                <div className="errorMessage" style={{ textAlign: 'center', marginTop: '8px' }}>
+                <div className={styles.errorMessage}>
                     {errors.code}
                 </div>
             )}
 
-            <div className="text-center text-sm text-black/50 mt-4">
+            <div className={styles.resendContainer}>
                 {resendAvailable ? (
                 <button
                     type="button"
-                    className="hover:underline text-xl text-black disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={styles.resendButton}
                     onClick={handleResendCode}
                     disabled={isLoading}
                 >
@@ -292,7 +290,7 @@ export default function CodeVerification({
                 )}
             </div>
 
-            <div className="mt-25">
+            <div className={styles.submitButtonContainer}>
                 <FormButton type="submit" disabled={isLoading}>
                     {isLoading ? 'Подтверждаем...' : 'Подтвердить'}
                 </FormButton>

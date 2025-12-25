@@ -33,8 +33,8 @@ export const convertCategoriesToIds = (categories: string[]): number[] => {
 
 export const convertCategRuToEng = (categoryIds: string[]): ('games' | 'movies' | 'board' | 'other')[] => {
     const idMap: { [key: string]: 'games' | 'movies' | 'board' | 'other' } = {
-      'Медиа': 'movies',    // Фильмы
-      'Видеоигры': 'games',     // Игры
+      'Фильмы': 'movies',    // Фильмы
+      'Игры': 'games',     // Игры
       'Настольные игры': 'board',     // Настольные игры
       'Другое': 'other'      // Другое
     };
@@ -44,8 +44,8 @@ export const convertCategRuToEng = (categoryIds: string[]): ('games' | 'movies' 
 
 export const convertCategEngToRu = (categories: ('games' | 'movies' | 'board' | 'other')[]): string[] => {
   const categoryMap: { [key: string]: string } = {
-    'movies': 'Медиа',
-    'games': 'Видеоигры',
+    'movies': 'Фильмы',
+    'games': 'Игры',
     'board': 'Настольные игры',
     'other': 'Другое'
   };

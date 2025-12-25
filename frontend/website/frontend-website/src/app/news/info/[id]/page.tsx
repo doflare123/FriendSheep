@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import NewsDetailCard from '@/components/news/NewsDetailCard';
 import CommentsList from '@/components/news/CommentsList';
@@ -30,11 +30,15 @@ export default function NewsInfoPage() {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [relatedNewsIds, setRelatedNewsIds] = useState<number[]>([]);
 
+  const sortedComments = useMemo(() => {
+    if (!newsDetail?.comments) return [];
+    return [...newsDetail.comments].reverse();
+  }, [newsDetail?.comments]);
+
   useEffect(() => {
     if (id) {
       loadNewsDetail();
       
-      // Получаем ID связанных новостей из query параметров
       const relatedParam = searchParams.get('related');
       if (relatedParam) {
         const ids = relatedParam.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
@@ -60,7 +64,6 @@ export default function NewsInfoPage() {
   const handleCommentSubmit = async (commentText: string) => {
     if (!newsDetail || !commentText.trim()) return;
 
-    // Проверка авторизации
     const token = await getAccesToken(router);
     if (!token) {
       showNotification(401, 'Необходимо авторизоваться');
@@ -72,7 +75,6 @@ export default function NewsInfoPage() {
       setIsSubmittingComment(true);
       await addNewsComment(token, newsDetail.id, commentText);
       
-      // Перезагружаем новость чтобы получить обновленные комментарии
       await loadNewsDetail();
       setShowCommentForm(false);
       showNotification(200, 'Комментарий успешно добавлен');
@@ -86,7 +88,7 @@ export default function NewsInfoPage() {
   };
 
   const loadMoreComments = () => {
-    setVisibleComments(prev => Math.min(prev + 5, newsDetail?.comments?.length || 0));
+    setVisibleComments(prev => Math.min(prev + 5, sortedComments.length));
   };
 
   if (isLoading) {
@@ -107,7 +109,7 @@ export default function NewsInfoPage() {
     );
   }
 
-  const hasMoreComments = visibleComments < (newsDetail.comments?.length || 0);
+  const hasMoreComments = visibleComments < sortedComments.length;
 
   return (
     <div className="bgPage">
@@ -135,7 +137,7 @@ export default function NewsInfoPage() {
           )}
 
           <CommentsList 
-            comments={newsDetail.comments?.slice(0, visibleComments) || []}
+            comments={sortedComments.slice(0, visibleComments)}
           />
 
           {hasMoreComments && (

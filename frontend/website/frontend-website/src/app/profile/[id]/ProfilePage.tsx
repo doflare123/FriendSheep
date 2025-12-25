@@ -23,6 +23,7 @@ import { editTiles } from '@/api/profile/editTiles';
 import { getImage } from '@/api/getImage';
 import { useAuth } from '@/contexts/AuthContext';
 import { showNotification } from '@/utils';
+import { filterProfanity } from '@/utils';
 
 interface ProfilePageProps {
   params: {
@@ -54,11 +55,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [animatedChart, setAnimatedChart] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [errors, setErrors] = useState({
-    name: '',
-    us: '',
-    status: ''
-  });
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'recent' | 'upcoming'>('upcoming');
@@ -70,36 +66,47 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const router = useRouter();
 
   const validateFields = () => {
-    const newErrors = {
-      name: '',
-      us: '',
-      status: ''
-    };
-
     if (!editedData.name.trim()) {
-      newErrors.name = 'Имя обязательно для заполнения';
-    } else if (editedData.name.trim().length < 5) {
-      newErrors.name = 'Имя должно содержать минимум 5 символов';
-    } else if (editedData.name.trim().length > 40) {
-      newErrors.name = 'Имя должно содержать максимум 40 символов';
+      showNotification(400, 'Имя обязательно для заполнения');
+      return false;
+    }
+    
+    if (editedData.name.trim().length < 5) {
+      showNotification(400, 'Имя должно содержать минимум 5 символов');
+      return false;
+    }
+    
+    if (editedData.name.trim().length > 40) {
+      showNotification(400, 'Имя должно содержать максимум 40 символов');
+      return false;
     }
 
     if (!editedData.us.trim()) {
-      newErrors.us = 'Username обязателен для заполнения';
-    } else if (editedData.us.trim().length < 5) {
-      newErrors.us = 'Username должен содержать минимум 5 символов';
-    } else if (editedData.us.trim().length > 40) {
-      newErrors.us = 'Username должен содержать максимум 40 символов';
+      showNotification(400, 'Username обязателен для заполнения');
+      return false;
+    }
+    
+    if (editedData.us.trim().length < 5) {
+      showNotification(400, 'Username должен содержать минимум 5 символов');
+      return false;
+    }
+    
+    if (editedData.us.trim().length > 40) {
+      showNotification(400, 'Username должен содержать максимум 40 символов');
+      return false;
     }
 
     if (editedData.status.trim() && editedData.status.trim().length < 1) {
-      newErrors.status = 'Статус должен содержать минимум 1 символ';
-    } else if (editedData.status.length > 50) {
-      newErrors.status = 'Статус должен содержать максимум 50 символов';
+      showNotification(400, 'Статус должен содержать минимум 1 символ');
+      return false;
+    }
+    
+    if (editedData.status.length > 50) {
+      showNotification(400, 'Статус должен содержать максимум 50 символов');
+      return false;
     }
 
-    setErrors(newErrors);
-    return !newErrors.name && !newErrors.us && !newErrors.status;
+    return true;
   };
 
   const calculateFontSize = (text: string, maxSize: number, minSize: number, maxLength: number) => {
@@ -186,7 +193,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
   const handleSave = async () => {
     if (!validateFields()) {
-      showNotification(400, "Проверьте правильность заполнения полей");
       return;
     }
 
@@ -200,6 +206,10 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     try {
       setIsSaving(true);
 
+      const censoredName = filterProfanity(editedData.name);
+      const censoredUs = filterProfanity(editedData.us);
+      const censoredStatus = filterProfanity(editedData.status);
+
       let imageUrl = editedData.image;
 
       if (avatarFile) {
@@ -207,9 +217,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       }
 
       const profileDataRequest: UpdateProfileRequest = {
-        name: editedData.name,
-        us: editedData.us,
-        status: editedData.status,
+        name: censoredName,
+        us: censoredUs,
+        status: censoredStatus,
         image: imageUrl,
       };
 
@@ -227,11 +237,19 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       await editTiles(accessToken, counters);
       await forceRefreshToken();
 
+      setEditedData({
+        name: censoredName,
+        us: censoredUs,
+        status: censoredStatus,
+        image: imageUrl,
+        tiles: [...editedData.tiles]
+      });
+
       setIsEditMode(false);
       setIsSaving(false);
 
       showNotification(200, "Изменения успешно сохранены");
-      router.replace('/profile/' + editedData.us);
+      router.replace('/profile/' + censoredUs);
 
     } catch (error: any) {
       console.error("❌ Ошибка при сохранении профиля:", error);
@@ -252,7 +270,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       tiles: [...profileData.tiles]
     });
     setAvatarFile(null);
-    setErrors({ name: '', us: '', status: '' });
     setIsEditMode(false);
   };
 
@@ -422,21 +439,15 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                           const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
                           if (value.length <= 40) {
                             setEditedData({...editedData, name: value});
-                            if (errors.name) {
-                              setErrors({...errors, name: ''});
-                            }
                           }
                         }}
-                        className={`${section1Styles.nameInput} ${errors.name ? section1Styles.inputError : ''}`}
+                        className={section1Styles.nameInput}
                         style={{ fontSize: `${nameFontSize}px` }}
                         title={editedData.name}
                       />
                       <div className={section1Styles.nameEditIcon}>
                         <Image src="/profile/edit.png" alt="edit" width={14} height={14} />
                       </div>
-                      {errors.name && (
-                        <div className={section1Styles.errorMessage}>{errors.name}</div>
-                      )}
                     </div>
                   ) : (
                     <h2 
@@ -448,7 +459,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     </h2>
                   )}
                   
-                  {/* Иконки в одном ряду */}
                   <div className={section1Styles.userBadges}>
                     {profileData.enterprise && !isEditMode && (
                       <div className={section1Styles.verifiedBadge}>
@@ -495,12 +505,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
                         if (value.length <= 40) {
                           setEditedData({...editedData, us: value});
-                          if (errors.us) {
-                            setErrors({...errors, us: ''});
-                          }
                         }
                       }}
-                      className={`${section1Styles.usInput} ${errors.us ? section1Styles.inputError : ''}`}
+                      className={section1Styles.usInput}
                       style={{ fontSize: `${usFontSize}px` }}
                       placeholder="username"
                       title={editedData.us}
@@ -513,9 +520,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         height={14}
                       />
                     </div>
-                    {errors.us && (
-                      <div className={section1Styles.errorMessage}>{errors.us}</div>
-                    )}
                   </div>
                 ) : (
                   <p 
@@ -537,12 +541,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         const value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z0-9\s]/g, '');
                         if (value.length <= 50) {
                           setEditedData({...editedData, status: value});
-                          if (errors.status) {
-                            setErrors({...errors, status: ''});
-                          }
                         }
                       }}
-                      className={`${section1Styles.statusInput} ${errors.status ? section1Styles.inputError : ''}`}
+                      className={section1Styles.statusInput}
                       style={{ fontSize: `${statusFontSize}px` }}
                       rows={2}
                       placeholder="Введите статус"
@@ -556,9 +557,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         height={14}
                       />
                     </div>
-                    {errors.status && (
-                      <div className={section1Styles.errorMessage}>{errors.status}</div>
-                    )}
                   </div>
                 ) : (
                   <p 
@@ -637,12 +635,10 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           )}
         </div>
 
-        {/* СЕКЦИЯ 2: СОБЫТИЯ (было Статистика) */}
         <div className={section2Styles.statisticsSection}>
           <h3>События</h3>
           
           <div className={section2Styles.statisticsContent}>
-            {/* Предстоящие события */}
             <div className={section2Styles.eventsBlock}>
               <h4 className={section2Styles.eventsBlockTitle}>Предстоящие</h4>
               <div className={section2Styles.eventsBlockContent}>
@@ -668,7 +664,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               </div>
             </div>
 
-            {/* Завершенные события (только для своего профиля) */}
             {isOwnProfile && (
               <div className={section2Styles.eventsBlock}>
                 <h4 className={section2Styles.eventsBlockTitle}>Завершенные</h4>
@@ -724,7 +719,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           </div>
         </div>
 
-        {/* СЕКЦИЯ 4: СТАТИСТИКА (было События) */}
         <div className={section4Styles.eventsSection}>
           <h3>{isOwnProfile ? 'Ваша статистика' : 'Статистика'}</h3>
           <div className={section4Styles.header}>

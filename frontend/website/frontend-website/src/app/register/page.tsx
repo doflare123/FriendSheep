@@ -12,6 +12,8 @@ import FormLink from '../../components/FormLink';
 import FormText from '../../components/FormText';
 import LinkNote from '../../components/LinkNote';
 
+import {filterProfanity} from '@/utils';
+
 import {checkDeviceAndRedirect} from '@/Constants';
 
 export default function RegisterPage() {
@@ -145,7 +147,7 @@ export default function RegisterPage() {
             localStorage.setItem('codeExpiryTime', expiry.toString());
             PageProtection.navigateWithAccess(
                 router, 
-                `/register/confirm?username=${userName}&email=${email}&password=${password}&sessionId=${sessionId}`, 
+                `/register/confirm?username=${filterProfanity(userName)}&email=${email}&password=${password}&sessionId=${sessionId}`, 
                 PAGE_KEYS.CODE_VERIFY,
                 180
             );

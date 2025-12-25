@@ -1,6 +1,7 @@
 // notificationManager.ts
 import { createRoot } from "react-dom/client";
 import StatusNotif, { NotifProps } from "./components/statusNotif";
+import * as LeoProfanity from 'leo-profanity';
 
 class NotificationManager {
   private container: HTMLDivElement | null = null;
@@ -105,3 +106,88 @@ export const initTheme = () => {
   const theme = getTheme();
   document.documentElement.setAttribute('data-theme', theme);
 };
+
+
+
+LeoProfanity.loadDictionary('en');
+LeoProfanity.loadDictionary('ru');
+
+const additionalBadWords = [
+  'fck', 'fuk', 'fuc', 'fukc', 'fuckc', 'fcuk', 'fucc',
+  'sht', 'shyt', 'sh1t', 'shiit',
+  'btch', 'biatch', 'bich',
+  'dck', 'dik', 'dikk',
+  'cnt', 'cnut',
+  'хй', 'хy', 'xyй', 'хyй',
+  'пзд', 'пздц',
+  'еба', 'ебт', 'ебн',
+  'бля', 'блд', 'блть',
+  'xyй', 'xуй', 'хуи', 'хуя'
+];
+
+additionalBadWords.forEach(word => LeoProfanity.add(word));
+
+function normalizeText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^а-яёa-z0-9]/g, '');
+}
+
+function isSimilarToBadWord(word: string): boolean {
+  const normalized = normalizeText(word);
+  
+  const similarityPatterns = [
+    /f+[u|y|oo|0]+c*k+/i,
+    /s+h+[i|1|y]+t+/i,
+    /b+[i|1]+t+c*h+/i,
+    /a+s+s+/i,
+    /d+[i|1]+c*k+/i,
+    /c+[u|y|oo]+n+t+/i,
+    /п+[и|1]+з+д+/i,
+    /[х|x]+[у|y|u]+[й|и|i|y]/i,
+    /е+б+[а|o|л|т|н]+/i,
+    /б+л+[я|д|т]+/i
+  ];
+  
+  return similarityPatterns.some(pattern => pattern.test(normalized));
+}
+
+function generateBeepString(length: number): string {
+  if (length < 2) return 'б';
+  return 'б' + 'е'.repeat(length - 1);
+}
+
+export function filterProfanity(text: string): string {
+  if (!text || typeof text !== 'string') return text;
+  
+  const words = text.split(/(\s+)/);
+  
+  return words.map(word => {
+    if (/^\s+$/.test(word)) return word;
+    
+    if (LeoProfanity.check(word) || isSimilarToBadWord(word)) {
+      return generateBeepString(word.length);
+    }
+    
+    return word;
+  }).join('');
+}
+
+export function hasProfanity(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  
+  if (LeoProfanity.check(text)) return true;
+  
+  const words = text.split(/\s+/);
+  return words.some(word => isSimilarToBadWord(word));
+}
+
+export function addCustomBadWords(words: string[]): void {
+  words.forEach(word => LeoProfanity.add(word));
+}
+
+export function removeWord(word: string): void {
+  LeoProfanity.remove(word);
+}
+
+console.log(filterProfanity("fuck"))

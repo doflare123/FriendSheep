@@ -13,7 +13,7 @@ import { editEvent } from '@/api/events/editEvent';
 import { delEvent } from '@/api/events/delEvent';
 import { getImage } from '@/api/getImage';
 import { getGenres } from '@/api/events/getGenres';
-import { showNotification } from '@/utils';
+import { showNotification, filterProfanity } from '@/utils';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import { useRouter } from 'next/navigation';
 
@@ -533,7 +533,7 @@ export default function EventModal({
     const fields: string[] = [];
     
     if (publisher) {
-      fields.push(`publisher:${publisher}`);
+      fields.push(`publisher:${filterProfanity(publisher)}`);
     }
     
     if (!isOnline && city) {
@@ -574,7 +574,7 @@ export default function EventModal({
 
       await addEvent(
         accessToken,
-        formData.title!,
+        filterProfanity(formData.title!),
         sessionTypeRu,
         sessionPlace,
         selectedGroup!,
@@ -587,7 +587,7 @@ export default function EventModal({
         year ? parseInt(year) : undefined,
         undefined,
         ageLimit || undefined,
-        description || undefined,
+        description ? filterProfanity(description) : undefined,
         imageToSend
       );
 
@@ -629,7 +629,7 @@ export default function EventModal({
         imageUrl = kinopoiskImageUrl;
       }
 
-      const updatedTitle = formData.title !== originalData.title ? formData.title : undefined;
+      const updatedTitle = formData.title !== originalData.title ? filterProfanity(formData.title!) : undefined;
       const updatedMaxParticipants = formData.maxParticipants !== originalData.maxParticipants 
         ? formData.maxParticipants 
         : undefined;

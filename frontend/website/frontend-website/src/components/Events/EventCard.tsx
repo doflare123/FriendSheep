@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {EventCardProps} from "../../types/Events";
 import styles from '../../styles/EventCard.module.css';
 import Image from "next/image";
@@ -22,6 +22,11 @@ const EventCard: React.FC<EventCardProps> = ({
     onEdit
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [localParticipants, setLocalParticipants] = useState(participants || 0);
+
+    useEffect(() => {
+        setLocalParticipants(participants || 0);
+    }, [participants]);
 
     const handleButtonClick = () => {
         if (isDemo) {
@@ -40,8 +45,8 @@ const EventCard: React.FC<EventCardProps> = ({
         setIsModalOpen(false);
     };
 
-    const handleJoin = () => {
-        console.log('Присоединиться к событию:', id);
+    const handleParticipantsChange = (newCount: number) => {
+        setLocalParticipants(newCount);
     };
 
     return (
@@ -73,7 +78,7 @@ const EventCard: React.FC<EventCardProps> = ({
                     </div>
                     <div className={styles.cardMeta}>
                         <span className={styles.cardParticipants}>
-                            Участников: {participants}/{maxParticipants}
+                            Участников: {localParticipants}/{maxParticipants}
                             <Image src="/events/person.png" alt="person" width={16} height={16} className={styles.personIcon} />
                         </span>
                         {duration && (
@@ -97,7 +102,7 @@ const EventCard: React.FC<EventCardProps> = ({
                 <EventDetailModal
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}
-                    onJoin={handleJoin}
+                    onParticipantsChange={handleParticipantsChange}
                     eventId={id}
                 />
             )}
