@@ -148,13 +148,13 @@ module.exports = {
           try {
             // если есть картинка — сначала фото с подписью
             const captionParts = [];
-            if (block.title) captionParts.push(`*${escapeMarkdown(block.title)}*`);
-            if (block.text) captionParts.push(escapeMarkdown(block.text));
+            if (block.title) captionParts.push(`*${block.title}*`);
+            if (block.text) captionParts.push(block.text);
             const caption = captionParts.join('\n\n');
             if (block.imageUrl) {
-              await bot.sendPhoto(tid, block.imageUrl, caption ? { caption, parse_mode: 'Markdown' } : {});
+              await bot.sendPhoto(tid, block.imageUrl, caption);
             } else if (caption) {
-              await bot.sendMessage(tid, caption, { parse_mode: 'Markdown' });
+              await bot.sendMessage(tid, caption);
             } else {
               // пустое сообщение — пропускаем
             }
