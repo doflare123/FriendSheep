@@ -129,42 +129,6 @@
   flex-shrink: 0;
 }
 
-.verifiedBadge, .telegramBadge {
-  position: relative;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  display: flex;
-  align-items: center;
-}
-
-.verifiedBadge:hover, .telegramBadge:hover {
-  opacity: 0.8;
-}
-
-.verifiedBadge:hover .verifiedTooltip,
-.telegramBadge:hover .telegramTooltip {
-  display: block;
-}
-
-/* Tooltip для галочки */
-.verifiedTooltip {
-  display: none;
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  border: 2px solid var(--color-primary-blue);
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  white-space: nowrap;
-  z-index: 9999;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  pointer-events: none;
-}
-
 .verifiedTooltip::after {
   content: '';
   position: absolute;

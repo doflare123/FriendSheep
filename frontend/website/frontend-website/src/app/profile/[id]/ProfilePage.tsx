@@ -15,6 +15,7 @@ import { getSocialIcon, getAccesToken } from '@/Constants';
 import GenrePieChart from '@/components/profile/GenrePieChart';
 import AddUserModal from '@/components/search/AddUserModal';
 import ImageCropModal from '@/components/ImageCropModal';
+import VerifiedBadge from '@/components/VerifiedBadge';
 import { UserDataResponse } from '@/types/UserData';
 import { SmallGroup } from '@/types/Groups';
 import { Counters, UpdateProfileRequest } from '@/types/apiTypes';
@@ -460,18 +461,8 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   )}
                   
                   <div className={section1Styles.userBadges}>
-                    {profileData.enterprise && !isEditMode && (
-                      <div className={section1Styles.verifiedBadge}>
-                        <Image 
-                          src="/profile/mark.png" 
-                          alt="verified" 
-                          width={20} 
-                          height={20} 
-                        />
-                        <div className={section1Styles.verifiedTooltip}>
-                          Этот пользователь надёжен
-                        </div>
-                      </div>
+                    {!isEditMode && (
+                      <VerifiedBadge isVerified={profileData.enterprise} size={20} />
                     )}
                     
                     {isOwnProfile && !isEditMode && (

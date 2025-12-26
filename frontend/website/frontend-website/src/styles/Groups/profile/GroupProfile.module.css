@@ -50,7 +50,7 @@
   border: 2px solid var(--color-primary-blue-dark);
   border-radius: 18px;
   margin-top: 10%;
-  margin-bottom: 8%;
+  margin-bottom: 4%;
   padding: 8px;
   font-size: 18px;
   cursor: pointer;
@@ -451,7 +451,7 @@
   border: 2px solid var(--color-danger-dark);
   border-radius: 18px;
   margin-top: 10%;
-  margin-bottom: 8%;
+  margin-bottom: 4%;
   padding: 8px;
   font-size: 18px;
   cursor: pointer;
@@ -481,4 +481,80 @@
 
 .joinButton:disabled:hover {
   background: var(--color-primary-blue);
+}
+
+.creatorSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 2px solid var(--color-primary-blue);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.creatorSection:hover {
+  background-color: var(--overlay-blue);
+}
+
+.creatorAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.creatorAvatarImage {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.creatorInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.creatorLabel {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1;
+}
+
+.creatorNameWrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.creatorName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.creatorSection:hover .creatorName {
+  overflow: visible;
+  white-space: normal;
+  word-break: break-word;
 }

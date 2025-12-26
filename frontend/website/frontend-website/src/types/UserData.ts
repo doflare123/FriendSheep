@@ -21,6 +21,7 @@ export interface UserStats {
 }
 
 export interface UserDataResponse {
+  id: number;
   data_register: string;
   enterprise: boolean;
   image: string;

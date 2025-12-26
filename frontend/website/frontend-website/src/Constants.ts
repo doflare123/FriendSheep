@@ -6,6 +6,7 @@ import {UserDataResponse} from './types/UserData'
 import { getUserInfo } from './api/profile/getOwnProfile';
 import { refreshAccessToken, isTokenValid, getCookie, setCookie } from '@/api/auth';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import {convertUstoId} from '@/api/search/convertUstoId'
 
 export const MOBILE_APP_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 
@@ -187,15 +188,11 @@ export function debugJWT(token: string): void {
     console.log('Убедись, что передана корректная строка JWT токена');
   }
 }
-
-export const getUserData = async (): UserDataResponse | null => {
-  try {
-    const data = localStorage.getItem('userData');
-    return data ? JSON.parse(data) : await updateUserData();
-  } catch (error) {
-    console.error('Ошибка чтения из localStorage:', error);
-    return null;
-  }
+export const getUserData = (): UserDataResponse | null => {
+  if (typeof window === 'undefined') return null;
+  
+  const userData = localStorage.getItem('userData');
+  return userData ? JSON.parse(userData) : null;
 }
 
 export const updateUserData = async (): UserDataResponse | null => {
@@ -204,7 +201,13 @@ export const updateUserData = async (): UserDataResponse | null => {
   let UserInfo;
 
   try {
-    UserInfo = await getUserInfo(accessToken); // Добавил await!
+    UserInfo = await getUserInfo(accessToken);
+    
+    console.log("DSD", UserInfo);
+    const userData = await convertUstoId(accessToken, UserInfo.us);
+    console.log("ASD", userData)
+    UserInfo.id = userData;
+    
     localStorage.setItem('userData', JSON.stringify(UserInfo));
   } catch (error) {
     console.error('Ошибка сохранения в localStorage:', error);

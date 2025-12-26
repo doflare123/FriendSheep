@@ -8,10 +8,12 @@ import { joinEvent } from '@/api/events/joinEvent';
 import { leaveEvent } from '@/api/events/leaveEvent';
 import { getGroupInfo } from '@/api/get_group_info';
 import { getOtherUserInfo } from '@/api/profile/getProfile';
-import { getAccesToken, convertSingleCategRuToEng, convertSessionPlaceToLocation } from '@/Constants';
+import { getUserInfo } from '@/api/profile/getOwnProfile';
+import { getAccesToken, convertSingleCategRuToEng, convertSessionPlaceToLocation, getUserData } from '@/Constants';
 import { showNotification } from '@/utils';
 import { getOwnGroups } from '@/api/get_owngroups';
 import LoadingIndicator from '@/components/LoadingIndicator';
+import VerifiedBadge from '@/components/VerifiedBadge';
 import type { EventFullResponse } from '@/types/apiTypes';
 
 interface EventDetailModalProps {
@@ -66,13 +68,18 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
       const groupData = await getGroupInfo(accessToken, groupId);
       setGroupName(groupData.name);
       setGroupId(groupId);
-      
-      console.log("groupData.creater", groupData.creater)
 
       if (groupData.creater) {
         try {
-          const creatorData = await getOtherUserInfo(accessToken, groupData.creater);
-          console.log("creatorData", creatorData)
+          const currentUser = getUserData();
+          let creatorData;
+
+          if (currentUser && currentUser.id === groupData.creater) {
+            creatorData = await getUserInfo(accessToken);
+          } else {
+            creatorData = await getOtherUserInfo(accessToken, groupData.creater);
+          }
+
           setIsVerifiedCreator(creatorData.enterprise || false);
         } catch (error) {
           console.error('Ошибка при получении данных создателя:', error);
@@ -275,15 +282,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
                   onClick={handleGroupClick}
                 >
                   {groupName}
-                  {isVerifiedCreator && (
-                    <Image 
-                      src="/profile/mark.png" 
-                      alt="verified" 
-                      width={16} 
-                      height={16}
-                      className={styles.verifiedIcon}
-                    />
-                  )}
+                  <VerifiedBadge isVerified={isVerifiedCreator} size={16} />
                 </div>
               </div>
             )}

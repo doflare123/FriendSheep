@@ -10,6 +10,8 @@ export async function convertUstoId(accessToken: string, Us: string): Promise<an
       }
     });
 
+    console.log("ZXCZXCZXC", response.data);
+
     return response.data;
   } catch (error: any) {
     console.error('Ошибка при получении группы:', error);
