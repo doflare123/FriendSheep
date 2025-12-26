@@ -148,7 +148,7 @@ module.exports = {
           try {
             // если есть картинка — сначала фото с подписью
             const captionParts = [];
-            if (block.title) captionParts.push(`*${block.title}*`);
+            if (block.title) captionParts.push(`${block.title}`);
             if (block.text) captionParts.push(block.text);
             const caption = captionParts.join('\n\n');
             if (block.imageUrl) {
