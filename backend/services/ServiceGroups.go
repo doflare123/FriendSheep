@@ -243,7 +243,7 @@ type GroupInf struct {
 	Description  string                  `json:"description"`
 	Image        string                  `json:"image"`
 	City         string                  `json:"city"`
-	Creater      string                  `json:"creater"`
+	Creater      uint                    `json:"creater"`
 	CountMembers int64                   `json:"count_members"`
 	Subscription bool                    `json:"subscription"`
 	Users        []UsersGroups           `json:"users"`
@@ -302,7 +302,7 @@ func GetGroupInf(groupID *uint64, email *string) (*GroupInf, error) {
 	information.Description = group.Description
 	information.Image = group.Image
 	information.City = group.City
-	information.Creater = group.Creater.Name
+	information.Creater = group.CreaterID
 
 	users, err := getGroupUsers(*groupID)
 	if err != nil {
