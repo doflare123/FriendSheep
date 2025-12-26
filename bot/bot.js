@@ -152,7 +152,7 @@ module.exports = {
             if (block.text) captionParts.push(block.text);
             const caption = captionParts.join('\n\n');
             if (block.imageUrl) {
-              await bot.sendPhoto(tid, block.imageUrl, caption);
+              await bot.sendPhoto(tid, block.imageUrl, { caption: caption });
             } else if (caption) {
               await bot.sendMessage(tid, caption);
             } else {
