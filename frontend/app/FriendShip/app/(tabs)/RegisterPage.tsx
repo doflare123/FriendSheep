@@ -3,6 +3,7 @@ import { useAuthContext } from '@/components/auth/AuthContext';
 import { useToast } from '@/components/ToastContext';
 import { Colors } from '@/constants/Colors';
 import { useThemedColors } from '@/hooks/useThemedColors';
+import profanityFilter from '@/utils/profanityFilter';
 import { hasRussianChars, validatePassword, validateUsername } from '@/utils/validators';
 import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
@@ -98,9 +99,11 @@ const Register = () => {
     try {
       const response = await authService.createRegistrationSession(sanitizedEmail);
 
+      const cleanedUsername = profanityFilter.clean(username.trim());
+
       setTempRegData({
         email: sanitizedEmail,
-        username: username.trim(),
+        username: cleanedUsername, // ✅ Цензурированное имя
         password: password,
       });
 

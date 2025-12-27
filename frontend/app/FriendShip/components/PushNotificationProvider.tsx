@@ -1,4 +1,5 @@
 import pushNotificationService from '@/api/services/pushNotificationService';
+import { navigate } from '@/navigation/NavigationService';
 import * as Notifications from 'expo-notifications';
 import React, { useEffect, useRef } from 'react';
 
@@ -32,6 +33,42 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
     };
   }, [isAuthenticated]);
 
+  const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
+    console.log('[PushNotificationProvider] 👆 Нажатие на уведомление:', response);
+    
+    const data = response.notification.request.content.data;
+    console.log('[PushNotificationProvider] 📦 Данные уведомления:', data);
+
+    try {
+      if (data.type === 'group_invite') {
+        console.log('[PushNotificationProvider] → Переход к профилю с уведомлениями');
+        navigate('ProfilePage', { openNotifications: true });
+        
+      } else if (data.type === 'event_update' && data.eventId) {
+        console.log('[PushNotificationProvider] → Переход к главной странице (событие)');
+        navigate('MainPage', { searchQuery: undefined });
+        
+      } else if (data.type === 'friend_request') {
+        console.log('[PushNotificationProvider] → Переход к профилю с уведомлениями');
+        navigate('ProfilePage', { openNotifications: true });
+        
+      } else if (data.groupId) {
+        console.log('[PushNotificationProvider] → Переход к группе:', data.groupId);
+        navigate('GroupPage', { groupId: String(data.groupId), mode: 'view' });
+        
+      } else if (data.userId) {
+        console.log('[PushNotificationProvider] → Переход к профилю пользователя:', data.userId);
+        navigate('ProfilePage', { userId: String(data.userId) });
+        
+      } else {
+        console.log('[PushNotificationProvider] → Переход к профилю по умолчанию');
+        navigate('ProfilePage', { openNotifications: true });
+      }
+    } catch (error) {
+      console.error('[PushNotificationProvider] ❌ Ошибка навигации:', error);
+    }
+  };
+
   const initializePushNotifications = async () => {
     try {
       console.log('[PushNotificationProvider] 🔔 Инициализация push-уведомлений...');
@@ -54,19 +91,7 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
       );
 
       responseListener.current = pushNotificationService.addNotificationResponseListener(
-        (response) => {
-          console.log('[PushNotificationProvider] 👆 Нажатие на уведомление:', response);
-          
-          const data = response.notification.request.content.data;
-
-          if (data.type === 'group_invite') {
-            console.log('[PushNotificationProvider] Переход к приглашениям в группу');
-          } else if (data.type === 'event_update') {
-            console.log('[PushNotificationProvider] Переход к событию:', data.eventId);
-          } else if (data.type === 'friend_request') {
-            console.log('[PushNotificationProvider] Переход к запросам в друзья');
-          }
-        }
+        handleNotificationResponse
       );
 
       console.log('[PushNotificationProvider] ✅ Push-уведомления успешно инициализированы');

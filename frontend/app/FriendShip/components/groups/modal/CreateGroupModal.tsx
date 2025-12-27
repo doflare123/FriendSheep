@@ -4,6 +4,7 @@ import DescriptionModal from '@/components/event/modal/DescriptionModal';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
+import profanityFilter from '@/utils/profanityFilter';
 import { validateFullDescription, validateGroupName, validateShortDescription } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
@@ -184,9 +185,9 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
       const categoryIds = selectedCategories.map(catId => CATEGORY_IDS[catId]);
 
       const groupData = {
-        name: groupName.trim(),
-        description: fullDescription.trim(),
-        smallDescription: shortDescription.trim(),
+        name: profanityFilter.clean(groupName.trim()),
+        description: profanityFilter.clean(fullDescription.trim()),
+        smallDescription: profanityFilter.clean(shortDescription.trim()),
         city: city.trim() || undefined,
         categories: categoryIds,
         isPrivate,

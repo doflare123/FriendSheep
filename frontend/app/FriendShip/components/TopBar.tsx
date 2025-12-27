@@ -8,7 +8,7 @@ import MainSearchBar from '@/components/search/MainSearchBar';
 import { Colors } from '@/constants/Colors';
 import { SortingActions, SortingState } from '@/hooks/useSearchState';
 import { useThemedColors } from '@/hooks/useThemedColors';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -23,7 +23,11 @@ interface TopBarProps {
   sortingActions: SortingActions;
 }
 
-const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
+export interface TopBarHandle {
+  openNotificationsModal: () => void;
+}
+
+const TopBar = forwardRef<TopBarHandle, TopBarProps>(({ sortingState, sortingActions }, ref) => {
   const colors = useThemedColors();
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [notifModalPos, setNotifModalPos] = useState({ top: 0, left: 0 });
@@ -38,7 +42,7 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
   const [notificationsPermissionGranted, setNotificationsPermissionGranted] = useState(false);
 
   const MIN_REFRESH_INTERVAL = 30000;
-  let lastRefreshTime = 0;
+  const lastRefreshTime = useRef(0);
 
   useEffect(() => {
     const checkNotificationsPermission = async () => {
@@ -70,12 +74,12 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
   const loadNotifications = async () => {
     const now = Date.now();
     
-    if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
+    if (now - lastRefreshTime.current < MIN_REFRESH_INTERVAL) {
       console.log('[TopBar] Слишком частые обновления, пропускаем');
       return;
     }
     
-    lastRefreshTime = now;
+    lastRefreshTime.current = now;
 
     try {
       setIsLoadingNotifications(true);
@@ -204,6 +208,13 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
     await loadNotifications();
   };
 
+  useImperativeHandle(ref, () => ({
+    openNotificationsModal: async () => {
+      console.log('[TopBar] 🔔 Внешний вызов открытия модалки уведомлений');
+      await openNotifications();
+    },
+  }));
+
   const hasTelegramLink = userProfile?.telegram_link === true;
 
   return (
@@ -241,7 +252,9 @@ const TopBar: React.FC<TopBarProps> = ({ sortingState, sortingActions }) => {
       />
     </View>
   );
-};
+});
+
+TopBar.displayName = 'TopBar';
 
 const styles = StyleSheet.create({
   container: {

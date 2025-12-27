@@ -19,7 +19,10 @@ export type RootStackParamList = {
     groupId: string;
   };
   GroupSearchPage: undefined;
-  ProfilePage: { userId?: string } | undefined;
+  ProfilePage: {
+    userId?: string 
+    openNotifications?: boolean; 
+  } | undefined;     
   UserSearchPage: undefined;
   SettingsPage: undefined;
   AllEventsPage: {

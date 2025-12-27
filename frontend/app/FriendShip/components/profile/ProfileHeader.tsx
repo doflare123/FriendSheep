@@ -22,6 +22,7 @@ interface ProfileHeaderProps {
   registrationDate: string;
   telegramLink?: string;
   isOwnProfile: boolean;
+  isEnterprise?: boolean;
   onEditProfile?: () => void;
   onChangeTiles?: () => void;
   onInviteToGroup?: () => void;
@@ -35,6 +36,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   registrationDate,
   telegramLink,
   isOwnProfile,
+  isEnterprise,
   onEditProfile,
   onChangeTiles,
   onInviteToGroup,
@@ -42,6 +44,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const colors = useThemedColors();
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [verifiedTooltipVisible, setVerifiedTooltipVisible] = useState(false);
   const settingsIconRef = useRef<View>(null);
 
   const handleTelegramPress = () => {
@@ -106,6 +109,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <View style={styles.headerInfo}>
           <View style={styles.nameRow}>
             <Text style={[styles.profileName, { color: colors.black }]}>{name}</Text>
+            {isEnterprise && (
+              <TouchableWithoutFeedback onPress={() => setVerifiedTooltipVisible(true)}>
+                <View>
+                  <Image 
+                    source={require('@/assets/images/profile/verified.png')} 
+                    style={styles.verifiedIcon}
+                  />
+                </View>
+              </TouchableWithoutFeedback>
+            )}
             <TouchableOpacity onPress={handleTelegramPress}>
               <Image 
                 source={require('@/assets/images/profile/telegram.png')} 
@@ -163,6 +176,38 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </TouchableWithoutFeedback>
         </Modal>
       )}
+
+      {isEnterprise && (
+        <Modal
+          visible={verifiedTooltipVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setVerifiedTooltipVisible(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setVerifiedTooltipVisible(false)}>
+            <View style={styles.tooltipOverlay}>
+              <View style={[styles.tooltipContainer, { backgroundColor: colors.white }]}>
+                <Image 
+                  source={require('@/assets/images/profile/verified.png')} 
+                  style={styles.tooltipIcon}
+                />
+                <Text style={[styles.tooltipTitle, { color: colors.black }]}>
+                  Верифицированный{'\n'}аккаунт
+                </Text>
+                <Text style={[styles.tooltipText, { color: colors.black }]}>
+                  Этот аккаунт подтверждён администрацией FriendShip
+                </Text>
+                <TouchableOpacity 
+                  style={styles.tooltipButton}
+                  onPress={() => setVerifiedTooltipVisible(false)}
+                >
+                  <Text style={styles.tooltipButtonText}>Понятно</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      )}
     </>
   );
 };
@@ -213,6 +258,11 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.bold,
     fontSize: 20,
     marginRight: 4,
+  },
+  verifiedIcon: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
   },
   telegramIcon: {
     width: 30,
@@ -268,6 +318,53 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.veryLightGrey,
     marginHorizontal: 8,
+  },
+  tooltipOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tooltipContainer: {
+    borderRadius: 16,
+    padding: 24,
+    marginHorizontal: 32,
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  tooltipIcon: {
+    width: 48,
+    height: 48,
+    marginBottom: 16,
+    resizeMode: 'contain',
+  },
+  tooltipTitle: {
+    fontFamily: Montserrat.bold,
+    fontSize: 18,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  tooltipText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 14,
+    marginBottom: 20,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  tooltipButton: {
+    backgroundColor: Colors.lightBlue,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+  },
+  tooltipButtonText: {
+    fontFamily: Montserrat.bold,
+    fontSize: 16,
+    color: Colors.white,
   },
 });
 

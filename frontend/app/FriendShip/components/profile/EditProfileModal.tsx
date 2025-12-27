@@ -2,6 +2,7 @@ import permissionsService from '@/api/services/permissionsService';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
+import profanityFilter from '@/utils/profanityFilter';
 import { validateUserDisplayName, validateUserUsername } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -78,21 +79,29 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       Alert.alert('Ошибка', `Юзернейм: ${usernameValidation.missingRequirements.join(', ')}`);
       return;
     }
+    
+    await proceedWithSave();
+  };
 
+  const proceedWithSave = async () => {
     setLoading(true);
 
     try {
+      const cleanedName = profanityFilter.clean(name.trim());
+      const cleanedDescription = profanityFilter.clean(description.trim());
+
       const profileData: ProfileData = {
         avatar,
-        name: name.trim(),
+        name: cleanedName,
         username: username.trim(),
-        description: description.trim(),
+        description: cleanedDescription,
       };
       
       await onSave?.(profileData);
       onClose();
     } catch (error) {
       console.error('[EditProfileModal] Ошибка сохранения:', error);
+      Alert.alert('Ошибка', 'Не удалось сохранить профиль');
     } finally {
       setLoading(false);
     }
@@ -348,81 +357,66 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     borderRadius: 25,
     overflow: "hidden",
-    maxHeight: screenHeight * 0.85,
+    maxHeight: screenHeight * 0.8,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: 15,
     paddingHorizontal: 16,
     position: 'relative',
   },
   title: {
     fontFamily: Montserrat.bold,
     fontSize: 18,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   closeButton: {
     position: 'absolute',
-    right: 10,
+    right: 16,
     zIndex: 1,
   },
   content: {
     paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 16,
-    alignItems: 'center',
   },
   avatarContainer: {
-    marginBottom: 8,
-    position: 'relative',
-    alignItems: 'center',
-    width: 156,
-    height: 156,
-    borderRadius: 78,
-    borderWidth: 3,
-    borderStyle: 'dashed',
+    alignSelf: 'center',
+    marginBottom: 24,
+    borderRadius: 80,
+    borderWidth: 2,
   },
   avatar: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
   },
   inputWrapper: {
-    width: '100%',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   label: {
-    fontFamily: Montserrat.medium,
-    fontSize: 14,
+    fontFamily: Montserrat.bold,
+    fontSize: 16,
   },
   charCount: {
     fontFamily: Montserrat.regular,
     fontSize: 12,
   },
   input: {
-    width: '100%',
-    borderBottomWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 0,
     fontFamily: Montserrat.regular,
     fontSize: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
   },
   inputError: {
     borderBottomColor: Colors.red,
-  },
-  textArea: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 16,
-    minHeight: 60,
-    maxHeight: 120,
   },
   errorText: {
     fontFamily: Montserrat.regular,
@@ -430,20 +424,26 @@ const styles = StyleSheet.create({
     color: Colors.red,
     marginTop: 4,
   },
+  textArea: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    minHeight: 80,
+  },
   bottomBackground: {
     width: "100%",
-    marginTop: -2
+    marginTop: -2,
   },
   bottomContent: {
     padding: 16,
   },
   saveButton: {
-    marginHorizontal: 60,
-    paddingVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 40,
+    minHeight: 48,
   },
   saveButtonDisabled: {
     opacity: 0.6,

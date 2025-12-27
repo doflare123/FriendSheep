@@ -12,7 +12,7 @@ import StatisticsBottomBars from '@/components/profile/StatisticsBottomBars';
 import StatisticsChart from '@/components/profile/StatisticsChart';
 import TileSelectionModal, { TileType } from '@/components/profile/TileSelectionModal';
 import { useToast } from '@/components/ToastContext';
-import TopBar from '@/components/TopBar';
+import TopBar, { TopBarHandle } from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
@@ -22,7 +22,7 @@ import { sessionsToEvents } from '@/utils/dataAdapters';
 import { formatDate } from '@/utils/dateUtils';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -37,6 +37,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 type ProfilePageRouteProp = RouteProp<RootStackParamList, 'ProfilePage'>;
 
 const ProfilePage: React.FC = () => {
+  
   const [viewedUserId, setViewedUserId] = useState<number | null>(null);
   const colors = useThemedColors();
   const route = useRoute<ProfilePageRouteProp>();
@@ -57,6 +58,9 @@ const ProfilePage: React.FC = () => {
 
   const [isOwnProfile, setIsOwnProfile] = useState(!userId);
   const [currentUserUsername, setCurrentUserUsername] = useState<string | null>(null);
+
+  const topBarRef = useRef<TopBarHandle>(null);
+  const openNotifications = route.params?.openNotifications;
 
   const loadProfileData = useCallback(async () => {
     try {
@@ -163,6 +167,17 @@ const ProfilePage: React.FC = () => {
   const handleInviteToGroup = () => {
     setInviteModalVisible(true);
   };
+
+  useEffect(() => {
+    if (openNotifications && isOwnProfile && !loading) {
+      const timer = setTimeout(() => {
+        console.log('[ProfilePage] 🔔 Открываем модалку уведомлений из пуш-уведомления');
+        topBarRef.current?.openNotificationsModal();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [openNotifications, isOwnProfile, loading]);
 
   const handleInviteSent = () => {
     showToast({
@@ -358,7 +373,11 @@ const ProfilePage: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
-      <TopBar sortingState={sortingState} sortingActions={sortingActions} />
+      <TopBar 
+        ref={topBarRef}
+        sortingState={sortingState} 
+        sortingActions={sortingActions} 
+      />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
       <PageHeader 
         title={isOwnProfile ? "Ваш профиль" : profileData.name} 
@@ -375,6 +394,7 @@ const ProfilePage: React.FC = () => {
           registrationDate={formatDate(profileData.data_register)}
           telegramLink={profileData.telegram_link ? `https://t.me/${profileData.us}` : undefined}
           isOwnProfile={isOwnProfile}
+          isEnterprise={profileData.enterprise}
           onEditProfile={isOwnProfile ? handleEditProfile : undefined}
           onChangeTiles={isOwnProfile ? handleChangeTiles : undefined}
           onInviteToGroup={!isOwnProfile ? handleInviteToGroup : undefined}

@@ -2,6 +2,7 @@ import kinopoiskService from '@/api/services/kinopoisk/kinopoiskService';
 import permissionsService from '@/api/services/permissionsService';
 import rawgService from '@/api/services/rawg/rawgService';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import { useTheme } from '@/components/ThemeContext';
 import { Event } from '@/components/event/EventCard';
 import KinopoiskButton from '@/components/event/KinopoiskButton';
 import RawgButton from '@/components/event/RawgButton';
@@ -11,6 +12,7 @@ import GenreSelector from '@/components/event/modal/GenreSelector';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
+import profanityFilter from '@/utils/profanityFilter';
 import { validateFullDescription } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
@@ -29,7 +31,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import DatePicker from 'react-native-date-picker';
 import DescriptionModal from './DescriptionModal';
 import YandexMapModal from './YandexMapModal';
 
@@ -61,6 +63,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   isLoading = false,
 }) => {
   const colors = useThemedColors();
+  const { isDark } = useTheme();
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -76,7 +79,8 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   const [maxParticipants, setMaxParticipants] = useState('');
   const [eventImage, setEventImage] = useState<string>('');
   const [imageFile, setImageFile] = useState<any>(null);
-  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
 
   const [kinopoiskModalVisible, setKinopoiskModalVisible] = useState(false);
   const [isLoadingKinopoisk, setIsLoadingKinopoisk] = useState(false);
@@ -432,11 +436,6 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
     setMapModalVisible(false);
   };
 
-  const handleDateConfirm = (date: Date) => {
-    setEventDate(date);
-    setDatePickerVisibility(false);
-  };
-
   const formatDate = (date: Date) => {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -518,19 +517,19 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   };
 
   const handleSubmit = () => {
-    console.log('[CreateEditEventModal] 🔍 selectedCategory перед отправкой:', selectedCategory);
+  console.log('[CreateEditEventModal] 🔍 selectedCategory перед отправкой:', selectedCategory);
     if (!validateForm()) {
       return;
     }
 
     const eventData = {
-      title: eventName,
-      description: description.trim(),
+      title: profanityFilter.clean(eventName),
+      description: profanityFilter.clean(description.trim()),
       category: selectedCategory,
-      typeEvent: publisher.trim() || 'Не указано',
+      typeEvent: profanityFilter.clean(publisher.trim()) || 'Не указано',
       typePlace: eventType,
       genres: selectedGenres,
-      publisher: publisher.trim(),
+      publisher: profanityFilter.clean(publisher.trim()),
       year: publishYear && publishYear.trim() ? parseInt(publishYear) : undefined,
       country: country.trim(),
       ageRating: ageRating.trim(),
@@ -854,7 +853,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                       borderBottomColor: colors.grey
                     }
                   ]}
-                  onPress={() => !isLoading && setDatePickerVisibility(true)}
+                  onPress={() => !isLoading && setDatePickerVisible(true)}
                   disabled={isLoading}
                 >
                   <Text style={[styles.dateText, { color: colors.black }]}>
@@ -865,14 +864,6 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                     style={[styles.calendarIcon, {tintColor: colors.grey}]}
                   />
                 </TouchableOpacity>
-
-                <DateTimePickerModal
-                  isVisible={isDatePickerVisible}
-                  mode="datetime"
-                  onConfirm={handleDateConfirm}
-                  onCancel={() => setDatePickerVisibility(false)}
-                  minimumDate={new Date()}
-                />
 
                 <TextInput
                   style={[
@@ -1057,6 +1048,49 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />
+
+      <Modal
+        visible={datePickerVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDatePickerVisible(false)}
+      >
+        <View style={styles.datePickerModalOverlay}>
+          <View style={[styles.datePickerModalContent, { backgroundColor: colors.white }]}>
+            <View style={styles.datePickerHeader}>
+              <TouchableOpacity onPress={() => setDatePickerVisible(false)}>
+                <Text style={[styles.datePickerButton, { color: colors.grey }]}>
+                  Отмена
+                </Text>
+              </TouchableOpacity>
+              <Text style={[styles.datePickerTitle, { color: colors.black }]}>
+                Выберите дату и время
+              </Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  setDatePickerVisible(false);
+                }}
+              >
+                <Text style={[styles.datePickerButton, { color: Colors.lightBlue }]}>
+                  Готово
+                </Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={{alignItems: 'center'}}>
+              <DatePicker
+                date={eventDate}
+                onDateChange={setEventDate}
+                mode="datetime"
+                minimumDate={new Date()}
+                locale="ru"
+                theme={isDark ? 'dark' : 'light'}
+                is24hourSource="locale"
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 };
@@ -1307,6 +1341,33 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     transform: [{ rotate: '90deg' }],
+  },
+  datePickerModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  datePickerModalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.veryLightGrey,
+  },
+  datePickerTitle: {
+    fontFamily: Montserrat.bold,
+    fontSize: 16,
+  },
+  datePickerButton: {
+    fontFamily: Montserrat.bold,
+    fontSize: 16,
   },
 });
 
