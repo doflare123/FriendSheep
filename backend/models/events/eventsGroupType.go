@@ -1,6 +1,6 @@
-package sessions
+package events
 
-type SessionGroupType struct {
+type EventGroupType struct {
 	ID   uint   `json:"id" gorm:"primaryKey;autoIncrement"`
 	Name string `json:"name" gorm:"uniqueIndex;not null"`
 }

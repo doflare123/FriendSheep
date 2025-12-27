@@ -8,7 +8,6 @@ import (
 	"friendship/models"
 	"friendship/models/groups"
 	"friendship/models/news"
-	"friendship/models/sessions"
 	statsusers "friendship/models/stats_users"
 	"friendship/repository"
 	session "friendship/sessions"
@@ -29,7 +28,7 @@ type Server struct {
 	postgres     repository.PostgresRepository
 	S3           storage.S3Storage
 	mongo        repository.MongoRepository
-	sessionStore session.SessionStore
+	sessionStore events.SessionStore
 	validators   *validator.Validator
 	cfg          config.Config
 }
