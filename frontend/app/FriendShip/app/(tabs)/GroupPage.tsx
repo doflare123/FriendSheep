@@ -76,6 +76,9 @@ const GroupPage = () => {
   const { sortingState, sortingActions } = useSearchState();
   const [confirmLeaveModalVisible, setConfirmLeaveModalVisible] = useState(false);
   const [requestStatus, setRequestStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
+  const [linkModalVisible, setLinkModalVisible] = useState(false);
+  const [selectedLink, setSelectedLink] = useState('');
+  const [selectedContactName, setSelectedContactName] = useState('');
   const navigation = useNavigation<GroupManagePageNavigationProp>();
 
   const loadGroupData = async () => {
@@ -177,9 +180,24 @@ const GroupPage = () => {
     }
   };
 
-  const handleContactPress = (link: string) => {
+    const isDiscordLink = (link: string): boolean => {
+      const lowerLink = link.toLowerCase();
+      return lowerLink.includes('discord.gg') || lowerLink.includes('discord.com');
+    };
+
+  const handleContactPress = (link: string, contactName: string) => {
     if (link) {
-      Linking.openURL(link).catch(err => {
+      setSelectedLink(link);
+      setSelectedContactName(contactName);
+      setLinkModalVisible(true);
+    }
+  };
+
+  const handleConfirmLinkOpen = () => {
+    setLinkModalVisible(false);
+    
+    if (selectedLink) {
+      Linking.openURL(selectedLink).catch(err => {
         console.error('Не удалось открыть ссылку:', err);
         Alert.alert('Ошибка', 'Не удалось открыть ссылку');
       });
@@ -472,39 +490,38 @@ const GroupPage = () => {
         </CategorySection>
 
         <CategorySection title="Контакты:">
-          {groupData.contacts && groupData.contacts.length > 0 ? (
-            <View style={styles.contactsContainer}>
-              {groupData.contacts.map((contact, index) => {
-                const icon = getContactIcon(contact.name, contact.link);
-                return (
-                  <TouchableOpacity
-                    key={`contact-${index}`}
-                    style={styles.contactItem}
-                    onPress={() => handleContactPress(contact.link)}
-                  >
-                    <View style={[
-                      styles.contactIconContainer,
-                      { backgroundColor: colors.white }
-                    ]}>
-                      <Image 
-                        source={icon} 
-                        style={styles.contactIcon} 
-                      />
+          {groupData.contacts.map((contact, index) => {
+            const icon = getContactIcon(contact.name, contact.link);
+            const isBlocked = isDiscordLink(contact.link);
+            
+            return (
+              <TouchableOpacity
+                key={`contact-${index}`}
+                style={styles.contactItem}
+                onPress={() => handleContactPress(contact.link, contact.name)}
+              >
+                <View style={styles.contactIconWrapper}>
+                  <View style={[
+                    styles.contactIconContainer,
+                    { backgroundColor: colors.white }
+                  ]}>
+                    <Image 
+                      source={icon} 
+                      style={styles.contactIcon} 
+                    />
+                  </View>
+                  {isBlocked && (
+                    <View style={styles.blockedBadge}>
+                      <Text style={[styles.blockedBadgeText, {color: colors.black}]}>*</Text>
                     </View>
-                    <Text style={[styles.contactDescription, { color: colors.black }]} numberOfLines={2}>
-                      {contact.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: colors.grey }]}>
-                Контакты пока не добавлены
-              </Text>
-            </View>
-          )}
+                  )}
+                </View>
+                <Text style={[styles.contactDescription, { color: colors.black }]} numberOfLines={2}>
+                  {contact.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </CategorySection>
       </ScrollView>
       <BottomBar />
@@ -548,6 +565,16 @@ const GroupPage = () => {
         message="Вы уверены, что хотите покинуть эту группу?"
         onConfirm={handleLeaveGroupConfirm}
         onCancel={() => setConfirmLeaveModalVisible(false)}
+      />
+
+      <ConfirmationModal
+        visible={linkModalVisible}
+        title="Переход по ссылке"
+        message="Вы собираетесь перейти по ссылке: "
+        link={selectedLink}
+        isBlocked={isDiscordLink(selectedLink)}
+        onConfirm={handleConfirmLinkOpen}
+        onCancel={() => setLinkModalVisible(false)}
       />
     </SafeAreaView>
   );
@@ -639,6 +666,8 @@ const styles = StyleSheet.create({
   },
   contactItem: {
     alignItems: 'center',
+    alignContent: 'center',
+    justifyContent: 'center',
     width: 80,
     marginBottom: 16,
     marginHorizontal: 8,
@@ -647,8 +676,9 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 100,
-    justifyContent: 'center',
     alignItems: 'center',
+    alignContent: 'center',
+    justifyContent: 'center',
     marginBottom: 4,
     elevation: 2,
     shadowColor: '#000',
@@ -660,6 +690,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     resizeMode: 'contain',
+    alignSelf: 'center'
   },
   contactDescription: {
     fontFamily: Montserrat.regular,
@@ -742,6 +773,29 @@ const styles = StyleSheet.create({
     width: 75,
     height: 75,
     borderRadius: 40,
+  },
+  contactIconWrapper: {
+    position: 'relative',
+  },
+  blockedBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  blockedBadgeText: {
+    fontSize: 20,
+    fontFamily: Montserrat.bold,
+  },
+  blockedText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 2,
   },
 });
 
