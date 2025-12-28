@@ -16,10 +16,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.FriendShip",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Приложению нужен доступ к вашим фото для загрузки аватара и изображений событий",
         "NSCameraUsageDescription": "Приложению нужен доступ к камере для создания фото",
-        "NSLocationWhenInUseUsageDescription": "Приложению нужен доступ к вашему местоположению для выбора адреса на карте"
+        "NSLocationWhenInUseUsageDescription": "Приложению нужен доступ к вашему местоположению для выбора адреса на карте",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "splash": {
         "image": "./assets/images/logo.png",
@@ -79,8 +81,20 @@
         }
       ],
       "expo-secure-store",
-      "@react-native-firebase/app",
-      "expo-dev-client"
+      [
+        "@react-native-firebase/app",
+        {
+          "android": {
+            "googleServicesFile": "./google-services.json"
+          },
+          "ios": {
+            "googleServicesFile": "./GoogleService-Info.plist"
+          }
+        }
+      ],
+      "./app.plugin.js",
+      "expo-dev-client",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

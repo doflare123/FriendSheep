@@ -74,11 +74,11 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
       onUpdateNotifications(updatedNotifications);
 
       checkAndUpdateUnreadStatus(updatedNotifications, invites);
-    } catch (error: any) {
+    } catch {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось отметить уведомление',
+        message: 'Не удалось отметить уведомление',
       });
     }
   };
@@ -97,11 +97,11 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
         title: 'Успешно',
         message: 'Вы присоединились к группе',
       });
-    } catch (error: any) {
+    } catch {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось принять приглашение',
+        message: 'Не удалось принять приглашение',
       });
     }
   };
@@ -120,11 +120,11 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
         title: 'Готово',
         message: 'Приглашение отклонено',
       });
-    } catch (error: any) {
+    } catch {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось отклонить приглашение',
+        message: 'Не удалось отклонить приглашение',
       });
     }
   };
@@ -223,7 +223,7 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
                       />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.notificationText}>
+                      <Text style={[styles.notificationText, {color: colors.black}]}>
                         Вас приглашают в группу {invite.groupName}
                       </Text>
                       <View style={styles.buttonsRow}>

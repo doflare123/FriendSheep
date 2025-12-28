@@ -66,11 +66,11 @@ const ForgotPassword = () => {
         type: 'reset',
         email: sanitizedEmail,
       });
-    } catch (error: any) {
+    } catch {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось отправить код',
+        message: 'Не удалось отправить код',
       });
     } finally {
       setLoading(false);

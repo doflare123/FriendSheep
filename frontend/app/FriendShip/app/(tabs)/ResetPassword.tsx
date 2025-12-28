@@ -76,11 +76,11 @@ const ResetPassword = () => {
       setTimeout(() => {
         navigation.navigate('Login' as never);
       }, 1500);
-    } catch (error: any) {
+    } catch {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось изменить пароль',
+        message: 'Не удалось изменить пароль',
       });
     } finally {
       setLoading(false);

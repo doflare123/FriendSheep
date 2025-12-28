@@ -43,3 +43,6 @@ yarn-error.*
 google-services.json
 GoogleService-Info.plist
 frontend/app/FriendShip/google-services.json
+
+/android
+/ios

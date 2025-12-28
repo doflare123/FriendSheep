@@ -1,7 +1,8 @@
 import { Colors } from '@/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as NavigationBar from 'expo-navigation-bar';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, StatusBar, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StatusBar, StyleSheet, View } from 'react-native';
 
 type Theme = 'light' | 'dark';
 
@@ -24,8 +25,16 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    StatusBar.setBarStyle(theme === 'dark' ? 'light-content' : 'dark-content', true);
-    StatusBar.setBackgroundColor(theme === 'dark' ? '#1A1A1A' : '#FFFFFF', true);
+    const isDark = theme === 'dark';
+    const backgroundColor = isDark ? '#1A1A1A' : '#FFFFFF';
+
+    StatusBar.setBarStyle(isDark ? 'light-content' : 'dark-content', true);
+    StatusBar.setBackgroundColor(backgroundColor, true);
+    
+    if (Platform.OS === 'android') {
+      NavigationBar.setBackgroundColorAsync(backgroundColor);
+      NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
+    }
   }, [theme]);
 
   const loadTheme = async () => {
@@ -33,8 +42,17 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
       if (savedTheme === 'dark' || savedTheme === 'light') {
         setTheme(savedTheme);
-        StatusBar.setBarStyle(savedTheme === 'dark' ? 'light-content' : 'dark-content', false);
-        StatusBar.setBackgroundColor(savedTheme === 'dark' ? '#1A1A1A' : '#FFFFFF', false);
+        
+        const isDark = savedTheme === 'dark';
+        const backgroundColor = isDark ? '#1A1A1A' : '#FFFFFF';
+        
+        StatusBar.setBarStyle(isDark ? 'light-content' : 'dark-content', false);
+        StatusBar.setBackgroundColor(backgroundColor, false);
+        
+        if (Platform.OS === 'android') {
+          NavigationBar.setBackgroundColorAsync(backgroundColor);
+          NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
+        }
       }
     } catch (error) {
       console.error('[ThemeContext] Ошибка загрузки темы:', error);

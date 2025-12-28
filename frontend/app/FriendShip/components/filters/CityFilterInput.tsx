@@ -50,8 +50,10 @@ const CityFilterInput: React.FC<CityFilterInputProps> = ({ value, onChangeText }
           onChangeText(text);
           filterCities(text);
         }}
-        onBlur={() => {
-          setTimeout(() => setShowSuggestions(false), 200);
+        onFocus={() => {
+          if (value.length >= 2) {
+            filterCities(value);
+          }
         }}
         placeholderTextColor={colors.grey}
       />
@@ -65,6 +67,7 @@ const CityFilterInput: React.FC<CityFilterInputProps> = ({ value, onChangeText }
               <TouchableOpacity
                 style={[styles.suggestionItem, { borderBottomColor: colors.veryLightGrey }]}
                 onPress={() => handleCitySelect(item)}
+                activeOpacity={0.7}
               >
                 <Text style={[styles.suggestionText, { color: colors.black }]}>
                   {item}

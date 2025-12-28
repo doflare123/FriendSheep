@@ -244,11 +244,11 @@ const Confirm = () => {
       
       setCode('');
       setAttempts(0);
-    } catch (error: any) {
+    } catch {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось отправить код',
+        message: 'Не удалось отправить код',
       });
     } finally {
       setResending(false);

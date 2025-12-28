@@ -100,24 +100,19 @@ class GroupMemberService {
       return response.data;
     } catch (error: any) {
         if (error.response) {
-          // ✅ Детально обрабатываем ошибки сервера
           const status = error.response.status;
           const data = error.response.data;
-          
-          // Конкретные статусы
+
           if (status === 403) throw new Error('...');
           if (status === 404) throw new Error('...');
           if (status === 400) throw new Error('...');
-          
-          // ✅ Для всех остальных - понятное сообщение
+
           throw new Error(data?.message || data?.error || `Ошибка сервера (${status})`);
           
         } else if (error.request) {
-          // ✅ Нет ответа от сервера
           throw new Error('Сервер не отвечает. Проверьте подключение к интернету.');
           
         } else {
-          // ✅ Ошибка настройки запроса
           throw new Error(error.message || 'Неизвестная ошибка');
         }
       }

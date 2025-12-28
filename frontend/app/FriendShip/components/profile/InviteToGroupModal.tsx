@@ -8,6 +8,7 @@ import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   FlatList,
   Image,
@@ -47,6 +48,17 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
   const [sending, setSending] = useState(false);
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
 
+   useEffect(() => {
+    if (!visible) return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [visible]);
+
   useEffect(() => {
     if (visible) {
       if (!isValidUserId(userId)) {
@@ -82,11 +94,11 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
       setLoading(true);
       const groups = await groupService.getAdminGroups();
       setAdminGroups(groups);
-    } catch (error: any) {
+    } catch {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось загрузить группы',
+        message: 'Не удалось загрузить группы',
       });
     } finally {
       setLoading(false);
@@ -119,11 +131,11 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
       onInviteSent?.();
       onClose();
       
-    } catch (error: any) {
+    } catch {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось отправить приглашение',
+        message: 'Не удалось отправить приглашение',
       });
     } finally {
       setSending(false);

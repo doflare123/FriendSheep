@@ -1,8 +1,9 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
+  BackHandler,
   Modal,
   StyleSheet,
   Text,
@@ -30,6 +31,17 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isBlocked = false,
 }) => {
   const colors = useThemedColors();
+
+   useEffect(() => {
+    if (!visible) return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      onCancel();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [visible]);
 
   return (
     <Modal

@@ -6,13 +6,40 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "$API_BASE_URL",
+        "EXPO_PUBLIC_KINOPOISK_API_KEY": "$KINOPOISK_API_KEY",
+        "EXPO_PUBLIC_RAWG_API_KEY": "$RAWG_API_KEY",
+        "EXPO_PUBLIC_YANDEX_JS_API_KEY": "$YANDEX_JS_API_KEY"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "$API_BASE_URL",
+        "EXPO_PUBLIC_KINOPOISK_API_KEY": "$KINOPOISK_API_KEY",
+        "EXPO_PUBLIC_RAWG_API_KEY": "$RAWG_API_KEY",
+        "EXPO_PUBLIC_YANDEX_JS_API_KEY": "$YANDEX_JS_API_KEY"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "$API_BASE_URL",
+        "EXPO_PUBLIC_KINOPOISK_API_KEY": "$KINOPOISK_API_KEY",
+        "EXPO_PUBLIC_RAWG_API_KEY": "$RAWG_API_KEY",
+        "EXPO_PUBLIC_YANDEX_JS_API_KEY": "$YANDEX_JS_API_KEY"
+      }
     }
   },
   "submit": {

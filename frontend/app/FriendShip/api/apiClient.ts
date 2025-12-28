@@ -1,11 +1,10 @@
 import { clearTokens, getTokens, saveTokens } from '@/api/storage/tokenStorage';
-// eslint-disable-next-line import/no-unresolved
-import { API_BASE_URL } from '@env';
 import axios, { AxiosError, AxiosInstance } from 'axios';
+import Constants from 'expo-constants';
 
-const BASE_URL = API_BASE_URL;
+const BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'https://friendsheep.ru/api';
 
-if (__DEV__ === false && !BASE_URL.startsWith('https://')) {
+if (__DEV__ === false && BASE_URL && !BASE_URL.startsWith('https://')) {
   console.error('⚠️ КРИТИЧНО: Production API должен использовать HTTPS!');
 }
 

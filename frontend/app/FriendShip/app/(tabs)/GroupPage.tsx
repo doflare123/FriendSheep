@@ -490,38 +490,40 @@ const GroupPage = () => {
         </CategorySection>
 
         <CategorySection title="Контакты:">
-          {groupData.contacts.map((contact, index) => {
-            const icon = getContactIcon(contact.name, contact.link);
-            const isBlocked = isDiscordLink(contact.link);
-            
-            return (
-              <TouchableOpacity
-                key={`contact-${index}`}
-                style={styles.contactItem}
-                onPress={() => handleContactPress(contact.link, contact.name)}
-              >
-                <View style={styles.contactIconWrapper}>
-                  <View style={[
-                    styles.contactIconContainer,
-                    { backgroundColor: colors.white }
-                  ]}>
-                    <Image 
-                      source={icon} 
-                      style={styles.contactIcon} 
-                    />
-                  </View>
-                  {isBlocked && (
-                    <View style={styles.blockedBadge}>
-                      <Text style={[styles.blockedBadgeText, {color: colors.black}]}>*</Text>
+          <View style={styles.contactsContainer}>
+            {groupData.contacts.map((contact, index) => {
+              const icon = getContactIcon(contact.name, contact.link);
+              const isBlocked = isDiscordLink(contact.link);
+              
+              return (
+                <TouchableOpacity
+                  key={`contact-${index}`}
+                  style={styles.contactItem}
+                  onPress={() => handleContactPress(contact.link, contact.name)}
+                >
+                  <View style={styles.contactIconWrapper}>
+                    <View style={[
+                      styles.contactIconContainer,
+                      { backgroundColor: colors.white }
+                    ]}>
+                      <Image 
+                        source={icon} 
+                        style={styles.contactIcon} 
+                      />
                     </View>
-                  )}
-                </View>
-                <Text style={[styles.contactDescription, { color: colors.black }]} numberOfLines={2}>
-                  {contact.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+                    {isBlocked && (
+                      <View style={styles.blockedBadge}>
+                        <Text style={[styles.blockedBadgeText, {color: colors.black}]}>*</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.contactDescription, { color: colors.black }]} numberOfLines={2}>
+                    {contact.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </CategorySection>
       </ScrollView>
       <BottomBar />

@@ -103,7 +103,7 @@ const Register = () => {
 
       setTempRegData({
         email: sanitizedEmail,
-        username: cleanedUsername, // ✅ Цензурированное имя
+        username: cleanedUsername,
         password: password,
       });
 
@@ -117,11 +117,11 @@ const Register = () => {
         sessionId: response.session_id,
         type: 'register',
       });
-    } catch (error: any) {
+    } catch {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось создать аккаунт',
+        message: 'Не удалось создать аккаунт',
       });
     } finally {
       setLoading(false);

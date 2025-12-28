@@ -3,10 +3,11 @@ import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import * as Location from 'expo-location';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Linking,
   Modal,
   Platform,
@@ -40,6 +41,17 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [isRequestingLocation, setIsRequestingLocation] = useState(false);
   const webViewRef = useRef<WebView>(null);
+
+   useEffect(() => {
+    if (!visible) return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleClose();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [visible]);
 
   const handleSearch = () => {
     if (!searchQuery.trim()) return;

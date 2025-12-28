@@ -9,6 +9,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Dimensions,
   Image,
   ImageBackground,
@@ -56,6 +57,17 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [username, setUsername] = useState(currentProfile.username);
   const [description, setDescription] = useState(currentProfile.description);
   const [loading, setLoading] = useState(false);
+
+   useEffect(() => {
+    if (!visible) return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleClose();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [visible]);
 
   useEffect(() => {
     if (visible) {

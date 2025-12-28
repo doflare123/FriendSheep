@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   Image,
   ImageBackground,
@@ -106,7 +107,17 @@ const EventModal: React.FC<EventModalProps> = ({
 
   const [addToCalendar, setAddToCalendar] = useState(false);
   const [calendarEventId, setCalendarEventId] = useState<string | undefined>(event.calendarEventId);
-  
+
+   useEffect(() => {
+    if (!visible) return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [visible]);
 
   useEffect(() => {
     if (visible) {
@@ -159,7 +170,7 @@ const EventModal: React.FC<EventModalProps> = ({
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось загрузить сессию',
+        message: 'Не удалось загрузить сессию',
       });
     } finally {
       setIsLoading(false);
@@ -256,7 +267,7 @@ const EventModal: React.FC<EventModalProps> = ({
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось обновить календарь',
+        message: 'Не удалось обновить календарь',
       });
     }
   };
@@ -280,7 +291,6 @@ const EventModal: React.FC<EventModalProps> = ({
         message: `Вы зарегистрированы на событие "${event.title}"`,
       });
 
-      await loadSessionDetail();
       onSessionUpdate?.();
     } catch (error: any) {
       console.error('[EventModal] ❌ Ошибка присоединения:', error);
@@ -293,7 +303,7 @@ const EventModal: React.FC<EventModalProps> = ({
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось присоединиться к сессии',
+        message: 'Не удалось присоединиться к сессии',
       });
     } finally {
       setIsProcessing(false);
@@ -328,7 +338,6 @@ const EventModal: React.FC<EventModalProps> = ({
         message: 'Вы покинули сессию',
       });
 
-      await loadSessionDetail();
       onSessionUpdate?.();
 
       onClose();
@@ -338,7 +347,7 @@ const EventModal: React.FC<EventModalProps> = ({
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось покинуть сессию',
+        message: 'Не удалось покинуть сессию',
       });
     } finally {
       setIsProcessing(false);
@@ -781,7 +790,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
-    color: Colors.red,
+    color: Colors.lightBlue,
   },
   closeButton: { 
     position: 'absolute', 

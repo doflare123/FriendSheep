@@ -143,7 +143,7 @@ const ProfilePage: React.FC = () => {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось загрузить профиль',
+        message: 'Не удалось загрузить профиль',
       });
 
       navigation.goBack();
@@ -237,7 +237,7 @@ const ProfilePage: React.FC = () => {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось обновить профиль',
+        message: 'Не удалось обновить профиль',
       });
     } finally {
       setLoading(false);
@@ -263,11 +263,11 @@ const ProfilePage: React.FC = () => {
         title: 'Успешно',
         message: 'Плитки обновлены',
       });
-    } catch (error: any) {
+    } catch {
       showToast({
         type: 'error',
         title: 'Ошибка',
-        message: error.message || 'Не удалось обновить плитки',
+        message: 'Не удалось обновить плитки',
       });
     }
   };

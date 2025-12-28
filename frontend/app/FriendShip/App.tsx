@@ -67,7 +67,7 @@ function RootNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        gestureEnabled: true,
+        gestureEnabled: false,
         headerShown: false,
         cardStyleInterpolator: customCardStyleInterpolator,
         transitionSpec: {

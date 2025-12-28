@@ -119,15 +119,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 </View>
               </TouchableWithoutFeedback>
             )}
-            <TouchableOpacity onPress={handleTelegramPress}>
-              <Image 
-                source={require('@/assets/images/profile/telegram.png')} 
-                style={[
-                  styles.telegramIcon,
-                  !telegramLink && styles.telegramIconInactive
-                ]}
-              />
-            </TouchableOpacity>
+            {isOwnProfile && (
+              <TouchableOpacity onPress={handleTelegramPress}>
+                <Image 
+                  source={require('@/assets/images/profile/telegram.png')} 
+                  style={[
+                    styles.telegramIcon,
+                    !telegramLink && styles.telegramIconInactive
+                  ]}
+                />
+              </TouchableOpacity>
+            )}
           </View>
           <Text style={[styles.profileUs, { color: colors.black }]}>{username}</Text>
           <Text style={[styles.description, { color: colors.black }]}>{description}</Text>

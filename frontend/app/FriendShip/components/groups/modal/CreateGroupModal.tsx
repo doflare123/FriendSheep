@@ -7,10 +7,11 @@ import { useThemedColors } from '@/hooks/useThemedColors';
 import profanityFilter from '@/utils/profanityFilter';
 import { validateFullDescription, validateGroupName, validateShortDescription } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Dimensions,
   Image,
   ImageBackground,
@@ -54,6 +55,17 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
   const [fullDescModalVisible, setFullDescModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+   useEffect(() => {
+    if (!visible) return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleClose();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [visible]);
 
   const categories = [
     { id: 'movie', icon: require('@/assets/images/event_card/movie.png') },

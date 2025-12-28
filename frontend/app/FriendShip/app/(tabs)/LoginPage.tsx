@@ -85,11 +85,11 @@ const Login = () => {
         message: 'Вы вошли в систему',
       });
 
-    } catch (error: any) {
+    } catch {
       showToast({
         type: 'error',
         title: 'Ошибка входа',
-        message: error.message || 'Не удалось войти в систему',
+        message: 'Не удалось войти в систему',
       });
     } finally {
       setLoading(false);

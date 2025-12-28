@@ -19,6 +19,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Dimensions,
   Image,
   ImageBackground,
@@ -93,6 +94,17 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [descriptionModalVisible, setDescriptionModalVisible] = useState(false);
+
+   useEffect(() => {
+    if (!visible) return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleClose();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [visible]);
 
   useEffect(() => {
     if (editMode && initialData && visible) {

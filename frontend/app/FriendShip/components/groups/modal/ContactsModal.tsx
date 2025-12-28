@@ -3,6 +3,7 @@ import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  BackHandler,
   Dimensions,
   Modal,
   ScrollView,
@@ -88,6 +89,17 @@ const ContactsModal: React.FC<ContactsModalProps> = ({
   const memoizedInitialContacts = useMemo(() => {
     return initialContacts;
   }, [JSON.stringify(initialContacts)]);
+
+   useEffect(() => {
+    if (!visible) return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleClose();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [visible]);
 
   useEffect(() => {
     if (visible && !isInitialized) {
