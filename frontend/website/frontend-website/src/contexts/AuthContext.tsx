@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { refreshAccessToken, isTokenValid, getCookie, setCookie, deleteCookie } from '../api/auth';
-import {decodeJWT} from '@/Constants'
+import {decodeJWT, clearUserData} from '@/Constants'
 
 interface UserData {
   us: string;
@@ -146,6 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     localStorage.removeItem('access_token');
     deleteCookie('refresh_token');
+    clearUserData();
     setIsLoggedIn(false);
     setUserData(null);
     if (refreshIntervalRef.current) {

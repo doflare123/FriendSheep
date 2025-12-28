@@ -36,6 +36,8 @@ interface NotificationResponse {
     notifications: Notification[];
 }
 
+import { USER_DATA_UPDATED_EVENT } from '@/Constants';
+
 export default function Header() {
     const { isLoggedIn, userData, logout, isLoading } = useAuth();
     const [showNotifications, setShowNotifications] = useState(false);
@@ -87,6 +89,17 @@ export default function Header() {
         };
 
         checkTelegramLink();
+
+        const handleUserDataUpdate = (event: CustomEvent) => {
+            const updatedUserData = event.detail;
+            setHasTelegramLink(updatedUserData?.telegram_link || false);
+        };
+
+        window.addEventListener(USER_DATA_UPDATED_EVENT, handleUserDataUpdate as EventListener);
+
+        return () => {
+            window.removeEventListener(USER_DATA_UPDATED_EVENT, handleUserDataUpdate as EventListener);
+        };
     }, [isLoggedIn]);
 
     const updateBrowserTitle = (count: number) => {

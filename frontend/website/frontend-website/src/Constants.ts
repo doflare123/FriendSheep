@@ -8,6 +8,7 @@ import { refreshAccessToken, isTokenValid, getCookie, setCookie } from '@/api/au
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import {convertUstoId} from '@/api/search/convertUstoId'
 
+export const USER_DATA_UPDATED_EVENT = 'userDataUpdated';
 export const MOBILE_APP_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 
 export function checkDeviceAndRedirect(router: AppRouterInstance) {
@@ -195,7 +196,7 @@ export const getUserData = (): UserDataResponse | null => {
   return userData ? JSON.parse(userData) : null;
 }
 
-export const updateUserData = async (): UserDataResponse | null => {
+export const updateUserData = async (): Promise<UserDataResponse | null> => {
   const accessToken: string = await getAccesToken();
   
   let UserInfo;
@@ -203,17 +204,30 @@ export const updateUserData = async (): UserDataResponse | null => {
   try {
     UserInfo = await getUserInfo(accessToken);
     
-    console.log("DSD", UserInfo);
     const userData = await convertUstoId(accessToken, UserInfo.us);
-    console.log("ASD", userData)
     UserInfo.id = userData;
     
     localStorage.setItem('userData', JSON.stringify(UserInfo));
+    
+    window.dispatchEvent(new CustomEvent(USER_DATA_UPDATED_EVENT, { 
+      detail: UserInfo 
+    }));
   } catch (error) {
     console.error('Ошибка сохранения в localStorage:', error);
   }
 
   return UserInfo || null;
+}
+
+export const clearUserData = (): void => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    localStorage.removeItem('userData');
+    console.log('✅ userData очищен');
+  } catch (error) {
+    console.error('❌ Ошибка очистки userData:', error);
+  }
 }
 
 export const getCategoryIcon = (category: string): string => {

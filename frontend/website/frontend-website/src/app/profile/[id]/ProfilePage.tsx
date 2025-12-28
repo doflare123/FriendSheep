@@ -58,6 +58,14 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLHeadingElement>(null);
+  const usRef = useRef<HTMLParagraphElement>(null);
+  const statusRef = useRef<HTMLParagraphElement>(null);
+  
+  const [showNameTooltip, setShowNameTooltip] = useState(false);
+  const [showUsTooltip, setShowUsTooltip] = useState(false);
+  const [showStatusTooltip, setShowStatusTooltip] = useState(false);
+
   const [activeTab, setActiveTab] = useState<'recent' | 'upcoming'>('upcoming');
   const [isOwnProfile, setOwnProfile] = useState(params.isOwn || false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
@@ -130,6 +138,24 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     }, 500);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (nameRef.current) {
+        setShowNameTooltip(nameRef.current.scrollWidth > nameRef.current.clientWidth);
+      }
+      if (usRef.current) {
+        setShowUsTooltip(usRef.current.scrollWidth > usRef.current.clientWidth);
+      }
+      if (statusRef.current) {
+        setShowStatusTooltip(statusRef.current.scrollHeight > statusRef.current.clientHeight);
+      }
+    };
+
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [editedData.name, editedData.us, editedData.status, isEditMode]);
 
   const chartColors = ['var(--color-primary-blue-dark)', '#1E5CB9', '#1851A6', '#134693', '#0D3E86', '#0A3677'];
   const availableTiles = ['count_all', 'count_films', 'count_games', 'count_other', 'count_table', 'spent_time'];
@@ -452,9 +478,10 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     </div>
                   ) : (
                     <h2 
+                      ref={nameRef}
                       className={section1Styles.userName}
                       style={{ fontSize: `${nameFontSize}px` }}
-                      title={editedData.name}
+                      title={showNameTooltip ? editedData.name : undefined}
                     >
                       {editedData.name}
                     </h2>
@@ -465,22 +492,20 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                       <VerifiedBadge isVerified={profileData.enterprise} size={20} />
                     )}
                     
-                    {isOwnProfile && !isEditMode && (
+                    {isOwnProfile && !isEditMode && !profileData.telegram_link && (
                       <div 
                         className={section1Styles.telegramBadge}
                         onClick={handleTelegramClick}
                       >
                         <Image 
-                          src={!profileData.telegram_link ? "/social/tg_grey.png" : getSocialIcon("t.me")} 
+                          src="/social/tg_grey.png" 
                           alt="telegram" 
                           width={20} 
                           height={20}
                         />
-                        {!profileData.telegram_link && (
-                          <div className={section1Styles.telegramTooltip}>
-                            У вас не привязан телеграм, чтобы получать напоминания о событиях, на которые вы записались. Но это можно исправить зайдя в этого бота в телеграме: <span className={section1Styles.botLink}>@FriendShipNotify_bot</span>
-                          </div>
-                        )}
+                        <div className={section1Styles.telegramTooltip}>
+                          У вас не привязан телеграм, чтобы получать напоминания о событиях, на которые вы записались. Но это можно исправить зайдя в этого бота в телеграме: <span className={section1Styles.botLink}>@FriendShipNotify_bot</span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -514,9 +539,10 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   </div>
                 ) : (
                   <p 
+                    ref={usRef}
                     className={section1Styles.userUs}
                     style={{ fontSize: `${usFontSize}px` }}
-                    title={`@${editedData.us}`}
+                    title={showUsTooltip ? `@${editedData.us}` : undefined}
                   >
                     @{editedData.us}
                   </p>
@@ -551,18 +577,22 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   </div>
                 ) : (
                   <p 
+                    ref={statusRef}
                     className={section1Styles.userStatus}
                     style={{ fontSize: `${statusFontSize}px` }}
-                    title={editedData.status}
+                    title={showStatusTooltip ? editedData.status : undefined}
                   >
                     {editedData.status}
                   </p>
                 )}
-                <div className={section1Styles.registerDate}>
-                  Участник с {profileData.data_register}
-                </div>
               </div>
             </div>
+
+            {!isEditMode && (
+              <div className={section1Styles.registerDate}>
+                Участник с {profileData.data_register}
+              </div>
+            )}
           </div>
 
           <div className={section1Styles.statsTiles}>

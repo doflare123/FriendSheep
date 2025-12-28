@@ -9,7 +9,7 @@ import { getOtherUserInfo } from '../../../api/profile/getProfile';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import { convertUstoId } from '@/api/search/convertUstoId';
 import { showNotification } from '@/utils';
-import {getAccesToken} from '@/Constants';
+import {getAccesToken, updateUserData} from '@/Constants';
 import { getGroups } from '@/api/get_groups';
 import {SmallGroup} from '@/types/Groups';
 import { useRouter } from 'next/navigation';

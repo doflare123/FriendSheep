@@ -23,7 +23,7 @@ export default function LoginPage() {
   });
   
   const router = useRouter();
-  const { login } = useAuth();
+  const { login  } = useAuth();
 
   useEffect(() => {
       checkDeviceAndRedirect(router);
