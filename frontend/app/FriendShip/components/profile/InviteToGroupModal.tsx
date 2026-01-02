@@ -48,16 +48,17 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
   const [sending, setSending] = useState(false);
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
 
-   useEffect(() => {
+  useEffect(() => {
     if (!visible) return;
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (loading || sending) return true;
       onClose();
       return true;
     });
 
     return () => backHandler.remove();
-  }, [visible]);
+  }, [visible, loading, sending, onClose]);
 
   useEffect(() => {
     if (visible) {
@@ -166,7 +167,6 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
     <Modal visible={visible} animationType="fade" transparent>
       <TouchableWithoutFeedback onPress={sending ? undefined : onClose}>
         <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
             <View style={[styles.modal, { backgroundColor: colors.white }]}>
               <View style={[
                 styles.header,
@@ -223,7 +223,6 @@ const InviteToGroupModal: React.FC<InviteToGroupModalProps> = ({
                 )}
               </View>
             </View>
-          </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
     </Modal>

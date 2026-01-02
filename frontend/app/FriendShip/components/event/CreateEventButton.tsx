@@ -27,7 +27,7 @@ const CreateEventButton: React.FC<CreateEventButtonProps> = ({ onPress }) => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 110,
+    bottom: 60,
     left: 16,
     width: 60,
     height: 60,

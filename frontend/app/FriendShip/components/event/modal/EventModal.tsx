@@ -24,7 +24,6 @@ import {
   Switch,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View
 } from 'react-native';
 
@@ -108,16 +107,17 @@ const EventModal: React.FC<EventModalProps> = ({
   const [addToCalendar, setAddToCalendar] = useState(false);
   const [calendarEventId, setCalendarEventId] = useState<string | undefined>(event.calendarEventId);
 
-   useEffect(() => {
+ useEffect(() => {
     if (!visible) return;
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isLoading || isProcessing) return true;
       onClose();
       return true;
     });
 
     return () => backHandler.remove();
-  }, [visible]);
+  }, [visible, isLoading, isProcessing, onClose]);
 
   useEffect(() => {
     if (visible) {
@@ -419,10 +419,6 @@ const EventModal: React.FC<EventModalProps> = ({
     <>
       <Modal visible={visible} animationType="fade" transparent>
         <View style={styles.overlay}>
-          <TouchableWithoutFeedback onPress={onClose}>
-            <View style={StyleSheet.absoluteFill} />
-          </TouchableWithoutFeedback>
-
           <View style={[styles.modal, { backgroundColor: colors.white }]}>
             {isLoading ? (
               <View style={styles.loadingContainer}>

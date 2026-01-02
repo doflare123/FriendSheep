@@ -3,7 +3,7 @@ import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import * as Location from 'expo-location';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -41,17 +41,11 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [isRequestingLocation, setIsRequestingLocation] = useState(false);
   const webViewRef = useRef<WebView>(null);
+  const initialAddressRef = useRef(initialAddress);
 
-   useEffect(() => {
-    if (!visible) return;
-
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      handleClose();
-      return true;
-    });
-
-    return () => backHandler.remove();
-  }, [visible]);
+  useEffect(() => {
+    initialAddressRef.current = initialAddress;
+  }, [initialAddress]);
 
   const handleSearch = () => {
     if (!searchQuery.trim()) return;
@@ -179,12 +173,24 @@ const YandexMapModal: React.FC<YandexMapModalProps> = ({
     handleClose();
   };
 
-  const handleClose = () => {
-    setSearchQuery(initialAddress);
-    setSelectedAddress(initialAddress);
+  const handleClose = useCallback(() => {
+    setSearchQuery(initialAddressRef.current);
+    setSelectedAddress(initialAddressRef.current);
     setIsRequestingLocation(false);
     onClose();
-  };
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isSearching || isRequestingLocation) return true;
+      handleClose();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [visible, isSearching, isRequestingLocation, handleClose]);;
 
   const htmlContent = `
 <!DOCTYPE html>

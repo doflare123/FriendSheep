@@ -141,11 +141,11 @@ const ForgotPassword = () => {
             </Text>
           </TouchableOpacity>
         </View>
+        
+        <Text style={[authorizeStyle.footer, { color: colors.grey }]}>
+          ©NecroDwarf
+        </Text>
       </KeyboardAwareScrollView>
-
-      <Text style={[authorizeStyle.footer, { color: colors.grey }]}>
-        ©NecroDwarf
-      </Text>
     </View>
   );
 };

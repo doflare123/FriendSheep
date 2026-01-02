@@ -22,6 +22,7 @@ export type RootStackParamList = {
   ProfilePage: {
     userId?: string 
     openNotifications?: boolean; 
+    openEventId?: string;
   } | undefined;     
   UserSearchPage: undefined;
   SettingsPage: undefined;

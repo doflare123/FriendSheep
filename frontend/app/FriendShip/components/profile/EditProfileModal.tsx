@@ -5,7 +5,7 @@ import { useThemedColors } from '@/hooks/useThemedColors';
 import profanityFilter from '@/utils/profanityFilter';
 import { validateUserDisplayName, validateUserUsername } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -57,17 +57,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [username, setUsername] = useState(currentProfile.username);
   const [description, setDescription] = useState(currentProfile.description);
   const [loading, setLoading] = useState(false);
+  const currentProfileRef = useRef(currentProfile);
 
-   useEffect(() => {
-    if (!visible) return;
-
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      handleClose();
-      return true;
-    });
-
-    return () => backHandler.remove();
-  }, [visible]);
+  useEffect(() => {
+    currentProfileRef.current = currentProfile;
+  }, [currentProfile]);
 
   useEffect(() => {
     if (visible) {
@@ -119,13 +113,25 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }
   };
 
-  const handleClose = () => {
-    setAvatar(currentProfile.avatar);
-    setName(currentProfile.name);
-    setUsername(currentProfile.username);
-    setDescription(currentProfile.description);
+  const handleClose = useCallback(() => {
+    setAvatar(currentProfileRef.current.avatar);
+    setName(currentProfileRef.current.name);
+    setUsername(currentProfileRef.current.username);
+    setDescription(currentProfileRef.current.description);
     onClose();
-  };
+  }, [onClose]); 
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (loading) return true;
+      handleClose();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [visible, loading, handleClose]);
 
   const showPermissionAlert = (onRetry: () => void) => {
     Alert.alert(

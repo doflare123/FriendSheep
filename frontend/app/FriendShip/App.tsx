@@ -2,6 +2,7 @@ import ProfilePage from '@/app/(tabs)/ProfilePage';
 import { PushNotificationProvider } from '@/components/PushNotificationProvider';
 import { ThemeProvider, useTheme } from '@/components/ThemeContext';
 import { ToastProvider } from '@/components/ToastContext';
+import { HeaderProvider } from '@/contexts/HeaderContext';
 import { Montserrat_200ExtraLight, Montserrat_300Light, Montserrat_400Regular, Montserrat_500Medium, Montserrat_600SemiBold, Montserrat_700Bold, useFonts } from '@expo-google-fonts/montserrat';
 import { MontserratAlternates_500Medium } from '@expo-google-fonts/montserrat-alternates';
 import messaging from '@react-native-firebase/messaging';
@@ -158,11 +159,13 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <ToastProvider>
-          <SafeAreaProvider>
-            <ThemedNavigationContainer />
-          </SafeAreaProvider>
-        </ToastProvider>   
+        <HeaderProvider>
+          <ToastProvider>
+            <SafeAreaProvider>
+              <ThemedNavigationContainer />
+            </SafeAreaProvider>
+          </ToastProvider>
+        </HeaderProvider>
       </AuthProvider>
     </ThemeProvider>
   );

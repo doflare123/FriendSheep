@@ -40,7 +40,7 @@
         "backgroundColor": "#5DADE2"
       },
       "googleServicesFile": "./google-services.json",
-      "edgeToEdgeEnabled": true,
+      "userInterfaceStyle": "automatic",
       "package": "com.anonymous.FriendShip",
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -90,6 +90,15 @@
           "ios": {
             "googleServicesFile": "./GoogleService-Info.plist"
           }
+        }
+      ],
+      [
+        "expo-navigation-bar",
+        {
+          "position": "sticky",
+          "visibility": "visible",
+          "behavior": "inset-swipe",
+          "backgroundColor": "#FFFFFF"
         }
       ],
       "./app.plugin.js",

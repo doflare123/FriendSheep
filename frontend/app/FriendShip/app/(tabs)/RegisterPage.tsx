@@ -276,11 +276,11 @@ const Register = () => {
             style={{ marginTop: 16 }} 
           />
         )}
-      </KeyboardAwareScrollView>
 
-      <Text style={[authorizeStyle.footer, { color: colors.grey }]}>
-        ©NecroDwarf
-      </Text>
+        <Text style={[authorizeStyle.footer, { color: colors.grey }]}>
+          ©NecroDwarf
+        </Text>
+      </KeyboardAwareScrollView>
     </View>
   );
 };

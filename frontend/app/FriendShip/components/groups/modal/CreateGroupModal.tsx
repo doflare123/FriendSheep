@@ -7,7 +7,7 @@ import { useThemedColors } from '@/hooks/useThemedColors';
 import profanityFilter from '@/utils/profanityFilter';
 import { validateFullDescription, validateGroupName, validateShortDescription } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -55,17 +55,6 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
   const [fullDescModalVisible, setFullDescModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-   useEffect(() => {
-    if (!visible) return;
-
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      handleClose();
-      return true;
-    });
-
-    return () => backHandler.remove();
-  }, [visible]);
 
   const categories = [
     { id: 'movie', icon: require('@/assets/images/event_card/movie.png') },
@@ -223,7 +212,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
     }
   };
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setGroupName('');
     setShortDescription('');
     setFullDescription('');
@@ -232,14 +221,26 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ visible, onClose, o
     setSelectedCategories([]);
     setSelectedContacts([]);
     setSelectedImage(null);
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (!isLoading) {
       resetForm();
       onClose();
     }
-  };
+  }, [isLoading, resetForm, onClose]);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isLoading) return true;
+      handleClose();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [visible, isLoading, handleClose]);
 
   const handleContactsSave = (contacts: Contact[]) => {
     setSelectedContacts(contacts);

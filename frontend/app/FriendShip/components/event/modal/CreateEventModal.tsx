@@ -15,7 +15,7 @@ import { useThemedColors } from '@/hooks/useThemedColors';
 import profanityFilter from '@/utils/profanityFilter';
 import { validateFullDescription } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -94,17 +94,6 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [descriptionModalVisible, setDescriptionModalVisible] = useState(false);
-
-   useEffect(() => {
-    if (!visible) return;
-
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      handleClose();
-      return true;
-    });
-
-    return () => backHandler.remove();
-  }, [visible]);
 
   useEffect(() => {
     if (editMode && initialData && visible) {
@@ -563,7 +552,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
     }
   };
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setEventName('');
     setDescription('');
     setSelectedCategory('');
@@ -579,14 +568,26 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
     setMaxParticipants('');
     setEventImage('');
     setImageFile(null);
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (!isLoading) {
       resetForm();
       onClose();
     }
-  };
+  }, [isLoading, resetForm, onClose]);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isLoading || isLoadingKinopoisk || isLoadingRawg) return true;
+      handleClose();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [visible, isLoading, isLoadingKinopoisk, isLoadingRawg, handleClose]);
 
   useEffect(() => {
     console.log('[CreateEditEventModal] ⚠️ selectedCategory изменился на:', selectedCategory);

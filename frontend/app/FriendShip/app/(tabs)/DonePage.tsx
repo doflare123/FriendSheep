@@ -49,11 +49,11 @@ const Done = () => {
           title="Перейти ко входу" 
           onPress={() => navigation.navigate('Login' as never)} 
         />
-      </KeyboardAwareScrollView>
 
-      <Text style={[authorizeStyle.footer, { color: colors.grey }]}>
-        ©NecroDwarf
-      </Text>
+        <Text style={[authorizeStyle.footer, { color: colors.grey }]}>
+          ©NecroDwarf
+        </Text>  
+      </KeyboardAwareScrollView>
     </View>
   );
 };

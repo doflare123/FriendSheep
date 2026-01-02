@@ -1,7 +1,7 @@
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   BackHandler,
   Modal,
@@ -31,17 +31,27 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isBlocked = false,
 }) => {
   const colors = useThemedColors();
+  
+  const onCancelRef = useRef(onCancel);
+  
+  useEffect(() => {
+    onCancelRef.current = onCancel;
+  }, [onCancel]);
 
-   useEffect(() => {
+  const handleCancel = useCallback(() => {
+    onCancelRef.current();
+  }, []);
+
+  useEffect(() => {
     if (!visible) return;
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      onCancel();
+      handleCancel();
       return true;
     });
 
     return () => backHandler.remove();
-  }, [visible]);
+  }, [visible, handleCancel]);
 
   return (
     <Modal
@@ -80,7 +90,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <View style={styles.modalButtons}>
             <TouchableOpacity 
               style={[styles.modalButton, styles.cancelButton]}
-              onPress={onCancel}
+              onPress={handleCancel}
             >
               <Text style={styles.modalButtonText}>Отмена</Text>
             </TouchableOpacity>

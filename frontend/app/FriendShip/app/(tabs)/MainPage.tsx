@@ -16,6 +16,7 @@ import { useToast } from '@/components/ToastContext';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
+import { useHeaderAnimation } from '@/contexts/HeaderContext';
 import { categoryToSessionType } from '@/hooks/groups/groupManageHelpers';
 import { useEvents } from '@/hooks/useEvents';
 import { useSearchState } from '@/hooks/useSearchState';
@@ -23,8 +24,8 @@ import { useThemedColors } from '@/hooks/useThemedColors';
 import { RootStackParamList } from '@/navigation/types';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type MainPageRouteProp = RouteProp<RootStackParamList, 'MainPage'>;
@@ -43,6 +44,10 @@ const MainPage = () => {
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [permissionsModalVisible, setPermissionsModalVisible] = useState(false);
   const { showToast } = useToast();
+  const { hasPlayedAnimation, markAnimationPlayed } = useHeaderAnimation();
+
+  const headerHeight = useRef(new Animated.Value(hasPlayedAnimation ? 0 : 1)).current;
+  const headerOpacity = useRef(new Animated.Value(hasPlayedAnimation ? 0 : 1)).current;
 
   const { sortingState, sortingActions } = useSearchState();
   const { 
@@ -78,6 +83,36 @@ const MainPage = () => {
 
     checkAndRequestPermissions();
   }, []);
+
+  useEffect(() => {
+    if (hasPlayedAnimation) {
+      console.log('[MainPage] ⏭️ Анимация уже была проиграна, пропускаем');
+      return;
+    }
+    
+    if (!sortingState.searchQuery.trim() && !isLoading && !error) {
+      const timer = setTimeout(() => {
+        console.log('[MainPage] 🎬 Запускаем анимацию скрытия заголовка');
+        Animated.parallel([
+          Animated.timing(headerHeight, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: false,
+          }),
+          Animated.timing(headerOpacity, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          console.log('[MainPage] ✅ Анимация завершена');
+          markAnimationPlayed();
+        });
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [sortingState.searchQuery, isLoading, error, hasPlayedAnimation, markAnimationPlayed]);
 
   const handleRequestPermissions = async () => {
     try {
@@ -313,7 +348,19 @@ const MainPage = () => {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <PageHeader title="С возвращением!" showWave />
+          <Animated.View 
+            style={{ 
+              height: headerHeight.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 120],
+              }),
+              opacity: headerOpacity,
+              overflow: 'hidden',
+            }}
+          >
+            <PageHeader title="С возвращением!" showWave />
+          </Animated.View>
+
 
           {!hasAnyEvents ? (
             <View style={styles.noEventsContainer}>

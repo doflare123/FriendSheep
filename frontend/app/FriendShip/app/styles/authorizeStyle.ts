@@ -20,14 +20,12 @@ const authorizeStyle = StyleSheet.create({
     paddingBottom: 80,
   },
   footer: {
-    position: 'absolute',
-    bottom: 60,
-    left: 0,
-    right: 0,
     textAlign: 'center',
     fontSize: 12,
     color: Colors.lightGrey,
     fontFamily: Montserrat.regular,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   title: {
     fontSize: 28,
