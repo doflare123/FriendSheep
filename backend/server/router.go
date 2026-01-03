@@ -5,6 +5,7 @@ import (
 	"friendship/middlewares"
 	"friendship/routes"
 	"friendship/services"
+	events "friendship/services/events"
 	group "friendship/services/groups"
 	"friendship/services/register"
 	"friendship/services/sub"
@@ -35,4 +36,9 @@ func (s *Server) initRouters() {
 	groupsrv := group.NewGroupService(s.logger, s.postgres)
 	groupH := handlers.NewGroupHandler(groupsrv)
 	routes.RegisterGroupsRoutes(s.engine, groupH, jwtMiddleware, groupRoleMiddleware)
+
+	//регистрация событий
+	eventsrv := events.NewEventsService(s.logger, s.postgres)
+	eventsH := handlers.NewEventsHandler(eventsrv)
+	routes.RegisterEventsRoutes(s.engine, eventsH, jwtMiddleware, groupRoleMiddleware)
 }

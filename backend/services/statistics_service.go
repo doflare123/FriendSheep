@@ -11,7 +11,7 @@ import (
 
 	"friendship/db"
 	"friendship/models"
-	"friendship/models/sessions"
+	"friendship/models/events"
 	statsusers "friendship/models/stats_users"
 )
 
@@ -24,7 +24,7 @@ func UpdateStatisticsForFinishedSession(ctx context.Context, sessionID uint) err
 	}()
 
 	// 1) Узнаём ID статуса "Завершена"
-	var st sessions.Status
+	var st events.Status
 	if err := tx.Where("status = ?", "Завершена").First(&st).Error; err != nil {
 		tx.Rollback()
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -34,7 +34,7 @@ func UpdateStatisticsForFinishedSession(ctx context.Context, sessionID uint) err
 	}
 
 	// 2) Берём сессию с блокировкой
-	var s sessions.Session
+	var s events.Event
 	if err := tx.
 		Clauses(clause.Locking{Strength: "UPDATE"}).
 		Preload("SessionType").
@@ -78,7 +78,7 @@ func UpdateStatisticsForFinishedSession(ctx context.Context, sessionID uint) err
 	}
 
 	// 5) Создатель: только CountCreateSession и MostBigSession
-	if err := ensureUserStatsRows(tx, s.UserID); err != nil {
+	if err := ensureUserStatsRows(tx, s.CreatorID); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -89,7 +89,7 @@ func UpdateStatisticsForFinishedSession(ctx context.Context, sessionID uint) err
 	}
 
 	if err := tx.Model(&statsusers.SideStats_users{}).
-		Where("user_id = ?", s.UserID).
+		Where("user_id = ?", s.CreatorID).
 		Updates(map[string]any{
 			"count_create_session": gorm.Expr("count_create_session + 1"),
 			"most_big_session":     gorm.Expr("GREATEST(most_big_session, ?)", currentUsers),
@@ -101,7 +101,7 @@ func UpdateStatisticsForFinishedSession(ctx context.Context, sessionID uint) err
 	// 6) Список пользователей для «участниковой» статистики
 	userIDs := make(map[uint]struct{}, 8)
 
-	var joins []sessions.SessionUser
+	var joins []events.EventsUser
 	if err := tx.Where("session_id = ?", s.ID).Find(&joins).Error; err != nil {
 		tx.Rollback()
 		return err
@@ -110,7 +110,7 @@ func UpdateStatisticsForFinishedSession(ctx context.Context, sessionID uint) err
 		userIDs[j.UserID] = struct{}{}
 	}
 
-	userIDs[s.UserID] = struct{}{}
+	userIDs[s.CreatorID] = struct{}{}
 
 	// 7) Инкременты по участию для всех: count_all и по типам
 	sessionDuration := uint64(0)
@@ -136,8 +136,8 @@ func UpdateStatisticsForFinishedSession(ctx context.Context, sessionID uint) err
 		}
 
 		sessionTypeID := uint(0)
-		if s.SessionTypeID != 0 {
-			sessionTypeID = s.SessionTypeID
+		if s.EventTypeID != 0 {
+			sessionTypeID = s.EventTypeID
 		}
 
 		if err := incrementTypeCounter(tx, uid, sessionTypeID); err != nil {

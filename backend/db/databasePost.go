@@ -5,7 +5,6 @@ import (
 	"friendship/models"
 	"friendship/models/groups"
 	"friendship/models/news"
-	"friendship/models/sessions"
 	statsusers "friendship/models/stats_users"
 	"os"
 
@@ -35,10 +34,9 @@ func InitDatabase() error {
 		&statsusers.Genre{}, statsusers.PopSessionType{}, statsusers.SettingTile{})
 	db.AutoMigrate(&models.User{}, models.StatsProcessedEvent{},
 		&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{}, &groups.GroupJoinInvite{},
-		&sessions.Session{}, &sessions.SessionGroupType{}, &sessions.SessionMetadata{}, sessions.Status{},
 	)
 
-	return db.AutoMigrate(&sessions.SessionUser{})
+	return db.AutoMigrate()
 }
 
 func GetDB() *gorm.DB {

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"friendship/models"
+	"friendship/models/events"
 	"friendship/models/groups"
-	"friendship/models/sessions"
 	statsusers "friendship/models/stats_users"
 	"friendship/repository"
 	"os"
@@ -30,16 +30,16 @@ func Seeder(db repository.PostgresRepository) []error {
 		{
 			name: "типы мероприятий",
 			data: []interface{}{
-				&sessions.SessionGroupPlace{Title: "Онлайн"},
-				&sessions.SessionGroupPlace{Title: "Оффлайн"},
+				&events.EventLocation{Name: "Онлайн"},
+				&events.EventLocation{Name: "Оффлайн"},
 			},
 		},
 		{
 			name: "статусы",
 			data: []interface{}{
-				&sessions.Status{Status: "Набор"},
-				&sessions.Status{Status: "В процессе"},
-				&sessions.Status{Status: "Завершена"},
+				&events.Status{Name: "Набор"},
+				&events.Status{Name: "В процессе"},
+				&events.Status{Name: "Завершена"},
 			},
 		},
 		{
@@ -60,6 +60,16 @@ func Seeder(db repository.PostgresRepository) []error {
 				&groups.Role_in_group{Name: "Админ"},
 				&groups.Role_in_group{Name: "Модератор"},
 				&groups.Role_in_group{Name: "Участник"},
+			},
+		},
+		{
+			name: "типы ограничений по возрасту",
+			data: []interface{}{
+				&events.AgeLimit{Name: "18+"},
+				&events.AgeLimit{Name: "16+"},
+				&events.AgeLimit{Name: "12+"},
+				&events.AgeLimit{Name: "6+"},
+				&events.AgeLimit{Name: "0+"},
 			},
 		},
 	}

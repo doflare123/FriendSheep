@@ -570,6 +570,406 @@
                 }
             }
         },
+        "/api/v2/admin/events": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создает новое событие в группе. Доступно для админов и операторов",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Создать событие",
+                "parameters": [
+                    {
+                        "description": "Данные события",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/events.CreateEventInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Событие создано",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EventFullDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/admin/events/{eventId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает полную информацию о событии со списком всех участников. Доступно для админов и операторов группы",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events_admin"
+                ],
+                "summary": "Получить детали события для администратора",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID события",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Детали события для админа",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EventAdminDto"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Событие не найдено",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обновляет информацию о событии. Доступно для админов и операторов",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Обновить событие",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID события",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные для обновления",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/events.UpdateEventInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Событие обновлено",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EventFullDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Событие не найдено",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет событие. Доступно для админов и операторов",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Удалить событие",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID события",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Событие удалено",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Событие не найдено",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/admin/events/{eventId}/kick/{userId}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет участника из события. Доступно для админов и операторов группы. Создателя исключить нельзя",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events_admin"
+                ],
+                "summary": "Исключить участника из события",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID события",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID пользователя",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пользователь исключен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные или нельзя исключить создателя",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Событие или пользователь не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/admin/events/{groupId}/events": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список всех событий группы. Доступно для админов и операторов",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Получить события группы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "groupId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список событий",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.EventShortDto"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v2/auth/login": {
             "post": {
                 "description": "Проверяет email и пароль, возвращает access и refresh токены",
@@ -700,6 +1100,232 @@
                     },
                     "500": {
                         "description": "Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/events/genres": {
+            "get": {
+                "description": "Возвращает список всех доступных жанров событий",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Получить все жанры",
+                "responses": {
+                    "200": {
+                        "description": "Список жанров",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/events.GenreDto"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/events/{eventId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает полную информацию о событии",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Получить детали события",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID события",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Детали события",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EventFullDto"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Событие не найдено",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/events/{eventId}/join": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Пользователь присоединяется к событию (только для участников группы)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Присоединиться к событию",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID события",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Присоединение успешно",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Событие заполнено или уже присоединились",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Не состоите в группе",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Событие не найдено",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/events/{eventId}/leave": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Пользователь покидает событие (создатель не может покинуть)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Покинуть событие",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID события",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешно покинули событие",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Создатель не может покинуть событие",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Вы не присоединялись к событию",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2411,6 +3037,302 @@
                 }
             }
         },
+        "dto.EventAdminDto": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "description": "Дополнительная информация (из MongoDB)",
+                    "type": "string"
+                },
+                "ageLimit": {
+                    "type": "string"
+                },
+                "allParticipants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.EventAdminParticipantDto"
+                    }
+                },
+                "country": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "description": "Даты",
+                    "type": "string"
+                },
+                "creator": {
+                    "description": "Создатель",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.EventCreatorDto"
+                        }
+                    ]
+                },
+                "currentUsers": {
+                    "type": "integer"
+                },
+                "customFields": {
+                    "description": "Произвольные поля (из CustomFields)",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "description": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "endTime": {
+                    "type": "string"
+                },
+                "eventType": {
+                    "description": "Типы и категории",
+                    "type": "integer"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "groupId": {
+                    "type": "integer"
+                },
+                "id": {
+                    "description": "Базовая информация",
+                    "type": "integer"
+                },
+                "imageUrl": {
+                    "type": "string"
+                },
+                "isCreator": {
+                    "type": "boolean"
+                },
+                "location": {
+                    "type": "integer"
+                },
+                "maxUsers": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "startTime": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "subscribed": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.EventAdminParticipantDto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "isCreator": {
+                    "type": "boolean"
+                },
+                "joinedAt": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.EventCreatorDto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.EventFullDto": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "description": "Дополнительная информация (из MongoDB)",
+                    "type": "string"
+                },
+                "ageLimit": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "description": "Даты",
+                    "type": "string"
+                },
+                "creator": {
+                    "description": "Создатель",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.EventCreatorDto"
+                        }
+                    ]
+                },
+                "currentUsers": {
+                    "type": "integer"
+                },
+                "customFields": {
+                    "description": "Произвольные поля (из CustomFields)",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "description": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "endTime": {
+                    "type": "string"
+                },
+                "eventType": {
+                    "description": "Типы и категории",
+                    "type": "integer"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "groupId": {
+                    "type": "integer"
+                },
+                "id": {
+                    "description": "Базовая информация",
+                    "type": "integer"
+                },
+                "imageUrl": {
+                    "type": "string"
+                },
+                "isCreator": {
+                    "type": "boolean"
+                },
+                "location": {
+                    "type": "integer"
+                },
+                "maxUsers": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "startTime": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "subscribed": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.EventShortDto": {
+            "type": "object",
+            "properties": {
+                "ageLimit": {
+                    "description": "Возрастное ограничение",
+                    "type": "string"
+                },
+                "currentUsers": {
+                    "type": "integer"
+                },
+                "duration": {
+                    "description": "Длительность в минутах",
+                    "type": "integer"
+                },
+                "eventId": {
+                    "description": "ID события (дублирует ID для удобства)",
+                    "type": "integer"
+                },
+                "eventType": {
+                    "description": "Название типа события",
+                    "type": "integer"
+                },
+                "genres": {
+                    "description": "Список названий жанров",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "groupId": {
+                    "description": "ID группы",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "imageUrl": {
+                    "type": "string"
+                },
+                "location": {
+                    "description": "Название места проведения (онлайн/оффлайн)",
+                    "type": "integer"
+                },
+                "maxUsers": {
+                    "type": "integer"
+                },
+                "startTime": {
+                    "description": "Дата и время начала",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "Статус события",
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.GroupDto": {
             "type": "object",
             "properties": {
@@ -2464,6 +3386,154 @@
                 },
                 "updatedAt": {
                     "type": "string"
+                }
+            }
+        },
+        "events.CreateEventInput": {
+            "type": "object",
+            "required": [
+                "description",
+                "duration",
+                "eventTypeId",
+                "genres",
+                "groupId",
+                "imageUrl",
+                "locationId",
+                "maxUsers",
+                "startTime",
+                "title"
+            ],
+            "properties": {
+                "address": {
+                    "description": "Опциональные поля",
+                    "type": "string"
+                },
+                "ageLimit": {
+                    "type": "integer"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "customFields": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "minLength": 10
+                },
+                "duration": {
+                    "description": "от 15 минут до 24 часов",
+                    "type": "integer",
+                    "maximum": 1440,
+                    "minimum": 15
+                },
+                "eventTypeId": {
+                    "type": "integer"
+                },
+                "genres": {
+                    "type": "array",
+                    "maxItems": 9,
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "groupId": {
+                    "type": "integer"
+                },
+                "imageUrl": {
+                    "type": "string"
+                },
+                "locationId": {
+                    "type": "integer"
+                },
+                "maxUsers": {
+                    "type": "integer",
+                    "maximum": 1000,
+                    "minimum": 2
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "startTime": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 5
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "events.GenreDto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "events.UpdateEventInput": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "description": "Опциональные поля",
+                    "type": "string"
+                },
+                "ageLimit": {
+                    "type": "integer"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "customFields": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "description": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "eventTypeId": {
+                    "type": "integer"
+                },
+                "genres": {
+                    "description": "Если передано, то обновляем",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "imageUrl": {
+                    "type": "string"
+                },
+                "locationId": {
+                    "type": "integer"
+                },
+                "maxUsers": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "startTime": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
                 }
             }
         },

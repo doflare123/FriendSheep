@@ -11,7 +11,7 @@ type EventShortDto struct {
 	CurrentUsers uint16    `json:"currentUsers"`
 	EventType    uint      `json:"eventType"` // Название типа события
 	LocationType uint      `json:"location"`  // Название места проведения (онлайн/оффлайн)
-	AgeLimit     uint      `json:"ageLimit"`  // Возрастное ограничение
+	AgeLimit     string    `json:"ageLimit"`  // Возрастное ограничение
 	Genres       []string  `json:"genres"`    // Список названий жанров
 	StartTime    time.Time `json:"startTime"` // Дата и время начала
 	Duration     uint16    `json:"duration"`  // Длительность в минутах
@@ -45,7 +45,7 @@ type EventFullDto struct {
 	// Дополнительная информация (из MongoDB)
 	Address  string `json:"address"`
 	Country  string `json:"country"`
-	AgeLimit uint   `json:"ageLimit"`
+	AgeLimit string `json:"ageLimit"`
 	Year     *int   `json:"year,omitempty"`
 	Notes    string `json:"notes"`
 
@@ -53,6 +53,7 @@ type EventFullDto struct {
 	CustomFields map[string]interface{} `json:"customFields"`
 
 	Subscribed bool `json:"subscribed"`
+	IsCreator  bool `json:"isCreator"`
 	// Даты
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`

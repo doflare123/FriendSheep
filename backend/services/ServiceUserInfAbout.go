@@ -4,7 +4,7 @@ import (
 	"errors"
 	"friendship/db"
 	"friendship/models"
-	"friendship/models/sessions"
+	"friendship/models/events"
 	statsusers "friendship/models/stats_users"
 	"time"
 
@@ -223,7 +223,7 @@ func GetInfAboutAnotherUser(email string) (*InformationAboutUser, error) {
 }
 
 func getUpcomingSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
-	var sessionUsers []sessions.SessionUser
+	var sessionUsers []events.EventsUser
 
 	err := dbCon.Preload("Session").
 		Preload("Session.Status").
@@ -240,30 +240,30 @@ func getUpcomingSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 
 	sessionIDs := make([]uint, len(sessionUsers))
 	for i, su := range sessionUsers {
-		sessionIDs[i] = su.Session.ID
+		sessionIDs[i] = su.Event.ID
 	}
 
 	metadata, err := db.GetSessionsMetadata(sessionIDs)
 	if err != nil {
-		metadata = make(map[uint]*sessions.SessionMetadata)
+		metadata = make(map[uint]*events.SessionMetadata)
 	}
 
 	result := make([]SessionInfo, len(sessionUsers))
 	for i, su := range sessionUsers {
 		sessionInfo := SessionInfo{
-			ID:               su.Session.ID,
-			Title:            su.Session.Title,
-			StartTime:        su.Session.StartTime,
-			EndTime:          su.Session.EndTime,
-			CurrentUsers:     su.Session.CurrentUsers,
-			MaxUsers:         su.Session.CountUsersMax,
-			Type_session:     su.Session.SessionPlace.Title,
-			Category_session: su.Session.SessionType.Name,
-			ImageURL:         safeStringValue(&su.Session.ImageURL),
-			Status:           su.Session.Status.Status,
+			ID:               su.Event.ID,
+			Title:            su.Event.Title,
+			StartTime:        su.Event.StartTime,
+			EndTime:          su.Event.EndTime,
+			CurrentUsers:     su.Event.CurrentUsers,
+			MaxUsers:         su.Event.CurrentUsers,
+			Type_session:     su.Event.EventLocation.Name,
+			Category_session: su.Event.EventLocation.Name,
+			ImageURL:         safeStringValue(&su.Event.ImageURL),
+			Status:           su.Event.Status.Name,
 		}
 
-		if meta, exists := metadata[su.Session.ID]; exists && meta != nil {
+		if meta, exists := metadata[su.Event.ID]; exists && meta != nil {
 			sessionInfo.Location = safeStringValue(&meta.Location)
 			sessionInfo.Genres = safeStringSlice(meta.Genres)
 			var city *string
@@ -284,7 +284,7 @@ func getUpcomingSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 }
 
 func getRecentSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
-	var sessionUsers []sessions.SessionUser
+	var sessionUsers []events.EventsUser
 
 	err := dbCon.Preload("Session").
 		Preload("Session.Status").
@@ -302,29 +302,28 @@ func getRecentSessions(dbCon *gorm.DB, userID uint) ([]SessionInfo, error) {
 
 	sessionIDs := make([]uint, len(sessionUsers))
 	for i, su := range sessionUsers {
-		sessionIDs[i] = su.Session.ID
+		sessionIDs[i] = su.Event.ID
 	}
 
 	metadata, err := db.GetSessionsMetadata(sessionIDs)
 	if err != nil {
-		metadata = make(map[uint]*sessions.SessionMetadata)
+		metadata = make(map[uint]*events.SessionMetadata)
 	}
 
 	result := make([]SessionInfo, len(sessionUsers))
 	for i, su := range sessionUsers {
 		sessionInfo := SessionInfo{
-			ID:           su.Session.ID,
-			Title:        su.Session.Title,
-			StartTime:    su.Session.StartTime,
-			EndTime:      su.Session.EndTime,
-			CurrentUsers: su.Session.CurrentUsers,
-			MaxUsers:     su.Session.CountUsersMax,
-			Type_session: su.Session.SessionPlace.Title,
-			ImageURL:     safeStringValue(&su.Session.ImageURL),
-			Status:       su.Session.Status.Status,
+			ID:           su.Event.ID,
+			Title:        su.Event.Title,
+			StartTime:    su.Event.EndTime,
+			CurrentUsers: su.Event.CurrentUsers,
+			MaxUsers:     su.Event.CurrentUsers,
+			Type_session: su.Event.EventLocation.Name,
+			ImageURL:     safeStringValue(&su.Event.ImageURL),
+			Status:       su.Event.Status.Name,
 		}
 
-		if meta, exists := metadata[su.Session.ID]; exists && meta != nil {
+		if meta, exists := metadata[su.Event.ID]; exists && meta != nil {
 			sessionInfo.Location = safeStringValue(&meta.Location)
 			sessionInfo.Genres = safeStringSlice(meta.Genres)
 			var city *string

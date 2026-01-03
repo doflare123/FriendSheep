@@ -3,18 +3,18 @@ package db
 import (
 	"context"
 	"fmt"
-	"friendship/models/sessions"
+	"friendship/models/events"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func GetSessionsMetadata(sessionIDs []uint) (map[uint]*sessions.SessionMetadata, error) {
+func GetSessionsMetadata(sessionIDs []uint) (map[uint]*events.SessionMetadata, error) {
 	// Получаем MongoDB базу данных (не коллекцию!)
 	mongoDatabase := GetMongoDB()
 	if mongoDatabase == nil {
-		return make(map[uint]*sessions.SessionMetadata), nil
+		return make(map[uint]*events.SessionMetadata), nil
 	}
 
 	collection := mongoDatabase.Collection("session_metadata")
@@ -34,15 +34,15 @@ func GetSessionsMetadata(sessionIDs []uint) (map[uint]*sessions.SessionMetadata,
 	cursor, err := collection.Find(ctx, filter)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return make(map[uint]*sessions.SessionMetadata), nil
+			return make(map[uint]*events.SessionMetadata), nil
 		}
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	metadataMap := make(map[uint]*sessions.SessionMetadata)
+	metadataMap := make(map[uint]*events.SessionMetadata)
 	for cursor.Next(ctx) {
-		var metadata sessions.SessionMetadata
+		var metadata events.SessionMetadata
 		if err := cursor.Decode(&metadata); err != nil {
 			continue // пропускаем ошибочные документы
 		}
@@ -52,7 +52,7 @@ func GetSessionsMetadata(sessionIDs []uint) (map[uint]*sessions.SessionMetadata,
 	return metadataMap, cursor.Err()
 }
 
-func GetSessionMetadataId(sessionID *uint) (*sessions.SessionMetadata, error) {
+func GetSessionMetadataId(sessionID *uint) (*events.SessionMetadata, error) {
 	if sessionID == nil {
 		return nil, fmt.Errorf("sessionID не может быть nil")
 	}
@@ -68,7 +68,7 @@ func GetSessionMetadataId(sessionID *uint) (*sessions.SessionMetadata, error) {
 
 	filter := bson.M{"session_id": *sessionID}
 
-	var metadata sessions.SessionMetadata
+	var metadata events.SessionMetadata
 	err := collection.FindOne(ctx, filter).Decode(&metadata)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {

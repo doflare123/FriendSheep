@@ -23,7 +23,7 @@ func ConvertToShortDto(event *events.Event) *dto.EventShortDto {
 		CurrentUsers: event.CurrentUsers,
 		EventType:    event.EventType.ID,
 		LocationType: event.EventLocation.ID,
-		AgeLimit:     event.AgeLimit.ID,
+		AgeLimit:     event.AgeLimit.Name,
 		Genres:       genres,
 		StartTime:    event.StartTime,
 		Duration:     event.Duration,
@@ -33,7 +33,7 @@ func ConvertToShortDto(event *events.Event) *dto.EventShortDto {
 	}
 }
 
-func ConvertToFullDto(event *events.Event) *dto.EventFullDto {
+func ConvertToFullDto(event *events.Event, userID uint, includeParticipants bool) *dto.EventFullDto {
 	if event == nil {
 		return nil
 	}
@@ -41,6 +41,16 @@ func ConvertToFullDto(event *events.Event) *dto.EventFullDto {
 	genres := make([]string, 0, len(event.Genres))
 	for _, g := range event.Genres {
 		genres = append(genres, g.Genre.Name)
+	}
+
+	isCreator := event.CreatorID == userID
+
+	subscribed := false
+	for _, u := range event.Users {
+		if u.UserID == userID {
+			subscribed = true
+			break
+		}
 	}
 
 	fullDto := &dto.EventFullDto{
@@ -67,12 +77,15 @@ func ConvertToFullDto(event *events.Event) *dto.EventFullDto {
 			Image:    event.Creator.Image,
 		},
 
-		Address:      event.Adress,
+		Address:      event.Address,
 		Country:      event.Country,
-		AgeLimit:     event.AgeLimit.ID,
+		AgeLimit:     event.AgeLimit.Name,
 		Year:         event.Year,
 		Notes:        event.Notes,
 		CustomFields: event.CustomFields,
+
+		Subscribed: subscribed,
+		IsCreator:  isCreator,
 
 		CreatedAt: event.CreatedAt,
 		UpdatedAt: event.UpdatedAt,

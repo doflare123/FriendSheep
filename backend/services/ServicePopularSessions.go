@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"friendship/db"
-	"friendship/models/sessions"
+	"friendship/models/events"
 	"log"
 	"sort"
 	"time"
@@ -179,7 +179,7 @@ func fetchPopularSessionsFromDB() ([]PopularSessionResponse, error) {
 		GroupName         string    `gorm:"column:group_name"`
 	}
 
-	var recruitmentStatus sessions.Status
+	var recruitmentStatus events.Status
 	if err := dbConn.Where("status = ?", "Набор").First(&recruitmentStatus).Error; err != nil {
 		dbConn.Rollback()
 		return nil, fmt.Errorf("статус 'Набор' не найден: %v", err)
@@ -223,7 +223,7 @@ func fetchPopularSessionsFromDB() ([]PopularSessionResponse, error) {
 	metadataMap, err := getSessionsMetadata(sessionIDs)
 	if err != nil {
 		log.Printf("Предупреждение: ошибка получения метаданных из MongoDB: %v", err)
-		metadataMap = make(map[uint]*sessions.SessionMetadata)
+		metadataMap = make(map[uint]*events.SessionMetadata)
 	}
 
 	var result []PopularSessionResponse
@@ -266,10 +266,10 @@ func fetchPopularSessionsFromDB() ([]PopularSessionResponse, error) {
 	return result, nil
 }
 
-func getSessionsMetadata(sessionIDs []uint) (map[uint]*sessions.SessionMetadata, error) {
+func getSessionsMetadata(sessionIDs []uint) (map[uint]*events.SessionMetadata, error) {
 	mongoClient := db.GetMongoDB()
 	if mongoClient == nil {
-		return make(map[uint]*sessions.SessionMetadata), nil
+		return make(map[uint]*events.SessionMetadata), nil
 	}
 
 	collection := db.Database().Collection("session_metadata")
@@ -288,15 +288,15 @@ func getSessionsMetadata(sessionIDs []uint) (map[uint]*sessions.SessionMetadata,
 	cursor, err := collection.Find(ctx, filter)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return make(map[uint]*sessions.SessionMetadata), nil
+			return make(map[uint]*events.SessionMetadata), nil
 		}
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	metadataMap := make(map[uint]*sessions.SessionMetadata)
+	metadataMap := make(map[uint]*events.SessionMetadata)
 	for cursor.Next(ctx) {
-		var metadata sessions.SessionMetadata
+		var metadata events.SessionMetadata
 		if err := cursor.Decode(&metadata); err != nil {
 			continue
 		}

@@ -29,7 +29,7 @@ type Event struct {
 	// Время проведения
 	StartTime time.Time `gorm:"not null;index" json:"startTime"`
 	EndTime   time.Time `gorm:"not null" json:"endTime"`
-	Duration  uint16    `gorm:"not null" json:"duration"` // в минутах
+	Duration  uint16    `gorm:"not null" json:"duration"`
 
 	// Создатель события
 	CreatorID uint        `gorm:"not null;index" json:"creatorId"`
@@ -47,14 +47,14 @@ type Event struct {
 	Status   Status `gorm:"foreignKey:StatusID" json:"status"`
 
 	// Дополнительная информация (из MongoDB)
-	Adress     string   `gorm:"type:varchar(500)" json:"adress"` // Конкретный адрес/место
+	Address    string   `gorm:"type:varchar(500)" json:"address"` // Конкретный адрес/место
 	Country    string   `gorm:"type:varchar(100)" json:"country"`
 	AgeLimitID uint     `gorm:"index" json:"ageLimitId"`
 	AgeLimit   AgeLimit `gorm:"foreignKey:AgeLimitID"` // "18+", "12+", "6+" и т.д.
 	Year       *int     `gorm:"type:int" json:"year,omitempty"`
 	Notes      string   `gorm:"type:text" json:"notes"` // Дополнительные заметки
 
-	// JSON поле для произвольных данных (замена fields из MongoDB)
+	// Замена fields из MongoDB
 	CustomFields CustomFields `gorm:"type:jsonb" json:"customFields"`
 
 	// Связи

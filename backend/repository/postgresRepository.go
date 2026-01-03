@@ -33,6 +33,11 @@ type PostgresRepository interface {
 	GetSQLDB() (*sql.DB, error)
 	Clauses(conds ...clause.Expression) *gorm.DB
 	AutoMigrate(value interface{}) error
+
+	Order(value interface{}) *gorm.DB
+	Limit(limit int) *gorm.DB
+	Count(count *int64) *gorm.DB
+	Association(column string) *gorm.Association
 }
 
 type postRepository struct {
@@ -139,6 +144,22 @@ func (rep *postRepository) GetSQLDB() (*sql.DB, error) {
 
 func (rep *postRepository) Clauses(conds ...clause.Expression) *gorm.DB {
 	return rep.db.Clauses(conds...)
+}
+
+func (rep *postRepository) Order(value interface{}) *gorm.DB {
+	return rep.db.Order(value)
+}
+
+func (rep *postRepository) Limit(limit int) *gorm.DB {
+	return rep.db.Limit(limit)
+}
+
+func (rep *postRepository) Count(count *int64) *gorm.DB {
+	return rep.db.Count(count)
+}
+
+func (rep *postRepository) Association(column string) *gorm.Association {
+	return rep.db.Association(column)
 }
 
 func (rep *postRepository) Transaction(fc func(tx PostgresRepository) error) (err error) {

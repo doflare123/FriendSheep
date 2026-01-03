@@ -6,8 +6,8 @@ import (
 	"friendship/db"
 	"friendship/logger"
 	"friendship/models"
+	"friendship/models/events"
 	"friendship/models/groups"
-	"friendship/models/news"
 	statsusers "friendship/models/stats_users"
 	"friendship/repository"
 	session "friendship/sessions"
@@ -28,7 +28,7 @@ type Server struct {
 	postgres     repository.PostgresRepository
 	S3           storage.S3Storage
 	mongo        repository.MongoRepository
-	sessionStore events.SessionStore
+	sessionStore session.SessionStore
 	validators   *validator.Validator
 	cfg          config.Config
 }
@@ -41,17 +41,16 @@ func InitServer() (*Server, error) {
 		return nil, err
 	}
 	logger.Info("Logger and config initialized")
-	logger.Debug("Что лежит в мыле: ", "email", conf.Email.From, "password", conf.Email.Password, "host", conf.Email.SmtpHost, "port", conf.Email.SmtpPort)
 	postgres := repository.NewSheepRepository(logger, conf)
 	mongo := repository.NewMongoRepository(logger, conf)
 	redis := repository.NewRedisRepository(logger, conf)
 	sessionStore := session.NewSessionStore(redis)
 	if conf.AppEnv == "DEV" {
 		gin.SetMode(gin.DebugMode)
-		if err := db.AutoMigDB(postgres, &models.User{}, &news.News{}, &news.ContentNews{}, &news.Comments{}, &statsusers.SideStats_users{}, &statsusers.SessionStats_users{}, &statsusers.SessionsStatsGenres_users{},
+		if err := db.AutoMigDB(postgres, &events.Event{}, &events.AgeLimit{}, &events.EventLocation{}, &events.Status{}, &events.EventsUser{}, &events.Genre{}, &events.EventGenre{}, &events.EventGenre{},
 			&statsusers.Genre{}, statsusers.PopSessionType{}, statsusers.SettingTile{}, &models.User{}, models.StatsProcessedEvent{},
 			&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{}, &groups.GroupJoinInvite{}, &groups.GroupBlacklist{}, &groups.GroupActionLog{},
-			&sessions.Session{}, &sessions.SessionGroupType{}, &sessions.SessionMetadata{}, sessions.Status{}, &sessions.SessionUser{}); err != nil {
+		); err != nil {
 			logger.Error("Error with auto migration: %s", err)
 		}
 	} else {
