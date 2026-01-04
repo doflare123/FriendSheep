@@ -14,6 +14,7 @@ func RegisterEventsRoutes(
 	groupRoleMiddleware *middlewares.GroupRoleMiddleware,
 ) {
 	router.GET("/api/v2/events/genres", eventsHandler.GetAllGenres)
+	router.GET("/api/v2/references", eventsHandler.GetAllReferences)
 
 	events := router.Group("/api/v2/events")
 	events.Use(authMiddleware.RequireAuth())
@@ -21,15 +22,20 @@ func RegisterEventsRoutes(
 		events.GET("/:eventId", eventsHandler.GetEventDetails)
 		events.POST("/:eventId/join", eventsHandler.JoinEvent)
 		events.POST("/:eventId/leave", eventsHandler.LeaveEvent)
-		events.GET("/:groupId/events", eventsHandler.GetGroupEvents)
+
+	}
+	eventsGroup := router.Group("/api/v2/groups/events")
+	eventsGroup.Use(authMiddleware.RequireAuth(), groupRoleMiddleware.RequireOperatorOrAdmin())
+	{
+		eventsGroup.GET("/:groupId/events", eventsHandler.GetGroupEvents)
 	}
 	eventsAdmin := router.Group("/api/v2/admin/events")
 	eventsAdmin.Use(authMiddleware.RequireAuth(), groupRoleMiddleware.RequireOperatorOrAdmin())
 	{
+		eventsAdmin.GET("/:eventId", eventsHandler.GetEventDetailsForAdmin)
 		eventsAdmin.POST("", eventsHandler.CreateEvent)
 		eventsAdmin.PUT("/:eventId", eventsHandler.UpdateEvent)
 		eventsAdmin.DELETE("/:eventId", eventsHandler.DeleteEvent)
-		eventsAdmin.GET("/:eventId", eventsHandler.GetEventDetailsForAdmin)
 		eventsAdmin.DELETE("/:eventId/kick/:userId", eventsHandler.KickUserFromEvent)
 	}
 }

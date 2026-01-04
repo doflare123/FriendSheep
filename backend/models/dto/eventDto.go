@@ -65,4 +65,5 @@ type EventCreatorDto struct {
 	Name     string `json:"name"`
 	Username string `json:"username"`
 	Image    string `json:"image"`
+	Verified bool   `json:"verified"`
 }

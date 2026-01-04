@@ -22,6 +22,7 @@ type EventsHandler interface {
 	LeaveEvent(c *gin.Context)
 	KickUserFromEvent(c *gin.Context)
 	GetAllGenres(c *gin.Context)
+	GetAllReferences(c *gin.Context)
 }
 
 type eventsHandler struct {
@@ -37,7 +38,7 @@ func NewEventsHandler(srv events.EventsService) EventsHandler {
 // CreateEvent godoc
 // @Summary      Создать событие
 // @Description  Создает новое событие в группе. Доступно для админов и операторов
-// @Tags         events
+// @Tags         events_admin
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
@@ -77,7 +78,7 @@ func (h *eventsHandler) CreateEvent(c *gin.Context) {
 // UpdateEvent godoc
 // @Summary      Обновить событие
 // @Description  Обновляет информацию о событии. Доступно для админов и операторов
-// @Tags         events
+// @Tags         events_admin
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
@@ -128,7 +129,7 @@ func (h *eventsHandler) UpdateEvent(c *gin.Context) {
 // DeleteEvent godoc
 // @Summary      Удалить событие
 // @Description  Удаляет событие. Доступно для админов и операторов
-// @Tags         events
+// @Tags         events_admin
 // @Produce      json
 // @Security     BearerAuth
 // @Param        eventId path int true "ID события"
@@ -265,14 +266,14 @@ func (h *eventsHandler) KickUserFromEvent(c *gin.Context) {
 // GetGroupEvents godoc
 // @Summary      Получить события группы
 // @Description  Возвращает список всех событий группы. Доступно для админов и операторов
-// @Tags         events
+// @Tags         events_admin
 // @Produce      json
 // @Security     BearerAuth
 // @Param        groupId path int true "ID группы"
 // @Success      200 {array} dto.EventShortDto "Список событий"
 // @Failure      401 {object} map[string]string "Не авторизован"
 // @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Router       /api/v2/admin/events/{groupId}/events [get]
+// @Router       /api/v2/groups/events/{groupId}/events [get]
 func (h *eventsHandler) GetGroupEvents(c *gin.Context) {
 	actorID := c.GetUint("userID")
 
@@ -431,7 +432,7 @@ func (h *eventsHandler) LeaveEvent(c *gin.Context) {
 // @Description  Возвращает список всех доступных жанров событий
 // @Tags         events
 // @Produce      json
-// @Success      200 {array} events.GenreDto "Список жанров"
+// @Success      200 {array} dto.ReferenceItemDto "Список жанров"
 // @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Router       /api/v2/events/genres [get]
 func (h *eventsHandler) GetAllGenres(c *gin.Context) {
@@ -442,4 +443,22 @@ func (h *eventsHandler) GetAllGenres(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, genres)
+}
+
+// GetAllReferences godoc
+// @Summary      Получить все справочники
+// @Description  Возвращает все справочники для событий и групп (типы, локации, возрастные ограничения, статусы, жанры, категории)
+// @Tags         references
+// @Produce      json
+// @Success      200 {object} dto.ReferencesDto "Все справочники"
+// @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router       /api/v2/references [get]
+func (h *eventsHandler) GetAllReferences(c *gin.Context) {
+	references, err := h.srv.GetAllReferences()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, references)
 }

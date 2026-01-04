@@ -596,7 +596,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "events"
+                    "events_admin"
                 ],
                 "summary": "Создать событие",
                 "parameters": [
@@ -721,7 +721,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "events"
+                    "events_admin"
                 ],
                 "summary": "Обновить событие",
                 "parameters": [
@@ -798,7 +798,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "events"
+                    "events_admin"
                 ],
                 "summary": "Удалить событие",
                 "parameters": [
@@ -916,61 +916,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Событие или пользователь не найден",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v2/admin/events/{groupId}/events": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Возвращает список всех событий группы. Доступно для админов и операторов",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "events"
-                ],
-                "summary": "Получить события группы",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID группы",
-                        "name": "groupId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Список событий",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.EventShortDto"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Не авторизован",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Недостаточно прав",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1137,7 +1082,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/events.GenreDto"
+                                "$ref": "#/definitions/dto.ReferenceItemDto"
                             }
                         }
                     },
@@ -1380,7 +1325,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Группа успешно обновлена",
                         "schema": {
-                            "$ref": "#/definitions/dto.GroupDto"
+                            "$ref": "#/definitions/dto.GroupFullDto"
                         }
                     },
                     "400": {
@@ -1444,7 +1389,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "groups"
+                    "groups_admin"
                 ],
                 "summary": "Создание группы",
                 "parameters": [
@@ -1462,7 +1407,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Группа успешно создана",
                         "schema": {
-                            "$ref": "#/definitions/dto.GroupDto"
+                            "$ref": "#/definitions/dto.GroupFullDto"
                         }
                     },
                     "400": {
@@ -1483,6 +1428,61 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/groups/events/{groupId}/events": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список всех событий группы. Доступно для админов и операторов",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events_admin"
+                ],
+                "summary": "Получить события группы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "groupId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список событий",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.EventShortDto"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2005,6 +2005,74 @@ const docTemplate = `{
             }
         },
         "/api/v2/groups/{groupId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает полную информацию о группе с участниками и активными событиями",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Получить информацию о группе",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "groupId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Информация о группе",
+                        "schema": {
+                            "$ref": "#/definitions/dto.GroupFullDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Группа приватная, доступ запрещен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Группа не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
             "delete": {
                 "security": [
                     {
@@ -2082,12 +2150,12 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает список последних действий операторов и админов в группе",
+                "description": "Возвращает список последних действий операторов и админов в группе (только админ)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "groups"
+                    "groups_admin"
                 ],
                 "summary": "Получить историю действий в группе",
                 "parameters": [
@@ -2715,6 +2783,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v2/references": {
+            "get": {
+                "description": "Возвращает все справочники для событий и групп (типы, локации, возрастные ограничения, статусы, жанры, категории)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "references"
+                ],
+                "summary": "Получить все справочники",
+                "responses": {
+                    "200": {
+                        "description": "Все справочники",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ReferencesDto"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v2/register/": {
             "post": {
                 "description": "Регистрирует нового пользователя по данным из запроса",
@@ -2983,7 +3080,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "groups_admin"
+                    "sub_func"
                 ],
                 "summary": "Загрузка фотографии",
                 "parameters": [
@@ -3188,6 +3285,9 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                },
+                "verified": {
+                    "type": "boolean"
                 }
             }
         },
@@ -3344,9 +3444,36 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.GroupDto": {
+        "dto.GroupCreatorDto": {
             "type": "object",
             "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "verified": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.GroupFullDto": {
+            "type": "object",
+            "properties": {
+                "activeEvents": {
+                    "description": "События в стадии набора",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.EventShortDto"
+                    }
+                },
                 "categories": {
                     "type": "array",
                     "items": {
@@ -3365,17 +3492,19 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "string"
                 },
-                "creatorId": {
-                    "type": "integer"
-                },
-                "creatorName": {
-                    "type": "string"
-                },
-                "creatorUsername": {
-                    "type": "string"
+                "creator": {
+                    "description": "Информация о создателе",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.GroupCreatorDto"
+                        }
+                    ]
                 },
                 "description": {
                     "type": "string"
+                },
+                "enterprise": {
+                    "type": "boolean"
                 },
                 "id": {
                     "type": "integer"
@@ -3386,10 +3515,21 @@ const docTemplate = `{
                 "isPrivate": {
                     "type": "boolean"
                 },
+                "isSubscribed": {
+                    "description": "Флаги для пользователя",
+                    "type": "boolean"
+                },
                 "memberCount": {
                     "type": "integer"
                 },
-                "nameGroup": {
+                "members": {
+                    "description": "Первые 10 участников",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.GroupMemberDto"
+                    }
+                },
+                "name": {
                     "type": "string"
                 },
                 "smallDescription": {
@@ -3397,6 +3537,75 @@ const docTemplate = `{
                 },
                 "updatedAt": {
                     "type": "string"
+                },
+                "userRole": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.GroupMemberDto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ReferenceItemDto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ReferencesDto": {
+            "type": "object",
+            "properties": {
+                "ageLimits": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReferenceItemDto"
+                    }
+                },
+                "eventTypes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReferenceItemDto"
+                    }
+                },
+                "groupCategories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReferenceItemDto"
+                    }
+                },
+                "locations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReferenceItemDto"
+                    }
+                },
+                "statuses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReferenceItemDto"
+                    }
                 }
             }
         },
@@ -3435,7 +3644,6 @@ const docTemplate = `{
                     "minLength": 10
                 },
                 "duration": {
-                    "description": "от 15 минут до 24 часов",
                     "type": "integer",
                     "maximum": 1440,
                     "minimum": 15
@@ -3478,17 +3686,6 @@ const docTemplate = `{
                 },
                 "year": {
                     "type": "integer"
-                }
-            }
-        },
-        "events.GenreDto": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
                 }
             }
         },
@@ -3804,9 +4001,6 @@ const docTemplate = `{
                 "email": {
                     "type": "string"
                 },
-                "enterprise": {
-                    "type": "boolean"
-                },
                 "id": {
                     "type": "integer"
                 },
@@ -3832,7 +4026,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "us": {
-                    "description": "Salt         string ` + "`" + `gorm:\"not null\" validate:\"required\"` + "`" + `",
                     "type": "string"
                 },
                 "verifiedUser": {

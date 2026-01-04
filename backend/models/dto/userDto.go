@@ -8,7 +8,6 @@ type UserDto struct {
 	Us           string    `json:"us"`
 	Image        string    `json:"image"`
 	DataRegister time.Time `json:"data_register"`
-	Enterprise   bool      `json:"enterprise"`
 	VerifiedUser bool      `json:"verified"`
 	Role         string    `json:"role"`
 	Status       string    `json:"status"`

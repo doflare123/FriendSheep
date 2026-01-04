@@ -100,6 +100,8 @@ definitions:
         type: string
       username:
         type: string
+      verified:
+        type: boolean
     type: object
   dto.EventFullDto:
     properties:
@@ -206,8 +208,26 @@ definitions:
       title:
         type: string
     type: object
-  dto.GroupDto:
+  dto.GroupCreatorDto:
     properties:
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      username:
+        type: string
+      verified:
+        type: boolean
+    type: object
+  dto.GroupFullDto:
+    properties:
+      activeEvents:
+        description: События в стадии набора
+        items:
+          $ref: '#/definitions/dto.EventShortDto'
+        type: array
       categories:
         items:
           type: string
@@ -220,28 +240,81 @@ definitions:
         type: array
       createdAt:
         type: string
-      creatorId:
-        type: integer
-      creatorName:
-        type: string
-      creatorUsername:
-        type: string
+      creator:
+        allOf:
+        - $ref: '#/definitions/dto.GroupCreatorDto'
+        description: Информация о создателе
       description:
         type: string
+      enterprise:
+        type: boolean
       id:
         type: integer
       image:
         type: string
       isPrivate:
         type: boolean
+      isSubscribed:
+        description: Флаги для пользователя
+        type: boolean
       memberCount:
         type: integer
-      nameGroup:
+      members:
+        description: Первые 10 участников
+        items:
+          $ref: '#/definitions/dto.GroupMemberDto'
+        type: array
+      name:
         type: string
       smallDescription:
         type: string
       updatedAt:
         type: string
+      userRole:
+        type: string
+    type: object
+  dto.GroupMemberDto:
+    properties:
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.ReferenceItemDto:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  dto.ReferencesDto:
+    properties:
+      ageLimits:
+        items:
+          $ref: '#/definitions/dto.ReferenceItemDto'
+        type: array
+      eventTypes:
+        items:
+          $ref: '#/definitions/dto.ReferenceItemDto'
+        type: array
+      groupCategories:
+        items:
+          $ref: '#/definitions/dto.ReferenceItemDto'
+        type: array
+      locations:
+        items:
+          $ref: '#/definitions/dto.ReferenceItemDto'
+        type: array
+      statuses:
+        items:
+          $ref: '#/definitions/dto.ReferenceItemDto'
+        type: array
     type: object
   events.CreateEventInput:
     properties:
@@ -260,7 +333,6 @@ definitions:
         minLength: 10
         type: string
       duration:
-        description: от 15 минут до 24 часов
         maximum: 1440
         minimum: 15
         type: integer
@@ -303,13 +375,6 @@ definitions:
     - maxUsers
     - startTime
     - title
-    type: object
-  events.GenreDto:
-    properties:
-      id:
-        type: integer
-      name:
-        type: string
     type: object
   events.UpdateEventInput:
     properties:
@@ -513,8 +578,6 @@ definitions:
         type: string
       email:
         type: string
-      enterprise:
-        type: boolean
       id:
         type: integer
       image:
@@ -532,7 +595,6 @@ definitions:
       updatedAt:
         type: string
       us:
-        description: Salt         string `gorm:"not null" validate:"required"`
         type: string
       verifiedUser:
         type: boolean
@@ -1228,7 +1290,7 @@ paths:
       - BearerAuth: []
       summary: Создать событие
       tags:
-      - events
+      - events_admin
   /api/v2/admin/events/{eventId}:
     delete:
       description: Удаляет событие. Доступно для админов и операторов
@@ -1268,7 +1330,7 @@ paths:
       - BearerAuth: []
       summary: Удалить событие
       tags:
-      - events
+      - events_admin
     get:
       description: Возвращает полную информацию о событии со списком всех участников.
         Доступно для админов и операторов группы
@@ -1359,7 +1421,7 @@ paths:
       - BearerAuth: []
       summary: Обновить событие
       tags:
-      - events
+      - events_admin
   /api/v2/admin/events/{eventId}/kick/{userId}:
     delete:
       description: Удаляет участника из события. Доступно для админов и операторов
@@ -1412,41 +1474,6 @@ paths:
       summary: Исключить участника из события
       tags:
       - events_admin
-  /api/v2/admin/events/{groupId}/events:
-    get:
-      description: Возвращает список всех событий группы. Доступно для админов и операторов
-      parameters:
-      - description: ID группы
-        in: path
-        name: groupId
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Список событий
-          schema:
-            items:
-              $ref: '#/definitions/dto.EventShortDto'
-            type: array
-        "401":
-          description: Не авторизован
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Недостаточно прав
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Получить события группы
-      tags:
-      - events
   /api/v2/auth/login:
     post:
       consumes:
@@ -1674,7 +1701,7 @@ paths:
           description: Список жанров
           schema:
             items:
-              $ref: '#/definitions/events.GenreDto'
+              $ref: '#/definitions/dto.ReferenceItemDto'
             type: array
         "500":
           description: Внутренняя ошибка сервера
@@ -1704,7 +1731,7 @@ paths:
         "201":
           description: Группа успешно создана
           schema:
-            $ref: '#/definitions/dto.GroupDto'
+            $ref: '#/definitions/dto.GroupFullDto'
         "400":
           description: Некорректные данные
           schema:
@@ -1726,7 +1753,7 @@ paths:
       - BearerAuth: []
       summary: Создание группы
       tags:
-      - groups
+      - groups_admin
     put:
       consumes:
       - application/json
@@ -1744,7 +1771,7 @@ paths:
         "200":
           description: Группа успешно обновлена
           schema:
-            $ref: '#/definitions/dto.GroupDto'
+            $ref: '#/definitions/dto.GroupFullDto'
         "400":
           description: Некорректные данные
           schema:
@@ -1826,9 +1853,55 @@ paths:
       summary: Удаление группы
       tags:
       - groups_admin
+    get:
+      description: Возвращает полную информацию о группе с участниками и активными
+        событиями
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о группе
+          schema:
+            $ref: '#/definitions/dto.GroupFullDto'
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Группа приватная, доступ запрещен
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Группа не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить информацию о группе
+      tags:
+      - groups
   /api/v2/groups/{groupId}/actions:
     get:
       description: Возвращает список последних действий операторов и админов в группе
+        (только админ)
       parameters:
       - description: ID группы
         in: path
@@ -1870,7 +1943,7 @@ paths:
       - BearerAuth: []
       summary: Получить историю действий в группе
       tags:
-      - groups
+      - groups_admin
   /api/v2/groups/{groupId}/blacklist:
     get:
       description: Возвращает список забаненных пользователей. Доступно для админов
@@ -2247,6 +2320,41 @@ paths:
       summary: Отклонить все заявки на вступление
       tags:
       - groups_admin
+  /api/v2/groups/events/{groupId}/events:
+    get:
+      description: Возвращает список всех событий группы. Доступно для админов и операторов
+      parameters:
+      - description: ID группы
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список событий
+          schema:
+            items:
+              $ref: '#/definitions/dto.EventShortDto'
+            type: array
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить события группы
+      tags:
+      - events_admin
   /api/v2/groups/invites:
     post:
       consumes:
@@ -2581,6 +2689,26 @@ paths:
       summary: Отклонить заявку на вступление
       tags:
       - groups_admin
+  /api/v2/references:
+    get:
+      description: Возвращает все справочники для событий и групп (типы, локации,
+        возрастные ограничения, статусы, жанры, категории)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Все справочники
+          schema:
+            $ref: '#/definitions/dto.ReferencesDto'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить все справочники
+      tags:
+      - references
   /api/v2/register/:
     post:
       consumes:
@@ -2791,7 +2919,7 @@ paths:
       - BearerAuth: []
       summary: Загрузка фотографии
       tags:
-      - groups_admin
+      - sub_func
 securityDefinitions:
   BearerAuth:
     description: 'Введите токен в формате: Bearer <your_token>'

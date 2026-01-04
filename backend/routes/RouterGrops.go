@@ -13,20 +13,22 @@ func RegisterGroupsRoutes(
 	authMiddleware *middlewares.AuthMiddleware,
 	groupRoleMiddleware *middlewares.GroupRoleMiddleware,
 ) {
-	// Публичные эндпоинты (требуют только авторизацию)
+	// Публичные эндпоинты
 	groupsPublic := router.Group("/api/v2/groups")
 	groupsPublic.Use(authMiddleware.RequireAuth())
 	{
-		// Создание группы (любой авторизованный пользователь)
+		// Получение информации о группе
+		groupsPublic.GET("/:groupId", groupHandler.GetGroupDetails)
+		// Создание группы
 		groupsPublic.POST("", groupHandler.CreateGroup)
 
-		// Вступление в группу (любой авторизованный пользователь)
+		// Вступление в группу
 		groupsPublic.POST("/:groupId/join", groupHandler.JoinGroup)
 
-		// Выход из группы (любой авторизованный пользователь)
+		// Выход из группы
 		groupsPublic.POST("/:groupId/leave", groupHandler.LeaveGroup)
 
-		// Приглашения - принятие и отклонение (любой авторизованный пользователь)
+		// Приглашения - принятие и отклонение
 		groupsPublic.POST("/invites/:inviteId/accept", groupHandler.AcceptJoinInvite)
 		groupsPublic.POST("/invites/:inviteId/reject", groupHandler.RejectJoinInvite)
 		groupsPublic.POST("/requests/:requestId/approve", groupHandler.ApproveJoinRequest)
@@ -38,10 +40,10 @@ func RegisterGroupsRoutes(
 	groupsOperator.Use(authMiddleware.RequireAuth())
 	groupsOperator.Use(groupRoleMiddleware.RequireOperatorOrAdmin())
 	{
-		// Обновление группы (admin, operator)
+		// Обновление группы
 		groupsOperator.PUT("", groupHandler.UpdateGroup)
 
-		// Управление заявками (admin, operator)
+		// Управление заявками
 		groupsOperator.POST("/:groupId/requests/approve-all", groupHandler.ApproveAllJoinRequests)
 		groupsOperator.POST("/:groupId/requests/reject-all", groupHandler.RejectAllJoinRequests)
 
@@ -49,23 +51,23 @@ func RegisterGroupsRoutes(
 		groupsOperator.GET("/:groupId/blacklist", groupHandler.GetGroupBlacklist)
 		groupsOperator.GET("/:groupId/requests", groupHandler.GetJoinRequests)
 
-		// Управление участниками (admin, operator)
+		// Управление участниками
 		groupsOperator.DELETE("/:groupId/members/:userId", groupHandler.DeleteUserFromGroup)
 		groupsOperator.DELETE("/:groupId/blacklist/:userId", groupHandler.RemoveFromBlacklist)
 
-		// Отправка приглашений (admin, operator)
+		// Отправка приглашений
 		groupsOperator.POST("/invites", groupHandler.CreateJoinInvite)
 	}
 
 	// Эндпоинты только для админов
 	groupsAdmin := router.Group("/api/v2/groups")
 	groupsAdmin.Use(authMiddleware.RequireAuth())
-	// groupsAdmin.Use(groupRoleMiddleware.RequireAdmin()) // Раскомментировать для проверки роли через middleware
+	groupsAdmin.Use(groupRoleMiddleware.RequireAdmin()) // Раскомментировать для проверки роли через middleware
 	{
-		// Удаление группы (только admin)
+		// Удаление группы
 		groupsAdmin.DELETE("/:groupId", groupHandler.DeleteGroup)
 
-		// Управление правами (только admin)
+		// Управление правами
 		groupsAdmin.POST("/permissions/add", groupHandler.AddPermissions)
 		groupsAdmin.POST("/permissions/remove", groupHandler.RemovePermissions)
 

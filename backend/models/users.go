@@ -9,14 +9,12 @@ import (
 )
 
 type User struct {
-	ID       uint   `gorm:"primaryKey;autoIncrement"`
-	Name     string `gorm:"not null" validate:"required"`
-	Password string `gorm:"not null" validate:"required,password"`
-	// Salt         string `gorm:"not null" validate:"required"`
+	ID           uint   `gorm:"primaryKey;autoIncrement"`
+	Name         string `gorm:"not null" validate:"required"`
+	Password     string `gorm:"not null" validate:"required,password"`
 	Us           string `gorm:"uniqueIndex;not null" validate:"required"`
 	Email        string `gorm:"uniqueIndex;not null" validate:"required,email"`
 	Image        string `gorm:"default:https://cdn-icons-png.flaticon.com/512/149/149071.png"`
-	Enterprise   bool   `gorm:"default:false"`
 	VerifiedUser bool   `gorm:"default:false"`
 	Role         string `gorm:"default:user"`
 	Status       string
@@ -69,7 +67,6 @@ func convertUser(user User) *dto.UserDto {
 		Us:           user.Us,
 		Image:        user.Image,
 		DataRegister: user.CreatedAt,
-		Enterprise:   user.Enterprise,
 		VerifiedUser: user.VerifiedUser,
 		Role:         user.Role,
 		Status:       user.Status,

@@ -14,6 +14,7 @@ type Group struct {
 	Description      string `json:"Description" gorm:"not null"`
 	SmallDescription string `json:"smallDescription" gorm:"not null"`
 	Image            string `json:"image" gorm:"not null"`
+	Enterprise       bool   `json:"enterprise" gorm:"default:false"`
 
 	CreaterID uint        `json:"createrId" gorm:"not null"`
 	Creater   models.User `json:"creater" gorm:"foreignKey:CreaterID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`

@@ -17,6 +17,7 @@ type GroupHandler interface {
 	DeleteGroup(c *gin.Context)
 	JoinGroup(c *gin.Context)
 	LeaveGroup(c *gin.Context)
+	GetGroupDetails(c *gin.Context)
 
 	// Управление заявками
 	ApproveAllJoinRequests(c *gin.Context)
@@ -65,15 +66,54 @@ type GroupUpdateRequest struct {
 	Contacts         *string `json:"contacts"`
 }
 
+// GetGroupDetails godoc
+// @Summary      Получить информацию о группе
+// @Description  Возвращает полную информацию о группе с участниками и активными событиями
+// @Tags         groups
+// @Produce      json
+// @Security     BearerAuth
+// @Param        groupId path int true "ID группы"
+// @Success      200 {object} dto.GroupFullDto "Информация о группе"
+// @Failure      400 {object} map[string]string "Некорректные данные"
+// @Failure      401 {object} map[string]string "Не авторизован"
+// @Failure      403 {object} map[string]string "Группа приватная, доступ запрещен"
+// @Failure      404 {object} map[string]string "Группа не найдена"
+// @Router       /api/v2/groups/{groupId} [get]
+func (h *groupHandler) GetGroupDetails(c *gin.Context) {
+	userID := c.GetUint("userID")
+
+	groupIDStr := c.Param("groupId")
+	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		return
+	}
+
+	groupDto, err := h.srv.GetGroupDetails(userID, uint(groupID))
+	if err != nil {
+		switch {
+		case errors.Is(err, group.ErrGroupNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Группа не найдена"})
+		case errors.Is(err, group.ErrPermissionDenied):
+			c.JSON(http.StatusForbidden, gin.H{"error": "Доступ к приватной группе запрещен"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, groupDto)
+}
+
 // CreateGroup godoc
 // @Summary      Создание группы
 // @Description  Создает новую группу. Контакты передаются строкой в формате "название:ссылка, название:ссылка"
-// @Tags         groups
+// @Tags         groups_admin
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request body group.CreateGroupInput true "Данные для создания группы"
-// @Success      201 {object} dto.GroupDto "Группа успешно создана"
+// @Success      201 {object} dto.GroupFullDto "Группа успешно создана"
 // @Failure      400 {object} map[string]interface{} "Некорректные данные"
 // @Failure      401 {object} map[string]string "Не авторизован"
 // @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
@@ -140,7 +180,7 @@ func (h *groupHandler) CreateGroup(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request body GroupUpdateRequest true "Данные для обновления группы"
-// @Success      200 {object} dto.GroupDto "Группа успешно обновлена"
+// @Success      200 {object} dto.GroupFullDto "Группа успешно обновлена"
 // @Failure      400 {object} map[string]string "Некорректные данные"
 // @Failure      401 {object} map[string]string "Не авторизован"
 // @Failure      403 {object} map[string]string "Недостаточно прав"
@@ -800,8 +840,8 @@ func (h *groupHandler) RejectJoinInvite(c *gin.Context) {
 
 // WatchRecentActions godoc
 // @Summary      Получить историю действий в группе
-// @Description  Возвращает список последних действий операторов и админов в группе
-// @Tags         groups
+// @Description  Возвращает список последних действий операторов и админов в группе (только админ)
+// @Tags         groups_admin
 // @Produce      json
 // @Security     BearerAuth
 // @Param        groupId path int true "ID группы"

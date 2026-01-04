@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"friendship/logger"
+	"friendship/models"
 	"friendship/models/dto"
 	convertorsdto "friendship/models/dto/convertorsDto"
 	"friendship/models/events"
@@ -44,7 +45,8 @@ type EventsService interface {
 	KickUserFromEvent(actorID uint, eventID uint, targetUserID uint) (bool, error)
 
 	// Справочники
-	GetAllGenres() ([]GenreDto, error)
+	GetAllGenres() ([]dto.ReferenceItemDto, error)
+	GetAllReferences() (*dto.ReferencesDto, error)
 }
 
 type GenreDto struct {
@@ -236,23 +238,65 @@ func (s *eventsService) LeaveEvent(userID uint, eventID uint) (bool, error) {
 }
 
 // Получает все доступные жанры
-func (s *eventsService) GetAllGenres() ([]GenreDto, error) {
+func (s *eventsService) GetAllGenres() ([]dto.ReferenceItemDto, error) {
 	var genres []events.Genre
 
 	if err := s.repo.Order("name ASC").Find(&genres).Error; err != nil {
 		s.logger.Error("Failed to fetch genres", "error", err)
 		return nil, fmt.Errorf("ошибка получения жанров: %w", err)
 	}
-
-	result := make([]GenreDto, 0, len(genres))
-	for _, g := range genres {
-		result = append(result, GenreDto{
-			ID:   g.ID,
-			Name: g.Name,
-		})
-	}
+	result := convertorsdto.ConvertGenresToReferenceItems(genres)
 
 	return result, nil
+}
+
+// GetAllReferences получает все справочники для событий
+func (s *eventsService) GetAllReferences() (*dto.ReferencesDto, error) {
+	// Получаем типы событий
+	var eventTypes []models.Category
+	if err := s.repo.Order("name ASC").Find(&eventTypes).Error; err != nil {
+		s.logger.Error("Failed to fetch event types", "error", err)
+		return nil, fmt.Errorf("ошибка получения типов событий: %w", err)
+	}
+
+	// Получаем места проведения
+	var locations []events.EventLocation
+	if err := s.repo.Order("name ASC").Find(&locations).Error; err != nil {
+		s.logger.Error("Failed to fetch locations", "error", err)
+		return nil, fmt.Errorf("ошибка получения мест проведения: %w", err)
+	}
+
+	// Получаем возрастные ограничения
+	var ageLimits []events.AgeLimit
+	if err := s.repo.Order("id ASC").Find(&ageLimits).Error; err != nil {
+		s.logger.Error("Failed to fetch age limits", "error", err)
+		return nil, fmt.Errorf("ошибка получения возрастных ограничений: %w", err)
+	}
+
+	// Получаем статусы
+	var statuses []events.Status
+	if err := s.repo.Order("id ASC").Find(&statuses).Error; err != nil {
+		s.logger.Error("Failed to fetch statuses", "error", err)
+		return nil, fmt.Errorf("ошибка получения статусов: %w", err)
+	}
+
+	// Получаем категории групп (одно и тоже что и типы, но мб что-то сломается)
+	var groupCategories []models.Category
+	if err := s.repo.Order("name ASC").Find(&groupCategories).Error; err != nil {
+		s.logger.Error("Failed to fetch group categories", "error", err)
+		return nil, fmt.Errorf("ошибка получения категорий групп: %w", err)
+	}
+
+	// Конвертируем в DTO
+	references := &dto.ReferencesDto{
+		EventTypes:      convertorsdto.ConvertToReferenceItems(eventTypes),
+		Locations:       convertorsdto.ConvertLocationsToReferenceItems(locations),
+		AgeLimits:       convertorsdto.ConvertAgeLimitsToReferenceItems(ageLimits),
+		Statuses:        convertorsdto.ConvertStatusesToReferenceItems(statuses),
+		GroupCategories: convertorsdto.ConvertToReferenceItems(groupCategories),
+	}
+
+	return references, nil
 }
 
 // Вспомогательные функции

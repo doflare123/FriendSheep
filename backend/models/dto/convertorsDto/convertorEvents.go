@@ -75,6 +75,7 @@ func ConvertToFullDto(event *events.Event, userID uint, includeParticipants bool
 			Name:     event.Creator.Name,
 			Username: event.Creator.Us,
 			Image:    event.Creator.Image,
+			Verified: event.Creator.VerifiedUser,
 		},
 
 		Address:      event.Address,
