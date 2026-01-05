@@ -10,6 +10,7 @@ import (
 	"friendship/models/groups"
 	statsusers "friendship/models/stats_users"
 	"friendship/repository"
+	event "friendship/services/events"
 	session "friendship/sessions"
 	"friendship/validator"
 	"log"
@@ -23,14 +24,15 @@ import (
 )
 
 type Server struct {
-	engine       *gin.Engine
-	logger       logger.Logger
-	postgres     repository.PostgresRepository
-	S3           storage.S3Storage
-	mongo        repository.MongoRepository
-	sessionStore session.SessionStore
-	validators   *validator.Validator
-	cfg          config.Config
+	engine               *gin.Engine
+	logger               logger.Logger
+	postgres             repository.PostgresRepository
+	S3                   storage.S3Storage
+	mongo                repository.MongoRepository
+	sessionStore         session.SessionStore
+	validators           *validator.Validator
+	cfg                  config.Config
+	popularEventsService event.PopularEventsService
 }
 
 func InitServer() (*Server, error) {
@@ -65,6 +67,25 @@ func InitServer() (*Server, error) {
 	}
 	logger.Info("S3 initialized")
 	validator := validator.NewValidator(conf)
+
+	popularEventsService, err := event.NewPopularEventsService(
+		logger,
+		postgres,
+		redis,
+		conf,
+	)
+	if err != nil {
+		logger.Error("Error initializing popular events service", "error", err)
+		return nil, err
+	}
+	logger.Info("Popular events service initialized")
+
+	if err := popularEventsService.Start(); err != nil {
+		logger.Error("Error starting popular events cron", "error", err)
+		return nil, err
+	}
+	logger.Info("Popular events cron started")
+
 	r := gin.Default()
 	// r.Use(cors.New(cors.Config{
 	// 	AllowOrigins:     []string{"http://localhost:3000"},
@@ -81,14 +102,15 @@ func InitServer() (*Server, error) {
 	db.Seeder(postgres)
 
 	s := &Server{
-		engine:       r,
-		logger:       logger,
-		postgres:     postgres,
-		S3:           s3_storege,
-		mongo:        mongo,
-		sessionStore: sessionStore,
-		cfg:          *conf,
-		validators:   validator,
+		engine:               r,
+		logger:               logger,
+		postgres:             postgres,
+		S3:                   s3_storege,
+		mongo:                mongo,
+		sessionStore:         sessionStore,
+		cfg:                  *conf,
+		validators:           validator,
+		popularEventsService: popularEventsService,
 	}
 	s.initRouters()
 	logger.Info("Server init")

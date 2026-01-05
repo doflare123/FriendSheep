@@ -23,7 +23,10 @@ func (s *Server) initRouters() {
 	authsrv := services.NewAuthService(s.logger, jwtService, s.postgres)
 	authH := handlers.NewAuthHandler(authsrv)
 	routes.RegisterAuthRoutes(s.engine, authH)
-	regsrv := register.NewRegisterSrv(s.logger, s.sessionStore, s.postgres, s.cfg, jwtService)
+	regsrv, err := register.NewRegisterSrv(s.logger, s.sessionStore, s.postgres, &s.cfg, jwtService)
+	if err != nil {
+		s.logger.Fatal("Failed to create register service", "error", err)
+	}
 	regH := handlers.NewRegisterHandler(regsrv)
 	routes.RegisterRegRoutes(s.engine, regH)
 
@@ -39,6 +42,7 @@ func (s *Server) initRouters() {
 
 	//регистрация событий
 	eventsrv := events.NewEventsService(s.logger, s.postgres)
+	popularEventsH := handlers.NewPopularEventsHandler(s.popularEventsService)
 	eventsH := handlers.NewEventsHandler(eventsrv)
-	routes.RegisterEventsRoutes(s.engine, eventsH, jwtMiddleware, groupRoleMiddleware)
+	routes.RegisterEventsRoutes(s.engine, eventsH, popularEventsH, jwtMiddleware, groupRoleMiddleware)
 }

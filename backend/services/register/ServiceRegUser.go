@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"friendship/config"
+	"friendship/email"
 	"friendship/logger"
 	"friendship/models"
 	"friendship/models/dto"
@@ -56,27 +57,34 @@ type RegService interface {
 }
 
 type regService struct {
-	logger     logger.Logger
-	redis      session.SessionStore
-	cfg        *config.Config
-	postgres   repository.PostgresRepository
-	jwtService *utils.JWTUtils
+	logger       logger.Logger
+	redis        session.SessionStore
+	cfg          *config.Config
+	postgres     repository.PostgresRepository
+	jwtService   *utils.JWTUtils
+	emailManager *email.EmailTemplateManager
 }
 
 func NewRegisterSrv(
 	logger logger.Logger,
 	redis session.SessionStore,
 	postgres repository.PostgresRepository,
-	cfg config.Config,
+	cfg *config.Config,
 	jwtService *utils.JWTUtils,
-) RegService {
-	return &regService{
-		logger:     logger,
-		redis:      redis,
-		postgres:   postgres,
-		cfg:        &cfg,
-		jwtService: jwtService,
+) (RegService, error) {
+	emailManager, err := email.NewEmailTemplateManager()
+	if err != nil {
+		return nil, fmt.Errorf("ошибка инициализации email менеджера: %w", err)
 	}
+
+	return &regService{
+		logger:       logger,
+		redis:        redis,
+		cfg:          cfg,
+		postgres:     postgres,
+		jwtService:   jwtService,
+		emailManager: emailManager,
+	}, nil
 }
 
 func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dto.AuthResponse, error) {
@@ -146,6 +154,8 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 		if err := tx.Create(&sideInf).Error; err != nil {
 			return fmt.Errorf("не удалось создать статистику сессии: %w", err)
 		}
+
+		go s.sendWelcomeEmail(user.Email, user.Name)
 
 		return nil
 	})
@@ -220,80 +230,71 @@ func (s *regService) CreateSessionRegister(ctx context.Context, email, type_ses 
 	return &models.SessionRegResponse{SessionID: sessionID}, nil
 }
 
-func (s *regService) sendVerificationEmail(email, code, type_ses string) {
-	subject := "Код подтверждения"
-	typeMap := map[string]string{
+func (s *regService) sendVerificationEmail(userEmail, code, actionType string) error {
+	messageMap := map[string]string{
 		"reset_password": "Чтобы завершить смену пароля, введите следующий код подтверждения:",
 		"register":       "Чтобы завершить регистрацию, введите следующий код подтверждения:",
 	}
-	body := fmt.Sprintf(`
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-	<meta charset="UTF-8">
-	<style>
-		body {
-			font-family: Arial, sans-serif;
-			background-color: #f4f6f9;
-			margin: 0;
-			padding: 0;
-		}
-		.container {
-			max-width: 480px;
-			margin: 30px auto;
-			background: #fff;
-			border-radius: 12px;
-			padding: 24px;
-			box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-		}
-		h2 {
-			color: #333;
-			text-align: center;
-		}
-		p {
-			font-size: 15px;
-			color: #555;
-			line-height: 1.6;
-		}
-		.code {
-			display: block;
-			text-align: center;
-			font-size: 24px;
-			font-weight: bold;
-			margin: 20px 0;
-			padding: 12px;
-			background: #f0f4ff;
-			border: 1px dashed #4a6cf7;
-			border-radius: 8px;
-			color: #4a6cf7;
-			cursor: pointer;
-			user-select: all;
-		}
-		.footer {
-			font-size: 12px;
-			text-align: center;
-			color: #aaa;
-			margin-top: 16px;
-		}
-	</style>
-</head>
-<body>
-	<div class="container">
-		<h2>Подтверждение регистрации</h2>
-		<p>Здравствуйте! 👋</p>
-		<p>%s</p>
-		<div class="code">%s</div>
-		<p>Код действителен <b>10 минут</b>. Если вы не запрашивали регистрацию, просто игнорируйте это письмо.</p>
-		<div class="footer">© %d Ваш сервис</div>
-	</div>
-</body>
-</html>
-`, typeMap[type_ses], code, time.Now().Year())
-	if err := utils.SendEmail(email, subject, body, s.cfg); err != nil {
-		s.logger.Error("Failed to send verification email", "email", email, "error", err)
-	} else {
-		s.logger.Info("Verification email sent", "email", email)
+
+	message, exists := messageMap[actionType]
+	if !exists {
+		message = "Введите следующий код подтверждения:"
 	}
+
+	// Определяем тип шаблона
+	var templateType email.TemplateType
+	if actionType == "reset_password" {
+		templateType = email.TemplateResetPassword
+	} else {
+		templateType = email.TemplateVerificationCode
+	}
+
+	// Формируем данные для email
+	emailData := email.EmailData{
+		Code:    code,
+		Message: message,
+	}
+
+	// Рендерим шаблон
+	body, err := s.emailManager.RenderTemplate(templateType, emailData)
+	if err != nil {
+		return fmt.Errorf("ошибка рендеринга email шаблона: %w", err)
+	}
+
+	subject := email.GetSubject(templateType, "")
+
+	// Отправляем email
+	if err := utils.SendEmail(userEmail, subject, body, s.cfg); err != nil {
+		s.logger.Error("Failed to send verification email", "email", userEmail, "error", err)
+		return err
+	}
+
+	s.logger.Info("Verification email sent", "email", userEmail, "type", actionType)
+	return nil
+}
+
+// sendWelcomeEmail отправляет приветственное письмо
+func (s *regService) sendWelcomeEmail(userEmail, userName string) error {
+	emailData := email.EmailData{
+		UserName:   userName,
+		ActionURL:  "https://friendsheep.ru/",
+		ActionText: "Перейти на главную",
+	}
+
+	body, err := s.emailManager.RenderTemplate(email.TemplateWelcome, emailData)
+	if err != nil {
+		return fmt.Errorf("ошибка рендеринга welcome шаблона: %w", err)
+	}
+
+	subject := email.GetSubject(email.TemplateWelcome, "")
+
+	if err := utils.SendEmail(userEmail, subject, body, s.cfg); err != nil {
+		s.logger.Error("Failed to send welcome email", "email", userEmail, "error", err)
+		return err
+	}
+
+	s.logger.Info("Welcome email sent", "email", userEmail)
+	return nil
 }
 
 func (s *regService) VerifySession(ctx context.Context, input VerifySessionInput) (bool, error) {

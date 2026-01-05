@@ -1,4 +1,15 @@
 definitions:
+  dto.CachedPopularEvents:
+    properties:
+      count:
+        type: integer
+      events:
+        items:
+          $ref: '#/definitions/dto.EventShortDto'
+        type: array
+      updated_at:
+        type: string
+    type: object
   dto.ContactDto:
     properties:
       link:
@@ -45,8 +56,8 @@ definitions:
         items:
           type: string
         type: array
-      groupId:
-        type: integer
+      group:
+        $ref: '#/definitions/dto.EventGroupDto'
       id:
         description: Базовая информация
         type: integer
@@ -98,7 +109,7 @@ definitions:
         type: string
       name:
         type: string
-      username:
+      us:
         type: string
       verified:
         type: boolean
@@ -138,8 +149,8 @@ definitions:
         items:
           type: string
         type: array
-      groupId:
-        type: integer
+      group:
+        $ref: '#/definitions/dto.EventGroupDto'
       id:
         description: Базовая информация
         type: integer
@@ -165,6 +176,17 @@ definitions:
         type: string
       year:
         type: integer
+    type: object
+  dto.EventGroupDto:
+    properties:
+      enterprise:
+        type: boolean
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
     type: object
   dto.EventShortDto:
     properties:
@@ -1710,6 +1732,27 @@ paths:
               type: string
             type: object
       summary: Получить все жанры
+      tags:
+      - events
+  /api/v2/events/popular:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает топ-10 самых популярных событий
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список популярных событий
+          schema:
+            $ref: '#/definitions/dto.CachedPopularEvents'
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить популярные события
       tags:
       - events
   /api/v2/groups:

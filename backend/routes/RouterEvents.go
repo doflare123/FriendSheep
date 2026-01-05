@@ -10,11 +10,13 @@ import (
 func RegisterEventsRoutes(
 	router *gin.Engine,
 	eventsHandler handlers.EventsHandler,
+	popularHandler handlers.PopularEventsHandler,
 	authMiddleware *middlewares.AuthMiddleware,
 	groupRoleMiddleware *middlewares.GroupRoleMiddleware,
 ) {
 	router.GET("/api/v2/events/genres", eventsHandler.GetAllGenres)
 	router.GET("/api/v2/references", eventsHandler.GetAllReferences)
+	router.GET("/api/v2/events/popular", popularHandler.GetPopularEvents)
 
 	events := router.Group("/api/v2/events")
 	events.Use(authMiddleware.RequireAuth())
@@ -22,7 +24,6 @@ func RegisterEventsRoutes(
 		events.GET("/:eventId", eventsHandler.GetEventDetails)
 		events.POST("/:eventId/join", eventsHandler.JoinEvent)
 		events.POST("/:eventId/leave", eventsHandler.LeaveEvent)
-
 	}
 	eventsGroup := router.Group("/api/v2/groups/events")
 	eventsGroup.Use(authMiddleware.RequireAuth(), groupRoleMiddleware.RequireOperatorOrAdmin())

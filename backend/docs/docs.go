@@ -1098,6 +1098,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v2/events/popular": {
+            "get": {
+                "description": "Возвращает топ-10 самых популярных событий",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Получить популярные события",
+                "responses": {
+                    "200": {
+                        "description": "Список популярных событий",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CachedPopularEvents"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v2/events/{eventId}": {
             "get": {
                 "security": [
@@ -3134,6 +3166,23 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.CachedPopularEvents": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.EventShortDto"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.ContactDto": {
             "type": "object",
             "properties": {
@@ -3203,8 +3252,8 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "groupId": {
-                    "type": "integer"
+                "group": {
+                    "$ref": "#/definitions/dto.EventGroupDto"
                 },
                 "id": {
                     "description": "Базовая информация",
@@ -3283,7 +3332,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "username": {
+                "us": {
                     "type": "string"
                 },
                 "verified": {
@@ -3343,8 +3392,8 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "groupId": {
-                    "type": "integer"
+                "group": {
+                    "$ref": "#/definitions/dto.EventGroupDto"
                 },
                 "id": {
                     "description": "Базовая информация",
@@ -3382,6 +3431,23 @@ const docTemplate = `{
                 },
                 "year": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.EventGroupDto": {
+            "type": "object",
+            "properties": {
+                "enterprise": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },

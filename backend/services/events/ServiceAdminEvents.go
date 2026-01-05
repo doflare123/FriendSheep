@@ -228,6 +228,7 @@ func (s *eventsService) CreateEvent(actorID uint, input CreateEventInput) (*dto.
 		Preload("EventType").
 		Preload("EventLocation").
 		Preload("Status").
+		Preload("Group").
 		Preload("Creator").
 		Preload("AgeLimit").
 		Preload("Genres.Genre").
@@ -383,6 +384,7 @@ func (s *eventsService) UpdateEvent(actorID uint, eventID uint, input UpdateEven
 		Preload("EventType").
 		Preload("EventLocation").
 		Preload("Status").
+		Preload("Group").
 		Preload("Creator").
 		Preload("AgeLimit").
 		Preload("Genres.Genre").

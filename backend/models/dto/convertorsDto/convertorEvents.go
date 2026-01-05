@@ -63,7 +63,12 @@ func ConvertToFullDto(event *events.Event, userID uint, includeParticipants bool
 		StartTime:    event.StartTime,
 		EndTime:      event.EndTime,
 		Duration:     event.Duration,
-		GroupID:      event.GroupID,
+		Group: dto.EventGroupDto{
+			ID:         event.Group.ID,
+			Name:       event.Group.Name,
+			Image:      event.Group.Image,
+			Enterprise: event.Group.Enterprise,
+		},
 
 		EventType:    event.EventType.ID,
 		LocationType: event.EventLocation.ID,
@@ -73,7 +78,7 @@ func ConvertToFullDto(event *events.Event, userID uint, includeParticipants bool
 		Creator: dto.EventCreatorDto{
 			ID:       event.Creator.ID,
 			Name:     event.Creator.Name,
-			Username: event.Creator.Us,
+			Us:       event.Creator.Us,
 			Image:    event.Creator.Image,
 			Verified: event.Creator.VerifiedUser,
 		},

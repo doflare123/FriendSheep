@@ -102,6 +102,7 @@ func (s *eventsService) GetEventDetails(userID uint, eventID uint) (*dto.EventFu
 		Preload("EventType").
 		Preload("EventLocation").
 		Preload("Status").
+		Preload("Group").
 		Preload("Creator").
 		Preload("Genres.Genre").
 		Preload("Users.User").

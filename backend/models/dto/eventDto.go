@@ -22,16 +22,16 @@ type EventShortDto struct {
 
 type EventFullDto struct {
 	// Базовая информация
-	ID           uint      `json:"id"`
-	Title        string    `json:"title"`
-	Description  string    `json:"description"`
-	ImageURL     string    `json:"imageUrl"`
-	MaxUsers     uint16    `json:"maxUsers"`
-	CurrentUsers uint16    `json:"currentUsers"`
-	StartTime    time.Time `json:"startTime"`
-	EndTime      time.Time `json:"endTime"`
-	Duration     uint16    `json:"duration"`
-	GroupID      uint      `json:"groupId"`
+	ID           uint          `json:"id"`
+	Title        string        `json:"title"`
+	Description  string        `json:"description"`
+	ImageURL     string        `json:"imageUrl"`
+	MaxUsers     uint16        `json:"maxUsers"`
+	CurrentUsers uint16        `json:"currentUsers"`
+	StartTime    time.Time     `json:"startTime"`
+	EndTime      time.Time     `json:"endTime"`
+	Duration     uint16        `json:"duration"`
+	Group        EventGroupDto `json:"group"`
 
 	// Типы и категории
 	EventType    uint     `json:"eventType"`
@@ -63,7 +63,21 @@ type EventFullDto struct {
 type EventCreatorDto struct {
 	ID       uint   `json:"id"`
 	Name     string `json:"name"`
-	Username string `json:"username"`
+	Us       string `json:"us"`
 	Image    string `json:"image"`
 	Verified bool   `json:"verified"`
+}
+
+type EventGroupDto struct {
+	ID         uint   `json:"id"`
+	Name       string `json:"name"`
+	Image      string `json:"image"`
+	Enterprise bool   `json:"enterprise"`
+}
+
+// CachedPopularEvents - структура для кэша популярных событий
+type CachedPopularEvents struct {
+	Events    []EventShortDto `json:"events"`
+	UpdatedAt time.Time       `json:"updated_at"`
+	Count     int             `json:"count"`
 }
