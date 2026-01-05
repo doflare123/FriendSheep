@@ -73,7 +73,7 @@ const formatGenres = (genres: string[]) => {
 };
 
 const formatEventPlace = (place?: string) => {
-  if (!place || place.trim().length < 5) return "Место не указано";
+  if (!place || place.trim().length < 1) return "Место не указано";
   if (place.length > 200) return place.slice(0, 200) + "...";
   return place;
 };
@@ -106,6 +106,7 @@ const EventModal: React.FC<EventModalProps> = ({
 
   const [addToCalendar, setAddToCalendar] = useState(false);
   const [calendarEventId, setCalendarEventId] = useState<string | undefined>(event.calendarEventId);
+  const [groupName, setGroupName] = useState<string>(event.group);
 
  useEffect(() => {
     if (!visible) return;
@@ -129,6 +130,24 @@ const EventModal: React.FC<EventModalProps> = ({
       setAddToCalendar(false);
     }
   }, [visible, event.id]);
+
+  useEffect(() => {
+    const loadGroupName = async () => {
+      if (sessionData?.session?.group_id) {
+        try {
+          const group = await groupService.getPublicGroupDetail(sessionData.session.group_id.toString());
+          setGroupName(group.name);
+          
+        } catch (error) {
+          console.error('[EventModal] Не удалось загрузить название группы');
+        }
+      }
+    };
+    
+    if (sessionData) {
+      loadGroupName();
+    }
+  }, [sessionData]);
 
   const loadSessionDetail = async () => {
     try {
@@ -390,7 +409,10 @@ const EventModal: React.FC<EventModalProps> = ({
   }
   
   const handleLocationPress = () => {
-    const location = sessionData?.metadata?.Location || event.eventPlace;
+    const location = 
+      (sessionData?.metadata?.Location && sessionData.metadata.Location.trim()) ||
+      (sessionData?.metadata?.City && sessionData.metadata.City.trim()) ||
+      event.eventPlace;
     
     if (!location || location === 'Место не указано') {
       return;
@@ -509,15 +531,12 @@ const EventModal: React.FC<EventModalProps> = ({
                     ))}
                   </View>
 
-                  {event.group && (
+                  {groupName && groupName.trim() !== '' && (
                     <View style={{ marginBottom: 4 }}>
                       <Text style={[styles.label, { color: colors.black }]}>
                         Организатор:{' '}
-                        <Text
-                          style={[styles.value, styles.clickableText]}
-                          onPress={handleGroupPress}
-                        >
-                          {event.group}
+                        <Text style={[styles.value, styles.clickableText]} onPress={handleGroupPress}>
+                          {groupName}
                         </Text>
                       </Text>
                     </View>
@@ -528,7 +547,11 @@ const EventModal: React.FC<EventModalProps> = ({
                     style={[styles.value, styles.clickableText, {marginTop: 2}]}
                     onPress={handleLocationPress}
                   >
-                    {formatEventPlace(sessionData?.metadata?.Location || event.eventPlace)}
+                    {formatEventPlace(
+                      (sessionData?.metadata?.Location && sessionData.metadata.Location.trim()) ||
+                      (sessionData?.metadata?.City && sessionData.metadata.City.trim()) ||
+                      event.eventPlace
+                    )}
                   </Text>
 
                   <View style={styles.row}>

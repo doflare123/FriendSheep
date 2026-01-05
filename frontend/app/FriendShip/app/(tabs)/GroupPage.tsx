@@ -507,6 +507,7 @@ const GroupPage = () => {
           )}
         </CategorySection>
 
+      {groupData.contacts && groupData.contacts.length > 0 && (
         <CategorySection title="Контакты:">
           <View style={styles.contactsContainer}>
             {groupData.contacts.map((contact: any, index: number) => {
@@ -543,6 +544,7 @@ const GroupPage = () => {
             })}
           </View>
         </CategorySection>
+      )}
       </ScrollView>
       <BottomBar />
 
