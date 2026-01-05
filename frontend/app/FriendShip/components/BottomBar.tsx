@@ -28,11 +28,11 @@ const BottomBar = () => {
   return (
     <View style={[styles.container, { backgroundColor: colors.white }]}>
       <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('SettingsPage' as never)}>
-          <Image style={[barsStyle.iconsMenu, {tintColor: colors.lightGreyBlue}, isActive('SettingsPage') && { tintColor: colors.darkGrey }]} source={require("@/assets/images/bottom_bar/settings.png")} />
+          <Image style={[barsStyle.iconsMenu, {tintColor: colors.lightGreyBlue}, (isActive('SettingsPage') || isActive('AboutPage')) && { tintColor: colors.darkGrey }]} source={require("@/assets/images/bottom_bar/settings.png")} />
       </TouchableOpacity>
       <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('GroupsPage' as never)}>
           <Image 
-            style={[barsStyle.iconsMenu, {tintColor: colors.lightGreyBlue}, (isActive('GroupsPage') || isActive('GroupPage') || isActive('GroupManagePage') || isActive('GroupSearchPage')) && { tintColor: colors.darkGrey }]} 
+            style={[barsStyle.iconsMenu, {tintColor: colors.lightGreyBlue}, (isActive('GroupsPage') || isActive('GroupPage') || isActive('GroupManagePage') || isActive('GroupSearchPage') || isActive('AllGroupsPage')) && { tintColor: colors.darkGrey }]} 
             source={require("@/assets/images/bottom_bar/groups.png")} />
       </TouchableOpacity>
       <TouchableOpacity style={barsStyle.menu} onPress={() => navigation.navigate('MainPage' as never)}>
@@ -43,7 +43,7 @@ const BottomBar = () => {
       </TouchableOpacity>
       <TouchableOpacity style={barsStyle.menu} onPress={handleProfilePress}>
         <Image 
-          style={[barsStyle.iconsMenu, {width: 25, height: 25, tintColor: colors.lightGreyBlue}, (isActive('ProfilePage') || isActive('UserSearchPage')) && { tintColor: colors.darkGrey }]} 
+          style={[barsStyle.iconsMenu, {width: 25, height: 25, tintColor: colors.lightGreyBlue}, (isActive('ProfilePage') || isActive('UserSearchPage') || isActive('AllEventsPage')) && { tintColor: colors.darkGrey }]} 
           source={require("@/assets/images/bottom_bar/profile.png")} />
       </TouchableOpacity>
     </View>

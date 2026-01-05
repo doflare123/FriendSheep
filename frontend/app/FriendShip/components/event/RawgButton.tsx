@@ -27,7 +27,7 @@ const RawgButton: React.FC<RawgButtonProps> = ({
         <ActivityIndicator size="small" color={Colors.lightBlue} />
       ) : (
         <Image
-          source={require('@/assets/images/event_card/steam.png')}
+          source={require('@/assets/images/event_card/rawg.png')}
           style={styles.icon}
           resizeMode="contain"
         />
@@ -51,6 +51,7 @@ const styles = StyleSheet.create({
   icon: {
     width: 30,
     height: 30,
+    borderRadius: 10,
   },
 });
 

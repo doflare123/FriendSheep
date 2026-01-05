@@ -32,4 +32,5 @@ export type RootStackParamList = {
     userId?: string;
   };
   AllGroupsPage: undefined;
+  AboutPage: undefined;
 };

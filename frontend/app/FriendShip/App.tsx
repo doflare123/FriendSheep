@@ -13,6 +13,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AboutPage from './app/(tabs)/AboutPage';
 import AllEventsPage from './app/(tabs)/AllEventsPage';
 import AllGroupsPage from './app/(tabs)/AllGroupsPage';
 import CategoryPage from './app/(tabs)/CategoryPage';
@@ -113,36 +114,17 @@ function RootNavigator() {
       {isAuthenticated ? (
         <>
           <Stack.Screen name="MainPage" component={MainPage} />
-          <Stack.Screen 
-            name="CategoryPage" 
-            component={CategoryPage}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="CategoryPage" component={CategoryPage}/>
           <Stack.Screen name="GroupsPage" component={GroupsPage} />
-          <Stack.Screen 
-            name="GroupPage" 
-            component={GroupPage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen 
-            name="GroupManagePage" 
-            component={GroupManagePage}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="GroupPage" component={GroupPage}/>
+          <Stack.Screen name="GroupManagePage" component={GroupManagePage}/>
           <Stack.Screen name="GroupSearchPage" component={GroupSearchPage} />
           <Stack.Screen name="ProfilePage" component={ProfilePage} />
-          <Stack.Screen 
-            name="UserSearchPage" 
-            component={UserSearchPage}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="UserSearchPage" component={UserSearchPage}/>
           <Stack.Screen name="SettingsPage" component={SettingsPage} />
-          <Stack.Screen 
-            name="AllEventsPage" 
-            component={AllEventsPage}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="AllEventsPage" component={AllEventsPage}/>
           <Stack.Screen name="AllGroupsPage" component={AllGroupsPage} />
+          <Stack.Screen name="AboutPage" component={AboutPage} />
         </>
       ) : (
         <>

@@ -22,9 +22,9 @@ import { useEvents } from '@/hooks/useEvents';
 import { useSearchState } from '@/hooks/useSearchState';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import { RootStackParamList } from '@/navigation/types';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -62,6 +62,20 @@ const MainPage = () => {
     error,
     refreshEvents,
   } = useEvents(sortingState);
+
+  const isFirstRender = useRef(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstRender.current) {
+        isFirstRender.current = false;
+        return;
+      }
+
+      console.log('[MainPage] 🔄 Страница получила фокус, обновляем события');
+      refreshEvents();
+    }, [])
+  );
 
   useEffect(() => {
     const checkAndRequestPermissions = async () => {

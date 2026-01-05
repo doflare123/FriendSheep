@@ -11,6 +11,9 @@ import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
 import { useThemedColors } from '@/hooks/useThemedColors';
+import { RootStackParamList } from '@/navigation/types';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import {
   Image,
@@ -22,7 +25,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+type SettingsPageNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SettingsPage'>;
+
 const SettingsPage = () => {
+  const navigation = useNavigation<SettingsPageNavigationProp>();
   const { sortingState, sortingActions } = useSearchState();
   const { setIsAuthenticated } = useAuthContext();
   const { toggleTheme, isDark } = useTheme();
@@ -77,6 +83,10 @@ const SettingsPage = () => {
     showToast('success', 'Тема изменена', `Применена ${isDark ? 'светлая' : 'тёмная'} тема`);
   };
 
+  const handleAboutPress = () => {
+    navigation.navigate('AboutPage');
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
       <TopBar sortingState={sortingState} sortingActions={sortingActions} />
@@ -98,6 +108,23 @@ const SettingsPage = () => {
                   : require('@/assets/images/settings/dark.png')
               }
               style={styles.icon}
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.shadowWrapper}>
+          <TouchableOpacity 
+            style={[styles.badge, { backgroundColor: colors.card }]} 
+            onPress={handleAboutPress}
+          >
+            <Text style={[styles.settingText, { color: colors.black }]}>
+              О приложении
+            </Text>
+            <Image
+              source={require('@/assets/images/mini_logo.png')}
+              style={styles.icon}
+              tintColor={colors.black}
+              resizeMode='contain'
             />
           </TouchableOpacity>
         </View>
