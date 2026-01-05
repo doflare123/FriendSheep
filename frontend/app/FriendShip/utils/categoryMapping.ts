@@ -17,7 +17,3 @@ export const categoryInternalNames: Record<string, string> = {
 export const getCategoryDisplayName = (internalName: string): string => {
   return categoryDisplayNames[internalName] || internalName;
 };
-
-export const getCategoryInternalName = (displayName: string): string => {
-  return categoryInternalNames[displayName] || displayName;
-};

@@ -2,7 +2,6 @@ import type { GroupDetailResponse } from '@/api/services/group/groupTypes';
 import { CreateSessionData, UpdateSessionData } from '@/api/services/session';
 import sessionService from '@/api/services/session/sessionService';
 import { useMemo, useState } from 'react';
-import { Alert } from 'react-native';
 import {
   categoryToSessionType,
   convertToRFC3339,
@@ -12,7 +11,15 @@ import {
   sessionTypeToCategory
 } from './groupManageHelpers';
 
-export function useGroupEvents(groupId: string, groupData: GroupDetailResponse | null) {
+interface UseGroupEventsProps {
+  showToast: (type: 'success' | 'error' | 'warning', title: string, message: string) => void;
+}
+
+export function useGroupEvents(
+  groupId: string, 
+  groupData: GroupDetailResponse | null,
+  { showToast }: UseGroupEventsProps
+) {
   const [availableGenres, setAvailableGenres] = useState<string[]>([]);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [isUpdatingEvent, setIsUpdatingEvent] = useState(false);
@@ -96,7 +103,7 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
       
     } catch (error: any) {
       console.error('[useGroupEvents] ❌ Ошибка загрузки данных для редактирования:', error);
-      Alert.alert('Ошибка', 'Не удалось загрузить данные события');
+      showToast('error', 'Ошибка', 'Не удалось загрузить данные события');
     } finally {
       setIsLoadingEventDetails(false);
     }
@@ -130,14 +137,14 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
       console.log('[useGroupEvents] ✅ Событие создано, ID:', result.id || result.session_id);
       
       setCreateEventModalVisible(false);
-      Alert.alert('Успешно', 'Событие создано! Вы автоматически присоединились к нему.');
+      showToast('success', 'Успешно', 'Событие создано! Вы автоматически присоединились к нему.');
 
       await new Promise(resolve => setTimeout(resolve, 500));
       
       onSuccess();
     } catch (error: any) {
       console.error('[useGroupEvents] ❌ Ошибка создания:', error);
-      Alert.alert('Ошибка', error.message || 'Не удалось создать событие');
+      showToast('error', 'Ошибка', error.message || 'Не удалось создать событие');
     } finally {
       setIsCreatingEvent(false);
     }
@@ -187,11 +194,11 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
       setEditEventModalVisible(false);
       setSelectedEventId('');
       setSelectedEventData(null);
-      Alert.alert('Успешно', 'Событие обновлено!');
+      showToast('success', 'Успешно', 'Событие обновлено!');
       onSuccess();
     } catch (error: any) {
       console.error('[useGroupEvents] ❌ Ошибка обновления:', error);
-      Alert.alert('Ошибка', error.message || 'Не удалось обновить событие');
+      showToast('error', 'Ошибка', error.message || 'Не удалось обновить событие');
     } finally {
       setIsUpdatingEvent(false);
     }
@@ -217,14 +224,14 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
     return '';
   }
 
-    const handleDeleteEvent = async (eventId: string, onSuccess: () => void) => {
+  const handleDeleteEvent = async (eventId: string, onSuccess: () => void) => {
     try {
       console.log('[useGroupEvents] 🗑️ Удаление события:', eventId);
       
       await sessionService.deleteSession(parseInt(eventId));
       
       console.log('[useGroupEvents] ✅ Событие успешно удалено');
-      Alert.alert('Успешно', 'Событие удалено!');
+      showToast('success', 'Успешно', 'Событие удалено!');
 
       setEditEventModalVisible(false);
       setSelectedEventId('');
@@ -233,7 +240,7 @@ export function useGroupEvents(groupId: string, groupData: GroupDetailResponse |
       onSuccess();
     } catch (error: any) {
       console.error('[useGroupEvents] ❌ Ошибка удаления:', error);
-      Alert.alert('Ошибка', error.message || 'Не удалось удалить событие');
+      showToast('error', 'Ошибка', error.message || 'Не удалось удалить событие');
     }
   };
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { TabType } from './groupManageTypes';
 import { useGroupData } from './useGroupData';
 import { useGroupEvents } from './useGroupEvents';
@@ -10,11 +10,22 @@ export function useGroupManage(groupId: string) {
   const [searchQuery, setSearchQuery] = useState('');
   const [contactsModalVisible, setContactsModalVisible] = useState(false);
 
-  const groupDataHook = useGroupData(groupId);
-  const requestsHook = useGroupRequests(groupId);
-  const eventsHook = useGroupEvents(groupId, groupDataHook.groupData);
-  const subscribersHook = useGroupSubscribers(groupId, groupDataHook.groupData?.subscribers);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastType, setToastType] = useState<'success' | 'error' | 'warning'>('success');
+  const [toastTitle, setToastTitle] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
 
+  const showToast = useCallback((type: 'success' | 'error' | 'warning', title: string, message: string) => {
+    setToastType(type);
+    setToastTitle(title);
+    setToastMessage(message);
+    setToastVisible(true);
+  }, []);
+
+  const groupDataHook = useGroupData(groupId, { showToast });
+  const requestsHook = useGroupRequests(groupId, { showToast });
+  const eventsHook = useGroupEvents(groupId, groupDataHook.groupData, { showToast });
+  const subscribersHook = useGroupSubscribers(groupId, groupDataHook.groupData?.subscribers, { showToast });
 
   useEffect(() => {
     if (groupId) {
@@ -90,5 +101,11 @@ export function useGroupManage(groupId: string) {
       eventsHook.handleDeleteEvent(eventId, groupDataHook.loadGroupData),
 
     handleDeleteGroup,
+
+    toastVisible,
+    toastType,
+    toastTitle,
+    toastMessage,
+    setToastVisible,
   };
 }

@@ -22,6 +22,7 @@ import TopBar from '@/components/TopBar';
 import CreateEditEventModal from '@/components/event/modal/CreateEventModal';
 import { GroupAdminGuard } from '@/components/groups/management/GroupAdminGuard';
 import SubscribersTabContent from '@/components/groups/management/SubscribersTabContent';
+import Toast from '@/components/Toast';
 import { Montserrat } from '@/constants/Montserrat';
 import { Montserrat_Alternates } from '@/constants/Montserrat-Alternates';
 import { useGroupManage } from '@/hooks/groups/useGroupManage';
@@ -108,6 +109,12 @@ const GroupManagePage = () => {
     handleConfirmRemoveMember,
     handleCancelRemoveMember,
     handleUserPress: handleUserPressFromHook,
+
+    toastVisible,
+    toastType,
+    toastTitle,
+    toastMessage,
+    setToastVisible,
   } = useGroupManage(groupId);
 
   const handleBackPress = () => {
@@ -310,6 +317,14 @@ const GroupManagePage = () => {
           initialData={selectedEventData}
           availableGenres={availableGenres}
           isLoading={isUpdatingEvent}
+        />
+
+        <Toast
+          visible={toastVisible}
+          type={toastType}
+          title={toastTitle}
+          message={toastMessage}
+          onHide={() => setToastVisible(false)}
         />
         
         <BottomBar />

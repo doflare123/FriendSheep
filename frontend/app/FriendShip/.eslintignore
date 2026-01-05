@@ -1,0 +1,8 @@
+.expo/
+node_modules/
+dist/
+build/
+android/
+ios/
+*.config.js
+scripts/

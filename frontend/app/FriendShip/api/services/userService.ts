@@ -1,3 +1,4 @@
+import { createErrorHandler } from '@/utils/errorHandler';
 import { normalizeImageUrl } from '@/utils/imageUtils';
 import { sanitizeSearchQuery } from '@/utils/searchSanitizer';
 import apiClient from '../apiClient';
@@ -12,6 +13,7 @@ import {
 
 
 class UserService {
+  private handleError = createErrorHandler('UserService');
   async getCurrentUserProfile(): Promise<UserProfile> {
     try {
       const response = await apiClient.get<UserProfile>('/users/inf');
@@ -166,37 +168,6 @@ class UserService {
       await apiClient.patch('/users/tiles', settings);
     } catch (error: any) {
       throw this.handleError(error);
-    }
-  }
-
-  private handleError(error: any): Error {
-    if (error.response) {
-      const status = error.response.status;
-      const data = error.response.data;
-
-      const errorMessage =
-        typeof data === 'object'
-          ? Object.values(data).join(', ')
-          : data || 'Произошла ошибка';
-
-      switch (status) {
-        case 400:
-          return new Error(`Неверные данные: ${errorMessage}`);
-        case 401:
-          return new Error('Необходимо войти в систему');
-        case 403:
-          return new Error('Нет прав для выполнения действия');
-        case 404:
-          return new Error('Пользователь не найден');
-        case 500:
-          return new Error('Ошибка сервера. Попробуйте позже');
-        default:
-          return new Error(errorMessage);
-      }
-    } else if (error.request) {
-      return new Error('Нет связи с сервером');
-    } else {
-      return new Error(error.message || 'Неизвестная ошибка');
     }
   }
 

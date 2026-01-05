@@ -3,6 +3,7 @@ import permissionsService from '@/api/services/permissionsService';
 import userService from '@/api/services/userService';
 import { GroupInvite, Notification } from '@/api/types/notification';
 import barsStyle from '@/app/styles/barsStyle';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import NotificationsModal from '@/components/notifications/NotificationsModal';
 import MainSearchBar from '@/components/search/MainSearchBar';
 import { Colors } from '@/constants/Colors';
@@ -10,7 +11,6 @@ import { SortingActions, SortingState } from '@/hooks/useSearchState';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
-  Alert,
   Image,
   Linking,
   StyleSheet,
@@ -40,6 +40,9 @@ const TopBar = forwardRef<TopBarHandle, TopBarProps>(({ sortingState, sortingAct
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [notificationsPermissionGranted, setNotificationsPermissionGranted] = useState(false);
+
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [showPermissionDeniedModal, setShowPermissionDeniedModal] = useState(false);
 
   const MIN_REFRESH_INTERVAL = 30000;
   const lastRefreshTime = useRef(0);
@@ -146,44 +149,21 @@ const TopBar = forwardRef<TopBarHandle, TopBarProps>(({ sortingState, sortingAct
     }
   };
 
-  const showPermissionAlert = () => {
-    Alert.alert(
-      'Разрешение на уведомления',
-      'Для просмотра уведомлений необходимо разрешить доступ к уведомлениям. Хотите предоставить разрешение?',
-      [
-        {
-          text: 'Отмена',
-          style: 'cancel',
-        },
-        {
-          text: 'Настройки',
-          onPress: () => {
-            Linking.openSettings();
-          },
-        },
-        {
-          text: 'Разрешить',
-          onPress: async () => {
-            const granted = await requestNotificationsPermission();
-            if (granted) {
-              await openNotifications();
-            } else {
-              Alert.alert(
-                'Разрешение не предоставлено',
-                'Вы можете включить уведомления в настройках устройства',
-                [
-                  { text: 'OK', style: 'cancel' },
-                  { 
-                    text: 'Открыть настройки', 
-                    onPress: () => Linking.openSettings() 
-                  },
-                ]
-              );
-            }
-          },
-        },
-      ]
-    );
+  const handlePermissionRequest = async () => {
+    setShowPermissionModal(false);
+    const granted = await requestNotificationsPermission();
+    
+    if (granted) {
+      await openNotifications();
+    } else {
+      setShowPermissionDeniedModal(true);
+    }
+  };
+
+  const handleOpenSettings = () => {
+    setShowPermissionModal(false);
+    setShowPermissionDeniedModal(false);
+    Linking.openSettings();
   };
 
   const openNotifications = async () => {
@@ -191,7 +171,7 @@ const TopBar = forwardRef<TopBarHandle, TopBarProps>(({ sortingState, sortingAct
     
     if (!hasPermission) {
       console.log('[TopBar] ⚠️ Нет разрешения на уведомления');
-      showPermissionAlert();
+      setShowPermissionModal(true);
       return;
     }
 
@@ -249,6 +229,22 @@ const TopBar = forwardRef<TopBarHandle, TopBarProps>(({ sortingState, sortingAct
         onUpdateNotifications={setNotifications}
         onUpdateInvites={setInvites}
         onUnreadStatusChange={handleUnreadStatusChange}
+      />
+
+      <ConfirmationModal
+        visible={showPermissionModal}
+        title="Разрешение на уведомления"
+        message="Для просмотра уведомлений необходимо разрешить доступ к уведомлениям. Хотите предоставить разрешение?"
+        onConfirm={handlePermissionRequest}
+        onCancel={() => setShowPermissionModal(false)}
+      />
+
+      <ConfirmationModal
+        visible={showPermissionDeniedModal}
+        title="Разрешение не предоставлено"
+        message="Вы можете включить уведомления в настройках устройства"
+        onConfirm={handleOpenSettings}
+        onCancel={() => setShowPermissionDeniedModal(false)}
       />
     </View>
   );

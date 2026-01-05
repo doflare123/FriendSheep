@@ -38,6 +38,7 @@ yarn-error.*
 
 # env
 .env
+.env.production
 
 # Firebase config
 google-services.json
@@ -46,3 +47,7 @@ frontend/app/FriendShip/google-services.json
 
 /android
 /ios
+
+credentials.json
+*.keystore
+*.jks

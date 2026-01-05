@@ -1,4 +1,6 @@
-import { getTokens, refreshAccessToken } from '@/api/storage/tokenStorage';
+ 
+import { extractCityFromAddress } from '@/utils/addressUtils';
+import { fetchWithRetry } from '@/utils/errorHandler';
 // eslint-disable-next-line import/no-unresolved
 import { API_BASE_URL } from '@env';
 import * as FileSystem from 'expo-file-system';
@@ -8,7 +10,10 @@ const BASE_URL = API_BASE_URL || 'http://localhost:8080/api';
 
 export async function downloadImage(imageUrl: string): Promise<string> {
   const filename = `kinopoisk_${Date.now()}.jpg`;
-  const localUri = `${FileSystem.cacheDirectory}${filename}`;
+
+  const directory = (FileSystem as any).cacheDirectory || 
+                    (FileSystem as any).documentDirectory || '';
+  const localUri = `${directory}${filename}`;
   
   const downloadResult = await FileSystem.downloadAsync(imageUrl, localUri);
   
@@ -19,17 +24,18 @@ export async function downloadImage(imageUrl: string): Promise<string> {
   return localUri;
 }
 
+interface UploadImageResponse {
+  url?: string;
+  image_url?: string;
+  image?: string;
+  [key: string]: any;
+}
+
 export async function uploadSessionImage(imageUri: string): Promise<string> {
   try {
-    let tokens = await getTokens();
-    if (!tokens?.accessToken) {
-      throw new Error('Пользователь не авторизован');
-    }
-
     console.log('[SessionHelpers] 📸 Загрузка изображения...');
 
     const formData = new FormData();
-    
     const filename = imageUri.split('/').pop() || `session_${Date.now()}.jpg`;
     const fileExtension = filename.split('.').pop()?.toLowerCase() || 'jpg';
     
@@ -39,55 +45,15 @@ export async function uploadSessionImage(imageUri: string): Promise<string> {
       type: `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`,
     } as any);
 
-    let response = await fetch(`${BASE_URL}/admin/groups/UploadPhoto`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${tokens.accessToken}`,
+    const result = await fetchWithRetry<UploadImageResponse>(
+      `${BASE_URL}/admin/groups/UploadPhoto`,
+      {
+        method: 'POST',
+        body: formData,
       },
-      body: formData,
-    });
+      'SessionHelpers.uploadSessionImage'
+    );
 
-    console.log('[SessionHelpers] ✅ Статус загрузки:', response.status);
-
-    if (response.status === 401) {
-      console.log('[SessionHelpers] 🔄 Токен истёк, обновляем...');
-      
-      try {
-        const newAccessToken = await refreshAccessToken();
-        if (!newAccessToken) {
-          throw new Error('Не удалось обновить токен');
-        }
-
-        console.log('[SessionHelpers] ✅ Токен обновлён, повторная попытка...');
-
-        response = await fetch(`${BASE_URL}/admin/groups/UploadPhoto`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${newAccessToken}`,
-          },
-          body: formData,
-        });
-
-        console.log('[SessionHelpers] ✅ Статус после обновления токена:', response.status);
-      } catch (refreshError) {
-        console.error('[SessionHelpers] ❌ Ошибка обновления токена:', refreshError);
-        throw new Error('Не удалось обновить токен. Пожалуйста, войдите снова.');
-      }
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[SessionHelpers] ❌ Ошибка загрузки:', errorText);
-      
-      try {
-        const errorData = JSON.parse(errorText);
-        throw new Error(errorData.error || errorData.message || 'Ошибка загрузки изображения');
-      } catch (parseError) {
-        throw new Error('Ошибка загрузки изображения');
-      }
-    }
-
-    const result = await response.json();
     const imageUrl = result.url || result.image_url || result.image || Object.values(result)[0];
     
     if (!imageUrl || typeof imageUrl !== 'string') {
@@ -95,31 +61,11 @@ export async function uploadSessionImage(imageUri: string): Promise<string> {
     }
     
     console.log('[SessionHelpers] ✅ Изображение загружено:', imageUrl);
-    return imageUrl as string;
+    return imageUrl;
   } catch (error: any) {
     console.error('[SessionHelpers] ❌ Ошибка:', error);
     throw error;
   }
-}
-
-function extractCityFromAddress(address: string): string {
-  if (!address || !address.trim()) return '';
-
-  const cleaned = address.trim();
-
-  const cityPrefixMatch = cleaned.match(/^(?:г\.\s*|город\s+)([^,]+)/i);
-  if (cityPrefixMatch) {
-    return cityPrefixMatch[1].trim();
-  }
-
-  const firstPart = cleaned.split(',')[0].trim();
-
-  const notCityPrefixes = /^(ул\.|улица|пр\.|проспект|пер\.|переулок|д\.|дом|кв\.|квартира)/i;
-  if (!notCityPrefixes.test(firstPart)) {
-    return firstPart;
-  }
-  
-  return '';
 }
 
 export function buildSessionFormData(

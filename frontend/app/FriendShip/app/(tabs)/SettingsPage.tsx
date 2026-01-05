@@ -5,14 +5,14 @@ import BottomBar from '@/components/BottomBar';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import PageHeader from '@/components/PageHeader';
 import { useTheme } from '@/components/ThemeContext';
+import Toast from '@/components/Toast';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useSearchState } from '@/hooks/useSearchState';
 import { useThemedColors } from '@/hooks/useThemedColors';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -28,6 +28,18 @@ const SettingsPage = () => {
   const { toggleTheme, isDark } = useTheme();
   const colors = useThemedColors();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastType, setToastType] = useState<'success' | 'error' | 'warning'>('success');
+  const [toastTitle, setToastTitle] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showToast = useCallback((type: 'success' | 'error' | 'warning', title: string, message: string) => {
+    setToastType(type);
+    setToastTitle(title);
+    setToastMessage(message);
+    setToastVisible(true);
+  }, []);
 
   const handleLogoutPress = () => {
     setShowLogoutModal(true);
@@ -52,7 +64,7 @@ const SettingsPage = () => {
     } catch (error) {
       console.error('[Settings] ❌ Ошибка выхода:', error);
       setShowLogoutModal(false);
-      Alert.alert('Ошибка', 'Не удалось выйти из аккаунта');
+      showToast('error', 'Ошибка', 'Не удалось выйти из аккаунта');
     }
   };
 
@@ -62,6 +74,7 @@ const SettingsPage = () => {
 
   const handleThemeToggle = () => {
     toggleTheme();
+    showToast('success', 'Тема изменена', `Применена ${isDark ? 'светлая' : 'тёмная'} тема`);
   };
 
   return (
@@ -110,6 +123,14 @@ const SettingsPage = () => {
         message="Вы уверены, что хотите выйти из аккаунта?"
         onConfirm={handleConfirmLogout}
         onCancel={handleCancelLogout}
+      />
+
+      <Toast
+        visible={toastVisible}
+        type={toastType}
+        title={toastTitle}
+        message={toastMessage}
+        onHide={() => setToastVisible(false)}
       />
     </SafeAreaView>
   );

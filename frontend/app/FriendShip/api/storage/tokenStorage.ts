@@ -61,11 +61,6 @@ export const clearTokens = async (): Promise<void> => {
   }
 };
 
-export const hasTokens = async (): Promise<boolean> => {
-  const tokens = await getTokens();
-  return tokens !== null;
-};
-
 export const refreshAccessToken = async (): Promise<string | null> => {
   try {
     const tokens = await getTokens();
@@ -112,33 +107,6 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     return data.access_token;
   } catch (error) {
     console.error('[TokenStorage] Ошибка обновления токена:', error);
-    return null;
-  }
-};
-
-export const ensureValidToken = async (): Promise<string | null> => {
-  try {
-    const tokens = await getTokens();
-    
-    if (!tokens?.accessToken) {
-      return null;
-    }
-
-    const timestampStr = await SecureStore.getItemAsync(TOKEN_TIMESTAMP_KEY);
-    if (timestampStr) {
-      const timestamp = parseInt(timestampStr);
-      const elapsed = Date.now() - timestamp;
-
-      if (elapsed > REFRESH_INTERVAL) {
-        console.log('[TokenStorage] Токен устарел, обновляем...');
-        const newToken = await refreshAccessToken();
-        return newToken || tokens.accessToken;
-      }
-    }
-
-    return tokens.accessToken;
-  } catch (error) {
-    console.error('[TokenStorage] Ошибка проверки токена:', error);
     return null;
   }
 };

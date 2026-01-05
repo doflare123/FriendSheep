@@ -26,13 +26,3 @@
     return false;
   }
 };
-
-export const getValidImageUrl = (
-  url: string | undefined | null, 
-  fallback: string = 'https://via.placeholder.com/150'
-): string => {
-  if (isValidImageUrl(url)) {
-    return url as string;
-  }
-  return fallback;
-};

@@ -28,23 +28,6 @@ export const validateSessionId = (sessionId: any): number => {
   return parsed;
 };
 
-export const validateUserStats = (stats: any) => {
-  return {
-    spent_time: Math.max(0, Math.min(stats?.spent_time || 0, 100000)),
-    count_sessions: Math.max(0, Math.min(stats?.count_sessions || 0, 10000)),
-    most_pop_day: stats?.most_pop_day || 'Не определён',
-  };
-};
-
-export const validateGenres = (genres: string[] | undefined): string[] => {
-  if (!Array.isArray(genres)) return [];
-  
-  return genres
-    .filter(g => typeof g === 'string')
-    .slice(0, 10)
-    .map(g => g.substring(0, 50));
-};
-
 export const validateNotificationData = (notification: any): any => {
   return {
     ...notification,
@@ -178,22 +161,6 @@ export interface CodeValidationResult {
   hasInvalidChars: boolean;
   filtered: string;
 }
-
-export const validateConfirmationCode = (code: string): CodeValidationResult => {
-  const filtered = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const hasInvalidChars = code !== filtered;
-  const isValidLength = filtered.length === 6;
-  
-  return {
-    isValid: isValidLength && !hasInvalidChars,
-    hasInvalidChars,
-    filtered,
-  };
-};
-
-export const filterConfirmationCode = (text: string, maxLength: number = 6): string => {
-  return text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, maxLength);
-};
 
 export const validateGroupName = (name: string): UsernameValidationResult => {
   if (!name) return { 

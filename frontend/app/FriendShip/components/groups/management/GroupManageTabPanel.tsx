@@ -35,7 +35,7 @@ const GroupManageTabPanel: React.FC<GroupManageTabPanelProps> = ({
         <View style={[
           isPrivateGroup ? styles.innerButtonPrivate : styles.innerButtonPublic,
           { backgroundColor: colors.veryLightGrey },
-          activeTab === tab
+          activeTab === tab && { opacity: 1 }
         ]}>
           <Image 
             source={icon} 

@@ -1,6 +1,5 @@
 import apiClient from '@/api/apiClient';
-import { getTokens, refreshAccessToken } from '@/api/storage/tokenStorage';
- 
+import { fetchWithRetry } from '@/utils/errorHandler';
 import { rateLimiter } from '@/utils/rateLimiter';
 import { validateSessionId } from '@/utils/validators';
 // eslint-disable-next-line import/no-unresolved
@@ -26,99 +25,33 @@ class SessionService {
   }
 
   async createSession(sessionData: CreateSessionData): Promise<any> {
-    let tokens = await getTokens();
-    if (!tokens?.accessToken) {
-      throw new Error('Пользователь не авторизован');
-    }
-
     try {
       console.log('[SessionService] 🚀 Создание сессии');
 
       let imageUrl: string;
-      
       if (sessionData.image.uri.startsWith('http://') || 
           sessionData.image.uri.startsWith('https://')) {
         console.log('[SessionService] 🌐 Обнаружен внешний URL изображения');
-        
         const localUri = await downloadImage(sessionData.image.uri);
         imageUrl = await this.uploadSessionImage(localUri);
-        
-        console.log('[SessionService] ✅ Изображение с Кинопоиска загружено на сервер');
       } else {
         console.log('[SessionService] 📸 Загрузка локального изображения');
         imageUrl = await this.uploadSessionImage(sessionData.image.uri);
-        console.log('[SessionService] ✅ Изображение загружено');
       }
 
       logSessionData(sessionData, imageUrl);
       const formData = buildSessionFormData(sessionData, imageUrl);
 
-      console.log('[SessionService] 📋 Отправка FormData:');
-      //@ts-ignore
-      for (let [key, value] of formData.entries()) {
-        if (typeof value === 'string') {
-          console.log(`  ${key}: ${value.length > 100 ? value.substring(0, 100) + '...' : value}`);
-        } else {
-          console.log(`  ${key}: [object]`, value);
-        }
-      }
-
-      tokens = await getTokens();
-      if (!tokens?.accessToken) {
-        throw new Error('Токен отсутствует');
-      }
-
-      let response = await fetch(`${BASE_URL}/sessions/createSession`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${tokens.accessToken}`,
+      const result = await fetchWithRetry(
+        `${BASE_URL}/sessions/createSession`,
+        {
+          method: 'POST',
+          body: formData,
         },
-        body: formData,
-      });
+        'SessionService.createSession'
+      );
 
-      if (response.status === 401) {
-        console.log('[SessionService] 🔄 Токен истёк, обновляем...');
-        
-        try {
-          const newAccessToken = await refreshAccessToken();
-          if (!newAccessToken) {
-            throw new Error('Не удалось обновить токен');
-          }
-
-          console.log('[SessionService] ✅ Токен обновлён, повторная попытка создания...');
-
-          response = await fetch(`${BASE_URL}/sessions/createSession`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${newAccessToken}`,
-            },
-            body: formData,
-          });
-        } catch (refreshError) {
-          console.error('[SessionService] ❌ Ошибка обновления токена:', refreshError);
-          throw new Error('Не удалось обновить токен. Пожалуйста, войдите снова.');
-        }
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[SessionService] ❌ Статус ответа:', response.status);
-        console.error('[SessionService] ❌ Тело ошибки:', errorText);
-        
-        try {
-          const errorData = JSON.parse(errorText);
-          console.error('[SessionService] ❌ Распарсенная ошибка:', errorData);
-          throw new Error(errorData.message || errorData.error || 'Ошибка создания сессии');
-        } catch (parseError) {
-          console.error('[SessionService] ❌ Не удалось распарсить ошибку');
-          throw new Error(errorText || 'Ошибка создания сессии');
-        }
-      }
-
-      const result = await response.json();
       console.log('[SessionService] ✅ Сессия создана:', result);
-      console.log('[SessionService] 🔍 Проверяем city в ответе:', result.city);
-
       return result;
     } catch (error: any) {
       console.error('[SessionService] ❌ Ошибка:', error);

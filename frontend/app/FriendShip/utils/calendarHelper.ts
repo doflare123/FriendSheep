@@ -139,36 +139,3 @@ export async function removeEventFromCalendar(eventId: string): Promise<void> {
     console.log('[CalendarHelper] ℹ️ Возможно событие уже было удалено вручную');
   }
 }
-
-export async function updateEventInCalendar(
-  eventId: string,
-  params: Partial<AddEventToCalendarParams>
-): Promise<void> {
-  try {
-    const hasPermission = await requestCalendarPermissions();
-    if (!hasPermission) {
-      throw new Error('Нет доступа к календарю');
-    }
-
-    console.log('[CalendarHelper] ✏️ Обновление события в календаре:', eventId);
-
-    const updateData: any = {};
-    
-    if (params.title) updateData.title = params.title;
-    if (params.location) updateData.location = params.location;
-    if (params.startDate) updateData.startDate = params.startDate;
-    if (params.endDate) updateData.endDate = params.endDate;
-    if (params.notes !== undefined) {
-      updateData.notes = params.groupName
-        ? `Событие из FriendShip\nОрганизатор: ${params.groupName}\n\n${params.notes}`
-        : `Событие из FriendShip\n\n${params.notes}`;
-    }
-
-    await Calendar.updateEventAsync(eventId, updateData);
-    
-    console.log('[CalendarHelper] ✅ Событие обновлено в календаре');
-  } catch (error: any) {
-    console.error('[CalendarHelper] ❌ Ошибка обновления события в календаре:', error);
-    throw error;
-  }
-}

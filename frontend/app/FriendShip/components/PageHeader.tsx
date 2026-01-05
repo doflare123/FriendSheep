@@ -93,7 +93,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
 
 const styles = StyleSheet.create({
   headerContainer: {
-    paddingVertical: 20,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'space-between',

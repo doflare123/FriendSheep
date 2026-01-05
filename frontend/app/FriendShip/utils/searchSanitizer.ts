@@ -13,23 +13,3 @@ export const sanitizeSearchQuery = (query: string): string => {
   
   return sanitized;
 };
-
-export const sanitizeCityFilter = (city: string): string => {
-  if (!city || typeof city !== 'string') {
-    return '';
-  }
-
-  return city.trim()
-    .substring(0, 50)
-    .replace(/[^а-яА-ЯёЁa-zA-Z\s-]/g, '');
-};
-
-export const sanitizeUsername = (username: string): string => {
-  if (!username || typeof username !== 'string') {
-    return '';
-  }
-  
-  return username.trim()
-    .substring(0, 50)
-    .replace(/[<>'"\\;]/g, '');
-};

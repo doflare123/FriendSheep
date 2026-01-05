@@ -2,7 +2,6 @@ import groupService from '@/api/services/group/groupService';
 import type { GroupDetailResponse } from '@/api/services/group/groupTypes';
 import { Contact } from '@/components/groups/modal/ContactsModal';
 import { useState } from 'react';
-import { Alert } from 'react-native';
 import { getContactType, normalizeImageUrl } from './groupManageHelpers';
 import { CATEGORY_IDS, CATEGORY_MAPPING } from './groupManageTypes';
 
@@ -17,7 +16,11 @@ const contactIcons = {
   max: require('@/assets/images/groups/contacts/max.png'),
 };
 
-export function useGroupData(groupId: string) {
+interface UseGroupDataProps {
+  showToast: (type: 'success' | 'error' | 'warning', title: string, message: string) => void;
+}
+
+export function useGroupData(groupId: string, { showToast }: UseGroupDataProps) {
   const [groupData, setGroupData] = useState<GroupDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -69,7 +72,7 @@ export function useGroupData(groupId: string) {
       
     } catch (error: any) {
       console.error('[useGroupData] Ошибка загрузки данных группы:', error);
-      Alert.alert('Ошибка', error.message || 'Не удалось загрузить данные группы');
+      showToast('error', 'Ошибка', error.message || 'Не удалось загрузить данные группы');
     } finally {
       setIsLoading(false);
     }
@@ -108,13 +111,13 @@ export function useGroupData(groupId: string) {
       
       await groupService.updateGroup(groupId, updateData);
       
-      Alert.alert('Успешно', 'Изменения сохранены!');
+      showToast('success', 'Успешно', 'Изменения сохранены!');
 
       await loadGroupData();
       
     } catch (error: any) {
       console.error('[useGroupData] Ошибка сохранения изменений:', error);
-      Alert.alert('Ошибка', error.message || 'Не удалось сохранить изменения');
+      showToast('error', 'Ошибка', error.message || 'Не удалось сохранить изменения');
     } finally {
       setIsSaving(false);
     }
@@ -124,11 +127,11 @@ export function useGroupData(groupId: string) {
     try {
       setIsSaving(true);
       await groupService.deleteGroup(groupId);
-      Alert.alert('Успешно', 'Группа успешно удалена');
+      showToast('success', 'Успешно', 'Группа успешно удалена');
       return true;
     } catch (error: any) {
       console.error('[useGroupData] Ошибка удаления группы:', error);
-      Alert.alert('Ошибка', error.message || 'Не удалось удалить группу');
+      showToast('error', 'Ошибка', error.message || 'Не удалось удалить группу');
       return false;
     } finally {
       setIsSaving(false);

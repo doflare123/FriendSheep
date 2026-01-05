@@ -80,9 +80,3 @@ export const mapUserGroupSessionToEvent = (session: UserGroupSession): Event => 
     group: session.group_name || 'Группа не указана',
   };
 };
-
-export const mapUserGroupSessionsToEvents = (sessions: UserGroupSession[]): Event[] => {
-  if (!sessions || sessions.length === 0) return [];
-  
-  return sessions.map(session => mapUserGroupSessionToEvent(session));
-};

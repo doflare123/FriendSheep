@@ -35,6 +35,8 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ selectedTiles, stats }) => 
   
   const renderTile = (tileType: TileType, index: number) => {
     const config = tileConfigs[tileType];
+    if (!config) return null;
+    
     const count = stats[tileType];
     
     return (
@@ -55,13 +57,13 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ selectedTiles, stats }) => 
     <>
       {firstRow.length > 0 && (
         <View style={styles.statisticsRow}>
-          {firstRow.map(renderTile)}
+          {firstRow.map((tile, idx) => renderTile(tile, idx))}
         </View>
       )}
       
       {secondRow.length > 0 && (
         <View style={[styles.statisticsRow, styles.lastRow]}>
-          {secondRow.map(renderTile)}
+          {secondRow.map((tile, idx) => renderTile(tile, idx + 2))}
         </View>
       )}
     </>

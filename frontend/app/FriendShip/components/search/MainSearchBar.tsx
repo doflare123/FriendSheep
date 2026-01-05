@@ -164,7 +164,7 @@ const MainSearchBar: React.FC<MainSearchBarProps> = ({ sortingState, sortingActi
                   activeSearchType === 'event' || activeSearchType === 'group' ? 1 : 0.5,
               },
             ]}
-            disabled={activeSearchType === 'profile'}
+            disabled={activeSearchType !== 'event' && activeSearchType !== 'group'}
           >
             <Image
               style={[barsStyle.options, {tintColor: colors.lightGreyBlue}]}

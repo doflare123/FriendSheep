@@ -1,5 +1,5 @@
 import apiClient from '@/api/apiClient';
-import { getTokens } from '@/api/storage/tokenStorage';
+import { fetchWithRetry } from '@/utils/errorHandler';
 // eslint-disable-next-line import/no-unresolved
 import { API_BASE_URL } from '@env';
 import {
@@ -22,43 +22,24 @@ const BASE_URL = API_BASE_URL || 'http://localhost:8080/api';
 class GroupService {
 
   async createGroup(data: CreateGroupData): Promise<any> {
-    const tokens = await getTokens();
-    if (!tokens?.accessToken) {
-      throw new Error('Пользователь не авторизован');
-    }
-
     validateCreateGroupData(data);
-
     console.log('[GroupService] Создание группы:', data.name);
 
     const formData = createGroupFormData(data);
 
     try {
-      const response = await fetch(`${BASE_URL}/groups/createGroup`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${tokens.accessToken}`,
+      const result = await fetchWithRetry(
+        `${BASE_URL}/groups/createGroup`,
+        {
+          method: 'POST',
+          body: formData,
         },
-        body: formData,
-      });
+        'GroupService.createGroup'
+      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[GroupService] Ошибка:', response.status);
-        
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.message || 'Ошибка создания группы');
-        } catch (parseError) {
-          throw new Error(`Ошибка создания группы: ${response.status}`);
-        }
-      }
-
-      const result = await response.json();
       console.log('[GroupService] Группа успешно создана');
       return result;
     } catch (error: any) {
-      console.error('[GroupService] Ошибка создания группы:', error.message);
       throw error;
     }
   }
@@ -114,38 +95,22 @@ class GroupService {
 
   async uploadGroupPhoto(imageUri: string): Promise<string> {
     try {
-      const tokens = await getTokens();
-      if (!tokens?.accessToken) {
-        throw new Error('Пользователь не авторизован');
-      }
-
       const formData = createPhotoFormData(imageUri);
-
       console.log('Загрузка изображения группы...');
 
-      const response = await fetch(`${BASE_URL}/admin/groups/UploadPhoto`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${tokens.accessToken}`,
+      const result = await fetchWithRetry(
+        `${BASE_URL}/admin/groups/UploadPhoto`,
+        {
+          method: 'POST',
+          body: formData,
         },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Ошибка загрузки изображения:', errorText);
-        throw new Error('Ошибка загрузки изображения');
-      }
-
-      const result = await response.json();
-      console.log('Результат загрузки изображения:', result);
+        'GroupService.uploadGroupPhoto'
+      );
 
       const imageUrl = extractImageUrl(result);
-      
       console.log('URL загруженного изображения:', imageUrl);
       return imageUrl;
     } catch (error: any) {
-      console.error('Ошибка загрузки изображения группы:', error);
       throw error;
     }
   }
@@ -192,8 +157,6 @@ class GroupService {
       const response = await apiClient.post('/groups/joinToGroup', {
         groupId: groupId
       });
-      
-      console.log('[GroupService] Ответ сервера:', response.data);
       
       return response.data;
     } catch (error: any) {

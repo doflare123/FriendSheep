@@ -1,4 +1,5 @@
 import { clearTokens, getTokens, saveTokens } from '@/api/storage/tokenStorage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosError, AxiosInstance } from 'axios';
 import Constants from 'expo-constants';
 
@@ -10,6 +11,9 @@ if (__DEV__ === false && BASE_URL && !BASE_URL.startsWith('https://')) {
 
 let requestCounter = 0;
 const MAX_PENDING_REQUESTS = 50;
+const MAX_CACHE_ITEMS = 100;
+const CACHE_EXPIRY_TIME = 30 * 60 * 1000;
+const CACHE_PREFIX = 'api_cache_';
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -36,6 +40,38 @@ const isPublicEndpoint = (url?: string, method?: string): boolean => {
     return url.includes(endpoint);
   });
 };
+
+const cleanOldCache = async () => {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const cacheKeys = keys.filter(key => key.startsWith(CACHE_PREFIX));
+    
+    if (cacheKeys.length > MAX_CACHE_ITEMS) {
+      const keysToRemove = cacheKeys.slice(0, cacheKeys.length - MAX_CACHE_ITEMS);
+      await AsyncStorage.multiRemove(keysToRemove);
+      console.log(`[API Cache] 🧹 Удалено ${keysToRemove.length} старых записей`);
+    }
+    
+    for (const key of cacheKeys) {
+      try {
+        const cached = await AsyncStorage.getItem(key);
+        if (cached) {
+          const { timestamp } = JSON.parse(cached);
+          if (Date.now() - timestamp > CACHE_EXPIRY_TIME) {
+            await AsyncStorage.removeItem(key);
+          }
+        }
+      } catch (err) {
+        await AsyncStorage.removeItem(key);
+      }
+    }
+  } catch (error) {
+    console.error('[API Cache] ❌ Ошибка очистки кеша:', error);
+  }
+};
+
+setInterval(cleanOldCache, 60 * 60 * 1000);
+cleanOldCache();
 
 apiClient.interceptors.request.use(
   async (config) => {
@@ -149,5 +185,16 @@ apiClient.interceptors.response.use(
     }
   }
 );
+
+export const clearApiCache = async () => {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const cacheKeys = keys.filter(key => key.startsWith(CACHE_PREFIX));
+    await AsyncStorage.multiRemove(cacheKeys);
+    console.log(`[API Cache] 🧹 Очищено ${cacheKeys.length} записей`);
+  } catch (error) {
+    console.error('[API Cache] ❌ Ошибка очистки:', error);
+  }
+};
 
 export default apiClient;

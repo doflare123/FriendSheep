@@ -1,11 +1,12 @@
-import { groupMemberService } from '@/api/services/group';
-import groupService, { PublicGroupResponse } from '@/api/services/group/groupService';
+import { groupMemberService, PublicGroupResponse } from '@/api/services/group';
+import groupService from '@/api/services/group/groupService';
 import BottomBar from '@/components/BottomBar';
 import CategorySection from '@/components/CategorySection';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import EventCarousel from '@/components/event/EventCarousel';
 import PrivateGroupPreview from '@/components/groups/PrivateGroupPreview';
 import PageHeader from '@/components/PageHeader';
+import Toast from '@/components/Toast';
 import TopBar from '@/components/TopBar';
 import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
@@ -14,13 +15,11 @@ import { useThemedColors } from '@/hooks/useThemedColors';
 import { RootStackParamList } from '@/navigation/types';
 import { groupSessionsToEvents } from '@/utils/dataAdapters';
 import { filterActiveSessions } from '@/utils/sessionStatusHelpers';
- 
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Linking,
   Modal,
@@ -78,10 +77,21 @@ const GroupPage = () => {
   const [requestStatus, setRequestStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
   const [linkModalVisible, setLinkModalVisible] = useState(false);
   const [selectedLink, setSelectedLink] = useState('');
-  const [selectedContactName, setSelectedContactName] = useState('');
   const navigation = useNavigation<GroupManagePageNavigationProp>();
 
-  const loadGroupData = async () => {
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastType, setToastType] = useState<'success' | 'error' | 'warning'>('success');
+  const [toastTitle, setToastTitle] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showToast = useCallback((type: 'success' | 'error' | 'warning', title: string, message: string) => {
+    setToastType(type);
+    setToastTitle(title);
+    setToastMessage(message);
+    setToastVisible(true);
+  }, []);
+
+  const loadGroupData = useCallback(async () => {
     try {
       setIsLoading(true);
       setIsPrivateGroup(false);
@@ -125,22 +135,22 @@ const GroupPage = () => {
 
     } catch (error: any) {
       console.error('[GroupPage] Критическая ошибка:', error);
-      Alert.alert('Ошибка', error.message || 'Не удалось загрузить группу');
+      showToast('error', 'Ошибка', error.message || 'Не удалось загрузить группу');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [groupId, showToast]);
 
   useFocusEffect(
     useCallback(() => {
       loadGroupData();
-    }, [groupId])
+    }, [loadGroupData])
   );
 
   const handleSessionUpdate = useCallback(() => {
     console.log('[GroupPage] 🔄 Обновление данных группы после изменения сессии');
     loadGroupData();
-  }, [groupId]);
+  }, [loadGroupData]);
 
   const handlePrivateGroupRequestJoin = async () => {
     try {
@@ -153,11 +163,12 @@ const GroupPage = () => {
       
       if (result.joined) {
         setRequestStatus('approved');
+        showToast('success', 'Успешно', result.message);
       } else {
         setRequestStatus('pending');
+        showToast('success', 'Заявка отправлена', result.message);
       }
       
-      Alert.alert('Успешно', result.message);
       await loadGroupData();
       
     } catch (error: any) {
@@ -167,28 +178,28 @@ const GroupPage = () => {
       
       if (errorMessage.includes('заявка уже отправлена')) {
         setRequestStatus('pending');
-        Alert.alert(
+        showToast(
+          'warning',
           'Заявка уже отправлена',
           'Ваша заявка на вступление уже находится на рассмотрении у администратора группы.'
         );
         await loadGroupData();
       } else {
-        Alert.alert('Ошибка', errorMessage || 'Не удалось подать заявку');
+        showToast('error', 'Ошибка', errorMessage || 'Не удалось подать заявку');
       }
     } finally {
       setIsProcessing(false);
     }
   };
 
-    const isDiscordLink = (link: string): boolean => {
-      const lowerLink = link.toLowerCase();
-      return lowerLink.includes('discord.gg') || lowerLink.includes('discord.com');
-    };
+  const isDiscordLink = (link: string): boolean => {
+    const lowerLink = link.toLowerCase();
+    return lowerLink.includes('discord.gg') || lowerLink.includes('discord.com');
+  };
 
-  const handleContactPress = (link: string, contactName: string) => {
+  const handleContactPress = (link: string) => {
     if (link) {
       setSelectedLink(link);
-      setSelectedContactName(contactName);
       setLinkModalVisible(true);
     }
   };
@@ -199,7 +210,7 @@ const GroupPage = () => {
     if (selectedLink) {
       Linking.openURL(selectedLink).catch(err => {
         console.error('Не удалось открыть ссылку:', err);
-        Alert.alert('Ошибка', 'Не удалось открыть ссылку');
+        showToast('error', 'Ошибка', 'Не удалось открыть ссылку');
       });
     }
   };
@@ -256,18 +267,18 @@ const GroupPage = () => {
         
         console.log('[GroupPage] Результат вступления:', result);
 
-        Alert.alert('Успешно', result.message);
-
         if (result.joined) {
           setMembershipStatus('member');
+          showToast('success', 'Успешно', result.message);
         } else {
           setMembershipStatus('pending');
+          showToast('success', 'Заявка отправлена', result.message);
         }
         
         await loadGroupData();
       } catch (error: any) {
         console.error('[GroupPage] Ошибка вступления в группу:', error);
-        Alert.alert('Ошибка', error.message || 'Не удалось подать заявку');
+        showToast('error', 'Ошибка', error.message || 'Не удалось подать заявку');
       } finally {
         setIsProcessing(false);
       }
@@ -284,11 +295,11 @@ const GroupPage = () => {
       
       await groupMemberService.leaveGroup(parseInt(groupId));
       
-      Alert.alert('Успешно', 'Вы покинули группу');
+      showToast('success', 'Успешно', 'Вы покинули группу');
       await loadGroupData();
     } catch (error: any) {
       console.error('[GroupPage] Ошибка выхода из группы:', error);
-      Alert.alert('Ошибка', error.message || 'Не удалось покинуть группу');
+      showToast('error', 'Ошибка', error.message || 'Не удалось покинуть группу');
     } finally {
       setIsProcessing(false);
     }
@@ -353,6 +364,13 @@ const GroupPage = () => {
           onBackPress={() => navigation.goBack()}
         />
         <BottomBar />
+        <Toast
+          visible={toastVisible}
+          type={toastType}
+          title={toastTitle}
+          message={toastMessage}
+          onHide={() => setToastVisible(false)}
+        />
       </SafeAreaView>
     );
   }
@@ -372,8 +390,8 @@ const GroupPage = () => {
   }
 
   const mappedCategories = groupData.categories
-  .map(cat => CATEGORY_MAPPING[cat])
-  .filter(cat => cat !== undefined);
+    .map((cat: string) => CATEGORY_MAPPING[cat])
+    .filter((cat: string | undefined) => cat !== undefined);
 
   const activeSessions = groupData.sessions 
     ? filterActiveSessions(groupData.sessions)
@@ -407,7 +425,7 @@ const GroupPage = () => {
                 </Text>
               )}
               <View style={styles.categoriesContainer}>
-                {mappedCategories.map((category, index) => (
+                {mappedCategories.map((category: string, index: number) => (
                   <Image
                     key={index}
                     source={categoryIcons[category]}
@@ -461,7 +479,7 @@ const GroupPage = () => {
         <CategorySection title={`Участники: ${groupData.count_members || groupData.users?.length || 0}`}>
           {groupData.users && groupData.users.length > 0 ? (
             <View style={styles.membersContainer}>
-                {groupData.users.map((user, index) => {
+                {groupData.users.map((user: any, index: number) => {
                   console.log('👤 [GroupPage] user:', user);
                   console.log('👤 [GroupPage] user.us:', user.us);
                   
@@ -491,7 +509,7 @@ const GroupPage = () => {
 
         <CategorySection title="Контакты:">
           <View style={styles.contactsContainer}>
-            {groupData.contacts.map((contact, index) => {
+            {groupData.contacts.map((contact: any, index: number) => {
               const icon = getContactIcon(contact.name, contact.link);
               const isBlocked = isDiscordLink(contact.link);
               
@@ -499,7 +517,7 @@ const GroupPage = () => {
                 <TouchableOpacity
                   key={`contact-${index}`}
                   style={styles.contactItem}
-                  onPress={() => handleContactPress(contact.link, contact.name)}
+                  onPress={() => handleContactPress(contact.link)}
                 >
                   <View style={styles.contactIconWrapper}>
                     <View style={[
@@ -578,9 +596,18 @@ const GroupPage = () => {
         onConfirm={handleConfirmLinkOpen}
         onCancel={() => setLinkModalVisible(false)}
       />
+
+      <Toast
+        visible={toastVisible}
+        type={toastType}
+        title={toastTitle}
+        message={toastMessage}
+        onHide={() => setToastVisible(false)}
+      />
     </SafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -28,7 +28,7 @@
     },
     "production": {
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle"
       },
       "ios": {
         "buildConfiguration": "Release"
@@ -39,6 +39,12 @@
         "EXPO_PUBLIC_KINOPOISK_API_KEY": "$KINOPOISK_API_KEY",
         "EXPO_PUBLIC_RAWG_API_KEY": "$RAWG_API_KEY",
         "EXPO_PUBLIC_YANDEX_JS_API_KEY": "$YANDEX_JS_API_KEY"
+      }
+    },
+    "production-apk": {
+      "extends": "production",
+      "android": {
+        "buildType": "apk"
       }
     }
   },

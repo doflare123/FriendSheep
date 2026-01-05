@@ -5,6 +5,7 @@ import { ToastProvider } from '@/components/ToastContext';
 import { HeaderProvider } from '@/contexts/HeaderContext';
 import { Montserrat_200ExtraLight, Montserrat_300Light, Montserrat_400Regular, Montserrat_500Medium, Montserrat_600SemiBold, Montserrat_700Bold, useFonts } from '@expo-google-fonts/montserrat';
 import { MontserratAlternates_500Medium } from '@expo-google-fonts/montserrat-alternates';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -30,6 +31,7 @@ import SettingsPage from './app/(tabs)/SettingsPage';
 import UserSearchPage from './app/(tabs)/UserSearchPage';
 import { AuthProvider, useAuthContext } from './components/auth/AuthContext';
 import { RootStackParamList } from './navigation/types';
+import { clearAppCache } from './utils/cacheManager';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -44,6 +46,27 @@ function RootNavigator() {
   const { isDark } = useTheme();
 
   const backgroundColor = isDark ? '#1A1A1A' : '#FFFFFF';
+
+  useEffect(() => {
+    const checkAndClearOldCache = async () => {
+      try {
+        const lastClearDate = await AsyncStorage.getItem('last_cache_clear');
+        const now = Date.now();
+        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+
+        if (!lastClearDate || now - parseInt(lastClearDate) > sevenDays) {
+          console.log('[App] 🧹 Автоматическая очистка старого кеша...');
+          await clearAppCache();
+          await AsyncStorage.setItem('last_cache_clear', now.toString());
+          console.log('[App] ✅ Кеш очищен автоматически');
+        }
+      } catch (error) {
+        console.error('[App] ❌ Ошибка автоочистки кеша:', error);
+      }
+    };
+
+    checkAndClearOldCache();
+  }, []);
 
   const customCardStyleInterpolator = ({ current, layouts }: any) => {
     return {
