@@ -144,7 +144,16 @@ export function useGroupEvents(
       onSuccess();
     } catch (error: any) {
       console.error('[useGroupEvents] ❌ Ошибка создания:', error);
-      showToast('error', 'Ошибка', error.message || 'Не удалось создать событие');
+      
+      let errorMessage = 'Не удалось создать событие';
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showToast('error', 'Ошибка', errorMessage);
     } finally {
       setIsCreatingEvent(false);
     }
@@ -198,7 +207,16 @@ export function useGroupEvents(
       onSuccess();
     } catch (error: any) {
       console.error('[useGroupEvents] ❌ Ошибка обновления:', error);
-      showToast('error', 'Ошибка', error.message || 'Не удалось обновить событие');
+      
+      let errorMessage = 'Не удалось обновить событие';
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showToast('error', 'Ошибка', errorMessage);
     } finally {
       setIsUpdatingEvent(false);
     }
@@ -240,7 +258,16 @@ export function useGroupEvents(
       onSuccess();
     } catch (error: any) {
       console.error('[useGroupEvents] ❌ Ошибка удаления:', error);
-      showToast('error', 'Ошибка', error.message || 'Не удалось удалить событие');
+      
+      let errorMessage = 'Не удалось удалить событие';
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showToast('error', 'Ошибка', errorMessage);
     }
   };
 

@@ -287,16 +287,25 @@ const MainPage = () => {
       setCreateEventModalVisible(false);
       setSelectedGroup(null);
       
-    } catch (error: any) {
-      console.error('[MainPage] ❌ Ошибка создания события:', error);
-      showToast({
-        type: 'error',
-        title: 'Ошибка',
-        message: error.message || 'Не удалось создать событие',
-      });
-    } finally {
-      setIsCreatingEvent(false);
-    }
+      } catch (error: any) {
+        console.error('[MainPage] ❌ Ошибка создания события:', error);
+        
+        let errorMessage = 'Не удалось создать событие';
+        
+        if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        showToast({
+          type: 'error',
+          title: 'Ошибка',
+          message: errorMessage,
+        });
+      } finally {
+        setIsCreatingEvent(false);
+      }
   };
 
   const handleCloseCreateEventModal = () => {

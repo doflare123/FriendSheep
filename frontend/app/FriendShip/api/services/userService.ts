@@ -14,6 +14,7 @@ import {
 
 class UserService {
   private handleError = createErrorHandler('UserService');
+  apiClient: any;
   async getCurrentUserProfile(): Promise<UserProfile> {
     try {
       const response = await apiClient.get<UserProfile>('/users/inf');
@@ -86,7 +87,7 @@ class UserService {
 
   async searchUsers(query: string, page: number = 1): Promise<UserSearchResponse> {
     try {
-      const sanitizedQuery = sanitizeSearchQuery(query);
+      const sanitizedQuery = sanitizeSearchQuery(query.trim());
       
       if (!sanitizedQuery || sanitizedQuery.length < 1) {
         console.log('[UserService] ⚠️ Запрос пустой:', query);
@@ -98,7 +99,7 @@ class UserService {
         };
       }
 
-      console.log('[UserService] Поиск пользователей по username:', sanitizedQuery);
+      console.log('[UserService] Поиск пользователей:', sanitizedQuery);
       
       const response = await apiClient.get<UserSearchResponse>('/users/search', {
         params: { 
@@ -112,22 +113,10 @@ class UserService {
         users: response.data.users?.length,
       });
 
-      const normalizedUsers = (response.data.users || []).map(user => {
-        const originalImage = user.image;
-        const normalizedImage = normalizeImageUrl(user.image);
-        
-        console.log('[UserService] 🖼️ Нормализация изображения:', {
-          userId: user.id,
-          original: originalImage,
-          normalized: normalizedImage,
-          changed: originalImage !== normalizedImage,
-        });
-        
-        return {
-          ...user,
-          image: normalizedImage,
-        };
-      });
+      const normalizedUsers = (response.data.users || []).map(user => ({
+        ...user,
+        image: normalizeImageUrl(user.image),
+      }));
 
       console.log('[UserService] ✅ Обработано пользователей:', normalizedUsers.length);
 
@@ -206,6 +195,41 @@ class UserService {
     } catch (error: any) {
       console.error('[UserService] Ошибка загрузки изображения:', error.response?.data);
       throw this.handleError(error);
+    }
+  }
+
+  async getAllUsers(page: number = 1, limit: number = 20): Promise<UserSearchResponse> {
+    try {
+      console.log('[UserService] 📋 Загрузка всех пользователей, страница:', page);
+      
+      const response = await apiClient.get<UserSearchResponse>('/users/search', {
+        params: { 
+          name: '',
+          page: page,
+        }
+      });
+
+      console.log('[UserService] 📦 Получен ответ:', {
+        total: response.data.total,
+        users: response.data.users?.length,
+      });
+
+      const normalizedUsers = (response.data.users || []).map(user => ({
+        ...user,
+        image: normalizeImageUrl(user.image),
+      }));
+
+      console.log('[UserService] ✅ Обработано пользователей:', normalizedUsers.length);
+
+      return {
+        users: normalizedUsers,
+        total: response.data.total || 0,
+        has_more: response.data.has_more || false,
+        page: response.data.page || page,
+      };
+    } catch (error: any) {
+      console.error('[UserService] ❌ Ошибка загрузки всех пользователей:', error.message);
+      throw error;
     }
   }
 }

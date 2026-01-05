@@ -484,6 +484,17 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
       return false;
     }
 
+    const durationValue = parseInt(duration);
+    if (durationValue < 1) {
+      Alert.alert('Ошибка', 'Длительность должна быть минимум 1 минута');
+      return false;
+    }
+
+    if (durationValue > 720) {
+      Alert.alert('Ошибка', 'Максимальная длительность события — 12 часов (720 минут)');
+      return false;
+    }
+
     if (!maxParticipants || isNaN(parseInt(maxParticipants)) || parseInt(maxParticipants) < 1) {
       Alert.alert('Ошибка', 'Введите корректное количество участников (минимум 1)');
       return false;
@@ -607,6 +618,8 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
       selectedGenres.length > 0 &&
       duration &&
       !isNaN(parseInt(duration)) &&
+      parseInt(duration) >= 1 &&
+      parseInt(duration) <= 720 &&
       maxParticipants &&
       !isNaN(parseInt(maxParticipants)) &&
       parseInt(maxParticipants) >= 1 &&
@@ -856,7 +869,7 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                 </Text>
               </View>
 
-              <View style={styles.rowContainer}>
+              <View style={[styles.rowContainer, {marginBottom: 4}]}>
                 <TouchableOpacity 
                   style={[
                     styles.dateButton,
@@ -878,24 +891,33 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
                   />
                 </TouchableOpacity>
 
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      flex: 1,
-                      fontSize: 14,
-                      borderBottomColor: colors.grey,
-                      color: colors.black
-                    }
-                  ]}
-                  placeholder="Длительность (мин) *"
-                  placeholderTextColor={colors.grey}
-                  value={duration}
-                  onChangeText={setDuration}
-                  keyboardType="numeric"
-                  maxLength={4}
-                  editable={!isLoading}
-                />
+                <View style={styles.durationContainer}>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        fontSize: 14,
+                        borderBottomColor: duration && parseInt(duration) > 720 ? Colors.red : colors.grey,
+                        color: colors.black,
+                        marginBottom: 0,
+                      }
+                    ]}
+                    placeholder="Длительность (мин) *"
+                    placeholderTextColor={colors.grey}
+                    value={duration}
+                    onChangeText={setDuration}
+                    keyboardType="numeric"
+                    maxLength={3}
+                    editable={!isLoading}
+                  />
+                  {(duration && (parseInt(duration) > 720 || parseInt(duration) < 1)) && (
+                    <Text style={[styles.errorText, { color: Colors.red }]}>
+                      {parseInt(duration) > 720 
+                        ? 'Максимум 720 минут (12 часов)' 
+                        : 'Минимум 1 минута'}
+                    </Text>
+                  )}
+                </View>
               </View>
               
               <View style={styles.placeContainer}>
@@ -1071,22 +1093,30 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
         <View style={styles.datePickerModalOverlay}>
           <View style={[styles.datePickerModalContent, { backgroundColor: colors.white }]}>
             <View style={styles.datePickerHeader}>
-              <TouchableOpacity onPress={() => setDatePickerVisible(false)}>
-                <Text style={[styles.datePickerButton, { color: colors.grey }]}>
-                  Отмена
-                </Text>
+              <TouchableOpacity 
+                onPress={() => setDatePickerVisible(false)}
+                style={styles.datePickerIconButton}
+              >
+                <Image
+                  source={require('@/assets/images/groups/close.png')}
+                  style={[styles.datePickerIcon, { tintColor: colors.grey }]}
+                />
               </TouchableOpacity>
+              
               <Text style={[styles.datePickerTitle, { color: colors.black }]}>
                 Выберите дату и время
               </Text>
+              
               <TouchableOpacity 
                 onPress={() => {
                   setDatePickerVisible(false);
                 }}
+                style={styles.datePickerIconButton}
               >
-                <Text style={[styles.datePickerButton, { color: Colors.lightBlue }]}>
-                  Готово
-                </Text>
+                <Image
+                  source={require('@/assets/images/groups/check.png')}
+                  style={[styles.datePickerIcon, { tintColor: Colors.lightBlue }]}
+                />
               </TouchableOpacity>
             </View>
             
@@ -1205,8 +1235,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    paddingVertical: 9,
-    marginBottom: 16,
+    paddingVertical: 10,
+    marginBottom: 6,
+    minHeight: 40,
   },
   dateText: {
     fontFamily: Montserrat.regular,
@@ -1381,6 +1412,29 @@ const styles = StyleSheet.create({
   datePickerButton: {
     fontFamily: Montserrat.bold,
     fontSize: 16,
+  },
+  datePickerIconButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  datePickerIcon: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+  },
+  errorText: {
+    fontFamily: Montserrat.regular,
+    fontSize: 10,
+    marginTop: 2,
+    position: 'absolute', 
+    top: 42,
+    left: 0,
+  },
+  durationContainer: {
+    flex: 1,
+    minHeight: 40
   },
 });
 

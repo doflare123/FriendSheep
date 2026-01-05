@@ -12,17 +12,6 @@ export const useUserSearch = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const searchUsers = useCallback(async (query: string, page: number = 1, append: boolean = false) => {
-    if (!query.trim()) {
-      setUsers([]);
-      setTotalUsers(0);
-      setHasMore(false);
-      setCurrentPage(1);
-      setError(null);
-      setIsLoading(false);
-      setIsLoadingMore(false);
-      return;
-    }
-
     try {
       if (append) {
         setIsLoadingMore(true);
@@ -31,7 +20,12 @@ export const useUserSearch = () => {
         setError(null);
       }
 
-      const response = await userService.searchUsers(query, page);
+      const searchQuery = query.trim();
+      const isEmptySearch = !searchQuery || searchQuery === '@';
+      
+      const response = isEmptySearch 
+        ? await userService.getAllUsers(page)
+        : await userService.searchUsers(searchQuery, page);
 
       if (!response || !response.users) {
         console.warn('[useUserSearch] ⚠ Пустой ответ от сервера');
@@ -43,7 +37,7 @@ export const useUserSearch = () => {
       }
 
       if (response.total === 0) {
-        console.log('[useUserSearch] ℹ️ Нет результатов для запроса:', query);
+        console.log('[useUserSearch] ℹ️ Нет результатов');
         setUsers([]);
         setTotalUsers(0);
         setHasMore(false);
@@ -62,7 +56,7 @@ export const useUserSearch = () => {
       setCurrentPage(page);
 
       console.log('[useUserSearch] ✅ Пользователи загружены:', {
-        query,
+        query: isEmptySearch ? 'все пользователи' : query,
         page,
         total: response.total,
         loaded: response.users?.length || 0,

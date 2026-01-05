@@ -43,15 +43,9 @@ const UserSearchPage: React.FC = () => {
 
   useEffect(() => {
     const query = searchState.searchQuery.trim();
-    
-    if (query) {
-      console.log('[UserSearchPage] 🔍 Выполняем поиск:', query);
-      searchUsers(query, 1, false);
-    } else {
-      console.log('[UserSearchPage] 🧹 Очистка результатов поиска');
-      resetSearch();
-    }
-  }, [searchState.searchQuery, searchUsers, resetSearch]);
+    console.log('[UserSearchPage] 🔍 Выполняем поиск:', query || 'все пользователи');
+    searchUsers(query, 1, false);
+  }, [searchState.searchQuery, searchUsers]);
 
   const formattedUsers: User[] = useMemo(() => {
     return users.map(user =>
@@ -97,7 +91,9 @@ const UserSearchPage: React.FC = () => {
       return (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.lightBlue} />
-          <Text style={[styles.loadingText, {color: colors.grey}]}>Поиск пользователей...</Text>
+          <Text style={[styles.loadingText, {color: colors.grey}]}>
+            {searchState.searchQuery.trim() ? 'Поиск пользователей...' : 'Загрузка пользователей...'}
+          </Text>
         </View>
       );
     }
@@ -106,17 +102,6 @@ const UserSearchPage: React.FC = () => {
       return (
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>Ошибка: {error}</Text>
-        </View>
-      );
-    }
-
-    if (!searchState.searchQuery.trim()) {
-      return (
-        <View style={styles.centerContainer}>
-          <Text style={[styles.emptyText, {color: colors.grey}]}>Введите имя пользователя</Text>
-          <Text style={[styles.emptySubtext, {color: colors.grey}]}>
-            для начала поиска
-          </Text>
         </View>
       );
     }

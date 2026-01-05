@@ -1,14 +1,15 @@
+import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import React from 'react';
-import { Image, ImageSourcePropType, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export interface User {
   id: string;
   name: string;
   username: string;
-  description: string;
-  imageUri: string | ImageSourcePropType;
+  description?: string;
+  imageUri: string;
   onPress?: () => void;
   highlightedName?: {
     before: string;
@@ -40,6 +41,7 @@ const UserCard: React.FC<User> = ({
   highlightedDescription,
 }) => {
   const colors = useThemedColors();
+  
   const getImageSource = () => {
     if (!imageUri || (typeof imageUri === 'string' && imageUri.trim() === '')) {
       return { uri: PLACEHOLDER_IMAGE };
@@ -59,7 +61,7 @@ const UserCard: React.FC<User> = ({
     return (
       <Text style={style}>
         {highlighted.before}
-        <Text style={{backgroundColor: colors.lightBlue2}}>{highlighted.match}</Text>
+        <Text style={styles.highlightedText}>{highlighted.match}</Text>
         {highlighted.after}
       </Text>
     );
@@ -88,13 +90,13 @@ const UserCard: React.FC<User> = ({
           {renderHighlightedText(
             username,
             highlightedUsername,
-            [styles.userUsername, {color: colors.black}]
+            [styles.userUsername, {color: colors.grey}]
           )}
           
           {description && renderHighlightedText(
             description,
             highlightedDescription,
-            [styles.description, {color: colors.black}]
+            [styles.description, {color: colors.grey}]
           )}
         </View>
       </TouchableOpacity>
@@ -144,6 +146,9 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.regular,
     fontSize: 14,
     lineHeight: 18,
+  },
+  highlightedText: {
+    backgroundColor: Colors.lightBlue2,
   },
 });
 

@@ -5,8 +5,22 @@ export const createUserWithHighlightedText = (
   user: SearchUserItem,
   query: string
 ): User => {
+  const trimmedQuery = query.trim();
+
+  const isUsernameSearch = trimmedQuery.startsWith('@');
+  const searchQuery = isUsernameSearch ? trimmedQuery.substring(1) : trimmedQuery;
+  
+  console.log('[userUtils] Создание User из SearchUserItem:', {
+    id: user.id,
+    name: user.name,
+    username: user.us,
+    query: query,
+    isUsernameSearch,
+    searchQuery,
+  });
+
   const highlightText = (text: string, query: string) => {
-    if (!query.trim()) return undefined;
+    if (!query) return undefined;
 
     const lowerText = text.toLowerCase();
     const lowerQuery = query.toLowerCase();
@@ -20,33 +34,36 @@ export const createUserWithHighlightedText = (
       after: text.substring(index + query.length),
     };
   };
-  
-  const usernameWithAt = `@${user.us}`;
-  
-  console.log('[userUtils] Создание User из SearchUserItem:', {
-    id: user.id,
-    name: user.name,
-    username: user.us,
-    image: user.image,
-    imageEmpty: !user.image || user.image.trim() === '',
+
+  let highlightedName = undefined;
+  let highlightedUsername = undefined;
+
+  if (isUsernameSearch) {
+    const usernameHighlight = highlightText(user.us, searchQuery);
+    if (usernameHighlight) {
+      highlightedUsername = {
+        before: `@${usernameHighlight.before}`,
+        match: usernameHighlight.match,
+        after: usernameHighlight.after,
+      };
+    }
+  } else {
+    highlightedName = highlightText(user.name, searchQuery);
+  }
+
+  console.log('[userUtils] Результат подсветки:', {
+    highlightedName,
+    highlightedUsername,
   });
-
-  const highlightedName = highlightText(user.name, query);
-
-  const highlightedUsername = highlightText(user.us, query);
   
   return {
     id: user.id.toString(),
     name: user.name,
-    username: usernameWithAt,
+    username: `@${user.us}`,
     description: user.status || '',
     imageUri: user.image,
-    highlightedUsername: highlightedUsername ? {
-      before: '@' + highlightedUsername.before,
-      match: highlightedUsername.match,
-      after: highlightedUsername.after,
-    } : undefined,
-    highlightedName: highlightedName,
+    highlightedName,
+    highlightedUsername,
     highlightedDescription: undefined,
   };
 };

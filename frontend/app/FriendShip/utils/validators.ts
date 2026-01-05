@@ -227,3 +227,33 @@ export const validateFullDescription = (desc: string): UsernameValidationResult 
     maxLength: 300,
   };
 };
+
+export interface DurationValidationResult {
+  isValid: boolean;
+  missingRequirements: string[];
+  value: number;
+  maxDuration: number;
+}
+
+export const validateEventDuration = (duration: string): DurationValidationResult => {
+  if (!duration) return { 
+    isValid: false, 
+    missingRequirements: ['Укажите длительность'], 
+    value: 0, 
+    maxDuration: 720 
+  };
+
+  const requirements = [];
+  const value = parseInt(duration);
+  
+  if (isNaN(value)) requirements.push('Некорректное значение');
+  if (value < 1) requirements.push('Минимум 1 минута');
+  if (value > 720) requirements.push('Максимум 720 минут (12 часов)');
+
+  return {
+    isValid: requirements.length === 0,
+    missingRequirements: requirements,
+    value: value,
+    maxDuration: 720,
+  };
+};
