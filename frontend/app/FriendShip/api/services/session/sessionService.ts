@@ -55,7 +55,44 @@ class SessionService {
       return result;
     } catch (error: any) {
       console.error('[SessionService] ❌ Ошибка:', error);
-      throw error;
+
+      let errorMessage = 'Ошибка создания сессии';
+      
+      try {
+        if (error.message && typeof error.message === 'string') {
+          if (error.message.startsWith('{') || error.message.startsWith('[')) {
+            try {
+              const parsed = JSON.parse(error.message);
+              errorMessage = parsed.error || errorMessage;
+            } catch {
+              errorMessage = error.message;
+            }
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        else if (error.response?.data?.error) {
+          const errorData = error.response.data.error;
+          
+          if (typeof errorData === 'string' && (errorData.startsWith('{') || errorData.startsWith('['))) {
+            try {
+              const parsed = JSON.parse(errorData);
+              errorMessage = parsed.error || errorMessage;
+            } catch {
+              errorMessage = errorData;
+            }
+          } else {
+            errorMessage = errorData;
+          }
+        }
+        else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } catch (parseError) {
+        console.error('[SessionService] ❌ Ошибка парсинга:', parseError);
+      }
+      
+      throw new Error(errorMessage);
     }
   }
 

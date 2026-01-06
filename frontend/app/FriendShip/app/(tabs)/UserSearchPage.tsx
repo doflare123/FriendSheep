@@ -59,9 +59,10 @@ const UserSearchPage: React.FC = () => {
   };
 
   const handleLoadMore = () => {
-    if (!isLoadingMore && hasMore && searchState.searchQuery.trim()) {
-      console.log('[UserSearchPage] Загружаем больше пользователей');
-      loadMore(searchState.searchQuery);
+    if (!isLoadingMore && hasMore) {
+      console.log('[UserSearchPage] 📄 Загружаем больше пользователей');
+      const query = searchState.searchQuery.trim();
+      loadMore(query);
     }
   };
 

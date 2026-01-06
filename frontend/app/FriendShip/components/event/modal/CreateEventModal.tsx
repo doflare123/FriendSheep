@@ -528,8 +528,9 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
     setShowDeleteModal(false);
   };
 
-  const handleSubmit = () => {
-  console.log('[CreateEditEventModal] 🔍 selectedCategory перед отправкой:', selectedCategory);
+  const handleSubmit = async () => {
+    console.log('[CreateEditEventModal] 🔍 selectedCategory перед отправкой:', selectedCategory);
+    
     if (!validateForm()) {
       return;
     }
@@ -554,12 +555,42 @@ const CreateEditEventModal: React.FC<CreateEditEventModalProps> = ({
       imageUri: eventImage,
       currentParticipants: initialData?.currentParticipants || 0,
     };
+    
     console.log('[CreateEditEventModal] 📦 Финальные данные события:', eventData);
     
-    if (editMode && initialData) {
-      onUpdate?.(initialData.id, eventData);
-    } else {
-      onCreate?.(eventData);
+    try {
+      if (editMode && initialData) {
+        await onUpdate?.(initialData.id, eventData);
+      } else {
+        await onCreate?.(eventData);
+      }
+    } catch (error: any) {
+      console.error('[CreateEditEventModal] ❌ Ошибка при сохранении:', error);
+
+      let errorMessage = 'Не удалось сохранить событие';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+
+        if (typeof errorData.error === 'string' && errorData.error.startsWith('{')) {
+          try {
+            const parsedError = JSON.parse(errorData.error);
+            errorMessage = parsedError.error || errorMessage;
+          } catch (e) {
+            errorMessage = errorData.error;
+          }
+        } 
+        else if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+        else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Ошибка', errorMessage);
     }
   };
 

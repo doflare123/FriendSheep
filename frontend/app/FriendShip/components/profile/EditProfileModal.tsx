@@ -3,7 +3,7 @@ import { Colors } from '@/constants/Colors';
 import { Montserrat } from '@/constants/Montserrat';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import profanityFilter from '@/utils/profanityFilter';
-import { validateUserDisplayName, validateUserUsername } from '@/utils/validators';
+import { validateUserDescription, validateUserDisplayName, validateUserUsername } from '@/utils/validators';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -74,6 +74,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   const nameValidation = useMemo(() => validateUserDisplayName(name), [name]);
   const usernameValidation = useMemo(() => validateUserUsername(username), [username]);
+  const descriptionValidation = useMemo(() => validateUserDescription(description), [description]);
 
   const handleSave = async () => {
     if (!nameValidation.isValid) {
@@ -83,6 +84,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
     if (!usernameValidation.isValid) {
       Alert.alert('Ошибка', `Юзернейм: ${usernameValidation.missingRequirements.join(', ')}`);
+      return;
+    }
+
+    if (!descriptionValidation.isValid) {
+      Alert.alert('Ошибка', `Описание: ${descriptionValidation.missingRequirements.join(', ')}`);
       return;
     }
     
@@ -311,7 +317,17 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               </View>
 
               <View style={styles.inputWrapper}>
-                <Text style={[styles.label, { color: colors.black }]}>Описание</Text>
+                <View style={styles.labelRow}>
+                  <Text style={[styles.label, { color: colors.black }]}>Описание</Text>
+                  {description.length > 0 && (
+                    <Text style={[
+                      styles.charCount,
+                      { color: descriptionValidation.length > descriptionValidation.maxLength ? Colors.red : colors.grey }
+                    ]}>
+                      {descriptionValidation.length}/{descriptionValidation.maxLength}
+                    </Text>
+                  )}
+                </View>
                 <TextInput
                   style={[
                     styles.input, 
@@ -319,7 +335,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     {
                       borderColor: colors.grey,
                       color: colors.black
-                    }
+                    },
+                    description.length > 0 && !descriptionValidation.isValid && styles.inputError
                   ]}
                   placeholder="Описание"
                   placeholderTextColor={colors.grey}
@@ -328,9 +345,14 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
-                  maxLength={40}
+                  maxLength={50}
                   editable={!loading}
                 />
+                {description.length > 0 && !descriptionValidation.isValid && (
+                  <Text style={styles.errorText}>
+                    {descriptionValidation.missingRequirements.join(', ')}
+                  </Text>
+                )}
               </View>
             </View>
 
@@ -345,10 +367,10 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   style={[
                     styles.saveButton,
                     { backgroundColor: Colors.white },
-                    (loading || !nameValidation.isValid || !usernameValidation.isValid) && styles.saveButtonDisabled
+                    (loading || !nameValidation.isValid || !usernameValidation.isValid || !descriptionValidation.isValid) && styles.saveButtonDisabled
                   ]}
                   onPress={handleSave}
-                  disabled={loading || !nameValidation.isValid || !usernameValidation.isValid}
+                  disabled={loading || !nameValidation.isValid || !usernameValidation.isValid || !descriptionValidation.isValid}
                 >
                   {loading ? (
                     <ActivityIndicator color={Colors.blue3} />

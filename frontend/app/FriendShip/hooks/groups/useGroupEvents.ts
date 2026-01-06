@@ -144,13 +144,30 @@ export function useGroupEvents(
       onSuccess();
     } catch (error: any) {
       console.error('[useGroupEvents] ❌ Ошибка создания:', error);
-      
+
       let errorMessage = 'Не удалось создать событие';
       
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.message) {
-        errorMessage = error.message;
+      try {
+        if (error.response?.data?.error) {
+          const errorData = error.response.data.error;
+
+          if (typeof errorData === 'string' && errorData.startsWith('{')) {
+            try {
+              const parsed = JSON.parse(errorData);
+              errorMessage = parsed.error || errorMessage;
+            } catch {
+              errorMessage = errorData;
+            }
+          } else {
+            errorMessage = errorData;
+          }
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      } catch (parseError) {
+        console.error('[useGroupEvents] ❌ Ошибка парсинга сообщения:', parseError);
       }
       
       showToast('error', 'Ошибка', errorMessage);
@@ -207,13 +224,30 @@ export function useGroupEvents(
       onSuccess();
     } catch (error: any) {
       console.error('[useGroupEvents] ❌ Ошибка обновления:', error);
-      
+
       let errorMessage = 'Не удалось обновить событие';
       
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.message) {
-        errorMessage = error.message;
+      try {
+        if (error.response?.data?.error) {
+          const errorData = error.response.data.error;
+
+          if (typeof errorData === 'string' && errorData.startsWith('{')) {
+            try {
+              const parsed = JSON.parse(errorData);
+              errorMessage = parsed.error || errorMessage;
+            } catch {
+              errorMessage = errorData;
+            }
+          } else {
+            errorMessage = errorData;
+          }
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      } catch (parseError) {
+        console.error('[useGroupEvents] ❌ Ошибка парсинга сообщения:', parseError);
       }
       
       showToast('error', 'Ошибка', errorMessage);
@@ -261,10 +295,27 @@ export function useGroupEvents(
       
       let errorMessage = 'Не удалось удалить событие';
       
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.message) {
-        errorMessage = error.message;
+      try {
+        if (error.response?.data?.error) {
+          const errorData = error.response.data.error;
+
+          if (typeof errorData === 'string' && errorData.startsWith('{')) {
+            try {
+              const parsed = JSON.parse(errorData);
+              errorMessage = parsed.error || errorMessage;
+            } catch {
+              errorMessage = errorData;
+            }
+          } else {
+            errorMessage = errorData;
+          }
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      } catch (parseError) {
+        console.error('[useGroupEvents] ❌ Ошибка парсинга сообщения:', parseError);
       }
       
       showToast('error', 'Ошибка', errorMessage);

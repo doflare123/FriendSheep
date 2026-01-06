@@ -23,51 +23,51 @@ export const useUserSearch = () => {
       const searchQuery = query.trim();
       const isEmptySearch = !searchQuery || searchQuery === '@';
       
+      console.log('[useUserSearch] 🔍 Запрос:', {
+        query: searchQuery,
+        isEmptySearch,
+        page,
+        append,
+      });
+      
       const response = isEmptySearch 
         ? await userService.getAllUsers(page)
         : await userService.searchUsers(searchQuery, page);
 
-      if (!response || !response.users) {
-        console.warn('[useUserSearch] ⚠ Пустой ответ от сервера');
-        setUsers([]);
-        setTotalUsers(0);
-        setHasMore(false);
-        setCurrentPage(1);
-        return;
-      }
-
-      if (response.total === 0) {
-        console.log('[useUserSearch] ℹ️ Нет результатов');
-        setUsers([]);
-        setTotalUsers(0);
-        setHasMore(false);
-        setCurrentPage(1);
-        return;
-      }
+      console.log('[useUserSearch] 📦 Ответ:', {
+        users: response.users?.length,
+        total: response.total,
+        hasMore: response.has_more,
+      });
 
       if (append) {
-        setUsers(prev => [...prev, ...(response.users || [])]);
+        setUsers(prev => {
+          const newUsers = [...prev, ...(response.users || [])];
+          console.log('[useUserSearch] ➕ Добавлено пользователей:', response.users?.length, 'Всего:', newUsers.length);
+          return newUsers;
+        });
       } else {
         setUsers(response.users || []);
+        console.log('[useUserSearch] 🔄 Заменено пользователей:', response.users?.length);
       }
 
       setTotalUsers(response.total || 0);
       setHasMore(response.has_more || false);
       setCurrentPage(page);
 
-      console.log('[useUserSearch] ✅ Пользователи загружены:', {
-        query: isEmptySearch ? 'все пользователи' : query,
-        page,
-        total: response.total,
-        loaded: response.users?.length || 0,
+      console.log('[useUserSearch] ✅ Состояние обновлено:', {
+        totalUsers: response.total,
         hasMore: response.has_more,
+        currentPage: page,
       });
     } catch (err: any) {
       console.error('[useUserSearch] ❌ Ошибка поиска:', err);
       setError(err.message || 'Не удалось выполнить поиск');
-      setUsers([]);
-      setTotalUsers(0);
-      setHasMore(false);
+      if (!append) {
+        setUsers([]);
+        setTotalUsers(0);
+        setHasMore(false);
+      }
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
@@ -76,7 +76,12 @@ export const useUserSearch = () => {
 
   const loadMore = useCallback(
     async (query: string) => {
-      if (!hasMore || isLoadingMore) return;
+      if (!hasMore || isLoadingMore) {
+        console.log('[useUserSearch] ⚠️ Не можем загрузить больше:', { hasMore, isLoadingMore });
+        return;
+      }
+      
+      console.log('[useUserSearch] 📄 Загрузка страницы', currentPage + 1);
       await searchUsers(query, currentPage + 1, true);
     },
     [hasMore, isLoadingMore, currentPage, searchUsers]

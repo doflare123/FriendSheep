@@ -53,14 +53,14 @@ export const validateUserDisplayName = (name: string): UsernameValidationResult 
     isValid: false, 
     missingRequirements: [], 
     length: 0, 
-    maxLength: 50 
+    maxLength: 40 
   };
 
   const requirements = [];
   const trimmed = name.trim();
   
   if (trimmed.length < 2) requirements.push('Минимум 2 символа');
-  if (trimmed.length > 50) requirements.push('Максимум 50 символов');
+  if (trimmed.length > 40) requirements.push('Максимум 40 символов');
 
   if (!/^[a-zA-Zа-яА-ЯёЁ0-9\s]+$/.test(trimmed)) {
     requirements.push('Только буквы, цифры и пробелы (без спецсимволов)');
@@ -70,7 +70,7 @@ export const validateUserDisplayName = (name: string): UsernameValidationResult 
     isValid: requirements.length === 0,
     missingRequirements: requirements,
     length: trimmed.length,
-    maxLength: 50,
+    maxLength: 40,
   };
 };
 
@@ -126,6 +126,27 @@ export const validateUsername = (username: string): UsernameValidationResult => 
     missingRequirements: requirements,
     length: trimmed.length,
     maxLength: 40,
+  };
+};
+
+export const validateUserDescription = (description: string): UsernameValidationResult => {
+  if (!description) return { 
+    isValid: true,
+    missingRequirements: [], 
+    length: 0, 
+    maxLength: 50 
+  };
+
+  const requirements = [];
+  const trimmed = description.trim();
+  
+  if (trimmed.length > 50) requirements.push('Максимум 50 символов');
+
+  return {
+    isValid: requirements.length === 0,
+    missingRequirements: requirements,
+    length: trimmed.length,
+    maxLength: 50,
   };
 };
 

@@ -108,10 +108,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         
         <View style={styles.headerInfo}>
           <View style={styles.nameRow}>
-            <Text style={[styles.profileName, { color: colors.black }]}>{name}</Text>
+            <Text 
+              style={[styles.profileName, { color: colors.black }]}
+              numberOfLines={2}
+            >
+              {name}
+            </Text>
             {isEnterprise && (
               <TouchableWithoutFeedback onPress={() => setVerifiedTooltipVisible(true)}>
-                <View>
+                <View style={styles.iconWrapper}>
                   <Image 
                     source={require('@/assets/images/profile/verified.png')} 
                     style={styles.verifiedIcon}
@@ -120,7 +125,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </TouchableWithoutFeedback>
             )}
             {isOwnProfile && (
-              <TouchableOpacity onPress={handleTelegramPress}>
+              <TouchableOpacity onPress={handleTelegramPress} style={styles.iconWrapper}>
                 <Image 
                   source={require('@/assets/images/profile/telegram.png')} 
                   style={[
@@ -255,11 +260,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+    maxWidth: '100%',
   },
   profileName: {
     fontFamily: Montserrat.bold,
     fontSize: 20,
     marginRight: 4,
+    flexShrink: 1,
+    maxWidth: '80%',
   },
   verifiedIcon: {
     width: 20,
@@ -367,6 +375,10 @@ const styles = StyleSheet.create({
     fontFamily: Montserrat.bold,
     fontSize: 16,
     color: Colors.white,
+  },
+  iconWrapper: {
+    marginLeft: 4,
+    flexShrink: 0,
   },
 });
 
