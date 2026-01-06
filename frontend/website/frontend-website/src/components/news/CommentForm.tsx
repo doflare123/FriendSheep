@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styles from '@/styles/news/CommentForm.module.css';
+import {filterProfanity} from '@/utils'
 
 interface CommentFormProps {
   onSubmit: (text: string) => void;
@@ -13,7 +14,7 @@ export default function CommentForm({ onSubmit, onCancel }: CommentFormProps) {
     e.preventDefault();
     
     if (commentText.trim()) {
-      onSubmit(commentText.trim());
+      onSubmit(filterProfanity(commentText.trim()));
       setCommentText('');
     }
   };

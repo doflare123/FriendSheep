@@ -189,5 +189,3 @@ export function addCustomBadWords(words: string[]): void {
 export function removeWord(word: string): void {
   LeoProfanity.remove(word);
 }
-
-console.log(filterProfanity("fuck"))

@@ -1,5 +1,3 @@
-// src/components/Groups/CreateGroupForm.tsx
-
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import SocialContactsModal from './SocialContactsModal';
@@ -8,7 +6,8 @@ import ImageCropModal from '@/components/ImageCropModal';
 import SocialIcon from '@/components/SocialIcon';
 import { GroupData } from '../../types/Groups';
 import styles from '../../styles/Groups/CreateGroupModal.module.css';
-import { getCategoryIcon } from '../../Constants';
+import { getCategoryIcon } from '@/Constants';
+import {filterProfanity} from '@/utils'
 
 interface CreateGroupFormProps {
   onSubmit: (groupData: any) => void;
@@ -230,8 +229,19 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
       return;
     }
 
+    const filteredSocialContacts = formData.socialContacts.map(contact => ({
+      name: filterProfanity(contact.name),
+      link: contact.link
+    }));
+
     onSubmit({
-      ...formData,
+      name: filterProfanity(formData.name),
+      shortDescription: filterProfanity(formData.shortDescription),
+      description: filterProfanity(formData.description),
+      city: filterProfanity(formData.city),
+      isPrivate: formData.isPrivate,
+      categories: formData.categories,
+      socialContacts: filteredSocialContacts,
       image: selectedImageFile,
       imagePreview: selectedImage
     });

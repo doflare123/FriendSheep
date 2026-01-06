@@ -14,16 +14,21 @@
   background-color: var(--color-bg-primary);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
 }
 
 .markdownContent {
   line-height: 1.6;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .markdownContent h1 {
   font-size: 2.5rem;
   margin-bottom: 1rem;
   font-weight: bold;
+  word-wrap: break-word;
 }
 
 .markdownContent h2 {
@@ -31,6 +36,7 @@
   margin-top: 2rem;
   margin-bottom: 1rem;
   font-weight: bold;
+  word-wrap: break-word;
 }
 
 .markdownContent h3 {
@@ -38,10 +44,12 @@
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
   font-weight: bold;
+  word-wrap: break-word;
 }
 
 .markdownContent p {
   margin-bottom: 1rem;
+  word-wrap: break-word;
 }
 
 .markdownContent ul, .markdownContent ol {
@@ -51,6 +59,7 @@
 
 .markdownContent li {
   margin-bottom: 0.5rem;
+  word-wrap: break-word;
 }
 
 .markdownContent code {
@@ -58,6 +67,9 @@
   padding: 0.2rem 0.4rem;
   border-radius: 3px;
   font-family: monospace;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .markdownContent pre {
@@ -66,16 +78,20 @@
   border-radius: 5px;
   overflow-x: auto;
   margin-bottom: 1rem;
+  max-width: 100%;
 }
 
 .markdownContent pre code {
   background-color: transparent;
   padding: 0;
+  white-space: pre;
 }
 
 .markdownContent a {
   color: var(--color-primary-blue);
   text-decoration: none;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .markdownContent a:hover {
@@ -87,4 +103,52 @@
   margin-left: -20px;
   margin-right: -20px;
   margin-bottom: -20px;
+}
+
+@media (max-width: 768px) {
+  .contentWrapper {
+    padding: 1rem;
+    border-radius: 0;
+  }
+
+  .markdownContent h1 {
+    font-size: 1.75rem;
+  }
+
+  .markdownContent h2 {
+    font-size: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .markdownContent h3 {
+    font-size: 1.25rem;
+    margin-top: 1rem;
+  }
+
+  .markdownContent ul, .markdownContent ol {
+    padding-left: 1.5rem;
+  }
+
+  .markdownContent pre {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .contentWrapper {
+    padding: 0.75rem;
+  }
+
+  .markdownContent h1 {
+    font-size: 1.5rem;
+  }
+
+  .markdownContent h2 {
+    font-size: 1.25rem;
+  }
+
+  .markdownContent h3 {
+    font-size: 1.1rem;
+  }
 }

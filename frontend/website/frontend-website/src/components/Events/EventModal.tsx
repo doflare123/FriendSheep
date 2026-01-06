@@ -6,13 +6,14 @@ import ImageCropModal from '@/components/ImageCropModal';
 import { EventCardProps } from '../../types/Events';
 import { GroupData } from '../../types/Groups';
 import { kinopoiskAPI, PlaceInfo } from '../../lib/api';
-import { getCategoryIcon, getAccesToken, convertToRFC3339, parseDuration, convertCategEngToRu } from '../../Constants';
+import { getCategoryIcon, getAccesToken, convertToRFC3339, parseDuration, convertCategEngToRu, convertSingleCategRuToEng, convertSessionPlaceToLocation } from '../../Constants';
 import { getOwnGroups } from '../../api/get_owngroups';
 import { addEvent } from '@/api/events/addEvent';
 import { editEvent } from '@/api/events/editEvent';
 import { delEvent } from '@/api/events/delEvent';
 import { getImage } from '@/api/getImage';
 import { getGenres } from '@/api/events/getGenres';
+import { getEventInfo } from '@/api/events/getEventInfo';
 import { showNotification, filterProfanity } from '@/utils';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import { useRouter } from 'next/navigation';
@@ -37,6 +38,50 @@ const CATEGORIES = [
 const VALIDATION_RULES = {
   title: { min: 5, max: 40 },
   description: { min: 5, max: 300 }
+};
+
+const AGE_LIMITS = [
+  { value: '', label: 'Без ограничений' },
+  { value: '6+', label: '6+' },
+  { value: '12+', label: '12+' },
+  { value: '16+', label: '16+' },
+  { value: '18+', label: '18+' }
+];
+
+const countCharacters = (text: string): number => {
+  return text.split('').reduce((count, char, index, array) => {
+    if (char === '\r' && array[index + 1] === '\n') {
+      return count;
+    }
+    return count + (char === '\n' || char === '\r' ? 2 : 1);
+  }, 0);
+};
+
+const truncateByCharCount = (text: string, maxCount: number): string => {
+  let result = '';
+  let charCount = 0;
+  
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '\r' && text[i + 1] === '\n') {
+      if (charCount + 2 + 3 <= maxCount) {
+        result += '\r\n';
+        charCount += 2;
+        i++;
+      } else {
+        break;
+      }
+    } else {
+      const charValue = (text[i] === '\n' || text[i] === '\r') ? 2 : 1;
+      if (charCount + charValue + 3 <= maxCount) {
+        result += text[i];
+        charCount += charValue;
+      } else {
+        break;
+      }
+    }
+  }
+  
+  return result.trim() + (result.length < text.length ? '...' : '');
 };
 
 interface ApiGroup {
@@ -171,18 +216,20 @@ export default function EventModal({
   const apiSelectorRef = useRef<HTMLDivElement>(null);
 
   const [isInitialLoading, setIsInitialLoading] = useState(false);
+  const [isLoadingEventDetails, setIsLoadingEventDetails] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       if (mode === 'create') {
         loadGroups();
         loadGenres();
-      } else {
+      } else if (mode === 'edit' && eventData?.id) {
         loadGroups();
         loadGenres();
+        loadEventDetails(eventData.id);
       }
     }
-  }, [isOpen, mode]);
+  }, [isOpen, mode, eventData?.id]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -277,6 +324,87 @@ export default function EventModal({
     }
   };
 
+  const loadEventDetails = async (eventId: number) => {
+    setIsLoadingEventDetails(true);
+    
+    try {
+      const accessToken = await getAccesToken(router) || '';
+      const eventDetails = await getEventInfo(accessToken, eventId);
+      
+      console.log('Полные данные события:', eventDetails);
+      
+      if (eventDetails && eventDetails.session && eventDetails.metadata) {
+        const { session, metadata } = eventDetails;
+        
+        const startDateTime = new Date(session.start_time);
+        const day = startDateTime.getDate().toString().padStart(2, '0');
+        const month = (startDateTime.getMonth() + 1).toString().padStart(2, '0');
+        const year = startDateTime.getFullYear();
+        const hours = startDateTime.getHours().toString().padStart(2, '0');
+        const minutes = startDateTime.getMinutes().toString().padStart(2, '0');
+        
+        const dateString = `${day}.${month}.${year}`;
+        const timeString = `${hours}:${minutes}`;
+        const datetimeLocal = convertToDatetimeLocal(dateString, timeString);
+        
+        const eventType = convertSingleCategRuToEng(session.session_type);
+        const locationValue = convertSessionPlaceToLocation(session.session_place);
+        
+        const initialFormData = {
+          id: session.id,
+          type: eventType,
+          image: session.image_url,
+          date: datetimeLocal,
+          start_time: timeString,
+          title: session.title,
+          genres: metadata.Genres || [],
+          participants: session.current_users,
+          maxParticipants: session.max_users,
+          duration: session.duration?.toString() || '',
+          location: locationValue,
+          adress: metadata.Location || '',
+          publisher: metadata.Fields?.publisher || '',
+          year: metadata.Year || undefined,
+          ageLimit: metadata.AgeLimit || '',
+          description: metadata.Notes || '',
+          fields: metadata.Fields ? 
+            Object.entries(metadata.Fields).map(([key, value]) => `${key}:${value}`).join(',') 
+            : undefined
+        };
+        
+        setFormData(initialFormData);
+        setOriginalData(initialFormData);
+        
+        setDescription(metadata.Notes || '');
+        setOriginalDescription(metadata.Notes || '');
+        
+        setPublisher(metadata.Fields?.publisher || '');
+        setYear(metadata.Year?.toString() || '');
+        setAgeLimit(metadata.AgeLimit || '');
+        
+        const isEventOnline = locationValue === 'online';
+        setIsOnline(isEventOnline);
+        
+        if (!isEventOnline && metadata.Fields?.city) {
+          setCity(metadata.Fields.city);
+          setOriginalCity(metadata.Fields.city);
+        } else if (!isEventOnline && metadata.Location) {
+          const addressParts = metadata.Location.split(',');
+          if (addressParts.length > 0) {
+            const cityPart = addressParts[0].trim();
+            setCity(cityPart);
+            setOriginalCity(cityPart);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки деталей события:', error);
+      showNotification(500, 'Не удалось загрузить данные события');
+    } finally {
+      setIsLoadingEventDetails(false);
+    }
+  };
+
   const convertToDatetimeLocal = (date?: string, startTime?: string): string => {
     if (!date) return '';
     
@@ -302,8 +430,9 @@ export default function EventModal({
   };
 
   useEffect(() => {
-    if (eventData) {
-      console.log('EventData получен:', eventData);
+    if (eventData && mode === 'create') {
+      console.log('EventData получен (полный объект):', JSON.stringify(eventData, null, 2));
+      console.log('Все ключи eventData:', Object.keys(eventData));
       
       const datetimeLocal = convertToDatetimeLocal(eventData.date, eventData.start_time);
       
@@ -321,7 +450,9 @@ export default function EventModal({
       
       setPublisher(eventData.publisher || '');
       setYear(eventData.year?.toString() || '');
-      setAgeLimit(eventData.ageLimit || '');
+      
+      const eventAgeLimit = eventData.ageLimit || eventData.age_limit || '';
+      setAgeLimit(eventAgeLimit);
       
       setSelectedGroup(groupId || null);
       
@@ -345,7 +476,7 @@ export default function EventModal({
           setOriginalCity(cityMatch[1]);
         }
       }
-    } else {
+    } else if (!eventData) {
       const defaultData = {
         title: '',
         type: 'movies' as const,
@@ -386,16 +517,16 @@ export default function EventModal({
 
     if (!formData.title || formData.title.trim() === '') {
       errors.title = 'Название обязательно для заполнения';
-    } else if (formData.title.trim().length < VALIDATION_RULES.title.min) {
+    } else if (countCharacters(formData.title.trim()) < VALIDATION_RULES.title.min) {
       errors.title = `Название должно содержать минимум ${VALIDATION_RULES.title.min} символов`;
-    } else if (formData.title.trim().length > VALIDATION_RULES.title.max) {
+    } else if (countCharacters(formData.title.trim()) > VALIDATION_RULES.title.max) {
       errors.title = `Название не должно превышать ${VALIDATION_RULES.title.max} символов`;
     }
 
     if (description && description.trim() !== '') {
-      if (description.trim().length < VALIDATION_RULES.description.min) {
+      if (countCharacters(description.trim()) < VALIDATION_RULES.description.min) {
         errors.description = `Описание должно содержать минимум ${VALIDATION_RULES.description.min} символов`;
-      } else if (description.trim().length > VALIDATION_RULES.description.max) {
+      } else if (countCharacters(description.trim()) > VALIDATION_RULES.description.max) {
         errors.description = `Описание не должно превышать ${VALIDATION_RULES.description.max} символов`;
       }
     }
@@ -719,8 +850,8 @@ export default function EventModal({
         setFormData(prev => ({ ...prev, type: 'movies' }));
         
         const movieDescription = movie.description || movie.shortDescription || '';
-        const truncatedDescription = movieDescription.length > VALIDATION_RULES.description.max 
-          ? movieDescription.substring(0, VALIDATION_RULES.description.max - 3).trim() + '...'
+        const truncatedDescription = countCharacters(movieDescription) > VALIDATION_RULES.description.max 
+          ? truncateByCharCount(movieDescription, VALIDATION_RULES.description.max)
           : movieDescription;
         
         setDescription(truncatedDescription);
@@ -840,8 +971,8 @@ export default function EventModal({
         setFormData(prev => ({ ...prev, type: 'games' }));
         
         const gameDescription = gameDetails.description_raw || '';
-        const truncatedDescription = gameDescription.length > VALIDATION_RULES.description.max 
-          ? gameDescription.substring(0, VALIDATION_RULES.description.max - 3).trim() + '...'
+        const truncatedDescription = countCharacters(gameDescription) > VALIDATION_RULES.description.max 
+          ? truncateByCharCount(gameDescription, VALIDATION_RULES.description.max)
           : gameDescription;
         
         setDescription(truncatedDescription);
@@ -1025,8 +1156,30 @@ export default function EventModal({
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    const limitedValue = value.slice(0, VALIDATION_RULES.title.max);
-    setFormData(prev => ({ ...prev, title: limitedValue }));
+    let limited = '';
+    let charCount = 0;
+    
+    for (let i = 0; i < value.length; i++) {
+      if (value[i] === '\r' && value[i + 1] === '\n') {
+        if (charCount + 2 <= VALIDATION_RULES.title.max) {
+          limited += '\r\n';
+          charCount += 2;
+          i++;
+        } else {
+          break;
+        }
+      } else {
+        const charValue = (value[i] === '\n' || value[i] === '\r') ? 2 : 1;
+        if (charCount + charValue <= VALIDATION_RULES.title.max) {
+          limited += value[i];
+          charCount += charValue;
+        } else {
+          break;
+        }
+      }
+    }
+    
+    setFormData(prev => ({ ...prev, title: limited }));
     if (validationErrors.title) {
       setValidationErrors(prev => ({ ...prev, title: undefined }));
     }
@@ -1034,8 +1187,30 @@ export default function EventModal({
 
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
-    const limitedValue = value.slice(0, VALIDATION_RULES.description.max);
-    setDescription(limitedValue);
+    let limited = '';
+    let charCount = 0;
+    
+    for (let i = 0; i < value.length; i++) {
+      if (value[i] === '\r' && value[i + 1] === '\n') {
+        if (charCount + 2 <= VALIDATION_RULES.description.max) {
+          limited += '\r\n';
+          charCount += 2;
+          i++;
+        } else {
+          break;
+        }
+      } else {
+        const charValue = (value[i] === '\n' || value[i] === '\r') ? 2 : 1;
+        if (charCount + charValue <= VALIDATION_RULES.description.max) {
+          limited += value[i];
+          charCount += charValue;
+        } else {
+          break;
+        }
+      }
+    }
+    
+    setDescription(limited);
     if (validationErrors.description) {
       setValidationErrors(prev => ({ ...prev, description: undefined }));
     }
@@ -1072,11 +1247,15 @@ export default function EventModal({
 
   const isFieldDisabled = false;
 
-  if (isSaving) {
+  if (isSaving || isLoadingEventDetails) {
     return (
       <div className={styles.modalOverlay}>
         <div className={styles.modal}>
-          <LoadingIndicator text={mode === 'create' ? "Создаем событие..." : "Сохраняем изменения..."} />
+          <LoadingIndicator text={
+            isSaving 
+              ? (mode === 'create' ? "Создаем событие..." : "Сохраняем изменения...") 
+              : "Загружаем данные события..."
+          } />
         </div>
       </div>
     );
@@ -1100,7 +1279,6 @@ export default function EventModal({
                     value={formData.title || ''}
                     onChange={handleTitleChange}
                     placeholder="Название *"
-                    maxLength={VALIDATION_RULES.title.max}
                   />
                   {mode === 'create' && (
                     <div className={styles.apiSelectorWrapper} ref={apiSelectorRef}>
@@ -1150,7 +1328,7 @@ export default function EventModal({
                     marginLeft: 'auto',
                     marginTop: '4px'
                   }}>
-                    {(formData.title || '').length}/{VALIDATION_RULES.title.max}
+                    {countCharacters(formData.title || '')}/{VALIDATION_RULES.title.max}
                   </span>
                 </div>
               </div>
@@ -1162,7 +1340,6 @@ export default function EventModal({
                   value={description}
                   onChange={handleDescriptionChange}
                   placeholder="Описание события..."
-                  maxLength={VALIDATION_RULES.description.max}
                   disabled={isFieldDisabled}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
@@ -1174,7 +1351,7 @@ export default function EventModal({
                     color: 'var(--color-text-muted)',
                     marginLeft: 'auto'
                   }}>
-                    {description.length}/{VALIDATION_RULES.description.max}
+                    {countCharacters(description)}/{VALIDATION_RULES.description.max}
                   </span>
                 </div>
               </div>
@@ -1283,14 +1460,18 @@ export default function EventModal({
                     />
                   </div>
                   <div className={styles.fieldGroup}>
-                    <input
-                      type="text"
+                    <select
                       className={styles.input}
                       value={ageLimit}
                       onChange={(e) => setAgeLimit(e.target.value)}
-                      placeholder="Ограничение"
                       disabled={isFieldDisabled}
-                    />
+                    >
+                      {AGE_LIMITS.map((limit) => (
+                        <option key={limit.value} value={limit.value}>
+                          {limit.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
