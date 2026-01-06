@@ -8,13 +8,13 @@ import { useThemedColors } from '@/hooks/useThemedColors';
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
-    Image,
-    Linking,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Image,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -404,29 +404,37 @@ const AboutPage = () => {
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: Colors.blue2 }]}>
+          <Text style={[styles.sectionTitle, { color: Colors.blue2 }]}>
             Поддержка и обратная связь
-        </Text>
-        
-        <Text style={[styles.contactText, { color: colors.black }]}>
+          </Text>
+          
+          <Text style={[styles.contactText, { color: colors.black }]}>
             По вопросам работы приложения, предложениям и сообщениям об ошибках:
-        </Text>
+          </Text>
 
-        <TouchableOpacity 
+          <TouchableOpacity 
             style={styles.feedbackButton}
             onPress={handleFeedbackPress}
             activeOpacity={0.7}
-        >
+          >
             <Text style={styles.feedbackButtonText}>Форма обратной связи</Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
 
-        <TouchableOpacity 
+          <TouchableOpacity 
+            style={[styles.feedbackButton, { marginTop: 8 }]}
+            onPress={() => Linking.openURL('mailto:necrodwarf.org@gmail.com')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.feedbackButtonText}>Написать на почту</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
             style={[styles.feedbackButton, { marginTop: 8 }]}
             onPress={() => Linking.openURL('https://friendsheep.ru')}
             activeOpacity={0.7}
-        >
+          >
             <Text style={styles.feedbackButtonText}>Наш сайт</Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
