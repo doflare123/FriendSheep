@@ -285,219 +285,219 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     )}
     
     <form onSubmit={handleSubmit} className={styles.createGroupForm}>
-        <div className={styles.formRow}>
-          <div className={styles.leftColumn}>
-            <div className={styles.formGroup}>
-              <input
-                type="text"
-                className={`${styles.nameInput} ${errors.name ? styles.error : ''}`}
-                placeholder="Название *"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                maxLength={VALIDATION_RULES.name.max}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                {errors.name && <span className={styles.errorMessage}>{errors.name}</span>}
-                <span style={{ 
-                  fontSize: '12px', 
-                  color: 'var(--color-text-muted)',
-                  marginLeft: 'auto',
-                  marginTop: '4px'
-                }}>
-                  {getCharacterCount('name')}
-                </span>
-              </div>
+      <div className={styles.formRow}>
+        <div className={styles.leftColumn}>
+          <div className={styles.formGroup}>
+            <input
+              type="text"
+              className={`${styles.nameInput} ${errors.name ? styles.error : ''}`}
+              placeholder="Название *"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              maxLength={VALIDATION_RULES.name.max}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {errors.name && <span className={styles.errorMessage}>{errors.name}</span>}
+              <span style={{ 
+                fontSize: '12px', 
+                color: 'var(--color-text-muted)',
+                marginLeft: 'auto',
+                marginTop: '4px'
+              }}>
+                {getCharacterCount('name')}
+              </span>
             </div>
+          </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Краткое описание *</label>
-              <input
-                type="text"
-                className={`${styles.formInput} ${errors.shortDescription ? styles.error : ''}`}
-                value={formData.shortDescription}
-                onChange={(e) => handleInputChange('shortDescription', e.target.value)}
-                maxLength={VALIDATION_RULES.shortDescription.max}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                {errors.shortDescription && <span className={styles.errorMessage}>{errors.shortDescription}</span>}
-                <span style={{ 
-                  fontSize: '12px', 
-                  color: 'var(--color-text-muted)',
-                  marginLeft: 'auto',
-                  marginTop: '4px'
-                }}>
-                  {getCharacterCount('shortDescription')}
-                </span>
-              </div>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Краткое описание *</label>
+            <input
+              type="text"
+              className={`${styles.formInput} ${errors.shortDescription ? styles.error : ''}`}
+              value={formData.shortDescription}
+              onChange={(e) => handleInputChange('shortDescription', e.target.value)}
+              maxLength={VALIDATION_RULES.shortDescription.max}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {errors.shortDescription && <span className={styles.errorMessage}>{errors.shortDescription}</span>}
+              <span style={{ 
+                fontSize: '12px', 
+                color: 'var(--color-text-muted)',
+                marginLeft: 'auto',
+                marginTop: '4px'
+              }}>
+                {getCharacterCount('shortDescription')}
+              </span>
             </div>
+          </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Описание *</label>
-              <textarea
-                className={`${styles.formTextarea} ${errors.description ? styles.error : ''}`}
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                rows={4}
-                maxLength={VALIDATION_RULES.description.max}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                {errors.description && <span className={styles.errorMessage}>{errors.description}</span>}
-                <span style={{ 
-                  fontSize: '12px', 
-                  color: 'var(--color-text-muted)',
-                  marginLeft: 'auto',
-                  marginTop: '4px'
-                }}>
-                  {getCharacterCount('description')}
-                </span>
-              </div>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Описание *</label>
+            <textarea
+              className={`${styles.formTextarea} ${errors.description ? styles.error : ''}`}
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              rows={4}
+              maxLength={VALIDATION_RULES.description.max}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {errors.description && <span className={styles.errorMessage}>{errors.description}</span>}
+              <span style={{ 
+                fontSize: '12px', 
+                color: 'var(--color-text-muted)',
+                marginLeft: 'auto',
+                marginTop: '4px'
+              }}>
+                {getCharacterCount('description')}
+              </span>
             </div>
+          </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Контакты</label>
-              <div className={styles.socialIcons}>
-                {formData.socialContacts.map((contact, index) => (
-                  <div key={index} className={styles.socialIconWrapper}>
-                    <SocialIcon
-                      href={contact.link}
-                      alt={contact.name}
-                      size={50}
-                    />
-                  </div>
-                ))}
-                <div
-                  className={styles.addSocialIcon}
-                  onClick={() => setIsSocialModalOpen(true)}
-                >
-                  <Image
-                    src="/add_button.png"
-                    alt="Add social"
-                    width={50}
-                    height={50}
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Контакты</label>
+            <div className={styles.socialIcons}>
+              {formData.socialContacts.map((contact, index) => (
+                <div key={index} className={styles.socialIconWrapper}>
+                  <SocialIcon
+                    href={contact.link}
+                    alt={contact.name}
+                    size={50}
                   />
                 </div>
+              ))}
+              <div
+                className={styles.addSocialIcon}
+                onClick={() => setIsSocialModalOpen(true)}
+              >
+                <Image
+                  src="/add_button.png"
+                  alt="Add social"
+                  width={50}
+                  height={50}
+                />
               </div>
             </div>
           </div>
+        </div>
 
-          <div className={styles.rightColumn}>
-            <div className={styles.groupImageSection}>
-              <div className={styles.groupImagePreview} onClick={handleImageClick}>
-                <Image
-                  src={selectedImage}
-                  alt="Group preview"
-                  width={180}
-                  height={180}
-                  className={styles.previewImage}
-                />
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                />
-              </div>
-            </div>
-
-            <div className={styles.formGroup}>
+        <div className={styles.rightColumn}>
+          <div className={styles.groupImageSection}>
+            <div className={styles.groupImagePreview} onClick={handleImageClick}>
+              <Image
+                src={selectedImage}
+                alt="Group preview"
+                width={180}
+                height={180}
+                className={styles.previewImage}
+              />
               <input
-                type="text"
-                className={styles.cityInput}
-                placeholder="Город"
-                value={formData.city}
-                onChange={(e) => handleInputChange('city', e.target.value)}
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                style={{ display: 'none' }}
               />
             </div>
+          </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  className={styles.privateCheckbox}
-                  checked={formData.isPrivate}
-                  onChange={(e) => handleInputChange('isPrivate', e.target.checked)}
-                />
-                Эта группа приватная?
-              </label>
-            </div>
+          <div className={styles.formGroup}>
+            <input
+              type="text"
+              className={styles.cityInput}
+              placeholder="Город"
+              value={formData.city}
+              onChange={(e) => handleInputChange('city', e.target.value)}
+            />
+          </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Категории: *</label>
-              <div className={`${styles.categoriesRow} ${errors.categories ? styles.error : ''}`}>
-                {categories.map((category) => (
-                  <div
-                    key={category.id}
-                    className={`${styles.categoryItem} ${formData.categories.includes(category.id) ? styles.selected : ''}`}
-                    onClick={() => toggleCategory(category.id)}
-                    title={category.name}
-                  >
-                    <Image
-                      src={category.icon}
-                      alt={category.name}
-                      width={20}
-                      height={20}
-                    />
-                  </div>
-                ))}
-              </div>
-              {errors.categories && <span className={styles.errorMessage}>{errors.categories}</span>}
+          <div className={styles.formGroup}>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                className={styles.privateCheckbox}
+                checked={formData.isPrivate}
+                onChange={(e) => handleInputChange('isPrivate', e.target.checked)}
+              />
+              Эта группа приватная?
+            </label>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Категории: *</label>
+            <div className={`${styles.categoriesRow} ${errors.categories ? styles.error : ''}`}>
+              {categories.map((category) => (
+                <div
+                  key={category.id}
+                  className={`${styles.categoryItem} ${formData.categories.includes(category.id) ? styles.selected : ''}`}
+                  onClick={() => toggleCategory(category.id)}
+                  title={category.name}
+                >
+                  <Image
+                    src={category.icon}
+                    alt={category.name}
+                    width={20}
+                    height={20}
+                  />
+                </div>
+              ))}
             </div>
+            {errors.categories && <span className={styles.errorMessage}>{errors.categories}</span>}
           </div>
         </div>
+      </div>
 
-        <div className={styles.actionButtons}>
+      <div className={styles.actionButtons}>
+        <button 
+          type="submit" 
+          className={styles.createButton}
+          disabled={isLoading}
+          style={{
+            opacity: isLoading ? 0.7 : 1,
+            cursor: isLoading ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
+        </button>
+        
+        {isEditMode && onDelete && (
           <button 
-            type="submit" 
-            className={styles.createButton}
+            type="button"
+            className={styles.deleteButton}
+            onClick={handleDeleteClick}
             disabled={isLoading}
-            style={{
-              opacity: isLoading ? 0.7 : 1,
-              cursor: isLoading ? 'not-allowed' : 'pointer'
-            }}
           >
-            {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
+            Удалить
           </button>
-          
-          {isEditMode && onDelete && (
-            <button 
-              type="button"
-              className={styles.deleteButton}
-              onClick={handleDeleteClick}
-              disabled={isLoading}
-            >
-              Удалить
-            </button>
-          )}
-        </div>
-      </form>
+        )}
+      </div>
+    </form>
 
-      <SocialContactsModal
-        isOpen={isSocialModalOpen}
-        onClose={() => setIsSocialModalOpen(false)}
-        onSave={handleSocialContactsSave}
-        initialContacts={formData.socialContacts}
+    <SocialContactsModal
+      isOpen={isSocialModalOpen}
+      onClose={() => setIsSocialModalOpen(false)}
+      onSave={handleSocialContactsSave}
+      initialContacts={formData.socialContacts}
+    />
+
+    <DeleteConfirmModal
+      isOpen={isDeleteModalOpen}
+      onClose={handleDeleteModalClose}
+      onConfirm={handleDeleteConfirm}
+      step={deleteStep}
+      groupName={groupName || formData.name}
+    />
+
+    {showCropModal && tempImageFile && (
+      <ImageCropModal
+        imageFile={tempImageFile}
+        onSave={handleCropSave}
+        onCancel={handleCropCancel}
+        title="Настройте изображение группы"
+        cropShape="square"
+        finalSize={500}
       />
-
-      <DeleteConfirmModal
-        isOpen={isDeleteModalOpen}
-        onClose={handleDeleteModalClose}
-        onConfirm={handleDeleteConfirm}
-        step={deleteStep}
-        groupName={groupName || formData.name}
-      />
-
-      {showCropModal && tempImageFile && (
-        <ImageCropModal
-          imageFile={tempImageFile}
-          onSave={handleCropSave}
-          onCancel={handleCropCancel}
-          title="Настройте изображение группы"
-          cropShape="square"
-          finalSize={500}
-        />
-      )}
-    </>
+    )}
+  </>
   );
 };
 

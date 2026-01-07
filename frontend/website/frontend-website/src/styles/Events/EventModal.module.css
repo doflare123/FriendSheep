@@ -1,3 +1,4 @@
+  
   .modalOverlay {
     position: fixed;
     top: 0;
@@ -10,7 +11,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 10001;
     padding: 20px;
     box-sizing: border-box;
   }
@@ -28,6 +29,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    z-index: 10002;
   }
 
   .closeButton {
@@ -237,7 +239,7 @@
     border: 2px solid var(--color-primary-blue-dark);
     border-radius: 16px;
     overflow: hidden;
-    z-index: 1003;
+    z-index: 10003;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     margin-top: 4px;
   }
@@ -608,7 +610,7 @@
   border: 2px solid var(--color-primary-blue-dark);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 1001;
+  z-index: 10003;
   min-width: 180px;
   overflow: hidden;
   animation: slideDown 0.2s ease;

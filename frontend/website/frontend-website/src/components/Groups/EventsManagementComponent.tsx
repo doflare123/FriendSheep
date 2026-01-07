@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import EventCard from '../Events/EventCard';
 import styles from '../../styles/Groups/admin/EventsManagement.module.css';
@@ -41,9 +42,14 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventCardProps | undefined>(undefined);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [mounted, setMounted] = useState(false);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -169,7 +175,6 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
     setEditingEvent(undefined);
   };
 
-  // Перезагрузка страницы после сохранения
   const handleEventSave = () => {
     window.location.reload();
   };
@@ -200,172 +205,177 @@ const EventsManagementComponent: React.FC<EventsManagementComponentProps> = ({ g
   };
 
   return (
-    <div className={styles.eventsContainer}>
-      <div className={styles.controlsSection}>
-        <div className={styles.searchWrapper}>
-          <input
-            type="text"
-            placeholder="Найти событие..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={styles.searchInput}
-          />
-          <button 
-            className={styles.sortButton}
-            onClick={() => setShowSortMenu(!showSortMenu)}
-          >
-            <Image src="/sorting.png" alt="sorting" width={20} height={20} />
-          </button>
-          
-          {showSortMenu && (
-            <div ref={sortMenuRef} className={styles.sortMenu}>
-              <div className={styles.sortGroup}>
-                <h4 className={styles.sortGroupTitle}>Сортировка по категориям</h4>
-                <label className={styles.sortOption}>
-                  <input
-                    type="radio"
-                    name="category"
-                    checked={sortOptions.category === 'all'}
-                    onChange={() => handleCategoryChange('all')}
-                  />
-                  <span>Все</span>
-                </label>
-                <label className={styles.sortOption}>
-                  <input
-                    type="radio"
-                    name="category"
-                    checked={sortOptions.category === 'games'}
-                    onChange={() => handleCategoryChange('games')}
-                  />
-                  <span>Видеоигры</span>
-                </label>
-                <label className={styles.sortOption}>
-                  <input
-                    type="radio"
-                    name="category"
-                    checked={sortOptions.category === 'movies'}
-                    onChange={() => handleCategoryChange('movies')}
-                  />
-                  <span>Медиа</span>
-                </label>
-                <label className={styles.sortOption}>
-                  <input
-                    type="radio"
-                    name="category"
-                    checked={sortOptions.category === 'other'}
-                    onChange={() => handleCategoryChange('other')}
-                  />
-                  <span>Другое</span>
-                </label>
-              </div>
-
-              <div className={styles.sortGroup}>
-                <h4 className={styles.sortGroupTitle}>Сортировка по дате</h4>
-                <label className={styles.sortOption}>
-                  <input
-                    type="radio"
-                    name="date"
-                    checked={sortOptions.date === 'age_asc'}
-                    onChange={() => handleDateChange('age_asc')}
-                  />
-                  <span>По возрастанию</span>
-                </label>
-                <label className={styles.sortOption}>
-                  <input
-                    type="radio"
-                    name="date"
-                    checked={sortOptions.date === 'age_desc'}
-                    onChange={() => handleDateChange('age_desc')}
-                  />
-                  <span>По убыванию</span>
-                </label>
-              </div>
-
-              <div className={styles.sortGroup}>
-                <h4 className={styles.sortGroupTitle}>Сортировка по участникам</h4>
-                <label className={styles.sortOption}>
-                  <input
-                    type="radio"
-                    name="participants"
-                    checked={sortOptions.participants === 'participants_asc'}
-                    onChange={() => handleParticipantsChange('participants_asc')}
-                  />
-                  <span>По возрастанию</span>
-                </label>
-                <label className={styles.sortOption}>
-                  <input
-                    type="radio"
-                    name="participants"
-                    checked={sortOptions.participants === 'participants_desc'}
-                    onChange={() => handleParticipantsChange('participants_desc')}
-                  />
-                  <span>По убыванию</span>
-                </label>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <button 
-          className={styles.createButton}
-          onClick={handleCreateEvent}
-        >
-          Создать
-        </button>
-      </div>
-
-      <div className={styles.eventsList}>
-        {canScrollUp && (
-          <button className={`${styles.scrollButton} ${styles.scrollUp}`} onClick={scrollUp}>
-            ↑
-          </button>
-        )}
-
-        <div 
-          ref={scrollContainerRef}
-          className={styles.scrollContainer}
-          onScroll={checkScrollability}
-        >
-          {filteredAndSortedEvents.length === 0 ? (
-            <div className={styles.emptyState}>
-              <div className={styles.emptyText}>
-                {searchTerm ? 'События не найдены' : 'Нет событий'}
-              </div>
-            </div>
-          ) : (
-            <div className={styles.eventsGrid}>
-              {filteredAndSortedEvents.map((event) => (
-                <div key={event.id} className={styles.eventCardWrapper}>
-                  <div className={styles.eventCardScaler}>
-                    <EventCard
-                      {...event}
-                      isEditMode={true}
-                      onEdit={() => handleEditEvent(event.id)}
+    <>
+      <div className={styles.eventsContainer}>
+        <div className={styles.controlsSection}>
+          <div className={styles.searchWrapper}>
+            <input
+              type="text"
+              placeholder="Найти событие..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchInput}
+            />
+            <button 
+              className={styles.sortButton}
+              onClick={() => setShowSortMenu(!showSortMenu)}
+            >
+              <Image src="/sorting.png" alt="sorting" width={20} height={20} />
+            </button>
+            
+            {showSortMenu && (
+              <div ref={sortMenuRef} className={styles.sortMenu}>
+                <div className={styles.sortGroup}>
+                  <h4 className={styles.sortGroupTitle}>Сортировка по категориям</h4>
+                  <label className={styles.sortOption}>
+                    <input
+                      type="radio"
+                      name="category"
+                      checked={sortOptions.category === 'all'}
+                      onChange={() => handleCategoryChange('all')}
                     />
-                  </div>
+                    <span>Все</span>
+                  </label>
+                  <label className={styles.sortOption}>
+                    <input
+                      type="radio"
+                      name="category"
+                      checked={sortOptions.category === 'games'}
+                      onChange={() => handleCategoryChange('games')}
+                    />
+                    <span>Видеоигры</span>
+                  </label>
+                  <label className={styles.sortOption}>
+                    <input
+                      type="radio"
+                      name="category"
+                      checked={sortOptions.category === 'movies'}
+                      onChange={() => handleCategoryChange('movies')}
+                    />
+                    <span>Медиа</span>
+                  </label>
+                  <label className={styles.sortOption}>
+                    <input
+                      type="radio"
+                      name="category"
+                      checked={sortOptions.category === 'other'}
+                      onChange={() => handleCategoryChange('other')}
+                    />
+                    <span>Другое</span>
+                  </label>
                 </div>
-              ))}
-            </div>
-          )}
+
+                <div className={styles.sortGroup}>
+                  <h4 className={styles.sortGroupTitle}>Сортировка по дате</h4>
+                  <label className={styles.sortOption}>
+                    <input
+                      type="radio"
+                      name="date"
+                      checked={sortOptions.date === 'age_asc'}
+                      onChange={() => handleDateChange('age_asc')}
+                    />
+                    <span>По возрастанию</span>
+                  </label>
+                  <label className={styles.sortOption}>
+                    <input
+                      type="radio"
+                      name="date"
+                      checked={sortOptions.date === 'age_desc'}
+                      onChange={() => handleDateChange('age_desc')}
+                    />
+                    <span>По убыванию</span>
+                  </label>
+                </div>
+
+                <div className={styles.sortGroup}>
+                  <h4 className={styles.sortGroupTitle}>Сортировка по участникам</h4>
+                  <label className={styles.sortOption}>
+                    <input
+                      type="radio"
+                      name="participants"
+                      checked={sortOptions.participants === 'participants_asc'}
+                      onChange={() => handleParticipantsChange('participants_asc')}
+                    />
+                    <span>По возрастанию</span>
+                  </label>
+                  <label className={styles.sortOption}>
+                    <input
+                      type="radio"
+                      name="participants"
+                      checked={sortOptions.participants === 'participants_desc'}
+                      onChange={() => handleParticipantsChange('participants_desc')}
+                    />
+                    <span>По убыванию</span>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button 
+            className={styles.createButton}
+            onClick={handleCreateEvent}
+          >
+            Создать
+          </button>
         </div>
 
-        {canScrollDown && (
-          <button className={`${styles.scrollButton} ${styles.scrollDown}`} onClick={scrollDown}>
-            ↓
-          </button>
-        )}
+        <div className={styles.eventsList}>
+          {canScrollUp && (
+            <button className={`${styles.scrollButton} ${styles.scrollUp}`} onClick={scrollUp}>
+              ↑
+            </button>
+          )}
+
+          <div 
+            ref={scrollContainerRef}
+            className={styles.scrollContainer}
+            onScroll={checkScrollability}
+          >
+            {filteredAndSortedEvents.length === 0 ? (
+              <div className={styles.emptyState}>
+                <div className={styles.emptyText}>
+                  {searchTerm ? 'События не найдены' : 'Нет событий'}
+                </div>
+              </div>
+            ) : (
+              <div className={styles.eventsGrid}>
+                {filteredAndSortedEvents.map((event) => (
+                  <div key={event.id} className={styles.eventCardWrapper}>
+                    <div className={styles.eventCardScaler}>
+                      <EventCard
+                        {...event}
+                        isEditMode={true}
+                        onEdit={() => handleEditEvent(event.id)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {canScrollDown && (
+            <button className={`${styles.scrollButton} ${styles.scrollDown}`} onClick={scrollDown}>
+              ↓
+            </button>
+          )}
+        </div>
       </div>
 
-      <EventModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        onSave={handleEventSave}
-        onDelete={modalMode === 'edit' ? handleEventDelete : undefined}
-        eventData={editingEvent}
-        mode={modalMode}
-        groupId={groupId ? Number(groupId) : undefined}
-      />
-    </div>
+      {mounted && isModalOpen && createPortal(
+        <EventModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          onSave={handleEventSave}
+          onDelete={modalMode === 'edit' ? handleEventDelete : undefined}
+          eventData={editingEvent}
+          mode={modalMode}
+          groupId={groupId ? Number(groupId) : undefined}
+        />,
+        document.body
+      )}
+    </>
   );
 };
 
