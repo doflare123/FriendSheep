@@ -9,7 +9,7 @@ import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.
 import {convertUstoId} from '@/api/search/convertUstoId'
 
 export const USER_DATA_UPDATED_EVENT = 'userDataUpdated';
-export const MOBILE_APP_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+export const MOBILE_APP_URL = 'https://www.rustore.ru/catalog/app/com.anonymous.FriendShip';
 
 export function checkDeviceAndRedirect(router: AppRouterInstance) {
     if (typeof window === 'undefined') return;
