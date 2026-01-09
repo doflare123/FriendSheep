@@ -406,7 +406,7 @@
 
 .userStatus {
   font-size: 14px;
-  color: var(--color-primary-blue);
+  color: var(--color-text-primary);
   margin: 0 0 4px 0;
   font-weight: 500;
 }

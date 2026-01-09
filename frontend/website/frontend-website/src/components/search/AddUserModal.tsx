@@ -34,7 +34,6 @@ export default function AddUserModal({ isOpen, onClose, userId }: AddUserModalPr
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Загрузка групп пользователя при открытии модалки
   useEffect(() => {
     if (isOpen) {
       loadUserGroups();
@@ -50,9 +49,11 @@ export default function AddUserModal({ isOpen, onClose, userId }: AddUserModalPr
       
       if (Array.isArray(groups)) {
         setUserGroups(groups);
+      } else if (groups === null) {
+        setUserGroups([]);
       } else {
         setUserGroups([]);
-        showNotification(500, 'Неверный формат данных групп');
+        showNotification(500, 'Ошибка загрузки групп');
       }
     } catch (error: any) {
       console.error('Ошибка при загрузке групп:', error);
@@ -66,7 +67,6 @@ export default function AddUserModal({ isOpen, onClose, userId }: AddUserModalPr
     }
   };
 
-  // Закрытие модалки по Escape
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

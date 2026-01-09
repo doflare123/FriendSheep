@@ -43,6 +43,7 @@
   margin-bottom: 20px;
   padding-right: 50px;
   position: relative;
+  overflow: visible;
 }
 
 .avatarContainer {
@@ -86,7 +87,7 @@
   flex-direction: column;
   justify-content: flex-start;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .userNameContainer {
@@ -95,7 +96,7 @@
   justify-content: flex-start;
   gap: 8px;
   margin-bottom: 4px;
-  overflow: hidden;
+  overflow: visible;
   max-width: 100%;
 }
 
@@ -106,7 +107,7 @@
   position: relative;
   min-width: 0;
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .userName {
@@ -143,6 +144,7 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .telegramBadge {
@@ -153,6 +155,7 @@
   align-items: center;
   width: 20px;
   height: 20px;
+  overflow: visible;
 }
 
 .telegramBadge:hover .telegramTooltip {
@@ -200,6 +203,7 @@
   font-size: 14px;
   white-space: normal;
   width: 450px;
+  max-width: calc(100vw - 40px);
   z-index: 9999;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   line-height: 1.4;
@@ -688,5 +692,36 @@
     position: static;
     margin-top: 4px;
     text-align: left;
+  }
+}
+
+@media (max-width: 768px) {
+  .telegramTooltip {
+    width: 300px;
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .telegramTooltip {
+    width: 250px;
+    font-size: 12px;
+    padding: 8px 12px;
+    left: auto;
+    right: -10px;
+    transform: none;
+  }
+  
+  .telegramTooltip::after {
+    left: auto;
+    right: 20px;
+    transform: none;
+  }
+  
+  .telegramTooltip::before {
+    left: auto;
+    right: 21px;
+    transform: none;
   }
 }

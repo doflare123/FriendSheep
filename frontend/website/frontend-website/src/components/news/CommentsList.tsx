@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import styles from '@/styles/news/CommentsList.module.css';
-import {formatTime} from '@/Constants'
+import {formatTime, formatDate} from '@/Constants'
 import { Comment } from '@/types/news';
 
 interface CommentsListProps {
@@ -35,7 +35,7 @@ function CommentItem({ comment }: CommentItemProps) {
       <div className={styles.commentContent}>
         <div className={styles.commentHeader}>
           <span className={styles.userName}>{comment.name}</span>
-          <span className={styles.commentDate}>4 мая</span>
+          <span className={styles.commentDate}>{formatDate(comment.created_time)}</span>
         </div>
         <div className={styles.commentText}>
           {comment.text}

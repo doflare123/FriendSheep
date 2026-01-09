@@ -663,8 +663,8 @@ export default function SearchPage() {
                                 >
                                   {user.name}
                                 </h3>
+                                <p className={styles.userDescription}>@{user.us}</p>
                                 <p className={styles.userStatus}>{user.status}</p>
-                                <p className={styles.userDescription}>{user.us}</p>
                               </div>
                             </div>
                             
