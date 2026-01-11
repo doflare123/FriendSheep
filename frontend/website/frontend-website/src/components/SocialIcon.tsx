@@ -1,17 +1,21 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { getSocialIcon } from '@/Constants';
+import ConfirmModal from './ConfirmModal';
 
-// Компонент для иконок социальных сетей
 interface SocialIconProps {
     href: string;
     alt: string;
     size: number;
+    onClick?: (e: React.MouseEvent) => void;
+    isClickable?: boolean;
 }
 
-const SocialIcon: React.FC<SocialIconProps> = ({ href, alt, size }) => {
+const SocialIcon: React.FC<SocialIconProps> = ({ href, alt, size, onClick, isClickable = false }) => {
+    const [showModal, setShowModal] = useState(false);
+    
     const isDiscord = href.toLowerCase().includes('discord') || 
                      alt.toLowerCase().includes('discord') || 
                      alt.toLowerCase().includes('ds');
@@ -20,21 +24,66 @@ const SocialIcon: React.FC<SocialIconProps> = ({ href, alt, size }) => {
         ? `${alt}\n*Деятельность организации запрещена на территории РФ`
         : alt;
     
+    const handleClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        
+        if (isClickable && onClick) {
+            onClick(e);
+        } else {
+            setShowModal(true);
+        }
+    };
+    
+    const handleConfirm = () => {
+        setShowModal(false);
+        window.open(href, '_blank', 'noopener,noreferrer');
+    };
+    
+    const handleCancel = () => {
+        setShowModal(false);
+    };
+    
+    if (isClickable) {
+        return (
+            <div 
+                onClick={handleClick}
+                className="social-icon"
+                title={title}
+                style={{ cursor: 'pointer' }}
+            >
+                <Image 
+                    src={getSocialIcon(href)} 
+                    alt={alt} 
+                    width={size} 
+                    height={size} 
+                />
+            </div>
+        );
+    }
+    
     return (
-        <a 
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="social-icon"
-            title={title}
-        >
-            <Image 
-                src={getSocialIcon(href)} 
-                alt={alt} 
-                width={size} 
-                height={size} 
+        <>
+            <div 
+                onClick={handleClick}
+                className="social-icon"
+                title={title}
+                style={{ cursor: 'pointer' }}
+            >
+                <Image 
+                    src={getSocialIcon(href)} 
+                    alt={alt} 
+                    width={size} 
+                    height={size} 
+                />
+            </div>
+            
+            <ConfirmModal 
+                isOpen={showModal}
+                onConfirm={handleConfirm}
+                onCancel={handleCancel}
+                url={href}
             />
-        </a>
+        </>
     );
 };
 

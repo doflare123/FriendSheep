@@ -233,7 +233,7 @@ export const clearUserData = (): void => {
 export const getCategoryIcon = (category: string): string => {
   const lowerCategory = category.toLowerCase();
   
-  if (lowerCategory.includes('games') || lowerCategory =='видеоигры') {
+  if (lowerCategory.includes('games') || lowerCategory =='видеоигры' || lowerCategory =='игры') {
     return '/events/games.png';
   } else if (lowerCategory.includes('movies') || lowerCategory.includes('медиа')) {
     return '/events/movies.png';

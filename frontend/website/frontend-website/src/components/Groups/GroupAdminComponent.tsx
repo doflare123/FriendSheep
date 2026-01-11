@@ -121,17 +121,19 @@ const GroupInfoSection: React.FC<{
 
       // Отправляем только изменённые поля
       await editGroup(
-        accessToken,
-        parseInt(groupId),
-        changedFields.name,
-        changedFields.description,
-        changedFields.small_description,
-        changedFields.city,
-        changedFields.categories,
-        changedFields.isPrivate,
-        changedFields.image,
-        changedFields.contacts
-      );
+      accessToken,
+      parseInt(groupId),
+      changedFields.name,
+      changedFields.description,
+      changedFields.small_description,
+      changedFields.city,
+      changedFields.categories,
+      changedFields.isPrivate,
+      changedFields.image,
+      changedFields.contacts
+    );
+
+    window.location.reload();
 
       // Обновляем локальные данные группы
       if (onGroupDataUpdate) {

@@ -14,6 +14,7 @@ import { showNotification } from '@/utils';
 import { getOwnGroups } from '@/api/get_owngroups';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import ConfirmModal from '@/components/ConfirmModal';
 import type { EventFullResponse } from '@/types/apiTypes';
 
 interface EventDetailModalProps {
@@ -36,6 +37,9 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
   const [groupName, setGroupName] = useState<string>('');
   const [groupId, setGroupId] = useState<number | null>(null);
   const [isVerifiedCreator, setIsVerifiedCreator] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedUrl, setSelectedUrl] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -87,7 +91,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
         }
       }
     } catch (error) {
-      console.error('Ошибка при загрузке информации о группе:', error);
+      console.error('Ошибка при загрузке информации о группы:', error);
     }
   };
 
@@ -154,6 +158,25 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
     }
   };
 
+  const handleExternalLinkClick = (e: React.MouseEvent, url: string, query?: string) => {
+    e.preventDefault();
+    setSelectedUrl(url);
+    setSearchQuery(query || '');
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmNavigation = () => {
+    setShowConfirmModal(false);
+    window.open(selectedUrl, '_blank', 'noopener,noreferrer');
+    setSearchQuery('');
+  };
+
+  const handleCancelNavigation = () => {
+    setShowConfirmModal(false);
+    setSelectedUrl('');
+    setSearchQuery('');
+  };
+
   if (!isOpen) return null;
 
   const formatDate = (dateString: string) => {
@@ -209,139 +232,151 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
   const locationIcon = convertSessionPlaceToLocation(session.session_place);
 
   const modalContent = (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>{session.title}</h2>
-          <button className={styles.closeButton} onClick={onClose}>
-            <Image 
-              src="/icons/close.png" 
-              alt="Закрыть" 
-              width={24} 
-              height={24}
-            />
-          </button>
-        </div>
-
-        <div className={styles.eventImageContainer}>
-          <Image
-            src={session.image_url}
-            alt={session.title}
-            fill
-            className={styles.eventImage}
-          />
-          <div className={styles.participantsBadge}>
-            <Image 
-              src={`/events/${locationIcon}.png`} 
-              alt={locationIcon} 
-              width={20} 
-              height={20}
-            />
+    <>
+      <div className={styles.modalOverlay} onClick={onClose}>
+        <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.modalHeader}>
+            <h2 className={styles.modalTitle}>{session.title}</h2>
+            <button className={styles.closeButton} onClick={onClose}>
+              <Image 
+                src="/icons/close.png" 
+                alt="Закрыть" 
+                width={24} 
+                height={24}
+              />
+            </button>
           </div>
-        </div>
 
-        <div className={styles.eventInfo}>
-          <div className={styles.dateInfo}>
-            <span className={styles.dateValue} title="По местному времени">Дата проведения: {formatDate(session.start_time)}</span>
-          </div>
-          <div className={styles.durationInfo}>
-            <span>{formatDuration(session.duration)}</span>
-            <Image 
-              src="/events/clock.png" 
-              alt="Длительность" 
-              width={16} 
-              height={16}
+          <div className={styles.eventImageContainer}>
+            <Image
+              src={session.image_url}
+              alt={session.title}
+              fill
+              className={styles.eventImage}
             />
-          </div>
-        </div>
-
-        <div className={styles.eventDescription}>
-          <p>{metadata.Notes}</p>
-        </div>
-
-        {displayGenres.length > 0 && (
-          <div className={styles.genresSection}>
-            <span className={styles.genresLabel}>Жанры:</span>
-            <div className={styles.genresContainer}>
-              {displayGenres.map((genre, index) => (
-                <span key={index} className={styles.genreTag}>
-                  {genre}
-                </span>
-              ))}
+            <div className={styles.participantsBadge}>
+              <Image 
+                src={`/events/${locationIcon}.png`} 
+                alt={locationIcon} 
+                width={20} 
+                height={20}
+              />
             </div>
           </div>
-        )}
 
-        {(groupName || metadata.Fields?.publisher || metadata.Year || metadata.Location || metadata.AgeLimit) && (
-          <div className={styles.publisherInfo}>
-            {groupName && (
-              <div className={styles.publisherRow}>
-                <span className={styles.publisherLabel}>Группа:</span>
-                <div 
-                  className={`${styles.publisherValue} ${styles.underlined} ${styles.groupName}`}
-                  onClick={handleGroupClick}
-                >
-                  {groupName}
-                  <VerifiedBadge isVerified={isVerifiedCreator} size={16} />
+          <div className={styles.eventInfo}>
+            <div className={styles.dateInfo}>
+              <span className={styles.dateValue} title="По местному времени">Дата проведения: {formatDate(session.start_time)}</span>
+            </div>
+            <div className={styles.durationInfo}>
+              <span>{formatDuration(session.duration)}</span>
+              <Image 
+                src="/events/clock.png" 
+                alt="Длительность" 
+                width={16} 
+                height={16}
+              />
+            </div>
+          </div>
+
+          <div className={styles.eventDescription}>
+            <p>{metadata.Notes}</p>
+          </div>
+
+          {displayGenres.length > 0 && (
+            <div className={styles.genresSection}>
+              <span className={styles.genresLabel}>Жанры:</span>
+              <div className={styles.genresContainer}>
+                {displayGenres.map((genre, index) => (
+                  <span key={index} className={styles.genreTag}>
+                    {genre}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(groupName || metadata.Fields?.publisher || metadata.Year || metadata.Location || metadata.AgeLimit) && (
+            <div className={styles.publisherInfo}>
+              {groupName && (
+                <div className={styles.publisherRow}>
+                  <span className={styles.publisherLabel}>Группа:</span>
+                  <div 
+                    className={`${styles.publisherValue} ${styles.underlined} ${styles.groupName}`}
+                    onClick={handleGroupClick}
+                  >
+                    {groupName}
+                    <VerifiedBadge isVerified={isVerifiedCreator} size={16} />
+                  </div>
                 </div>
-              </div>
-            )}
-            {metadata.Fields?.publisher && (
-              <div className={styles.publisherRow}>
-                <span className={styles.publisherLabel}>Издатель:</span>
-                <a 
-                  href={getPublisherLink(metadata.Fields.publisher) || '#'}
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={`${styles.publisherValue} ${styles.underlined}`}
-                >
-                  {metadata.Fields.publisher}
-                </a>
-              </div>
-            )}
-            {metadata.Year && (
-              <div className={styles.publisherRow}>
-                <span className={styles.publisherLabel}>Год издания:</span>
-                <span className={styles.publisherValue}>{metadata.Year}</span>
-              </div>
-            )}
-            {metadata.Location && (
-              <div className={styles.publisherRow}>
-                <span className={styles.publisherLabel}>Место проведения:</span>
-                <a 
-                  href={getLocationLink(metadata.Location)}
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={`${styles.publisherValue} ${styles.underlined}`}
-                >
-                  {metadata.Location}
-                </a>
-              </div>
-            )}
-            {metadata.AgeLimit && (
-              <div className={styles.publisherRow}>
-                <span className={styles.publisherLabel}>Возрастное ограничение:</span>
-                <span className={styles.publisherValue}>{metadata.AgeLimit}</span>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+              {metadata.Fields?.publisher && (
+                <div className={styles.publisherRow}>
+                  <span className={styles.publisherLabel}>Издатель:</span>
+                  <span 
+                    onClick={(e) => handleExternalLinkClick(e, getPublisherLink(metadata.Fields.publisher) || '#', metadata.Fields.publisher)}
+                    className={`${styles.publisherValue} ${styles.underlined}`}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {metadata.Fields.publisher}
+                  </span>
+                </div>
+              )}
+              {metadata.Year && (
+                <div className={styles.publisherRow}>
+                  <span className={styles.publisherLabel}>Год издания:</span>
+                  <span className={styles.publisherValue}>{metadata.Year}</span>
+                </div>
+              )}
+              {metadata.Location && (
+                <div className={styles.publisherRow}>
+                  <span className={styles.publisherLabel}>Место проведения:</span>
+                  <span 
+                    onClick={(e) => {
+                      const locationLink = getLocationLink(metadata.Location);
+                      const isDirectUrl = isUrl(metadata.Location);
+                      handleExternalLinkClick(e, locationLink, isDirectUrl ? undefined : metadata.Location);
+                    }}
+                    className={`${styles.publisherValue} ${styles.underlined}`}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {metadata.Location}
+                  </span>
+                </div>
+              )}
+              {metadata.AgeLimit && (
+                <div className={styles.publisherRow}>
+                  <span className={styles.publisherLabel}>Возрастное ограничение:</span>
+                  <span className={styles.publisherValue}>{metadata.AgeLimit}</span>
+                </div>
+              )}
+            </div>
+          )}
 
-        {isCreator ? (
-          <div className={`${styles.joinButton} ${styles.creatorButton}`}>
-            Вы создатель
-          </div>
-        ) : (
-          <button 
-            className={`${styles.joinButton} ${session.is_sub ? styles.leaveButton : ''}`}
-            onClick={handleJoinOrLeave}
-            disabled={isActionLoading}
-          >
-            {isActionLoading ? 'Загрузка...' : (session.is_sub ? 'Отписаться' : 'Присоединиться')}
-          </button>
-        )}
+          {isCreator ? (
+            <div className={`${styles.joinButton} ${styles.creatorButton}`}>
+              Вы создатель
+            </div>
+          ) : (
+            <button 
+              className={`${styles.joinButton} ${session.is_sub ? styles.leaveButton : ''}`}
+              onClick={handleJoinOrLeave}
+              disabled={isActionLoading}
+            >
+              {isActionLoading ? 'Загрузка...' : (session.is_sub ? 'Отписаться' : 'Присоединиться')}
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+
+      <ConfirmModal 
+        isOpen={showConfirmModal}
+        onConfirm={handleConfirmNavigation}
+        onCancel={handleCancelNavigation}
+        url={searchQuery ? undefined : selectedUrl}
+        searchQuery={searchQuery || undefined}
+      />
+    </>
   );
 
   return createPortal(modalContent, document.body);

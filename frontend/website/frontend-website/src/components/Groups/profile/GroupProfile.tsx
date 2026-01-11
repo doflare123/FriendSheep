@@ -17,6 +17,7 @@ import {getUserInfo} from '@/api/profile/getOwnProfile';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import { showNotification } from '@/utils';
 import { useRouter } from 'next/navigation';
+import ConfirmModal from '@/components/ConfirmModal';
 
 const transformSessionsToEvents = (sessions: SessionWithMetadata[]): SectionData => {
   return {
@@ -55,6 +56,8 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
   const [isSubscribed, setIsSubscribed] = useState(groupData.subscription);
   const [isOwner, setIsOwner] = useState(false);
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedUrl, setSelectedUrl] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -168,6 +171,21 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
     }
   };
 
+  const handleContactClick = (url: string) => {
+    setSelectedUrl(url);
+    setShowModal(true);
+  };
+
+  const handleConfirmNavigation = () => {
+    setShowModal(false);
+    window.open(selectedUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCancelNavigation = () => {
+    setShowModal(false);
+    setSelectedUrl('');
+  };
+
   const eventsData = transformSessionsToEvents(groupData.sessions);
 
   if (isLoading) {
@@ -249,15 +267,21 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
                   <div 
                     key={index} 
                     className={styles.contactItem}
+                    onClick={() => handleContactClick(contact.link)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <div className={styles.contactIconWrapper}>
-                      <SocialIcon
-                        href={contact.link}
-                        alt={contact.name}
-                        size={52}
-                      />
+                      <div style={{ pointerEvents: 'none' }}>
+                        <SocialIcon
+                          href={contact.link}
+                          alt={contact.name}
+                          size={52}
+                        />
+                      </div>
                     </div>
-                    <span className={styles.contactName}>{contact.name}</span>
+                    <span className={styles.contactName}>
+                      {contact.name}
+                    </span>
                   </div>
                 ))
               ) : (
@@ -275,7 +299,8 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
                 {groupData.categories && groupData.categories.length > 0 && (
                   <div className={styles.categoryIcons}>
                     {groupData.categories.map((category, index) => {
-                      const categoryIconPath = getCategoryIcon(category);
+                      const ruCateg = getEventType(category);
+                      const categoryIconPath = getCategoryIcon(ruCateg);
                       const normalizedCategoryPath = categoryIconPath.startsWith('/') ? categoryIconPath : `/${categoryIconPath}`;
                       
                       return (
@@ -358,6 +383,13 @@ const GroupProfile: React.FC<GroupProfileProps> = ({ groupData }) => {
           )}
         </div>
       </div>
+
+      <ConfirmModal 
+        isOpen={showModal}
+        onConfirm={handleConfirmNavigation}
+        onCancel={handleCancelNavigation}
+        url={selectedUrl}
+      />
     </div>
   );
 };

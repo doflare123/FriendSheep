@@ -42,7 +42,6 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
         }));
         setContacts(mappedContacts);
       } else {
-        // Если нет контактов, добавляем один пустой
         setContacts([{
           id: `contact_${Date.now()}`,
           name: '',
@@ -70,7 +69,15 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
   };
 
   const removeContact = (contactId: string) => {
-    setContacts(prev => prev.filter(contact => contact.id !== contactId));
+    if (contacts.length === 1) {
+      setContacts([{
+        id: `contact_${Date.now()}`,
+        name: '',
+        link: ''
+      }]);
+    } else {
+      setContacts(prev => prev.filter(contact => contact.id !== contactId));
+    }
   };
 
   const handleSave = () => {
@@ -123,7 +130,7 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
         
         <div className={styles.socialModalBody}>
           {contacts.map((contact) => {
-            const icon = getSocialIcon(contact.name, contact.link);
+            const iconSrc = getSocialIcon(contact.link);
             const isDiscord = contact.link.toLowerCase().includes('discord') || 
                              contact.name.toLowerCase().includes('discord') || 
                              contact.name.toLowerCase().includes('ds');
@@ -135,7 +142,7 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
                   title={isDiscord ? "*Деятельность организации запрещена на территории РФ" : undefined}
                 >
                   <Image
-                    src={icon}
+                    src={iconSrc}
                     alt={contact.name || 'Иконка'}
                     width={80}
                     height={80}
@@ -166,15 +173,13 @@ const SocialContactsModal: React.FC<SocialContactsModalProps> = ({
                   </div>
                 </div>
                 
-                {contacts.length > 1 && (
-                  <button
-                    className={styles.removeContactButton}
-                    onClick={() => removeContact(contact.id)}
-                    title="Удалить контакт"
-                  >
-                    ×
-                  </button>
-                )}
+                <button
+                  className={styles.removeContactButton}
+                  onClick={() => removeContact(contact.id)}
+                  title="Удалить контакт"
+                >
+                  ×
+                </button>
               </div>
             );
           })}

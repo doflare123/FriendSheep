@@ -68,14 +68,21 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
     { id: 'other', name: 'Другое', icon: getCategoryIcon("other") }
   ];
 
+  const [isInitialized, setIsInitialized] = useState(false);
+
   useEffect(() => {
-    console.log('initialData changed:', {
-      imagePreview: initialData?.imagePreview,
-      selectedImage: selectedImage,
-      selectedImageFile: selectedImageFile
-    });
-    if (initialData) {
-      const newCategories = Array.isArray(initialData.categories) ? [...initialData.categories] : [];
+    console.log('useEffect triggered:', { initialData, isInitialized });
+    
+    if (initialData && !isInitialized) {
+      let newCategories: string[] = [];
+      
+      if (Array.isArray(initialData.categories)) {
+        newCategories = [...initialData.categories];
+      } else if (initialData.categories && typeof initialData.categories === 'object') {
+        newCategories = Object.values(initialData.categories);
+      }
+      
+      console.log('Setting categories:', newCategories);
       
       setFormData({
         name: initialData.name || '',
@@ -90,19 +97,10 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
       if (initialData.imagePreview) {
         setSelectedImage(initialData.imagePreview);
       }
+      
+      setIsInitialized(true);
     }
-  }, [
-    initialData?.name,
-    initialData?.shortDescription,
-    initialData?.small_description,
-    initialData?.description,
-    initialData?.city,
-    initialData?.isPrivate,
-    initialData?.private,
-    initialData?.imagePreview,
-    JSON.stringify(initialData?.categories),
-    JSON.stringify(initialData?.socialContacts)
-  ]);
+  }, [initialData, isInitialized]);
 
   const validateForm = () => {
     const newErrors = {
@@ -220,6 +218,10 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
       ...prev,
       socialContacts: contacts
     }));
+  };
+
+  const handleSocialIconClick = () => {
+    setIsSocialModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -362,6 +364,8 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({
                     href={contact.link}
                     alt={contact.name}
                     size={50}
+                    isClickable={true}
+                    onClick={handleSocialIconClick}
                   />
                 </div>
               ))}

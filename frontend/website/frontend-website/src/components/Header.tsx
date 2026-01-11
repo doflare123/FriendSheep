@@ -38,6 +38,26 @@ interface NotificationResponse {
 
 import { USER_DATA_UPDATED_EVENT } from '@/Constants';
 
+const STORAGE_KEY = 'notification_sounds_played';
+
+const getSoundPlayedIds = (): Set<string> => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch (error) {
+        console.error('Ошибка чтения localStorage:', error);
+        return new Set();
+    }
+};
+
+const saveSoundPlayedIds = (ids: Set<string>) => {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(ids)));
+    } catch (error) {
+        console.error('Ошибка сохранения в localStorage:', error);
+    }
+};
+
 export default function Header() {
     const { isLoggedIn, userData, logout, isLoading } = useAuth();
     const [showNotifications, setShowNotifications] = useState(false);
@@ -56,6 +76,7 @@ export default function Header() {
     const searchMenuTimeoutRef = useRef<NodeJS.Timeout>();
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const originalTitleRef = useRef<string>('');
+    const soundPlayedForRef = useRef<Set<string>>(getSoundPlayedIds());
 
     useEffect(() => {
         const checkMobile = () => {
@@ -128,18 +149,28 @@ export default function Header() {
             const accessToken = await getAccesToken(router);
             const data: NotificationResponse = await getNotif(accessToken);
             
-            const unreadNotifications = data.notifications?.filter(n => !n.viewed).length || 0;
-            const pendingInvites = data.invites?.filter(i => i.status === 'pending').length || 0;
-            const totalUnread = unreadNotifications + pendingInvites;
+            const unreadNotifications = data.notifications?.filter(n => !n.viewed) || [];
+            const pendingInvites = data.invites?.filter(i => i.status === 'pending') || [];
+            const totalUnread = unreadNotifications.length + pendingInvites.length;
             
-            if (totalUnread > unreadCount) {
+            const currentUnreadIds = new Set<string>();
+            unreadNotifications.forEach(n => currentUnreadIds.add(`notif-${n.id}`));
+            pendingInvites.forEach(i => currentUnreadIds.add(`invite-${i.id}`));
+            
+            const newUnreadIds = Array.from(currentUnreadIds).filter(
+                id => !soundPlayedForRef.current.has(id)
+            );
+            
+            if (newUnreadIds.length > 0) {
                 playNotificationSound();
                 
+                newUnreadIds.forEach(id => soundPlayedForRef.current.add(id));
+                saveSoundPlayedIds(soundPlayedForRef.current);
+                
                 if ('Notification' in window && Notification.permission === 'granted') {
-                    const newCount = totalUnread - unreadCount;
-                    const notificationText = newCount === 1 
+                    const notificationText = newUnreadIds.length === 1 
                         ? 'У вас новое уведомление!' 
-                        : `У вас ${newCount} новых уведомлений!`;
+                        : `У вас ${newUnreadIds.length} новых уведомлений!`;
                     
                     new Notification('FriendShip', {
                         body: notificationText,
