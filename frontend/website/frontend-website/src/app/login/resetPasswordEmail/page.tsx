@@ -26,7 +26,6 @@ export default function ResetPasswordEmailPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Валидация email
     if (!email.trim()) {
       showNotification(400, 'Введите email', 'warning');
       return;
@@ -39,16 +38,15 @@ export default function ResetPasswordEmailPage() {
       
       showNotification(200, 'Код отправлен на почту', 'success');
       
-      // Переход на следующую страницу
       router.push(`/login/resetPasswordCode?email=${email}&sessionId=${sessionId}`);
     } catch (error: any) {
       console.error('Ошибка при отправке email:', error);
       
-      const errorMessage = error?.response?.data?.message || 
-                          error?.message || 
-                          'Ошибка при отправке кода';
-      
       const statusCode = error?.response?.status || 500;
+      
+      const errorMessage = statusCode === 400 
+        ? 'Такого аккаунта нет'
+        : error?.response?.data?.message || error?.message || 'Ошибка при отправке кода';
       
       showNotification(statusCode, errorMessage, 'error');
     } finally {
