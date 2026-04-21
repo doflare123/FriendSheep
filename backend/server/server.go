@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	storage "friendship/S3"
 	"friendship/config"
 	"friendship/db"
@@ -51,6 +52,7 @@ func InitServer() (*Server, error) {
 		gin.SetMode(gin.DebugMode)
 		if err := db.AutoMigDB(postgres, &events.Event{}, &events.AgeLimit{}, &events.EventLocation{}, &events.Status{}, &events.EventsUser{}, &events.Genre{}, &events.EventGenre{}, &events.EventGenre{},
 			&statsusers.Genre{}, statsusers.PopSessionType{}, statsusers.SettingTile{}, &models.User{}, models.StatsProcessedEvent{},
+			&models.DaysWeek{}, &groups.Role_in_group{},
 			&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{}, &groups.GroupJoinInvite{}, &groups.GroupBlacklist{}, &groups.GroupActionLog{},
 		); err != nil {
 			logger.Error("Error with auto migration: %s", err)
@@ -99,7 +101,12 @@ func InitServer() (*Server, error) {
 	r.GET("/docs", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "../swagger/index.html")
 	})
-	db.Seeder(postgres)
+	if errs := db.Seeder(postgres); len(errs) > 0 {
+		for _, seedErr := range errs {
+			logger.Error("Seeder failed", "error", seedErr)
+		}
+		return nil, errors.Join(errs...)
+	}
 
 	s := &Server{
 		engine:               r,

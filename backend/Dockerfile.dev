@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine
+FROM golang:1.25-alpine
 
 WORKDIR /app
 
@@ -14,4 +14,4 @@ COPY .air.toml ./
 
 EXPOSE 8080
 
-CMD ["air"]
+CMD ["sh", "-c", "go test ./... && air"]

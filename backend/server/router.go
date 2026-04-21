@@ -33,7 +33,7 @@ func (s *Server) initRouters() {
 	//саб функции
 	imgsrv := sub.NewImgService(s.logger, s.S3, s.validators.Image)
 	subH := handlers.NewSubHandler(imgsrv)
-	routes.RegisterSubRoutes(s.engine, subH)
+	routes.RegisterSubRoutes(s.engine, subH, jwtMiddleware)
 
 	//регистрация групп
 	groupsrv := group.NewGroupService(s.logger, s.postgres)

@@ -20,7 +20,7 @@ func RegisterAuthRoutes(r *gin.Engine, authH handlers.AuthHandler) {
 	auth := r.Group("api/v2/auth")
 	{
 		auth.POST("/login", authH.Login)
-		auth.GET("/refresh", authH.RefreshToken)
+		auth.POST("/refresh", authH.RefreshToken)
 	}
 }
 

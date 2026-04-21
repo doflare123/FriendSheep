@@ -50,7 +50,7 @@ type AuthResponse struct {
 // @Failure      401   {object}  map[string]string  "Неверный пароль"
 // @Failure      404   {object}  map[string]string  "Пользователь не найден"
 // @Failure      500   {object}  map[string]string  "Ошибка сервера"
-// @Router       /api/v2/auth/refresh [get]
+// @Router       /api/v2/auth/refresh [post]
 func (h *authHandler) RefreshToken(c *gin.Context) {
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

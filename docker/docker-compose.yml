@@ -45,7 +45,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_DB: FriendSheep
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     networks:
       - appnet
 
