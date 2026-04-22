@@ -25,13 +25,24 @@ Goal: all active v2 backend behavior covered in `tests/`. Old commented/disabled
   - protected event details requires auth
 - Groups routes:
   - representative public/operator/admin groups routes require auth
+- Middleware:
+  - auth token format, invalid token, refresh-token rejection
+- JWT utils:
+  - access/refresh token round trip
+  - wrong token type rejection
+  - empty secret rejection
+- Services/register:
+  - verification success
+  - too many attempts deletes session
+  - user creation creates auth tokens, user, default tiles, stats rows, deletes session
+- Infrastructure:
+  - seeder fills current reference tables
 
 ## Next Coverage
 
 - Services/register:
   - session creation writes Redis fields
-  - verification handles success, bad code, too many attempts, type mismatch
-  - user creation creates user, default tiles, stats rows, deletes session
+  - verification handles bad code before final attempt and type mismatch
   - password change requires verified reset session
 - Services/events:
   - create event access check, genre validation, creator auto-join
@@ -45,11 +56,8 @@ Goal: all active v2 backend behavior covered in `tests/`. Old commented/disabled
   - approve/reject requests and invites
   - role changes and blacklist flows
 - Middleware:
-  - auth token format, invalid token, refresh-token rejection
   - group-role path/query/body groupId extraction
   - forbidden role response
 - Infrastructure:
-  - seeder covers every table it writes
   - config loads env defaults/errors
   - S3 image validation and upload error mapping
-

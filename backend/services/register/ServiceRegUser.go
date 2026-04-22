@@ -14,6 +14,8 @@ import (
 	session "friendship/sessions"
 	"friendship/utils"
 	"math/rand"
+	"net/mail"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -189,10 +191,18 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 }
 
 func (s *regService) CreateSessionRegister(ctx context.Context, email, type_ses string) (*models.SessionRegResponse, error) {
+	email = strings.TrimSpace(email)
+	if _, err := mail.ParseAddress(email); err != nil {
+		return nil, fmt.Errorf("некорректный email: %w", err)
+	}
+	if type_ses != string(models.SessionTypeRegister) && type_ses != string(models.SessionTypeResetPassword) {
+		return nil, fmt.Errorf("некорректный тип сессии: %s", type_ses)
+	}
+
 	sessionID := utils.GenerateSessioID(12)
 	code := utils.GenerationSessionCode(6)
 
-	if type_ses == "register" {
+	if type_ses == string(models.SessionTypeRegister) {
 		err := s.redis.CreateSession(
 			ctx,
 			sessionID,
@@ -224,7 +234,12 @@ func (s *regService) CreateSessionRegister(ctx context.Context, email, type_ses 
 		}
 	}
 
-	go s.sendVerificationEmail(email, code, type_ses)
+	if err := s.sendVerificationEmail(email, code, type_ses); err != nil {
+		if deleteErr := s.redis.DeleteSession(ctx, sessionID); deleteErr != nil {
+			s.logger.Warn("Failed to delete session after email send error", "sessionID", sessionID, "error", deleteErr)
+		}
+		return nil, fmt.Errorf("не удалось отправить письмо подтверждения: %w", err)
+	}
 
 	s.logger.Info("Registration session created", "sessionID", sessionID, "email", email)
 	return &models.SessionRegResponse{SessionID: sessionID}, nil

@@ -183,6 +183,23 @@ func TestRegisterServiceVerifySessionTooManyAttemptsDeletesSession(t *testing.T)
 	}
 }
 
+func TestRegisterServiceCreateSessionRejectsInvalidEmail(t *testing.T) {
+	store := newFakeSessionStore()
+	service := newRegisterServiceForTest(t, store, nil)
+
+	session, err := service.CreateSessionRegister(context.Background(), "roma.sakovich2gmail.com", string(models.SessionTypeRegister))
+
+	if err == nil {
+		t.Fatal("CreateSessionRegister returned nil error")
+	}
+	if session != nil {
+		t.Fatalf("session = %#v, want nil", session)
+	}
+	if len(store.sessions) != 0 {
+		t.Fatalf("sessions len = %d, want 0", len(store.sessions))
+	}
+}
+
 func TestRegisterServiceCreateUserCreatesDefaultsAndDeletesSession(t *testing.T) {
 	db := newRegisterDB(t)
 	repo := &testPostgresRepository{db: db}

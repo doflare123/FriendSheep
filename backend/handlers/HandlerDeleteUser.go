@@ -16,7 +16,7 @@ import (
 // @Success      200  {object}  map[string]string "Аккаунт успешно удалён"
 // @Failure      400  {object}  map[string]string "Ошибка (например, пользователь не найден)"
 // @Failure      401  {object}  map[string]string "Пользователь не авторизован"
-// @Router       /api/users/delete [delete]
+// Inactive legacy route: /api/users/delete [delete]
 func DeleteAccount(c *gin.Context) {
 	emailValue, exists := c.Get("email")
 	if !exists {

@@ -1,4 +1,36 @@
 definitions:
+  dto.AdminGroupResponse:
+    properties:
+      category:
+        items:
+          type: string
+        type: array
+      id:
+        type: integer
+      image:
+        type: string
+      member_count:
+        type: integer
+      name:
+        type: string
+      role_in_group:
+        type: string
+      small_description:
+        type: string
+      type:
+        type: string
+    type: object
+  dto.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      admin_groups:
+        items:
+          $ref: '#/definitions/dto.AdminGroupResponse'
+        type: array
+      refresh_token:
+        type: string
+    type: object
   dto.CachedPopularEvents:
     properties:
       count:
@@ -15,6 +47,15 @@ definitions:
       link:
         type: string
       name:
+        type: string
+    type: object
+  dto.ErrorResponse:
+    properties:
+      error:
+        example: invalid_request
+        type: string
+      message:
+        example: Некорректный формат запроса
         type: string
     type: object
   dto.EventAdminDto:
@@ -526,17 +567,6 @@ definitions:
     - groupId
     - userId
     type: object
-  handlers.AuthResponse:
-    properties:
-      access_token:
-        type: string
-      admin_groups:
-        items:
-          $ref: '#/definitions/services.AdminGroupResponse'
-        type: array
-      refresh_token:
-        type: string
-    type: object
   handlers.GroupUpdateRequest:
     properties:
       categories:
@@ -727,25 +757,6 @@ definitions:
     - session_id
     - type
     type: object
-  services.AdminGroupResponse:
-    properties:
-      category:
-        items:
-          type: string
-        type: array
-      id:
-        type: integer
-      image:
-        type: string
-      member_count:
-        type: integer
-      name:
-        type: string
-      small_description:
-        type: string
-      type:
-        type: string
-    type: object
   services.CommentDTO:
     properties:
       created_time:
@@ -899,378 +910,6 @@ definitions:
 info:
   contact: {}
 paths:
-  /api/groups/search:
-    get:
-      consumes:
-      - application/json
-      description: Поиск групп по названию, категориям и с сортировкой (с пагинацией).
-      parameters:
-      - description: Название группы для поиска
-        in: query
-        name: name
-        type: string
-      - description: Фильтр по категории
-        in: query
-        name: category
-        type: string
-      - description: 'Поле сортировки: members (по числу участников), date (по дате
-          регистрации), category (по имени категории)'
-        in: query
-        name: sort_by
-        type: string
-      - default: desc
-        description: 'Порядок сортировки: asc или desc'
-        in: query
-        name: order
-        type: string
-      - default: 1
-        description: Номер страницы (>=1)
-        in: query
-        name: page
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Успешный поиск
-          schema:
-            $ref: '#/definitions/services.GetGroupsResponse'
-        "400":
-          description: Некорректный номер страницы
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Пользователь не авторизован
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Внутренняя ошибка сервера
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Поиск групп
-      tags:
-      - search
-  /api/news:
-    get:
-      description: Возвращает постраничный список новостей, отсортированных по дате
-        создания.
-      parameters:
-      - default: 1
-        description: Номер страницы
-        in: query
-        name: page
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Постраничный список новостей
-          schema:
-            $ref: '#/definitions/services.NewsPage'
-        "500":
-          description: Внутренняя ошибка сервера
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Получить список новостей
-      tags:
-      - News
-    post:
-      consumes:
-      - application/json
-      description: Создает новую новость вместе с текстом. Доступно только администраторам.
-      parameters:
-      - description: Данные для создания новости
-        in: body
-        name: news
-        required: true
-        schema:
-          $ref: '#/definitions/services.CreateNewsInput'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Новость успешно создана
-          schema:
-            $ref: '#/definitions/news.News'
-        "400":
-          description: Некорректные данные или ошибка валидации
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Пользователь не авторизован или не является администратором
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Создание новости
-      tags:
-      - News
-  /api/news/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Возвращает новость по ID с текстом и комментариями (с ником и картинкой
-        юзера)
-      parameters:
-      - description: ID новости
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Новость с текстом и комментариями
-          schema:
-            $ref: '#/definitions/services.NewsDTO'
-        "404":
-          description: Новость не найдена
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Получение новости
-      tags:
-      - News
-  /api/news/{id}/comments:
-    post:
-      consumes:
-      - application/json
-      description: Создаёт комментарий для новости (только авторизованные пользователи)
-      parameters:
-      - description: ID новости
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Комментарий
-        in: body
-        name: comment
-        required: true
-        schema:
-          $ref: '#/definitions/services.CreateCommentInput'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/news.Comments'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Добавить комментарий
-      tags:
-      - News
-  /api/news/{newsId}/comments/{commentId}:
-    delete:
-      consumes:
-      - application/json
-      description: Удаляет комментарий (только для администраторов)
-      parameters:
-      - description: ID новости
-        in: path
-        name: newsId
-        required: true
-        type: integer
-      - description: ID комментария
-        in: path
-        name: commentId
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Удалить комментарий
-      tags:
-      - Comments
-  /api/users/confirm-reset:
-    post:
-      consumes:
-      - application/json
-      description: Пользователь вводит session_id, код из email и новый пароль. При
-        успешной верификации пароль меняется.
-      parameters:
-      - description: Данные для подтверждения и новый пароль
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/services.ConfirmResetPasswordInput'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Сброс пароля
-      tags:
-      - auth
-  /api/users/delete:
-    delete:
-      description: Позволяет текущему авторизованному пользователю удалить свой аккаунт.
-        Это действие необратимо.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Аккаунт успешно удалён
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Ошибка (например, пользователь не найден)
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Пользователь не авторизован
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Удаление аккаунта пользователя
-      tags:
-      - Users inf
-  /api/users/request-reset:
-    post:
-      consumes:
-      - application/json
-      description: Пользователь указывает email, на него отправляется код подтверждения
-        для смены пароля.
-      parameters:
-      - description: Email пользователя
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/services.ResetPasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.SessionRegResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Запрос на сброс пароля
-      tags:
-      - auth
-  /api/users/search:
-    get:
-      consumes:
-      - application/json
-      description: Поиск пользователей по имени с пагинацией.
-      parameters:
-      - description: Имя для поиска
-        in: query
-        name: name
-        type: string
-      - default: 1
-        description: Номер страницы
-        in: query
-        name: page
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Успешный поиск
-          schema:
-            $ref: '#/definitions/services.GetUsersResponse'
-        "400":
-          description: Некорректный номер страницы
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Пользователь не авторизован
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Внутренняя ошибка сервера
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Поиск пользователей
-      tags:
-      - search
   /api/v2/admin/events:
     post:
       consumes:
@@ -1500,9 +1139,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Проверяет email и пароль, возвращает access и refresh токены
+      description: Checks email and password, then returns access and refresh tokens.
       parameters:
-      - description: Данные пользователя
+      - description: Email and password
         in: body
         name: user
         required: true
@@ -1512,45 +1151,30 @@ paths:
       - application/json
       responses:
         "200":
-          description: Токены успешно созданы
+          description: Tokens created
           schema:
-            $ref: '#/definitions/handlers.AuthResponse'
+            $ref: '#/definitions/dto.AuthResponse'
         "400":
-          description: Некорректный JSON или параметры
+          description: Invalid JSON or validation error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Неверный пароль
+          description: Authentication failed
           schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Пользователь не найден
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Ошибка сервера
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Аутентификация пользователя
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: User login
       tags:
       - auth
   /api/v2/auth/refresh:
-    get:
+    post:
       consumes:
       - application/json
-      description: Проверяет email и пароль, возвращает access и refresh токены
+      description: Accepts a refresh token and returns a new access/refresh token
+        pair.
       parameters:
-      - description: Данные пользователя
+      - description: Refresh token payload
         in: body
-        name: user
+        name: refreshRequest
         required: true
         schema:
           $ref: '#/definitions/handlers.RefreshRequest'
@@ -1558,34 +1182,18 @@ paths:
       - application/json
       responses:
         "200":
-          description: Токены успешно созданы
+          description: Tokens refreshed
           schema:
-            $ref: '#/definitions/handlers.AuthResponse'
+            $ref: '#/definitions/dto.AuthResponse'
         "400":
-          description: Некорректный JSON или параметры
+          description: Missing or invalid refresh_token
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Неверный пароль
+          description: Invalid or expired refresh token
           schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Пользователь не найден
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Ошибка сервера
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Аутентификация пользователя
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Refresh auth tokens
       tags:
       - auth
   /api/v2/events/{eventId}:

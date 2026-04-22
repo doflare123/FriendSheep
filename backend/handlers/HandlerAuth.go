@@ -38,18 +38,16 @@ type AuthResponse struct {
 	AdminGroups  []services.AdminGroupResponse `json:"admin_groups"`
 }
 
-// AuthUser godoc
-// @Summary      Аутентификация пользователя
-// @Description  Проверяет email и пароль, возвращает access и refresh токены
+// RefreshToken godoc
+// @Summary      Refresh auth tokens
+// @Description  Accepts a refresh token and returns a new access/refresh token pair.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        user  body      RefreshRequest  true  "Данные пользователя"
-// @Success      200   {object}  AuthResponse  "Токены успешно созданы"
-// @Failure      400   {object}  map[string]string  "Некорректный JSON или параметры"
-// @Failure      401   {object}  map[string]string  "Неверный пароль"
-// @Failure      404   {object}  map[string]string  "Пользователь не найден"
-// @Failure      500   {object}  map[string]string  "Ошибка сервера"
+// @Param        refreshRequest  body      RefreshRequest  true  "Refresh token payload"
+// @Success      200             {object}  dto.AuthResponse  "Tokens refreshed"
+// @Failure      400             {object}  dto.ErrorResponse  "Missing or invalid refresh_token"
+// @Failure      401             {object}  dto.ErrorResponse  "Invalid or expired refresh token"
 // @Router       /api/v2/auth/refresh [post]
 func (h *authHandler) RefreshToken(c *gin.Context) {
 	var req RefreshRequest
@@ -73,18 +71,16 @@ func (h *authHandler) RefreshToken(c *gin.Context) {
 	c.JSON(http.StatusOK, authRes)
 }
 
-// AuthUser godoc
-// @Summary      Аутентификация пользователя
-// @Description  Проверяет email и пароль, возвращает access и refresh токены
+// Login godoc
+// @Summary      User login
+// @Description  Checks email and password, then returns access and refresh tokens.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        user  body      UserRequest  true  "Данные пользователя"
-// @Success      200   {object}  AuthResponse  "Токены успешно созданы"
-// @Failure      400   {object}  map[string]string  "Некорректный JSON или параметры"
-// @Failure      401   {object}  map[string]string  "Неверный пароль"
-// @Failure      404   {object}  map[string]string  "Пользователь не найден"
-// @Failure      500   {object}  map[string]string  "Ошибка сервера"
+// @Param        user  body      UserRequest  true  "Email and password"
+// @Success      200   {object}  dto.AuthResponse  "Tokens created"
+// @Failure      400   {object}  dto.ErrorResponse  "Invalid JSON or validation error"
+// @Failure      401   {object}  dto.ErrorResponse  "Authentication failed"
 // @Router       /api/v2/auth/login [post]
 func (h *authHandler) Login(c *gin.Context) {
 	var req UserRequest
@@ -121,7 +117,7 @@ func (h *authHandler) Login(c *gin.Context) {
 // @Failure      401   {object}  map[string]string  "Неверный пароль"
 // @Failure      404   {object}  map[string]string  "Пользователь не найден"
 // @Failure      500   {object}  map[string]string  "Ошибка сервера"
-// @Router       /api/users/login [post]
+// Inactive legacy route: /api/users/login [post]
 // func AuthUser(c *gin.Context) {
 // 	var input UserRequest
 // 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -168,7 +164,7 @@ func (h *authHandler) Login(c *gin.Context) {
 // @Success      200             {object}  map[string]string  "Новые токены успешно созданы"
 // @Failure      400             {object}  map[string]string  "Отсутствует или неверный refresh_token"
 // @Failure      401             {object}  map[string]string  "Невалидный или просроченный refresh token"
-// @Router       /api/users/refresh [post]
+// Inactive legacy route: /api/users/refresh [post]
 // func RefreshTokenHandler(c *gin.Context) {
 // 	var req RefreshRequest
 
@@ -198,7 +194,7 @@ func (h *authHandler) Login(c *gin.Context) {
 // @Param        input  body  services.ResetPasswordRequest  true  "Email пользователя"
 // @Success      200    {object} models.SessionRegResponse
 // @Failure      400    {object} map[string]string
-// @Router       /api/users/request-reset [post]
+// Inactive legacy route: /api/users/request-reset [post]
 func RequestPasswordReset(c *gin.Context) {
 	var input services.ResetPasswordRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -224,7 +220,7 @@ func RequestPasswordReset(c *gin.Context) {
 // @Param        input  body  services.ConfirmResetPasswordInput  true  "Данные для подтверждения и новый пароль"
 // @Success      200    {object} map[string]string
 // @Failure      400    {object} map[string]string
-// @Router       /api/users/confirm-reset [post]
+// Inactive legacy route: /api/users/confirm-reset [post]
 func ConfirmPasswordReset(c *gin.Context) {
 	var input services.ConfirmResetPasswordInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -250,7 +246,7 @@ func ConfirmPasswordReset(c *gin.Context) {
 // @Success      200  {object}  models.User
 // @Failure      400  {object}  map[string]string
 // @Failure      404  {object}  map[string]string
-// @Router       /api/users/{us} [get]
+// Inactive legacy route: /api/users/{us} [get]
 // func GettingUserId(c *gin.Context) {
 // 	us := c.Param("us")
 

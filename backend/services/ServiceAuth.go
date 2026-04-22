@@ -3,10 +3,7 @@ package services
 import (
 	"fmt"
 	"friendship/logger"
-	"friendship/models"
 	"friendship/models/dto"
-	"friendship/models/groups"
-	"friendship/repository"
 	"friendship/utils"
 )
 
@@ -17,11 +14,15 @@ type AuthService interface {
 
 type authService struct {
 	logger     logger.Logger
-	rep        repository.PostgresRepository
+	rep        AuthUserAdminGroupRepository
 	jwtService *utils.JWTUtils
 }
 
-func NewAuthService(logger logger.Logger, jwtService *utils.JWTUtils, rep repository.PostgresRepository) AuthService {
+func NewAuthService(logger logger.Logger, jwtService *utils.JWTUtils, rep AuthGORMStore) AuthService {
+	return NewAuthServiceWithRepository(logger, jwtService, NewGORMAuthRepository(rep))
+}
+
+func NewAuthServiceWithRepository(logger logger.Logger, jwtService *utils.JWTUtils, rep AuthUserAdminGroupRepository) AuthService {
 	return &authService{
 		logger:     logger,
 		rep:        rep,
@@ -34,7 +35,7 @@ func (a *authService) Login(email, password string) (dto.AuthResponse, error) {
 		return dto.AuthResponse{}, fmt.Errorf("email и пароль обязательны")
 	}
 
-	user, err := new(models.User).FindUserByEmailPassword(email, a.rep)
+	user, err := a.rep.FindAuthUserByEmail(email)
 	if err != nil {
 		return dto.AuthResponse{}, fmt.Errorf("неверный логин или пароль")
 	}
@@ -48,7 +49,7 @@ func (a *authService) Login(email, password string) (dto.AuthResponse, error) {
 		return dto.AuthResponse{}, fmt.Errorf("ошибка генерации токенов: %w", err)
 	}
 
-	adminGroups, err := new(groups.Group).GetAdminGroups(user.ID, a.rep)
+	adminGroups, err := a.rep.GetAuthAdminGroups(user.ID)
 	if err != nil {
 		a.logger.Warn("Предупреждение: не удалось загрузить группы администратора: %v\n", err)
 		adminGroups = []dto.AdminGroupResponse{}
@@ -71,17 +72,17 @@ func (a *authService) RefreshTokens(refreshToken string) (dto.AuthResponse, erro
 		return dto.AuthResponse{}, fmt.Errorf("невалидный refresh токен: %w", err)
 	}
 
-	user, err := new(models.User).FindUserByID(userID, a.rep)
+	user, err := a.rep.FindAuthUserByID(userID)
 	if err != nil {
 		return dto.AuthResponse{}, fmt.Errorf("пользователь не найден: %w", err)
 	}
 
-	tokenPair, err := a.jwtService.GenerateTokenPair(uint(user.Id), user.Username, user.Us, user.Image)
+	tokenPair, err := a.jwtService.GenerateTokenPair(user.ID, user.Name, user.Us, user.Image)
 	if err != nil {
 		return dto.AuthResponse{}, fmt.Errorf("ошибка генерации токенов: %w", err)
 	}
 
-	adminGroups, err := new(groups.Group).GetAdminGroups(uint(user.Id), a.rep)
+	adminGroups, err := a.rep.GetAuthAdminGroups(user.ID)
 	if err != nil {
 		adminGroups = []dto.AdminGroupResponse{}
 	}

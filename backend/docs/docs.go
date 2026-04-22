@@ -15,572 +15,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/groups/search": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Поиск групп по названию, категориям и с сортировкой (с пагинацией).",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "search"
-                ],
-                "summary": "Поиск групп",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Название группы для поиска",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Фильтр по категории",
-                        "name": "category",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Поле сортировки: members (по числу участников), date (по дате регистрации), category (по имени категории)",
-                        "name": "sort_by",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "default": "desc",
-                        "description": "Порядок сортировки: asc или desc",
-                        "name": "order",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Номер страницы (\u003e=1)",
-                        "name": "page",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Успешный поиск",
-                        "schema": {
-                            "$ref": "#/definitions/services.GetGroupsResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректный номер страницы",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/news": {
-            "get": {
-                "description": "Возвращает постраничный список новостей, отсортированных по дате создания.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "News"
-                ],
-                "summary": "Получить список новостей",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Номер страницы",
-                        "name": "page",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Постраничный список новостей",
-                        "schema": {
-                            "$ref": "#/definitions/services.NewsPage"
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Создает новую новость вместе с текстом. Доступно только администраторам.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "News"
-                ],
-                "summary": "Создание новости",
-                "parameters": [
-                    {
-                        "description": "Данные для создания новости",
-                        "name": "news",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.CreateNewsInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Новость успешно создана",
-                        "schema": {
-                            "$ref": "#/definitions/news.News"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректные данные или ошибка валидации",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован или не является администратором",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/news/{id}": {
-            "get": {
-                "description": "Возвращает новость по ID с текстом и комментариями (с ником и картинкой юзера)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "News"
-                ],
-                "summary": "Получение новости",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID новости",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Новость с текстом и комментариями",
-                        "schema": {
-                            "$ref": "#/definitions/services.NewsDTO"
-                        }
-                    },
-                    "404": {
-                        "description": "Новость не найдена",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/news/{id}/comments": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Создаёт комментарий для новости (только авторизованные пользователи)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "News"
-                ],
-                "summary": "Добавить комментарий",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID новости",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Комментарий",
-                        "name": "comment",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.CreateCommentInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/news.Comments"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/news/{newsId}/comments/{commentId}": {
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Удаляет комментарий (только для администраторов)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Comments"
-                ],
-                "summary": "Удалить комментарий",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID новости",
-                        "name": "newsId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID комментария",
-                        "name": "commentId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users/confirm-reset": {
-            "post": {
-                "description": "Пользователь вводит session_id, код из email и новый пароль. При успешной верификации пароль меняется.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Сброс пароля",
-                "parameters": [
-                    {
-                        "description": "Данные для подтверждения и новый пароль",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.ConfirmResetPasswordInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users/delete": {
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Позволяет текущему авторизованному пользователю удалить свой аккаунт. Это действие необратимо.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users inf"
-                ],
-                "summary": "Удаление аккаунта пользователя",
-                "responses": {
-                    "200": {
-                        "description": "Аккаунт успешно удалён",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Ошибка (например, пользователь не найден)",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users/request-reset": {
-            "post": {
-                "description": "Пользователь указывает email, на него отправляется код подтверждения для смены пароля.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Запрос на сброс пароля",
-                "parameters": [
-                    {
-                        "description": "Email пользователя",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.ResetPasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.SessionRegResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users/search": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Поиск пользователей по имени с пагинацией.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "search"
-                ],
-                "summary": "Поиск пользователей",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Имя для поиска",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Номер страницы",
-                        "name": "page",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Успешный поиск",
-                        "schema": {
-                            "$ref": "#/definitions/services.GetUsersResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректный номер страницы",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/v2/admin/events": {
             "post": {
                 "security": [
@@ -928,7 +362,7 @@ const docTemplate = `{
         },
         "/api/v2/auth/login": {
             "post": {
-                "description": "Проверяет email и пароль, возвращает access и refresh токены",
+                "description": "Checks email and password, then returns access and refresh tokens.",
                 "consumes": [
                     "application/json"
                 ],
@@ -938,10 +372,10 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Аутентификация пользователя",
+                "summary": "User login",
                 "parameters": [
                     {
-                        "description": "Данные пользователя",
+                        "description": "Email and password",
                         "name": "user",
                         "in": "body",
                         "required": true,
@@ -952,53 +386,29 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Токены успешно созданы",
+                        "description": "Tokens created",
                         "schema": {
-                            "$ref": "#/definitions/handlers.AuthResponse"
+                            "$ref": "#/definitions/dto.AuthResponse"
                         }
                     },
                     "400": {
-                        "description": "Некорректный JSON или параметры",
+                        "description": "Invalid JSON or validation error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Неверный пароль",
+                        "description": "Authentication failed",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Пользователь не найден",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
             }
         },
         "/api/v2/auth/refresh": {
-            "get": {
-                "description": "Проверяет email и пароль, возвращает access и refresh токены",
+            "post": {
+                "description": "Accepts a refresh token and returns a new access/refresh token pair.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1008,11 +418,11 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Аутентификация пользователя",
+                "summary": "Refresh auth tokens",
                 "parameters": [
                     {
-                        "description": "Данные пользователя",
-                        "name": "user",
+                        "description": "Refresh token payload",
+                        "name": "refreshRequest",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -1022,45 +432,21 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Токены успешно созданы",
+                        "description": "Tokens refreshed",
                         "schema": {
-                            "$ref": "#/definitions/handlers.AuthResponse"
+                            "$ref": "#/definitions/dto.AuthResponse"
                         }
                     },
                     "400": {
-                        "description": "Некорректный JSON или параметры",
+                        "description": "Missing or invalid refresh_token",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Неверный пароль",
+                        "description": "Invalid or expired refresh token",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Пользователь не найден",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -3166,6 +2552,55 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.AdminGroupResponse": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "member_count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "role_in_group": {
+                    "type": "string"
+                },
+                "small_description": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "admin_groups": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminGroupResponse"
+                    }
+                },
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.CachedPopularEvents": {
             "type": "object",
             "properties": {
@@ -3191,6 +2626,19 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "invalid_request"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Некорректный формат запроса"
                 }
             }
         },
@@ -3948,23 +3396,6 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.AuthResponse": {
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
-                },
-                "admin_groups": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/services.AdminGroupResponse"
-                    }
-                },
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
         "handlers.GroupUpdateRequest": {
             "type": "object",
             "required": [
@@ -4241,35 +3672,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "session_id": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "services.AdminGroupResponse": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "image": {
-                    "type": "string"
-                },
-                "member_count": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "small_description": {
                     "type": "string"
                 },
                 "type": {

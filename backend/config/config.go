@@ -25,6 +25,7 @@ type Config struct {
 
 type EmailConfig struct {
 	From     string `mapstructure:"SMTP_EMAIL"`
+	Username string `mapstructure:"SMTP_USERNAME"`
 	Password string `mapstructure:"SMTP_PASSWORD"`
 	SmtpHost string `mapstructure:"SMTP_HOST"`
 	SmtpPort string `mapstructure:"SMTP_PORT"`
