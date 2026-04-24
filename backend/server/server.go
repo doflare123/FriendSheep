@@ -48,6 +48,11 @@ func InitServer() (*Server, error) {
 	mongo := repository.NewMongoRepository(logger, conf)
 	redis := repository.NewRedisRepository(logger, conf)
 	sessionStore := session.NewSessionStore(redis)
+	hasSQLMigrations, err := db.HasMigrationSource()
+	if err != nil {
+		logger.Error("Error checking migration source", "error", err)
+		return nil, err
+	}
 	if conf.AppEnv == "DEV" {
 		gin.SetMode(gin.DebugMode)
 		if err := db.AutoMigDB(postgres, &events.Event{}, &events.AgeLimit{}, &events.EventLocation{}, &events.Status{}, &events.EventsUser{}, &events.Genre{}, &events.EventGenre{}, &events.EventGenre{},
@@ -59,8 +64,19 @@ func InitServer() (*Server, error) {
 		}
 	} else {
 		gin.SetMode(gin.ReleaseMode)
-		if err := db.MigrationDB(postgres, logger); err != nil {
-			logger.Error("Error with migrations: %s", err)
+		if hasSQLMigrations {
+			if err := db.MigrationDB(postgres, logger); err != nil {
+				logger.Error("Error with migrations: %s", err)
+				return nil, err
+			}
+		} else {
+			logger.Info("No SQL migrations found, using GORM bootstrap for core schema")
+		}
+	}
+	if conf.AppEnv == "DEV" || !hasSQLMigrations {
+		if err := db.BootstrapRegistrationSchema(postgres); err != nil {
+			logger.Error("Error bootstrapping registration schema", "error", err)
+			return nil, err
 		}
 	}
 	s3_storege, err := storage.NewSelectelS3(conf, logger)
