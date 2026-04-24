@@ -113,6 +113,7 @@ func (h *regHandler) VerifySession(c *gin.Context) {
 // @Success 201 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 409 {object} map[string]string
 // @Router /api/v2/register/ [post]
 func (h *regHandler) CreateUser(c *gin.Context) {
@@ -130,10 +131,14 @@ func (h *regHandler) CreateUser(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Сессия не подтверждена"})
 		case errors.Is(err, register.ErrSessionNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Сессия не найдена"})
+		case errors.Is(err, register.ErrSessionTypeMismatch):
+			c.JSON(http.StatusForbidden, gin.H{"error": "Неверный тип сессии для регистрации"})
+		case errors.Is(err, register.ErrSessionEmailMismatch):
+			c.JSON(http.StatusForbidden, gin.H{"error": "Email не совпадает с подтвержденной сессией"})
 		case errors.Is(err, register.ErrUserAlreadyExists):
 			c.JSON(http.StatusConflict, gin.H{"error": "Пользователь с таким email уже существует"})
 		default:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Внутренняя ошибка сервера"})
 		}
 		return
 	}
@@ -168,6 +173,14 @@ func (h *regHandler) ChangePassword(c *gin.Context) {
 	err := h.srv.ChangePassword(c.Request.Context(), input)
 	if err != nil {
 		switch {
+		case errors.Is(err, register.ErrSessionNotVerified):
+			c.JSON(http.StatusForbidden, gin.H{"error": "Сессия не подтверждена"})
+		case errors.Is(err, register.ErrSessionNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Сессия не найдена"})
+		case errors.Is(err, register.ErrSessionTypeMismatch):
+			c.JSON(http.StatusForbidden, gin.H{"error": "Неверный тип сессии для смены пароля"})
+		case errors.Is(err, register.ErrSessionEmailMismatch):
+			c.JSON(http.StatusForbidden, gin.H{"error": "Email не совпадает с подтвержденной сессией"})
 		case errors.Is(err, register.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
 		default:

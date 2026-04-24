@@ -24,11 +24,46 @@ type fakeSessionStore struct {
 	deleted  map[string]bool
 }
 
+type fakeRegistrationEmailSender struct {
+	verificationCalls []verificationEmailCall
+	welcomeCalls      []welcomeEmailCall
+	verificationErr   error
+	welcomeErr        error
+}
+
+type verificationEmailCall struct {
+	email      string
+	code       string
+	actionType string
+}
+
+type welcomeEmailCall struct {
+	email string
+	name  string
+}
+
 func newFakeSessionStore() *fakeSessionStore {
 	return &fakeSessionStore{
 		sessions: make(map[string]*session.Session),
 		deleted:  make(map[string]bool),
 	}
+}
+
+func (f *fakeRegistrationEmailSender) SendVerificationEmail(userEmail, code, actionType string) error {
+	f.verificationCalls = append(f.verificationCalls, verificationEmailCall{
+		email:      userEmail,
+		code:       code,
+		actionType: actionType,
+	})
+	return f.verificationErr
+}
+
+func (f *fakeRegistrationEmailSender) SendWelcomeEmail(userEmail, userName string) error {
+	f.welcomeCalls = append(f.welcomeCalls, welcomeEmailCall{
+		email: userEmail,
+		name:  userName,
+	})
+	return f.welcomeErr
 }
 
 func (s *fakeSessionStore) CreateSession(ctx context.Context, sessionID, code string, sessionType models.SessionTypeReg, expiration time.Duration, extra map[string]string) error {
@@ -139,7 +174,7 @@ func TestRegisterServiceVerifySessionSuccess(t *testing.T) {
 		Type: models.SessionTypeRegister,
 	}
 
-	service := newRegisterServiceForTest(t, store, nil)
+	service := newRegisterServiceForTest(t, store, nil, nil)
 	verified, err := service.VerifySession(context.Background(), register.VerifySessionInput{
 		SessionID: "session-1",
 		Type:      string(models.SessionTypeRegister),
@@ -165,7 +200,7 @@ func TestRegisterServiceVerifySessionTooManyAttemptsDeletesSession(t *testing.T)
 		Attempts: 2,
 	}
 
-	service := newRegisterServiceForTest(t, store, nil)
+	service := newRegisterServiceForTest(t, store, nil, nil)
 	verified, err := service.VerifySession(context.Background(), register.VerifySessionInput{
 		SessionID: "session-1",
 		Type:      string(models.SessionTypeRegister),
@@ -185,7 +220,7 @@ func TestRegisterServiceVerifySessionTooManyAttemptsDeletesSession(t *testing.T)
 
 func TestRegisterServiceCreateSessionRejectsInvalidEmail(t *testing.T) {
 	store := newFakeSessionStore()
-	service := newRegisterServiceForTest(t, store, nil)
+	service := newRegisterServiceForTest(t, store, nil, nil)
 
 	session, err := service.CreateSessionRegister(context.Background(), "roma.sakovich2gmail.com", string(models.SessionTypeRegister))
 
@@ -204,13 +239,17 @@ func TestRegisterServiceCreateUserCreatesDefaultsAndDeletesSession(t *testing.T)
 	db := newRegisterDB(t)
 	repo := &testPostgresRepository{db: db}
 	store := newFakeSessionStore()
+	notifier := &fakeRegistrationEmailSender{}
 	store.sessions["verified-session"] = &session.Session{
 		Code:       "123456",
 		IsVerified: true,
 		Type:       models.SessionTypeRegister,
+		Extra: map[string]string{
+			"email": "user@example.com",
+		},
 	}
 
-	service := newRegisterServiceForTest(t, store, repo)
+	service := newRegisterServiceForTest(t, store, repo, notifier)
 	authResponse, err := service.CreateUser(context.Background(), register.CreateUserInput{
 		Name:      "Valid User",
 		Password:  "Password123!",
@@ -239,25 +278,197 @@ func TestRegisterServiceCreateUserCreatesDefaultsAndDeletesSession(t *testing.T)
 	assertCount(t, db, &statsusers.SettingTile{}, 1)
 	assertCount(t, db, &statsusers.SessionStats_users{}, 1)
 	assertCount(t, db, &statsusers.SideStats_users{}, 1)
+	if len(notifier.welcomeCalls) != 1 {
+		t.Fatalf("welcome emails = %d, want 1", len(notifier.welcomeCalls))
+	}
 }
 
-func newRegisterServiceForTest(t *testing.T, store *fakeSessionStore, repo *testPostgresRepository) register.RegService {
+func TestRegisterServiceCreateUserRejectsResetPasswordSessionWithoutSideEffects(t *testing.T) {
+	db := newRegisterDB(t)
+	repo := &testPostgresRepository{db: db}
+	store := newFakeSessionStore()
+	notifier := &fakeRegistrationEmailSender{}
+	store.sessions["verified-reset-session"] = &session.Session{
+		Code:       "123456",
+		IsVerified: true,
+		Type:       models.SessionTypeResetPassword,
+		Extra: map[string]string{
+			"email": "user@example.com",
+		},
+	}
+
+	service := newRegisterServiceForTest(t, store, repo, notifier)
+	authResponse, err := service.CreateUser(context.Background(), register.CreateUserInput{
+		Name:      "Valid User",
+		Password:  "Password123!",
+		Email:     "user@example.com",
+		SessionID: "verified-reset-session",
+	})
+
+	if authResponse != nil {
+		t.Fatalf("authResponse = %#v, want nil", authResponse)
+	}
+	if !errors.Is(err, register.ErrSessionTypeMismatch) {
+		t.Fatalf("err = %v, want ErrSessionTypeMismatch", err)
+	}
+	if store.deleted["verified-reset-session"] {
+		t.Fatal("session was deleted on rejected create user")
+	}
+
+	assertCount(t, db, &models.User{}, 0)
+	assertCount(t, db, &statsusers.SettingTile{}, 0)
+	assertCount(t, db, &statsusers.SessionStats_users{}, 0)
+	assertCount(t, db, &statsusers.SideStats_users{}, 0)
+	if len(notifier.welcomeCalls) != 0 {
+		t.Fatalf("welcome emails = %d, want 0", len(notifier.welcomeCalls))
+	}
+}
+
+func TestRegisterServiceCreateUserRejectsEmailMismatchWithoutSideEffects(t *testing.T) {
+	db := newRegisterDB(t)
+	repo := &testPostgresRepository{db: db}
+	store := newFakeSessionStore()
+	notifier := &fakeRegistrationEmailSender{}
+	store.sessions["verified-register-session"] = &session.Session{
+		Code:       "123456",
+		IsVerified: true,
+		Type:       models.SessionTypeRegister,
+		Extra: map[string]string{
+			"email": "bound@example.com",
+		},
+	}
+
+	service := newRegisterServiceForTest(t, store, repo, notifier)
+	authResponse, err := service.CreateUser(context.Background(), register.CreateUserInput{
+		Name:      "Valid User",
+		Password:  "Password123!",
+		Email:     "other@example.com",
+		SessionID: "verified-register-session",
+	})
+
+	// Assumption: active flow must bind CreateUser email to the verified session email
+	// and reject mismatches before any durable side effects are committed.
+	if authResponse != nil {
+		t.Fatalf("authResponse = %#v, want nil", authResponse)
+	}
+	if !errors.Is(err, register.ErrSessionEmailMismatch) {
+		t.Fatalf("err = %v, want ErrSessionEmailMismatch", err)
+	}
+	if store.deleted["verified-register-session"] {
+		t.Fatal("session was deleted on rejected create user")
+	}
+
+	assertCount(t, db, &models.User{}, 0)
+	assertCount(t, db, &statsusers.SettingTile{}, 0)
+	assertCount(t, db, &statsusers.SessionStats_users{}, 0)
+	assertCount(t, db, &statsusers.SideStats_users{}, 0)
+	if len(notifier.welcomeCalls) != 0 {
+		t.Fatalf("welcome emails = %d, want 0", len(notifier.welcomeCalls))
+	}
+}
+
+func TestRegisterServiceChangePasswordRejectsWrongSessionTypeAndPreservesPassword(t *testing.T) {
+	db := newRegisterDB(t)
+	repo := &testPostgresRepository{db: db}
+	store := newFakeSessionStore()
+	store.sessions["verified-register-session"] = &session.Session{
+		Code:       "123456",
+		IsVerified: true,
+		Type:       models.SessionTypeRegister,
+		Extra: map[string]string{
+			"email": "user@example.com",
+		},
+	}
+
+	originalPassword := mustHashPassword(t, "OldPassword123!")
+	user := models.User{
+		Name:     "Existing User",
+		Password: originalPassword,
+		Us:       "existing-user",
+		Email:    "user@example.com",
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	service := newRegisterServiceForTest(t, store, repo, nil)
+	err := service.ChangePassword(context.Background(), register.ChangePasswordInput{
+		NewPassword: "NewPassword123!",
+		Email:       "user@example.com",
+		SessionID:   "verified-register-session",
+	})
+
+	if !errors.Is(err, register.ErrSessionTypeMismatch) {
+		t.Fatalf("err = %v, want ErrSessionTypeMismatch", err)
+	}
+	if store.deleted["verified-register-session"] {
+		t.Fatal("session was deleted on rejected password change")
+	}
+
+	assertUserPasswordHash(t, db, "user@example.com", originalPassword)
+}
+
+func TestRegisterServiceChangePasswordRejectsEmailMismatchAndPreservesPassword(t *testing.T) {
+	db := newRegisterDB(t)
+	repo := &testPostgresRepository{db: db}
+	store := newFakeSessionStore()
+	store.sessions["verified-reset-session"] = &session.Session{
+		Code:       "123456",
+		IsVerified: true,
+		Type:       models.SessionTypeResetPassword,
+		Extra: map[string]string{
+			"email": "bound@example.com",
+		},
+	}
+
+	originalPassword := mustHashPassword(t, "OldPassword123!")
+	user := models.User{
+		Name:     "Existing User",
+		Password: originalPassword,
+		Us:       "existing-user-2",
+		Email:    "bound@example.com",
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	service := newRegisterServiceForTest(t, store, repo, nil)
+	err := service.ChangePassword(context.Background(), register.ChangePasswordInput{
+		NewPassword: "NewPassword123!",
+		Email:       "other@example.com",
+		SessionID:   "verified-reset-session",
+	})
+
+	// Assumption: reset-password flow must bind ChangePassword email to the verified
+	// session email and reject mismatches before any password write occurs.
+	if !errors.Is(err, register.ErrSessionEmailMismatch) {
+		t.Fatalf("err = %v, want ErrSessionEmailMismatch", err)
+	}
+	if store.deleted["verified-reset-session"] {
+		t.Fatal("session was deleted on rejected password change")
+	}
+
+	assertUserPasswordHash(t, db, "bound@example.com", originalPassword)
+}
+
+func newRegisterServiceForTest(t *testing.T, store *fakeSessionStore, repo *testPostgresRepository, notifier *fakeRegistrationEmailSender) register.RegService {
 	t.Helper()
 
 	if repo == nil {
 		repo = &testPostgresRepository{db: newRegisterDB(t)}
 	}
+	if notifier == nil {
+		notifier = &fakeRegistrationEmailSender{}
+	}
 
-	service, err := register.NewRegisterSrv(
+	service := register.NewRegisterSrvWithEmailSender(
 		&testLogger{},
 		store,
 		repo,
 		&config.Config{},
 		utils.NewJWTUtils("test-secret"),
+		notifier,
 	)
-	if err != nil {
-		t.Fatalf("NewRegisterSrv returned error: %v", err)
-	}
 	return service
 }
 
@@ -291,5 +502,27 @@ func assertCount(t *testing.T, db *gorm.DB, model interface{}, want int64) {
 	}
 	if got != want {
 		t.Fatalf("count %T = %d, want %d", model, got, want)
+	}
+}
+
+func mustHashPassword(t *testing.T, password string) string {
+	t.Helper()
+
+	hash, err := utils.HashPassword(password)
+	if err != nil {
+		t.Fatalf("HashPassword(%q): %v", password, err)
+	}
+	return hash
+}
+
+func assertUserPasswordHash(t *testing.T, db *gorm.DB, email, wantHash string) {
+	t.Helper()
+
+	var user models.User
+	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
+		t.Fatalf("find user by email %q: %v", email, err)
+	}
+	if user.Password != wantHash {
+		t.Fatalf("password hash = %q, want %q", user.Password, wantHash)
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"friendship/models"
-	"friendship/repository"
 	"strconv"
 	"time"
 )
@@ -33,11 +32,19 @@ type Session struct {
 	Extra      map[string]string
 }
 
-type sessionStore struct {
-	redis repository.RedisRepository
+type sessionValueStore interface {
+	HSet(ctx context.Context, key string, values map[string]interface{}) error
+	Expire(ctx context.Context, key string, expiration time.Duration) error
+	HMGet(ctx context.Context, key string, fields ...string) (map[string]string, error)
+	HGetAll(ctx context.Context, key string) (map[string]string, error)
+	Del(ctx context.Context, key string) error
 }
 
-func NewSessionStore(redis repository.RedisRepository) SessionStore {
+type sessionStore struct {
+	redis sessionValueStore
+}
+
+func NewSessionStore(redis sessionValueStore) SessionStore {
 	return &sessionStore{
 		redis: redis,
 	}

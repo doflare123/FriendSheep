@@ -14,8 +14,6 @@ import (
 	session "friendship/sessions"
 	"friendship/utils"
 	"math/rand"
-	"net/mail"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -42,13 +40,14 @@ type ChangePasswordInput struct {
 }
 
 var (
-	ErrSessionNotVerified  = errors.New("сессия не подтверждена")
-	ErrSessionNotFound     = errors.New("сессия не найдена или удалена")
-	ErrSessionTypeMismatch = errors.New("тип сессии не совпадает")
-	ErrInvalidCode         = errors.New("неверный код")
-	ErrTooManyAttempts     = errors.New("превышено количество попыток ввода кода, сессия удалена")
-	ErrUserAlreadyExists   = errors.New("пользователь с таким email уже существует")
-	ErrUserNotFound        = errors.New("пользователь не найден")
+	ErrSessionNotVerified   = errors.New("сессия не подтверждена")
+	ErrSessionNotFound      = errors.New("сессия не найдена или удалена")
+	ErrSessionTypeMismatch  = errors.New("тип сессии не совпадает")
+	ErrSessionEmailMismatch = errors.New("email сессии не совпадает")
+	ErrInvalidCode          = errors.New("неверный код")
+	ErrTooManyAttempts      = errors.New("превышено количество попыток ввода кода, сессия удалена")
+	ErrUserAlreadyExists    = errors.New("пользователь с таким email уже существует")
+	ErrUserNotFound         = errors.New("пользователь не найден")
 )
 
 type RegService interface {
@@ -58,13 +57,18 @@ type RegService interface {
 	ChangePassword(ctx context.Context, input ChangePasswordInput) error
 }
 
+type registrationEmailSender interface {
+	SendVerificationEmail(userEmail, code, actionType string) error
+	SendWelcomeEmail(userEmail, userName string) error
+}
+
 type regService struct {
-	logger       logger.Logger
-	redis        session.SessionStore
-	cfg          *config.Config
-	postgres     repository.PostgresRepository
-	jwtService   *utils.JWTUtils
-	emailManager *email.EmailTemplateManager
+	logger     logger.Logger
+	redis      session.SessionStore
+	cfg        *config.Config
+	postgres   repository.PostgresRepository
+	jwtService *utils.JWTUtils
+	notifier   registrationEmailSender
 }
 
 func NewRegisterSrv(
@@ -79,26 +83,49 @@ func NewRegisterSrv(
 		return nil, fmt.Errorf("ошибка инициализации email менеджера: %w", err)
 	}
 
+	return NewRegisterSrvWithEmailSender(
+		logger,
+		redis,
+		postgres,
+		cfg,
+		jwtService,
+		&templateRegistrationEmailSender{
+			logger:       logger,
+			cfg:          cfg,
+			emailManager: emailManager,
+		},
+	), nil
+}
+
+func NewRegisterSrvWithEmailSender(
+	logger logger.Logger,
+	redis session.SessionStore,
+	postgres repository.PostgresRepository,
+	cfg *config.Config,
+	jwtService *utils.JWTUtils,
+	notifier registrationEmailSender,
+) RegService {
 	return &regService{
-		logger:       logger,
-		redis:        redis,
-		cfg:          cfg,
-		postgres:     postgres,
-		jwtService:   jwtService,
-		emailManager: emailManager,
-	}, nil
+		logger:     logger,
+		redis:      redis,
+		cfg:        cfg,
+		postgres:   postgres,
+		jwtService: jwtService,
+		notifier:   notifier,
+	}
 }
 
 func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dto.AuthResponse, error) {
 	sess, err := s.redis.GetSession(ctx, input.SessionID)
 	if err != nil {
 		s.logger.Error("Failed to get session", "sessionID", input.SessionID, "error", err)
-		return nil, ErrSessionNotFound
+		return nil, mapRegisterSessionLookupError(err)
 	}
 
-	if !sess.IsVerified {
-		s.logger.Warn("Attempt to create user with unverified session", "sessionID", input.SessionID)
-		return nil, ErrSessionNotVerified
+	boundEmail, err := validateVerifiedSessionBinding(sess, models.SessionTypeRegister, input.Email)
+	if err != nil {
+		s.logger.Warn("Session binding mismatch during registration", "sessionID", input.SessionID, "email", input.Email, "error", err)
+		return nil, err
 	}
 
 	us := generateUsername()
@@ -112,7 +139,7 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 	user := models.User{
 		Name:     input.Name,
 		Password: hashPass,
-		Email:    input.Email,
+		Email:    boundEmail,
 		Us:       us,
 	}
 
@@ -157,8 +184,6 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 			return fmt.Errorf("не удалось создать статистику сессии: %w", err)
 		}
 
-		go s.sendWelcomeEmail(user.Email, user.Name)
-
 		return nil
 	})
 
@@ -169,6 +194,9 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 
 	if err := s.redis.DeleteSession(ctx, input.SessionID); err != nil {
 		s.logger.Warn("Failed to delete session after user creation", "sessionID", input.SessionID, "error", err)
+	}
+	if err := s.notifier.SendWelcomeEmail(user.Email, user.Name); err != nil {
+		s.logger.Warn("Failed to send welcome email after user creation", "userID", user.ID, "email", user.Email, "error", err)
 	}
 
 	s.logger.Info("User created successfully", "userID", user.ID, "email", user.Email)
@@ -191,10 +219,11 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 }
 
 func (s *regService) CreateSessionRegister(ctx context.Context, email, type_ses string) (*models.SessionRegResponse, error) {
-	email = strings.TrimSpace(email)
-	if _, err := mail.ParseAddress(email); err != nil {
-		return nil, fmt.Errorf("некорректный email: %w", err)
+	normalizedEmail, err := normalizeEmail(email)
+	if err != nil {
+		return nil, err
 	}
+
 	if type_ses != string(models.SessionTypeRegister) && type_ses != string(models.SessionTypeResetPassword) {
 		return nil, fmt.Errorf("некорректный тип сессии: %s", type_ses)
 	}
@@ -210,11 +239,11 @@ func (s *regService) CreateSessionRegister(ctx context.Context, email, type_ses 
 			models.SessionTypeRegister,
 			10*time.Minute,
 			map[string]string{
-				"email": email,
+				"email": normalizedEmail,
 			},
 		)
 		if err != nil {
-			s.logger.Error("Failed to create session", "email", email, "error", err)
+			s.logger.Error("Failed to create session", "email", normalizedEmail, "error", err)
 			return nil, fmt.Errorf("не удалось создать сессию: %w", err)
 		}
 	} else {
@@ -225,27 +254,33 @@ func (s *regService) CreateSessionRegister(ctx context.Context, email, type_ses 
 			models.SessionTypeResetPassword,
 			10*time.Minute,
 			map[string]string{
-				"email": email,
+				"email": normalizedEmail,
 			},
 		)
 		if err != nil {
-			s.logger.Error("Failed to create session", "email", email, "error", err)
+			s.logger.Error("Failed to create session", "email", normalizedEmail, "error", err)
 			return nil, fmt.Errorf("не удалось создать сессию: %w", err)
 		}
 	}
 
-	if err := s.sendVerificationEmail(email, code, type_ses); err != nil {
+	if err := s.notifier.SendVerificationEmail(normalizedEmail, code, type_ses); err != nil {
 		if deleteErr := s.redis.DeleteSession(ctx, sessionID); deleteErr != nil {
 			s.logger.Warn("Failed to delete session after email send error", "sessionID", sessionID, "error", deleteErr)
 		}
 		return nil, fmt.Errorf("не удалось отправить письмо подтверждения: %w", err)
 	}
 
-	s.logger.Info("Registration session created", "sessionID", sessionID, "email", email)
+	s.logger.Info("Registration session created", "sessionID", sessionID, "email", normalizedEmail)
 	return &models.SessionRegResponse{SessionID: sessionID}, nil
 }
 
-func (s *regService) sendVerificationEmail(userEmail, code, actionType string) error {
+type templateRegistrationEmailSender struct {
+	logger       logger.Logger
+	cfg          *config.Config
+	emailManager *email.EmailTemplateManager
+}
+
+func (s *templateRegistrationEmailSender) SendVerificationEmail(userEmail, code, actionType string) error {
 	messageMap := map[string]string{
 		"reset_password": "Чтобы завершить смену пароля, введите следующий код подтверждения:",
 		"register":       "Чтобы завершить регистрацию, введите следующий код подтверждения:",
@@ -256,7 +291,6 @@ func (s *regService) sendVerificationEmail(userEmail, code, actionType string) e
 		message = "Введите следующий код подтверждения:"
 	}
 
-	// Определяем тип шаблона
 	var templateType email.TemplateType
 	if actionType == "reset_password" {
 		templateType = email.TemplateResetPassword
@@ -264,21 +298,17 @@ func (s *regService) sendVerificationEmail(userEmail, code, actionType string) e
 		templateType = email.TemplateVerificationCode
 	}
 
-	// Формируем данные для email
 	emailData := email.EmailData{
 		Code:    code,
 		Message: message,
 	}
 
-	// Рендерим шаблон
 	body, err := s.emailManager.RenderTemplate(templateType, emailData)
 	if err != nil {
 		return fmt.Errorf("ошибка рендеринга email шаблона: %w", err)
 	}
 
 	subject := email.GetSubject(templateType, "")
-
-	// Отправляем email
 	if err := utils.SendEmail(userEmail, subject, body, s.cfg); err != nil {
 		s.logger.Error("Failed to send verification email", "email", userEmail, "error", err)
 		return err
@@ -288,8 +318,7 @@ func (s *regService) sendVerificationEmail(userEmail, code, actionType string) e
 	return nil
 }
 
-// sendWelcomeEmail отправляет приветственное письмо
-func (s *regService) sendWelcomeEmail(userEmail, userName string) error {
+func (s *templateRegistrationEmailSender) SendWelcomeEmail(userEmail, userName string) error {
 	emailData := email.EmailData{
 		UserName:   userName,
 		ActionURL:  "https://friendsheep.ru/",
@@ -302,7 +331,6 @@ func (s *regService) sendWelcomeEmail(userEmail, userName string) error {
 	}
 
 	subject := email.GetSubject(email.TemplateWelcome, "")
-
 	if err := utils.SendEmail(userEmail, subject, body, s.cfg); err != nil {
 		s.logger.Error("Failed to send welcome email", "email", userEmail, "error", err)
 		return err
@@ -365,26 +393,25 @@ func (s *regService) VerifySession(ctx context.Context, input VerifySessionInput
 }
 
 func (s *regService) ChangePassword(ctx context.Context, input ChangePasswordInput) error {
-
 	sess, err := s.redis.GetSession(ctx, input.SessionID)
 	if err != nil {
 		s.logger.Error("Failed to get session", "sessionID", input.SessionID, "error", err)
-		return ErrSessionNotFound
+		return mapRegisterSessionLookupError(err)
 	}
 
-	if !sess.IsVerified {
-		s.logger.Warn("Attempt to create user with unverified session", "sessionID", input.SessionID)
-		return ErrSessionNotVerified
+	boundEmail, err := validateVerifiedSessionBinding(sess, models.SessionTypeResetPassword, input.Email)
+	if err != nil {
+		s.logger.Warn("Session binding mismatch during password reset", "sessionID", input.SessionID, "email", input.Email, "error", err)
+		return err
 	}
 
 	var user models.User
-
-	if err := s.postgres.Where("email = ?", input.Email).First(&user).Error; err != nil {
+	if err := s.postgres.Where("email = ?", boundEmail).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			s.logger.Warn("User not found for password change", "email", input.Email)
+			s.logger.Warn("User not found for password change", "email", boundEmail)
 			return ErrUserNotFound
 		}
-		s.logger.Error("Failed to find user", "email", input.Email, "error", err)
+		s.logger.Error("Failed to find user", "email", boundEmail, "error", err)
 		return err
 	}
 
@@ -394,14 +421,16 @@ func (s *regService) ChangePassword(ctx context.Context, input ChangePasswordInp
 		return fmt.Errorf("ошибка хэширования пароля: %w", err)
 	}
 
-	user.Password = hashPass
-
-	if err := s.postgres.Save(&user).Error; err != nil {
+	if err := s.postgres.Model(&user).Update("password", hashPass).Error; err != nil {
 		s.logger.Error("Failed to update user password", "userID", user.ID, "error", err)
 		return err
 	}
 
-	s.logger.Info("Password changed successfully", "userID", user.ID, "email", input.Email)
+	if err := s.redis.DeleteSession(ctx, input.SessionID); err != nil {
+		s.logger.Warn("Failed to delete session after password change", "sessionID", input.SessionID, "error", err)
+	}
+
+	s.logger.Info("Password changed successfully", "userID", user.ID, "email", boundEmail)
 	return nil
 }
 
