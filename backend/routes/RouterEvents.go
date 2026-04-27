@@ -31,12 +31,12 @@ func RegisterEventsRoutes(
 		eventsGroup.GET("/:groupId/events", eventsHandler.GetGroupEvents)
 	}
 	eventsAdmin := router.Group("/api/v2/admin/events")
-	eventsAdmin.Use(authMiddleware.RequireAuth(), groupRoleMiddleware.RequireOperatorOrAdmin())
+	eventsAdmin.Use(authMiddleware.RequireAuth())
 	{
-		eventsAdmin.GET("/:eventId", eventsHandler.GetEventDetailsForAdmin)
-		eventsAdmin.POST("", eventsHandler.CreateEvent)
-		eventsAdmin.PUT("/:eventId", eventsHandler.UpdateEvent)
-		eventsAdmin.DELETE("/:eventId", eventsHandler.DeleteEvent)
-		eventsAdmin.DELETE("/:eventId/kick/:userId", eventsHandler.KickUserFromEvent)
+		eventsAdmin.GET("/:eventId", groupRoleMiddleware.RequireEventOperatorOrAdmin(), eventsHandler.GetEventDetailsForAdmin)
+		eventsAdmin.POST("", groupRoleMiddleware.RequireOperatorOrAdmin(), eventsHandler.CreateEvent)
+		eventsAdmin.PUT("/:eventId", groupRoleMiddleware.RequireEventOperatorOrAdmin(), eventsHandler.UpdateEvent)
+		eventsAdmin.DELETE("/:eventId", groupRoleMiddleware.RequireEventOperatorOrAdmin(), eventsHandler.DeleteEvent)
+		eventsAdmin.DELETE("/:eventId/kick/:userId", groupRoleMiddleware.RequireEventOperatorOrAdmin(), eventsHandler.KickUserFromEvent)
 	}
 }

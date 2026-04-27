@@ -22,21 +22,9 @@ func NewGroupRoleMiddleware(repo repository.PostgresRepository) *GroupRoleMiddle
 
 func (m *GroupRoleMiddleware) RequireGroupRole(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userIDValue, exists := c.Get("userID")
-		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Пользователь не авторизован",
-			})
-			c.Abort()
-			return
-		}
-
-		userID, ok := contextUint(userIDValue)
+		userID, ok := contextUserID(c)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Пользователь не авторизован",
-			})
-			c.Abort()
+			abortUnauthorized(c)
 			return
 		}
 
@@ -60,56 +48,71 @@ func (m *GroupRoleMiddleware) RequireGroupRole(allowedRoles ...string) gin.Handl
 		}
 
 		if groupIDStr == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "Не указан ID группы",
-			})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Не указан ID группы"})
 			c.Abort()
 			return
 		}
 
 		groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "Некорректный ID группы",
-			})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
 			c.Abort()
 			return
 		}
 
 		roleName, err := m.reader.FindUserGroupRole(userID, uint(groupID))
 		if err != nil {
-			if errors.Is(err, errGroupMembershipNotFound) {
-				c.JSON(http.StatusForbidden, gin.H{
-					"error": "Вы не являетесь участником этой группы",
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "Ошибка проверки доступа",
-				})
-			}
-			c.Abort()
+			abortRoleLookupError(c, err)
 			return
 		}
 
-		roleAllowed := false
-		for _, allowedRole := range allowedRoles {
-			if roleName == allowedRole {
-				roleAllowed = true
-				break
-			}
-		}
-
-		if !roleAllowed {
-			c.JSON(http.StatusForbidden, gin.H{
-				"error":         "Недостаточно прав для выполнения этого действия",
-				"required_role": allowedRoles,
-				"your_role":     roleName,
-			})
-			c.Abort()
+		if !roleAllowed(roleName, allowedRoles) {
+			abortForbiddenRole(c, roleName, allowedRoles)
 			return
 		}
 
 		c.Set("groupID", uint(groupID))
+		c.Set("groupRole", roleName)
+
+		c.Next()
+	}
+}
+
+func (m *GroupRoleMiddleware) RequireEventGroupRole(allowedRoles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, ok := contextUserID(c)
+		if !ok {
+			abortUnauthorized(c)
+			return
+		}
+
+		eventIDStr := c.Param("eventId")
+		if eventIDStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Не указан ID события"})
+			c.Abort()
+			return
+		}
+
+		eventID, err := strconv.ParseUint(eventIDStr, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID события"})
+			c.Abort()
+			return
+		}
+
+		groupID, roleName, err := m.reader.FindUserEventGroupRole(userID, uint(eventID))
+		if err != nil {
+			abortRoleLookupError(c, err)
+			return
+		}
+
+		if !roleAllowed(roleName, allowedRoles) {
+			abortForbiddenRole(c, roleName, allowedRoles)
+			return
+		}
+
+		c.Set("eventID", uint(eventID))
+		c.Set("groupID", groupID)
 		c.Set("groupRole", roleName)
 
 		c.Next()
@@ -124,8 +127,55 @@ func (m *GroupRoleMiddleware) RequireOperatorOrAdmin() gin.HandlerFunc {
 	return m.RequireGroupRole("Админ", "Модератор")
 }
 
+func (m *GroupRoleMiddleware) RequireEventOperatorOrAdmin() gin.HandlerFunc {
+	return m.RequireEventGroupRole("Админ", "Модератор")
+}
+
 func (m *GroupRoleMiddleware) RequireMember() gin.HandlerFunc {
 	return m.RequireGroupRole("Админ", "Модератор", "Участник")
+}
+
+func contextUserID(c *gin.Context) (uint, bool) {
+	userIDValue, exists := c.Get("userID")
+	if !exists {
+		return 0, false
+	}
+	return contextUint(userIDValue)
+}
+
+func abortUnauthorized(c *gin.Context) {
+	c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
+	c.Abort()
+}
+
+func abortRoleLookupError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, errEventNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "Событие не найдено"})
+	case errors.Is(err, errGroupMembershipNotFound):
+		c.JSON(http.StatusForbidden, gin.H{"error": "Вы не являетесь участником этой группы"})
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка проверки доступа"})
+	}
+	c.Abort()
+}
+
+func abortForbiddenRole(c *gin.Context, roleName string, allowedRoles []string) {
+	c.JSON(http.StatusForbidden, gin.H{
+		"error":         "Недостаточно прав для выполнения этого действия",
+		"required_role": allowedRoles,
+		"your_role":     roleName,
+	})
+	c.Abort()
+}
+
+func roleAllowed(roleName string, allowedRoles []string) bool {
+	for _, allowedRole := range allowedRoles {
+		if roleName == allowedRole {
+			return true
+		}
+	}
+	return false
 }
 
 func contextUint(value interface{}) (uint, bool) {
