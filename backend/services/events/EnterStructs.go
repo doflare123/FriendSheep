@@ -17,7 +17,7 @@ type CreateEventInput struct {
 	// Опциональные поля
 	Address      string                 `json:"address,omitempty"`
 	Country      string                 `json:"country,omitempty"`
-	AgeLimitID   uint                   `json:"ageLimit,omitempty"`
+	AgeLimitID   uint                   `json:"ageLimit" binding:"required"`
 	Year         *int                   `json:"year,omitempty"`
 	Notes        string                 `json:"notes,omitempty"`
 	CustomFields map[string]interface{} `json:"customFields,omitempty"`

@@ -7,6 +7,7 @@ import (
 	"friendship/models/dto"
 	convertorsdto "friendship/models/dto/convertorsDto"
 	"friendship/models/events"
+	groupmodels "friendship/models/groups"
 	"friendship/repository"
 	"time"
 
@@ -38,7 +39,7 @@ func (s *eventsService) GetEventDetailsForAdmin(actorID uint, eventID uint) (*dt
 		return nil, fmt.Errorf("ошибка получения события: %w", err)
 	}
 
-	hasAccess, _, err := s.checkGroupAccess(actorID, event.GroupID, []string{"Админ", "Модератор"})
+	hasAccess, _, err := s.checkGroupAccess(actorID, event.GroupID, []string{groupmodels.RoleAdmin, groupmodels.RoleModerator})
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +65,7 @@ func (s *eventsService) KickUserFromEvent(actorID uint, eventID uint, targetUser
 			return fmt.Errorf("ошибка поиска события: %w", err)
 		}
 
-		hasAccess, role, err := s.checkGroupAccess(actorID, event.GroupID, []string{"Админ", "Модератор"})
+		hasAccess, role, err := s.checkGroupAccess(actorID, event.GroupID, []string{groupmodels.RoleAdmin, groupmodels.RoleModerator})
 		if err != nil {
 			return err
 		}
@@ -130,7 +131,7 @@ func (s *eventsService) KickUserFromEvent(actorID uint, eventID uint, targetUser
 // Создает новое событие
 func (s *eventsService) CreateEvent(actorID uint, input CreateEventInput) (*dto.EventFullDto, error) {
 	// Проверяем права доступа (admin или operator)
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{"Админ", "Модератор"})
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{groupmodels.RoleAdmin, groupmodels.RoleModerator})
 	if err != nil {
 		return nil, err
 	}
@@ -152,6 +153,9 @@ func (s *eventsService) CreateEvent(actorID uint, input CreateEventInput) (*dto.
 
 		var ageLimit events.AgeLimit
 		if err := tx.First(&ageLimit, input.AgeLimitID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrAgeLimitNotFound
+			}
 			return fmt.Errorf("возрастное ограничение не найдено: %w", err)
 		}
 
@@ -254,7 +258,7 @@ func (s *eventsService) UpdateEvent(actorID uint, eventID uint, input UpdateEven
 		return nil, fmt.Errorf("ошибка поиска события: %w", err)
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, event.GroupID, []string{"Админ", "Модератор"})
+	hasAccess, role, err := s.checkGroupAccess(actorID, event.GroupID, []string{groupmodels.RoleAdmin, groupmodels.RoleModerator})
 	if err != nil {
 		return nil, err
 	}
@@ -318,6 +322,9 @@ func (s *eventsService) UpdateEvent(actorID uint, eventID uint, input UpdateEven
 		if input.AgeLimit != nil {
 			var ageLimit events.AgeLimit
 			if err := tx.First(&ageLimit, *input.AgeLimit).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return ErrAgeLimitNotFound
+				}
 				return fmt.Errorf("возрастное ограничение не найдено: %w", err)
 			}
 			updates["age_limit_id"] = *input.AgeLimit
@@ -410,7 +417,7 @@ func (s *eventsService) DeleteEvent(actorID uint, eventID uint) (bool, error) {
 		return false, fmt.Errorf("ошибка поиска события: %w", err)
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, event.GroupID, []string{"Админ", "Модератор"})
+	hasAccess, role, err := s.checkGroupAccess(actorID, event.GroupID, []string{groupmodels.RoleAdmin, groupmodels.RoleModerator})
 	if err != nil {
 		return false, err
 	}

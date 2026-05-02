@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"friendship/models/dto"
+	groupmodels "friendship/models/groups"
 
 	"gorm.io/gorm"
 )
@@ -10,8 +11,8 @@ import (
 const (
 	authPrivateGroupType = "приватная группа"
 	authPublicGroupType  = "открытая группа"
-	authAdminRole        = "Админ"
-	authModeratorRole    = "Модератор"
+	authAdminRole        = groupmodels.RoleAdmin
+	authModeratorRole    = groupmodels.RoleModerator
 )
 
 type AuthUser struct {

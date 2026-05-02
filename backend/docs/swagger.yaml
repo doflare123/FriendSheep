@@ -366,6 +366,10 @@ definitions:
         items:
           $ref: '#/definitions/dto.ReferenceItemDto'
         type: array
+      genres:
+        items:
+          $ref: '#/definitions/dto.ReferenceItemDto'
+        type: array
       groupCategories:
         items:
           $ref: '#/definitions/dto.ReferenceItemDto'
@@ -428,6 +432,7 @@ definitions:
       year:
         type: integer
     required:
+    - ageLimit
     - description
     - duration
     - eventTypeId
@@ -498,8 +503,6 @@ definitions:
       userId:
         type: integer
     type: object
-  group.CreateGroupInput:
-    type: object
   group.GroupAction:
     properties:
       action:
@@ -566,6 +569,52 @@ definitions:
     required:
     - groupId
     - userId
+    type: object
+  handlers.CreateGroupRequest:
+    properties:
+      categories:
+        example:
+        - 1
+        - 3
+        - 5
+        items:
+          type: integer
+        minItems: 1
+        type: array
+      city:
+        example: Moscow
+        type: string
+      contacts:
+        example: vk:https://vk.com/mygroup, tg:https://t.me/mygroup
+        type: string
+      description:
+        example: Group for board game fans
+        maxLength: 300
+        minLength: 5
+        type: string
+      image:
+        example: https://cdn.example.com/images/board-games.jpg
+        type: string
+      isPrivate:
+        example: false
+        type: boolean
+      name:
+        example: Board Game Club
+        maxLength: 40
+        minLength: 5
+        type: string
+      smallDescription:
+        example: Play together
+        maxLength: 50
+        minLength: 5
+        type: string
+    required:
+    - categories
+    - description
+    - image
+    - isPrivate
+    - name
+    - smallDescription
     type: object
   handlers.GroupUpdateRequest:
     properties:
@@ -1375,7 +1424,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/group.CreateGroupInput'
+          $ref: '#/definitions/handlers.CreateGroupRequest'
       produces:
       - application/json
       responses:
@@ -1390,6 +1439,12 @@ paths:
             type: object
         "401":
           description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
           schema:
             additionalProperties:
               type: string
@@ -2389,6 +2444,12 @@ paths:
             type: object
         "403":
           description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string

@@ -66,6 +66,36 @@ type GroupUpdateRequest struct {
 	Contacts         *string `json:"contacts"`
 }
 
+type CreateGroupRequest struct {
+	Name             string `json:"name" binding:"required,min=5,max=40" example:"Board Game Club"`
+	Description      string `json:"description" binding:"required,min=5,max=300" example:"Group for board game fans"`
+	SmallDescription string `json:"smallDescription" binding:"required,min=5,max=50" example:"Play together"`
+	Image            string `json:"image" binding:"required,url" example:"https://cdn.example.com/images/board-games.jpg"`
+	IsPrivate        *bool  `json:"isPrivate" binding:"required" example:"false"`
+	City             string `json:"city,omitempty" example:"Moscow"`
+	Categories       []uint `json:"categories" binding:"required,min=1" example:"1,3,5"`
+	Contacts         string `json:"contacts,omitempty" example:"vk:https://vk.com/mygroup, tg:https://t.me/mygroup"`
+}
+
+func (r CreateGroupRequest) toServiceInput() group.CreateGroupInput {
+	categories := make([]*uint, 0, len(r.Categories))
+	for i := range r.Categories {
+		categoryID := r.Categories[i]
+		categories = append(categories, &categoryID)
+	}
+
+	return group.CreateGroupInput{
+		Name:             r.Name,
+		Description:      r.Description,
+		SmallDescription: r.SmallDescription,
+		Image:            r.Image,
+		IsPrivate:        r.IsPrivate,
+		City:             r.City,
+		Categories:       categories,
+		Contacts:         r.Contacts,
+	}
+}
+
 // GetGroupDetails godoc
 // @Summary      Получить информацию о группе
 // @Description  Возвращает полную информацию о группе с участниками и активными событиями
@@ -112,10 +142,11 @@ func (h *groupHandler) GetGroupDetails(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        request body group.CreateGroupInput true "Данные для создания группы"
+// @Param        request body CreateGroupRequest true "Данные для создания группы"
 // @Success      201 {object} dto.GroupFullDto "Группа успешно создана"
 // @Failure      400 {object} map[string]interface{} "Некорректные данные"
 // @Failure      401 {object} map[string]string "Не авторизован"
+// @Failure      404 {object} map[string]string "Пользователь не найден"
 // @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Router       /api/v2/groups [post]
 func (h *groupHandler) CreateGroup(c *gin.Context) {
@@ -128,20 +159,20 @@ func (h *groupHandler) CreateGroup(c *gin.Context) {
 	}
 	id := idValue.(uint)
 
-	var input group.CreateGroupInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	var request CreateGroupRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
 		utils.ValidationError(c, err)
 		return
 	}
 
-	if input.Image == "" {
+	if request.Image == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Изображение группы обязательно",
 		})
 		return
 	}
 
-	groupDto, err := h.srv.CreateGroup(id, input)
+	groupDto, err := h.srv.CreateGroup(id, request.toServiceInput())
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrUserNotFound):
@@ -472,6 +503,8 @@ func (h *groupHandler) ApproveJoinRequest(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
 		case errors.Is(err, group.ErrUserInBlacklist):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Пользователь в черном списке"})
+		case errors.Is(err, group.ErrJoinRequestNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Заявка не найдена"})
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
@@ -512,6 +545,8 @@ func (h *groupHandler) RejectJoinRequest(c *gin.Context) {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+		case errors.Is(err, group.ErrJoinRequestNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Заявка не найдена"})
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}

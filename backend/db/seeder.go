@@ -57,9 +57,9 @@ func Seeder(db repository.PostgresRepository) []error {
 		{
 			name: "типы участников групп",
 			data: []interface{}{
-				&groups.Role_in_group{Name: "Админ"},
-				&groups.Role_in_group{Name: "Модератор"},
-				&groups.Role_in_group{Name: "Участник"},
+				&groups.Role_in_group{Name: groups.RoleAdmin},
+				&groups.Role_in_group{Name: groups.RoleModerator},
+				&groups.Role_in_group{Name: groups.RoleMember},
 			},
 		},
 		{

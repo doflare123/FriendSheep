@@ -62,6 +62,32 @@ func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error
 			return fmt.Errorf("ошибка проверки заявок: %w", err)
 		}
 
+		if group.IsPrivate {
+			request := groups.GroupJoinRequest{
+				UserID:  userID,
+				GroupID: groupID,
+				Status:  "pending",
+			}
+			if err := tx.Create(&request).Error; err != nil {
+				return fmt.Errorf("ошибка создания заявки: %w", err)
+			}
+			return nil
+		}
+
+		memberRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleMember, tx)
+		if memberRoleID == 0 {
+			return fmt.Errorf("роль member не найдена")
+		}
+
+		member := groups.GroupUsers{
+			UserID:        userID,
+			GroupID:       groupID,
+			RoleInGroupID: memberRoleID,
+		}
+		if err := tx.Create(&member).Error; err != nil {
+			return fmt.Errorf("ошибка добавления пользователя в группу: %w", err)
+		}
+
 		return nil
 	})
 
@@ -72,37 +98,11 @@ func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error
 
 	// Приватная группа - создаем заявку
 	if group.IsPrivate {
-		request := groups.GroupJoinRequest{
-			UserID:  userID,
-			GroupID: groupID,
-			Status:  "pending",
-		}
-		if err := s.post.Create(&request).Error; err != nil {
-			s.logger.Error("Failed to create join request", "error", err)
-			return nil, fmt.Errorf("ошибка создания заявки: %w", err)
-		}
-
 		s.logger.Info("Join request created", "userID", userID, "groupID", groupID)
 		return &GroupResult{
 			Message: "Заявка на вступление отправлена, ожидайте подтверждения от администратора группы",
 			Joined:  false,
 		}, nil
-	}
-
-	// Открытая группа - сразу добавляем
-	memberRoleID := new(groups.Role_in_group).GetIdRole("Участник", s.post)
-	if memberRoleID == 0 {
-		return nil, fmt.Errorf("роль member не найдена")
-	}
-
-	member := groups.GroupUsers{
-		UserID:        userID,
-		GroupID:       groupID,
-		RoleInGroupID: memberRoleID,
-	}
-	if err := s.post.Create(&member).Error; err != nil {
-		s.logger.Error("Failed to add user to group", "error", err)
-		return nil, fmt.Errorf("ошибка добавления пользователя в группу: %w", err)
 	}
 
 	s.logger.Info("User joined group", "userID", userID, "groupID", groupID)
@@ -129,7 +129,7 @@ func (s *groupService) LeaveGroup(userID uint, groupID uint) (bool, error) {
 		// Проверяем, не админ ли это (админ не может выйти)
 		var role groups.Role_in_group
 		if err := tx.First(&role, groupUser.RoleInGroupID).Error; err == nil {
-			if role.Name == "Админ" {
+			if role.Name == groups.RoleAdmin {
 				return fmt.Errorf("администратор не может покинуть группу. Передайте права другому участнику или удалите группу")
 			}
 		}
@@ -181,7 +181,7 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 			return ErrUserInBlacklist
 		}
 
-		memberRoleID := new(groups.Role_in_group).GetIdRole("Участник", s.post)
+		memberRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleMember, s.post)
 		if memberRoleID == 0 {
 			return fmt.Errorf("роль member не найдена")
 		}

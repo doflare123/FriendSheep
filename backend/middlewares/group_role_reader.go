@@ -12,10 +12,12 @@ import (
 var errGroupMembershipNotFound = errors.New("group membership not found")
 var errGroupRoleReaderUnavailable = errors.New("group role reader unavailable")
 var errEventNotFound = errors.New("event not found")
+var errJoinRequestNotFound = errors.New("join request not found")
 
 type groupRoleReader interface {
 	FindUserGroupRole(userID, groupID uint) (string, error)
 	FindUserEventGroupRole(userID, eventID uint) (uint, string, error)
+	FindUserJoinRequestGroupRole(userID, requestID uint) (uint, string, error)
 }
 
 type repositoryGroupRoleReader struct {
@@ -66,4 +68,25 @@ func (r *repositoryGroupRoleReader) FindUserEventGroupRole(userID, eventID uint)
 	}
 
 	return event.GroupID, role, nil
+}
+
+func (r *repositoryGroupRoleReader) FindUserJoinRequestGroupRole(userID, requestID uint) (uint, string, error) {
+	if r == nil || r.repo == nil {
+		return 0, "", errGroupRoleReaderUnavailable
+	}
+
+	var request groups.GroupJoinRequest
+	if err := r.repo.Select("group_id").First(&request, requestID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, "", errJoinRequestNotFound
+		}
+		return 0, "", err
+	}
+
+	role, err := r.FindUserGroupRole(userID, request.GroupID)
+	if err != nil {
+		return request.GroupID, "", err
+	}
+
+	return request.GroupID, role, nil
 }

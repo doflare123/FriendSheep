@@ -5,6 +5,7 @@ type ReferencesDto struct {
 	Locations       []ReferenceItemDto `json:"locations"`
 	AgeLimits       []ReferenceItemDto `json:"ageLimits"`
 	Statuses        []ReferenceItemDto `json:"statuses"`
+	Genres          []ReferenceItemDto `json:"genres"`
 	GroupCategories []ReferenceItemDto `json:"groupCategories"`
 }
 

@@ -12,6 +12,12 @@ type Role_in_group struct {
 	Name string `gorm:"uniqueIndex;not null"`
 }
 
+const (
+	RoleAdmin     = "Админ"
+	RoleModerator = "Модератор"
+	RoleMember    = "Участник"
+)
+
 func (r *Role_in_group) GetIdRole(str string, post repository.PostgresRepository) uint {
 	var role Role_in_group
 

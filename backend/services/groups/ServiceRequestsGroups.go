@@ -14,7 +14,7 @@ import (
 // GetJoinRequests получает все заявки на вступление в группу
 func (s *groupService) GetJoinRequests(actorID uint, groupID uint, status string, limit int) ([]JoinRequestInfo, error) {
 	// Проверяем права доступа (admin или operator)
-	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin, groups.RoleModerator})
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (s *groupService) GetJoinRequests(actorID uint, groupID uint, status string
 
 // CreateJoinInvite создает приглашение в группу
 func (s *groupService) CreateJoinInvite(actorID uint, input JoinInviteInput) (bool, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{"Админ", "Модератор"})
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{groups.RoleAdmin, groups.RoleModerator})
 	if err != nil {
 		return false, err
 	}
@@ -80,7 +80,10 @@ func (s *groupService) CreateJoinInvite(actorID uint, input JoinInviteInput) (bo
 	var actor models.User
 
 	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
-		if err := tx.First(&actor, actorID).Error; err != nil {
+		if err := tx.First(&targetUser, input.UserID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrUserNotFound
+			}
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}
 
@@ -139,7 +142,7 @@ func (s *groupService) CreateJoinInvite(actorID uint, input JoinInviteInput) (bo
 
 // ApproveAllJoinRequests одобряет все заявки
 func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin, groups.RoleModerator})
 	if err != nil {
 		return 0, err
 	}
@@ -162,7 +165,7 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 			return fmt.Errorf("ошибка получения заявок: %w", err)
 		}
 
-		memberRoleID := new(groups.Role_in_group).GetIdRole("Участник", s.post)
+		memberRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleMember, s.post)
 		if memberRoleID == 0 {
 			return fmt.Errorf("роль member не найдена")
 		}
@@ -218,7 +221,7 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 
 // RejectAllJoinRequests отклоняет все заявки
 func (s *groupService) RejectAllJoinRequests(actorID uint, groupID uint) (int, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin, groups.RoleModerator})
 	if err != nil {
 		return 0, err
 	}
@@ -270,12 +273,12 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 	err := s.post.Transaction(func(tx repository.PostgresRepository) error {
 		if err := tx.Preload("User").First(&request, requestID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return fmt.Errorf("заявка не найдена")
+				return ErrJoinRequestNotFound
 			}
 			return fmt.Errorf("ошибка поиска заявки: %w", err)
 		}
 
-		hasAccess, role, err := s.checkGroupAccess(actorID, request.GroupID, []string{"Админ", "Модератор"})
+		hasAccess, role, err := s.checkGroupAccess(actorID, request.GroupID, []string{groups.RoleAdmin, groups.RoleModerator})
 		if err != nil {
 			return err
 		}
@@ -302,7 +305,7 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 			return ErrUserInBlacklist
 		}
 
-		memberRoleID := new(groups.Role_in_group).GetIdRole("Участник", s.post)
+		memberRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleMember, s.post)
 		if memberRoleID == 0 {
 			return fmt.Errorf("роль member не найдена")
 		}
@@ -346,12 +349,12 @@ func (s *groupService) RejectJoinRequest(actorID uint, requestID uint) (bool, er
 	err := s.post.Transaction(func(tx repository.PostgresRepository) error {
 		if err := tx.Preload("User").First(&request, requestID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return fmt.Errorf("заявка не найдена")
+				return ErrJoinRequestNotFound
 			}
 			return fmt.Errorf("ошибка поиска заявки: %w", err)
 		}
 
-		hasAccess, role, err := s.checkGroupAccess(actorID, request.GroupID, []string{"Админ", "Модератор"})
+		hasAccess, role, err := s.checkGroupAccess(actorID, request.GroupID, []string{groups.RoleAdmin, groups.RoleModerator})
 		if err != nil {
 			return err
 		}

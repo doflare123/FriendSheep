@@ -31,8 +31,15 @@ func RegisterGroupsRoutes(
 		// Приглашения - принятие и отклонение
 		groupsPublic.POST("/invites/:inviteId/accept", groupHandler.AcceptJoinInvite)
 		groupsPublic.POST("/invites/:inviteId/reject", groupHandler.RejectJoinInvite)
-		groupsPublic.POST("/requests/:requestId/approve", groupHandler.ApproveJoinRequest)
-		groupsPublic.POST("/requests/:requestId/reject", groupHandler.RejectJoinRequest)
+	}
+
+	// Операторские действия над конкретной заявкой. Доступ проверяется через requestId -> groupId.
+	groupsOperatorRequest := router.Group("/api/v2/groups")
+	groupsOperatorRequest.Use(authMiddleware.RequireAuth())
+	groupsOperatorRequest.Use(groupRoleMiddleware.RequireJoinRequestOperatorOrAdmin())
+	{
+		groupsOperatorRequest.POST("/requests/:requestId/approve", groupHandler.ApproveJoinRequest)
+		groupsOperatorRequest.POST("/requests/:requestId/reject", groupHandler.RejectJoinRequest)
 	}
 
 	// Эндпоинты для операторов и админов

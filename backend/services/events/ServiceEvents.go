@@ -24,6 +24,7 @@ var (
 	ErrNotJoined           = errors.New("вы не присоединялись к событию")
 	ErrCreatorCantLeave    = errors.New("создатель не может покинуть событие")
 	ErrInvalidGenres       = errors.New("некорректные жанры")
+	ErrAgeLimitNotFound    = errors.New("возрастное ограничение не найдено")
 	ErrEventAlreadyStarted = errors.New("событие уже началось")
 	ErrNotInGroup          = errors.New("событие не принадлежит группе")
 )
@@ -68,7 +69,7 @@ func NewEventsService(logger logger.Logger, repo repository.PostgresRepository) 
 
 // Получает список событий группы
 func (s *eventsService) GetGroupEvents(actorID uint, groupID uint) ([]dto.EventShortDto, error) {
-	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin, groups.RoleModerator})
 	if err != nil {
 		return nil, err
 	}
@@ -161,10 +162,6 @@ func (s *eventsService) JoinEvent(userID uint, eventID uint) (bool, error) {
 			return ErrAlreadyJoined
 		}
 
-		if event.CurrentUsers >= event.MaxUsers {
-			return ErrEventFull
-		}
-
 		eventUser := events.EventsUser{
 			EventID:  eventID,
 			UserID:   userID,
@@ -175,8 +172,14 @@ func (s *eventsService) JoinEvent(userID uint, eventID uint) (bool, error) {
 			return fmt.Errorf("ошибка добавления к событию: %w", err)
 		}
 
-		if err := tx.Model(&event).Update("current_users", event.CurrentUsers+1).Error; err != nil {
-			return fmt.Errorf("ошибка обновления счетчика: %w", err)
+		result := tx.Model(&events.Event{}).
+			Where("id = ? AND current_users < max_users", eventID).
+			UpdateColumn("current_users", gorm.Expr("current_users + ?", 1))
+		if result.Error != nil {
+			return fmt.Errorf("ошибка обновления счетчика: %w", result.Error)
+		}
+		if result.RowsAffected == 0 {
+			return ErrEventFull
 		}
 
 		return nil
@@ -281,6 +284,12 @@ func (s *eventsService) GetAllReferences() (*dto.ReferencesDto, error) {
 		return nil, fmt.Errorf("ошибка получения статусов: %w", err)
 	}
 
+	var genres []events.Genre
+	if err := s.repo.Order("name ASC").Find(&genres).Error; err != nil {
+		s.logger.Error("Failed to fetch genres", "error", err)
+		return nil, fmt.Errorf("ошибка получения жанров: %w", err)
+	}
+
 	// Получаем категории групп (одно и тоже что и типы, но мб что-то сломается)
 	var groupCategories []models.Category
 	if err := s.repo.Order("name ASC").Find(&groupCategories).Error; err != nil {
@@ -294,6 +303,7 @@ func (s *eventsService) GetAllReferences() (*dto.ReferencesDto, error) {
 		Locations:       convertorsdto.ConvertLocationsToReferenceItems(locations),
 		AgeLimits:       convertorsdto.ConvertAgeLimitsToReferenceItems(ageLimits),
 		Statuses:        convertorsdto.ConvertStatusesToReferenceItems(statuses),
+		Genres:          convertorsdto.ConvertGenresToReferenceItems(genres),
 		GroupCategories: convertorsdto.ConvertToReferenceItems(groupCategories),
 	}
 

@@ -66,6 +66,8 @@ func (h *eventsHandler) CreateEvent(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в группе"})
 		case errors.Is(err, events.ErrInvalidGenres):
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case errors.Is(err, events.ErrAgeLimitNotFound):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Возрастное ограничение не найдено"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
@@ -117,6 +119,8 @@ func (h *eventsHandler) UpdateEvent(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Событие уже началось, изменение невозможно"})
 		case errors.Is(err, events.ErrInvalidGenres):
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case errors.Is(err, events.ErrAgeLimitNotFound):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Возрастное ограничение не найдено"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}

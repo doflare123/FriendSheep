@@ -817,7 +817,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/group.CreateGroupInput"
+                            "$ref": "#/definitions/handlers.CreateGroupRequest"
                         }
                     }
                 ],
@@ -837,6 +837,15 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Не авторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2282,6 +2291,15 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "409": {
                         "description": "Conflict",
                         "schema": {
@@ -3103,6 +3121,12 @@ const docTemplate = `{
                         "$ref": "#/definitions/dto.ReferenceItemDto"
                     }
                 },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReferenceItemDto"
+                    }
+                },
                 "groupCategories": {
                     "type": "array",
                     "items": {
@@ -3126,6 +3150,7 @@ const docTemplate = `{
         "events.CreateEventInput": {
             "type": "object",
             "required": [
+                "ageLimit",
                 "description",
                 "duration",
                 "eventTypeId",
@@ -3291,9 +3316,6 @@ const docTemplate = `{
                 }
             }
         },
-        "group.CreateGroupInput": {
-            "type": "object"
-        },
         "group.GroupAction": {
             "type": "object",
             "properties": {
@@ -3393,6 +3415,65 @@ const docTemplate = `{
                 },
                 "userId": {
                     "type": "integer"
+                }
+            }
+        },
+        "handlers.CreateGroupRequest": {
+            "type": "object",
+            "required": [
+                "categories",
+                "description",
+                "image",
+                "isPrivate",
+                "name",
+                "smallDescription"
+            ],
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    },
+                    "example": [
+                        1,
+                        3,
+                        5
+                    ]
+                },
+                "city": {
+                    "type": "string",
+                    "example": "Moscow"
+                },
+                "contacts": {
+                    "type": "string",
+                    "example": "vk:https://vk.com/mygroup, tg:https://t.me/mygroup"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 300,
+                    "minLength": 5,
+                    "example": "Group for board game fans"
+                },
+                "image": {
+                    "type": "string",
+                    "example": "https://cdn.example.com/images/board-games.jpg"
+                },
+                "isPrivate": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "minLength": 5,
+                    "example": "Board Game Club"
+                },
+                "smallDescription": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 5,
+                    "example": "Play together"
                 }
             }
         },

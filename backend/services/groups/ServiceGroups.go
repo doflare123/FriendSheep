@@ -27,6 +27,7 @@ var (
 	ErrAlreadyInGroup       = errors.New("пользователь уже в группе")
 	ErrNotInGroup           = errors.New("пользователь не в группе")
 	ErrRequestAlreadyExists = errors.New("заявка уже существует")
+	ErrJoinRequestNotFound  = errors.New("заявка не найдена")
 	ErrInviteAlreadyExists  = errors.New("приглашение уже существует")
 	ErrUserInBlacklist      = errors.New("пользователь в черном списке")
 	ErrCannotRemoveSelf     = errors.New("нельзя удалить самого себя")
@@ -324,6 +325,7 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 
 		if len(categories) != len(input.Categories) {
 			s.logger.Warn("Not all categories found", "requested", len(input.Categories), "found", len(categories))
+			return nil, ErrCategoriesNotFound
 		}
 	}
 
@@ -344,7 +346,7 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 			return fmt.Errorf("ошибка создания группы: %w", err)
 		}
 
-		roleID := new(groups.Role_in_group).GetIdRole("Админ", s.post)
+		roleID := new(groups.Role_in_group).GetIdRole(groups.RoleAdmin, s.post)
 		if roleID == 0 {
 			return fmt.Errorf("роль Админ не найдена")
 		}
@@ -380,7 +382,7 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 
 		// Логируем действие
 		action := fmt.Sprintf("Создал группу '%s'", newGroup.Name)
-		if err := s.logAction(tx, newGroup.ID, id, creator.Name, creator.Us, "Админ", "create_group", action); err != nil {
+		if err := s.logAction(tx, newGroup.ID, id, creator.Name, creator.Us, groups.RoleAdmin, "create_group", action); err != nil {
 			s.logger.Warn("Failed to log action", "error", err)
 		}
 
@@ -409,7 +411,7 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 // UpdateGroup обновляет группу
 func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.GroupFullDto, error) {
 	// Проверяем права доступа
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{"Админ", "Модератор"})
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{groups.RoleAdmin, groups.RoleModerator})
 	if err != nil {
 		return nil, err
 	}
@@ -516,7 +518,7 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 
 // DeleteGroup удаляет группу (только админ)
 func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{"Админ"})
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin})
 	if err != nil {
 		return false, err
 	}
@@ -562,7 +564,7 @@ func (s *groupService) AddPermissions(actorID uint, input PermissionInput) (bool
 		return false, ErrCannotChangeOwnRole
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{"Админ"})
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{groups.RoleAdmin})
 	if err != nil {
 		return false, err
 	}
@@ -595,7 +597,7 @@ func (s *groupService) AddPermissions(actorID uint, input PermissionInput) (bool
 			return fmt.Errorf("ошибка поиска участника: %w", err)
 		}
 
-		operatorRoleID := new(groups.Role_in_group).GetIdRole("Модератор", s.post)
+		operatorRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleModerator, s.post)
 		if operatorRoleID == 0 {
 			return fmt.Errorf("роль Модератор не найдена")
 		}
@@ -628,7 +630,7 @@ func (s *groupService) RemovePermissions(actorID uint, input PermissionInput) (b
 		return false, ErrCannotChangeOwnRole
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{"Админ"})
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{groups.RoleAdmin})
 	if err != nil {
 		return false, err
 	}
@@ -661,7 +663,7 @@ func (s *groupService) RemovePermissions(actorID uint, input PermissionInput) (b
 			return fmt.Errorf("ошибка поиска участника: %w", err)
 		}
 
-		memberRoleID := new(groups.Role_in_group).GetIdRole("Участник", s.post)
+		memberRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleMember, s.post)
 		if memberRoleID == 0 {
 			return fmt.Errorf("роль Участник не найдена")
 		}
@@ -694,7 +696,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 		return false, ErrCannotRemoveSelf
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin, groups.RoleModerator})
 	if err != nil {
 		return false, err
 	}
@@ -730,7 +732,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 		// Проверяем, что целевой пользователь не админ
 		var targetRole groups.Role_in_group
 		if err := tx.First(&targetRole, groupUser.RoleInGroupID).Error; err == nil {
-			if targetRole.Name == "Админ" {
+			if targetRole.Name == groups.RoleAdmin {
 				return fmt.Errorf("нельзя удалить администратора группы")
 			}
 		}
@@ -772,7 +774,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 
 // RemoveFromBlacklist убирает пользователя из черного списка
 func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUserID uint) (bool, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin, groups.RoleModerator})
 	if err != nil {
 		return false, err
 	}
@@ -827,7 +829,7 @@ func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUse
 // WatchRecentActions получает историю действий в группе
 func (s *groupService) WatchRecentActions(userID uint, groupID uint, limit int) ([]GroupAction, error) {
 	// Проверяем, что пользователь в группе
-	hasAccess, _, err := s.checkGroupAccess(userID, groupID, []string{"Админ", "Модератор", "Участник"})
+	hasAccess, _, err := s.checkGroupAccess(userID, groupID, []string{groups.RoleAdmin, groups.RoleModerator, groups.RoleMember})
 	if err != nil {
 		return nil, err
 	}
@@ -894,7 +896,7 @@ func (s *groupService) checkGroupAccess(userID uint, groupID uint, allowedRoles 
 // GetGroupBlacklist получает черный список группы
 func (s *groupService) GetGroupBlacklist(actorID uint, groupID uint, limit int) ([]BlacklistUser, error) {
 	// Проверяем права доступа (admin или operator)
-	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, []string{"Админ", "Модератор"})
+	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin, groups.RoleModerator})
 	if err != nil {
 		return nil, err
 	}

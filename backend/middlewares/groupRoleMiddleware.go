@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	groupmodels "friendship/models/groups"
 	"friendship/repository"
 	"io"
 	"net/http"
@@ -119,20 +120,65 @@ func (m *GroupRoleMiddleware) RequireEventGroupRole(allowedRoles ...string) gin.
 	}
 }
 
+func (m *GroupRoleMiddleware) RequireJoinRequestGroupRole(allowedRoles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, ok := contextUserID(c)
+		if !ok {
+			abortUnauthorized(c)
+			return
+		}
+
+		requestIDStr := c.Param("requestId")
+		if requestIDStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Не указан ID заявки"})
+			c.Abort()
+			return
+		}
+
+		requestID, err := strconv.ParseUint(requestIDStr, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID заявки"})
+			c.Abort()
+			return
+		}
+
+		groupID, roleName, err := m.reader.FindUserJoinRequestGroupRole(userID, uint(requestID))
+		if err != nil {
+			abortRoleLookupError(c, err)
+			return
+		}
+
+		if !roleAllowed(roleName, allowedRoles) {
+			abortForbiddenRole(c, roleName, allowedRoles)
+			return
+		}
+
+		c.Set("requestID", uint(requestID))
+		c.Set("groupID", groupID)
+		c.Set("groupRole", roleName)
+
+		c.Next()
+	}
+}
+
 func (m *GroupRoleMiddleware) RequireAdmin() gin.HandlerFunc {
-	return m.RequireGroupRole("Админ")
+	return m.RequireGroupRole(groupmodels.RoleAdmin)
 }
 
 func (m *GroupRoleMiddleware) RequireOperatorOrAdmin() gin.HandlerFunc {
-	return m.RequireGroupRole("Админ", "Модератор")
+	return m.RequireGroupRole(groupmodels.RoleAdmin, groupmodels.RoleModerator)
 }
 
 func (m *GroupRoleMiddleware) RequireEventOperatorOrAdmin() gin.HandlerFunc {
-	return m.RequireEventGroupRole("Админ", "Модератор")
+	return m.RequireEventGroupRole(groupmodels.RoleAdmin, groupmodels.RoleModerator)
+}
+
+func (m *GroupRoleMiddleware) RequireJoinRequestOperatorOrAdmin() gin.HandlerFunc {
+	return m.RequireJoinRequestGroupRole(groupmodels.RoleAdmin, groupmodels.RoleModerator)
 }
 
 func (m *GroupRoleMiddleware) RequireMember() gin.HandlerFunc {
-	return m.RequireGroupRole("Админ", "Модератор", "Участник")
+	return m.RequireGroupRole(groupmodels.RoleAdmin, groupmodels.RoleModerator, groupmodels.RoleMember)
 }
 
 func contextUserID(c *gin.Context) (uint, bool) {
@@ -152,6 +198,8 @@ func abortRoleLookupError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, errEventNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"error": "Событие не найдено"})
+	case errors.Is(err, errJoinRequestNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заявка не найдена"})
 	case errors.Is(err, errGroupMembershipNotFound):
 		c.JSON(http.StatusForbidden, gin.H{"error": "Вы не являетесь участником этой группы"})
 	default:

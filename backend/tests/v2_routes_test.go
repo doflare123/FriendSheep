@@ -113,7 +113,9 @@ func (h *popularEventsRouteHandlerStub) GetPopularEvents(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-type groupRouteHandlerStub struct{}
+type groupRouteHandlerStub struct {
+	called string
+}
 
 func (h *groupRouteHandlerStub) CreateGroup(c *gin.Context)     { c.Status(http.StatusNoContent) }
 func (h *groupRouteHandlerStub) UpdateGroup(c *gin.Context)     { c.Status(http.StatusNoContent) }
@@ -125,18 +127,24 @@ func (h *groupRouteHandlerStub) ApproveAllJoinRequests(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 func (h *groupRouteHandlerStub) RejectAllJoinRequests(c *gin.Context) { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) ApproveJoinRequest(c *gin.Context)    { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) RejectJoinRequest(c *gin.Context)     { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) GetJoinRequests(c *gin.Context)       { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) AddPermissions(c *gin.Context)        { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) RemovePermissions(c *gin.Context)     { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) GetGroupBlacklist(c *gin.Context)     { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) DeleteUserFromGroup(c *gin.Context)   { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) RemoveFromBlacklist(c *gin.Context)   { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) CreateJoinInvite(c *gin.Context)      { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) AcceptJoinInvite(c *gin.Context)      { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) RejectJoinInvite(c *gin.Context)      { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) WatchRecentActions(c *gin.Context)    { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) ApproveJoinRequest(c *gin.Context) {
+	h.called = "approve-request"
+	c.Status(http.StatusNoContent)
+}
+func (h *groupRouteHandlerStub) RejectJoinRequest(c *gin.Context) {
+	h.called = "reject-request"
+	c.Status(http.StatusNoContent)
+}
+func (h *groupRouteHandlerStub) GetJoinRequests(c *gin.Context)     { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) AddPermissions(c *gin.Context)      { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) RemovePermissions(c *gin.Context)   { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) GetGroupBlacklist(c *gin.Context)   { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) DeleteUserFromGroup(c *gin.Context) { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) RemoveFromBlacklist(c *gin.Context) { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) CreateJoinInvite(c *gin.Context)    { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) AcceptJoinInvite(c *gin.Context)    { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) RejectJoinInvite(c *gin.Context)    { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) WatchRecentActions(c *gin.Context)  { c.Status(http.StatusNoContent) }
 
 func TestRegisterAuthRoutesRefreshUsesPost(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -365,6 +373,87 @@ func TestRegisterGroupsRoutesRequireAuth(t *testing.T) {
 	}
 }
 
+func TestRegisterGroupsRoutesRequestIDActionsRequireOperatorRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	groupHandler := &groupRouteHandlerStub{}
+	jwtUtils := utils.NewJWTUtils("test-secret")
+	repo, requestID := newGroupJoinRequestRouteRepo(t, 42, "Админ")
+
+	router := gin.New()
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(repo)
+	routes.RegisterGroupsRoutes(router, groupHandler, authMiddleware, groupRoleMiddleware)
+
+	tokenPair, err := jwtUtils.GenerateTokenPair(42, "Alex", "alex", "")
+	if err != nil {
+		t.Fatalf("GenerateTokenPair returned error: %v", err)
+	}
+
+	rec := performRouteRequest(router, http.MethodPost, "/api/v2/groups/requests/"+testUintString(requestID)+"/approve", tokenPair.AccessToken)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusNoContent, rec.Body.String())
+	}
+	if groupHandler.called != "approve-request" {
+		t.Fatalf("called = %q, want approve-request", groupHandler.called)
+	}
+}
+
+func TestRegisterGroupsRoutesRequestIDActionsRejectPlainMemberBeforeHandler(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	groupHandler := &groupRouteHandlerStub{}
+	jwtUtils := utils.NewJWTUtils("test-secret")
+	repo, requestID := newGroupJoinRequestRouteRepo(t, 42, "Участник")
+
+	router := gin.New()
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(repo)
+	routes.RegisterGroupsRoutes(router, groupHandler, authMiddleware, groupRoleMiddleware)
+
+	tokenPair, err := jwtUtils.GenerateTokenPair(42, "Alex", "alex", "")
+	if err != nil {
+		t.Fatalf("GenerateTokenPair returned error: %v", err)
+	}
+
+	rec := performRouteRequest(router, http.MethodPost, "/api/v2/groups/requests/"+testUintString(requestID)+"/reject", tokenPair.AccessToken)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusForbidden, rec.Body.String())
+	}
+	if groupHandler.called != "" {
+		t.Fatalf("handler was called: %q", groupHandler.called)
+	}
+}
+
+func TestRegisterGroupsRoutesRequestIDActionsReturnNotFoundBeforeHandler(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	groupHandler := &groupRouteHandlerStub{}
+	jwtUtils := utils.NewJWTUtils("test-secret")
+	repo, _ := newGroupJoinRequestRouteRepo(t, 42, "Админ")
+
+	router := gin.New()
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(repo)
+	routes.RegisterGroupsRoutes(router, groupHandler, authMiddleware, groupRoleMiddleware)
+
+	tokenPair, err := jwtUtils.GenerateTokenPair(42, "Alex", "alex", "")
+	if err != nil {
+		t.Fatalf("GenerateTokenPair returned error: %v", err)
+	}
+
+	rec := performRouteRequest(router, http.MethodPost, "/api/v2/groups/requests/999/reject", tokenPair.AccessToken)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusNotFound, rec.Body.String())
+	}
+	if groupHandler.called != "" {
+		t.Fatalf("handler was called: %q", groupHandler.called)
+	}
+}
+
 func newEventsTestRouter(eventsHandler *eventsRouteHandlerStub, popularHandler *popularEventsRouteHandlerStub) *gin.Engine {
 	router := gin.New()
 	jwtUtils := utils.NewJWTUtils("test-secret")
@@ -372,6 +461,83 @@ func newEventsTestRouter(eventsHandler *eventsRouteHandlerStub, popularHandler *
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(nil)
 	routes.RegisterEventsRoutes(router, eventsHandler, popularHandler, authMiddleware, groupRoleMiddleware)
 	return router
+}
+
+func newGroupJoinRequestRouteRepo(t *testing.T, actorID uint, actorRole string) (*testPostgresRepository, uint) {
+	t.Helper()
+
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+
+	if err := db.AutoMigrate(
+		&models.User{},
+		&groupmodels.Group{},
+		&groupmodels.Role_in_group{},
+		&groupmodels.GroupUsers{},
+		&groupmodels.GroupJoinRequest{},
+	); err != nil {
+		t.Fatalf("auto migrate group request route models: %v", err)
+	}
+
+	actor := models.User{
+		ID:       actorID,
+		Name:     "Route Actor",
+		Password: "Password123!",
+		Us:       "route-actor",
+		Email:    "route-actor@example.com",
+	}
+	if err := db.Create(&actor).Error; err != nil {
+		t.Fatalf("create route actor: %v", err)
+	}
+
+	target := models.User{
+		ID:       actorID + 1,
+		Name:     "Route Target",
+		Password: "Password123!",
+		Us:       "route-target",
+		Email:    "route-target@example.com",
+	}
+	if err := db.Create(&target).Error; err != nil {
+		t.Fatalf("create route target: %v", err)
+	}
+
+	group := groupmodels.Group{
+		Name:             "Route Group",
+		Description:      "Route Group Description",
+		SmallDescription: "Route Group",
+		Image:            "https://example.com/group.png",
+		CreaterID:        actorID,
+	}
+	if err := db.Create(&group).Error; err != nil {
+		t.Fatalf("create route group: %v", err)
+	}
+
+	role := groupmodels.Role_in_group{Name: actorRole}
+	if err := db.Create(&role).Error; err != nil {
+		t.Fatalf("create route role: %v", err)
+	}
+
+	membership := groupmodels.GroupUsers{
+		UserID:        actorID,
+		GroupID:       group.ID,
+		RoleInGroupID: role.Id,
+	}
+	if err := db.Create(&membership).Error; err != nil {
+		t.Fatalf("create route group membership: %v", err)
+	}
+
+	request := groupmodels.GroupJoinRequest{
+		UserID:  target.ID,
+		GroupID: group.ID,
+		Status:  "pending",
+	}
+	if err := db.Create(&request).Error; err != nil {
+		t.Fatalf("create route join request: %v", err)
+	}
+
+	return &testPostgresRepository{db: db}, request.ID
 }
 
 func newEventAdminRouteRepo(t *testing.T, userID uint, roleName string) (*testPostgresRepository, uint) {
