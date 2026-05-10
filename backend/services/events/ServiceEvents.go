@@ -12,6 +12,7 @@ import (
 	"friendship/repository"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -169,6 +170,10 @@ func (s *eventsService) JoinEvent(userID uint, eventID uint) (bool, error) {
 		}
 
 		if err := tx.Create(&eventUser).Error; err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "idx_event_user_membership" {
+				return ErrAlreadyJoined
+			}
 			return fmt.Errorf("ошибка добавления к событию: %w", err)
 		}
 

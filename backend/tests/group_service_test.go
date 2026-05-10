@@ -469,6 +469,56 @@ func TestGroupServiceAcceptJoinInviteAddsMembershipAndUpdatesStatus(t *testing.T
 	assertGroupJoinInviteStatus(t, db, inviteID, "accepted")
 }
 
+func TestGroupServiceAcceptJoinInviteIdempotentForExistingMembershipAndPendingInvite(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
+	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
+
+	result, err := service.AcceptJoinInvite(2, inviteID)
+
+	if err != nil {
+		t.Fatalf("AcceptJoinInvite returned error: %v", err)
+	}
+	if result == nil || !result.Joined {
+		t.Fatalf("result = %#v, want joined result", result)
+	}
+	assertGroupMembershipCount(t, db, groupID, 2, 1)
+	assertGroupJoinInviteCount(t, db, groupID, 2, "pending", 0)
+	assertGroupJoinInviteCount(t, db, groupID, 2, "accepted", 1)
+	assertGroupJoinInviteStatus(t, db, inviteID, "accepted")
+}
+
+func TestGroupServiceAcceptJoinInviteIdempotentForAcceptedInvite(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
+	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "accepted")
+
+	result, err := service.AcceptJoinInvite(2, inviteID)
+
+	if err != nil {
+		t.Fatalf("AcceptJoinInvite returned error: %v", err)
+	}
+	if result == nil || !result.Joined {
+		t.Fatalf("result = %#v, want joined result", result)
+	}
+	assertGroupMembershipCount(t, db, groupID, 2, 1)
+	assertGroupJoinInviteStatus(t, db, inviteID, "accepted")
+}
+
 func TestGroupServiceRejectJoinInviteUpdatesStatusWithoutMembership(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}

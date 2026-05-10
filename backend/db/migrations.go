@@ -12,10 +12,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/golang-migrate/migrate/v4"
 	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"gorm.io/gorm/schema"
 )
 
 func AutoMigDB(db repository.PostgresRepository, models ...interface{}) error {
@@ -27,9 +29,8 @@ func AutoMigDB(db repository.PostgresRepository, models ...interface{}) error {
 	return nil
 }
 
-func BootstrapRegistrationSchema(db repository.PostgresRepository) error {
-	return AutoMigDB(
-		db,
+func bootstrapRegistrationModels() []interface{} {
+	return []interface{}{
 		&events.Event{},
 		&events.AgeLimit{},
 		&events.EventLocation{},
@@ -55,7 +56,11 @@ func BootstrapRegistrationSchema(db repository.PostgresRepository) error {
 		&statsusers.SettingTile{},
 		&statsusers.SessionStats_users{},
 		&statsusers.SideStats_users{},
-	)
+	}
+}
+
+func BootstrapRegistrationSchema(db repository.PostgresRepository) error {
+	return AutoMigDB(db, bootstrapRegistrationModels()...)
 }
 
 func HasMigrationSource() (bool, error) {
@@ -96,6 +101,45 @@ func MigrationDB(db repository.PostgresRepository, logger logger.Logger) error {
 	}
 	logger.Info("Migrations done")
 	return nil
+}
+
+func HasCoreSchemaTables(db repository.PostgresRepository) (bool, error) {
+	tableNames, err := bootstrapRegistrationTableNames()
+	if err != nil {
+		return false, err
+	}
+
+	var present int64
+	err = db.Raw(
+		`SELECT COUNT(*) FROM information_schema.tables
+		WHERE table_schema = 'public'
+		  AND table_name IN ?`,
+		tableNames,
+	).Scan(&present).Error
+	if err != nil {
+		return false, err
+	}
+	return present == int64(len(tableNames)), nil
+}
+
+func bootstrapRegistrationTableNames() ([]string, error) {
+	models := bootstrapRegistrationModels()
+	tableNames := make([]string, 0, len(models))
+	seen := make(map[string]struct{}, len(models))
+
+	for _, model := range models {
+		parsedSchema, err := schema.Parse(model, &sync.Map{}, schema.NamingStrategy{})
+		if err != nil {
+			return nil, fmt.Errorf("parse bootstrap schema for %T: %w", model, err)
+		}
+		if _, ok := seen[parsedSchema.Table]; ok {
+			continue
+		}
+		seen[parsedSchema.Table] = struct{}{}
+		tableNames = append(tableNames, parsedSchema.Table)
+	}
+
+	return tableNames, nil
 }
 
 func resolveMigrationSource() (string, error) {

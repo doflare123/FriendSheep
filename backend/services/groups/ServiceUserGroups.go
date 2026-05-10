@@ -7,7 +7,9 @@ import (
 	"friendship/models/groups"
 	"friendship/repository"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // JoinGroup вступление в группу
@@ -85,6 +87,10 @@ func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error
 			RoleInGroupID: memberRoleID,
 		}
 		if err := tx.Create(&member).Error; err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "idx_group_user_membership" {
+				return ErrAlreadyInGroup
+			}
 			return fmt.Errorf("ошибка добавления пользователя в группу: %w", err)
 		}
 
@@ -166,6 +172,17 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 			return fmt.Errorf("это не ваше приглашение")
 		}
 
+		if invite.Status == "accepted" {
+			isMember, err := groupMembershipExists(tx, userID, invite.GroupID)
+			if err != nil {
+				return err
+			}
+			if isMember {
+				return nil
+			}
+			return fmt.Errorf("приглашение уже принято, но членство не найдено")
+		}
+
 		if invite.Status != "pending" {
 			return fmt.Errorf("приглашение уже обработано")
 		}
@@ -181,9 +198,20 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 			return ErrUserInBlacklist
 		}
 
-		memberRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleMember, s.post)
+		memberRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleMember, tx)
 		if memberRoleID == 0 {
 			return fmt.Errorf("роль member не найдена")
+		}
+
+		isMember, err := groupMembershipExists(tx, userID, invite.GroupID)
+		if err != nil {
+			return err
+		}
+		if isMember {
+			if err := tx.Model(&invite).Update("status", "accepted").Error; err != nil {
+				return fmt.Errorf("ошибка обновления статуса приглашения: %w", err)
+			}
+			return nil
 		}
 
 		// Добавляем в группу
@@ -192,8 +220,18 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 			GroupID:       invite.GroupID,
 			RoleInGroupID: memberRoleID,
 		}
-		if err := tx.Create(&groupUser).Error; err != nil {
-			return fmt.Errorf("ошибка добавления пользователя в группу: %w", err)
+		createMembership := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&groupUser)
+		if createMembership.Error != nil {
+			return fmt.Errorf("ошибка добавления пользователя в группу: %w", createMembership.Error)
+		}
+		if createMembership.RowsAffected == 0 {
+			isMember, err = groupMembershipExists(tx, userID, invite.GroupID)
+			if err != nil {
+				return err
+			}
+			if !isMember {
+				return fmt.Errorf("членство пользователя в группе не подтверждено после accept invite")
+			}
 		}
 
 		// Обновляем статус приглашения
@@ -214,6 +252,16 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 		Message: "Вы успешно приняли приглашение и присоединились к группе",
 		Joined:  true,
 	}, nil
+}
+
+func groupMembershipExists(tx repository.PostgresRepository, userID uint, groupID uint) (bool, error) {
+	var existingCount int64
+	if err := tx.Model(&groups.GroupUsers{}).
+		Where("user_id = ? AND group_id = ?", userID, groupID).
+		Count(&existingCount).Error; err != nil {
+		return false, fmt.Errorf("ошибка проверки членства: %w", err)
+	}
+	return existingCount > 0, nil
 }
 
 // RejectJoinInvite отклоняет приглашение в группу

@@ -6,10 +6,6 @@ import (
 	"friendship/config"
 	"friendship/db"
 	"friendship/logger"
-	"friendship/models"
-	"friendship/models/events"
-	"friendship/models/groups"
-	statsusers "friendship/models/stats_users"
 	"friendship/repository"
 	event "friendship/services/events"
 	session "friendship/sessions"
@@ -55,11 +51,7 @@ func InitServer() (*Server, error) {
 	}
 	if conf.AppEnv == "DEV" {
 		gin.SetMode(gin.DebugMode)
-		if err := db.AutoMigDB(postgres, &events.Event{}, &events.AgeLimit{}, &events.EventLocation{}, &events.Status{}, &events.EventsUser{}, &events.Genre{}, &events.EventGenre{}, &events.EventGenre{},
-			&statsusers.Genre{}, statsusers.PopSessionType{}, statsusers.SettingTile{}, &models.User{}, models.StatsProcessedEvent{},
-			&models.DaysWeek{}, &groups.Role_in_group{},
-			&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{}, &groups.GroupJoinInvite{}, &groups.GroupBlacklist{}, &groups.GroupActionLog{},
-		); err != nil {
+		if err := db.BootstrapRegistrationSchema(postgres); err != nil {
 			logger.Error("Error with auto migration: %s", err)
 		}
 	} else {
@@ -68,6 +60,18 @@ func InitServer() (*Server, error) {
 			if err := db.MigrationDB(postgres, logger); err != nil {
 				logger.Error("Error with migrations: %s", err)
 				return nil, err
+			}
+			hasCoreSchema, err := db.HasCoreSchemaTables(postgres)
+			if err != nil {
+				logger.Error("Error checking core schema after migrations", "error", err)
+				return nil, err
+			}
+			if !hasCoreSchema {
+				logger.Info("Core schema tables are missing after SQL migrations, bootstrapping registration schema")
+				if err := db.BootstrapRegistrationSchema(postgres); err != nil {
+					logger.Error("Error bootstrapping registration schema", "error", err)
+					return nil, err
+				}
 			}
 		} else {
 			logger.Info("No SQL migrations found, using GORM bootstrap for core schema")

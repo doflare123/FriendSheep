@@ -312,6 +312,89 @@ func TestHasMigrationSourceReturnsFalseWhenSQLMissing(t *testing.T) {
 	}
 }
 
+func TestHasCoreSchemaTablesReturnsFalseForPartialSchema(t *testing.T) {
+	gormDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+
+	if err := gormDB.Exec("ATTACH DATABASE ':memory:' AS information_schema").Error; err != nil {
+		t.Fatalf("attach information_schema db: %v", err)
+	}
+	if err := gormDB.Exec(`
+		CREATE TABLE information_schema.tables (
+			table_schema TEXT,
+			table_name TEXT
+		)
+	`).Error; err != nil {
+		t.Fatalf("create information_schema.tables: %v", err)
+	}
+
+	requiredTables, err := bootstrapRegistrationTableNames()
+	if err != nil {
+		t.Fatalf("bootstrapRegistrationTableNames returned error: %v", err)
+	}
+	requiredTables = requiredTables[:len(requiredTables)-1]
+	for _, name := range requiredTables {
+		if err := gormDB.Exec(
+			"INSERT INTO information_schema.tables(table_schema, table_name) VALUES (?, ?)",
+			"public",
+			name,
+		).Error; err != nil {
+			t.Fatalf("insert table %q: %v", name, err)
+		}
+	}
+
+	ready, err := HasCoreSchemaTables(&gormRepository{db: gormDB})
+	if err != nil {
+		t.Fatalf("HasCoreSchemaTables returned error: %v", err)
+	}
+	if ready {
+		t.Fatal("HasCoreSchemaTables returned true for partial schema, want false")
+	}
+}
+
+func TestHasCoreSchemaTablesReturnsTrueForBootstrapSchemaSet(t *testing.T) {
+	gormDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+
+	if err := gormDB.Exec("ATTACH DATABASE ':memory:' AS information_schema").Error; err != nil {
+		t.Fatalf("attach information_schema db: %v", err)
+	}
+	if err := gormDB.Exec(`
+		CREATE TABLE information_schema.tables (
+			table_schema TEXT,
+			table_name TEXT
+		)
+	`).Error; err != nil {
+		t.Fatalf("create information_schema.tables: %v", err)
+	}
+
+	requiredTables, err := bootstrapRegistrationTableNames()
+	if err != nil {
+		t.Fatalf("bootstrapRegistrationTableNames returned error: %v", err)
+	}
+	for _, name := range requiredTables {
+		if err := gormDB.Exec(
+			"INSERT INTO information_schema.tables(table_schema, table_name) VALUES (?, ?)",
+			"public",
+			name,
+		).Error; err != nil {
+			t.Fatalf("insert table %q: %v", name, err)
+		}
+	}
+
+	ready, err := HasCoreSchemaTables(&gormRepository{db: gormDB})
+	if err != nil {
+		t.Fatalf("HasCoreSchemaTables returned error: %v", err)
+	}
+	if !ready {
+		t.Fatal("HasCoreSchemaTables returned false for full bootstrap schema, want true")
+	}
+}
+
 func restoreWorkingDirDBTest(t *testing.T, target string) {
 	t.Helper()
 

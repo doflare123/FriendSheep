@@ -46,6 +46,7 @@ Known architecture debt:
 - Always clean `.cache` after work:
   `PowerShell: $target = Resolve-Path .\.cache -ErrorAction SilentlyContinue; if ($target -and $target.Path.StartsWith((Resolve-Path .).Path)) { Remove-Item -LiteralPath $target.Path -Recurse -Force }`
 - If PowerShell displays Russian as mojibake, verify real bytes with `rg`. Do not introduce mojibake into files.
+- After every review/check pass, explicitly verify Russian and other non-ASCII strings for mojibake/encoding corruption before finalizing changes.
 - For git commands in sandbox, use:
   `git -c safe.directory=D:/friendSheep ...`
 
@@ -204,4 +205,3 @@ Start with one focused task:
 - first narrow repo-port extraction for group/event services.
 
 Do not combine all of these in one branch unless explicitly requested.
-
