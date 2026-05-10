@@ -2,9 +2,11 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	storage "friendship/S3"
 	"friendship/config"
 	"friendship/db"
+	friendshipdocs "friendship/docs"
 	"friendship/logger"
 	"friendship/repository"
 	event "friendship/services/events"
@@ -12,8 +14,9 @@ import (
 	"friendship/validator"
 	"log"
 	"net/http"
-
-	_ "friendship/docs"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -57,21 +60,33 @@ func InitServer() (*Server, error) {
 	} else {
 		gin.SetMode(gin.ReleaseMode)
 		if hasSQLMigrations {
-			if err := db.MigrationDB(postgres, logger); err != nil {
-				logger.Error("Error with migrations: %s", err)
-				return nil, err
-			}
-			hasCoreSchema, err := db.HasCoreSchemaTables(postgres)
-			if err != nil {
-				logger.Error("Error checking core schema after migrations", "error", err)
-				return nil, err
-			}
-			if !hasCoreSchema {
-				logger.Info("Core schema tables are missing after SQL migrations, bootstrapping registration schema")
-				if err := db.BootstrapRegistrationSchema(postgres); err != nil {
-					logger.Error("Error bootstrapping registration schema", "error", err)
+			if conf.EnableStartupSQLMigrations {
+				if err := db.MigrationDB(postgres, logger); err != nil {
+					logger.Error("Error with migrations: %s", err)
 					return nil, err
 				}
+				hasCoreSchema, err := db.HasCoreSchemaTables(postgres)
+				if err != nil {
+					logger.Error("Error checking core schema after migrations", "error", err)
+					return nil, err
+				}
+				if !hasCoreSchema {
+					logger.Info("Core schema tables are missing after SQL migrations, bootstrapping registration schema")
+					if err := db.BootstrapRegistrationSchema(postgres); err != nil {
+						logger.Error("Error bootstrapping registration schema", "error", err)
+						return nil, err
+					}
+				}
+			} else {
+				hasCoreSchema, err := db.HasCoreSchemaTables(postgres)
+				if err != nil {
+					logger.Error("Error checking core schema with startup migrations disabled", "error", err)
+					return nil, err
+				}
+				if !hasCoreSchema {
+					return nil, errors.New("startup SQL migrations are disabled and core schema is incomplete; set ENABLE_STARTUP_SQL_MIGRATIONS=true for planned rollout")
+				}
+				logger.Info("Startup SQL migrations disabled; core schema is already present, continuing without MigrationDB")
 			}
 		} else {
 			logger.Info("No SQL migrations found, using GORM bootstrap for core schema")
@@ -109,6 +124,7 @@ func InitServer() (*Server, error) {
 	logger.Info("Popular events cron started")
 
 	r := gin.Default()
+	friendshipdocs.SwaggerInfo.Description = "Operational runbooks: /docs/runbooks"
 	// r.Use(cors.New(cors.Config{
 	// 	AllowOrigins:     []string{"http://localhost:3000"},
 	// 	AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
@@ -120,6 +136,51 @@ func InitServer() (*Server, error) {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/docs", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "../swagger/index.html")
+	})
+	r.GET("/docs/runbooks", func(c *gin.Context) {
+		entries, err := os.ReadDir("migration")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to read migration dir: %v", err)})
+			return
+		}
+
+		var items []string
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+			name := e.Name()
+			if strings.Contains(strings.ToLower(name), "runbook") && strings.HasSuffix(strings.ToLower(name), ".md") {
+				items = append(items, name)
+			}
+		}
+
+		var b strings.Builder
+		b.WriteString("<html><head><meta charset=\"utf-8\"><title>Runbooks</title></head><body>")
+		b.WriteString("<h1>Runbooks</h1><ul>")
+		for _, item := range items {
+			b.WriteString("<li><a href=\"/docs/runbooks/" + item + "\">" + item + "</a></li>")
+		}
+		b.WriteString("</ul><p><a href=\"/swagger/index.html\">Back to Swagger</a></p></body></html>")
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(b.String()))
+	})
+	r.GET("/docs/runbooks/:name", func(c *gin.Context) {
+		name := filepath.Base(c.Param("name"))
+		if !strings.HasSuffix(strings.ToLower(name), ".md") || !strings.Contains(strings.ToLower(name), "runbook") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid runbook name"})
+			return
+		}
+		fullPath := filepath.Join("migration", name)
+		content, err := os.ReadFile(fullPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "runbook not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to read runbook: %v", err)})
+			return
+		}
+		c.Data(http.StatusOK, "text/markdown; charset=utf-8", content)
 	})
 	if errs := db.Seeder(postgres); len(errs) > 0 {
 		for _, seedErr := range errs {

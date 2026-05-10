@@ -8,11 +8,12 @@ import (
 )
 
 type Config struct {
-	AppEnv       string      `mapstructure:"APP_ENV"`
-	ServerPort   string      `mapstructure:"PORT"`
-	JWTSecretKey string      `mapstructure:"SECRET_KEY_JWT"`
-	LogLevel     string      `mapstructure:"LOG_LEVEL"`
-	Email        EmailConfig `mapstructure:",squash"`
+	AppEnv                     string      `mapstructure:"APP_ENV"`
+	EnableStartupSQLMigrations bool        `mapstructure:"ENABLE_STARTUP_SQL_MIGRATIONS"`
+	ServerPort                 string      `mapstructure:"PORT"`
+	JWTSecretKey               string      `mapstructure:"SECRET_KEY_JWT"`
+	LogLevel                   string      `mapstructure:"LOG_LEVEL"`
+	Email                      EmailConfig `mapstructure:",squash"`
 
 	Postgres PostgresConfig `mapstructure:",squash"`
 	Mongo    MongoConfig    `mapstructure:",squash"`
