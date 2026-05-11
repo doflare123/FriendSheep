@@ -21,6 +21,14 @@
 
 ## Порядок выполнения
 
+Перед запуском команд убедитесь, что заданы DB-переменные окружения (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`).
+
+Рекомендуемый способ запуска через отдельный CLI:
+- полный цикл: `go run ./cmd/migrate-rollout all`
+- только preflight: `go run ./cmd/migrate-rollout preflight`
+- только migration up: `go run ./cmd/migrate-rollout up`
+- только postflight: `go run ./cmd/migrate-rollout postflight`
+
 0. Для non-DEV startup-пути включайте `ENABLE_STARTUP_SQL_MIGRATIONS=true` только в окно планового rollout.
 1. Запустите `migration/000001_membership_uniqueness_preflight.sql` под тем же DB-пользователем, который будет запускать миграцию.
 2. Если в preflight есть `FAIL` — rollout останавливается.
@@ -49,4 +57,3 @@
    сервис должен завершиться с явной ошибкой о необходимости включить флаг для планового rollout.
 3. `есть SQL миграции + ENABLE_STARTUP_SQL_MIGRATIONS=true`:
    сервис должен пройти migration path и продолжить обычный старт.
-

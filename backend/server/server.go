@@ -35,6 +35,36 @@ type Server struct {
 	popularEventsService event.PopularEventsService
 }
 
+func validateNonDevStartupWithSQLMigrations(startupMigrationsEnabled bool, hasCoreSchema bool) error {
+	if startupMigrationsEnabled {
+		if !hasCoreSchema {
+			return errors.New("core schema is incomplete after SQL migrations; aborting startup (non-DEV fail-fast)")
+		}
+		return nil
+	}
+
+	if !hasCoreSchema {
+		return errors.New("startup SQL migrations are disabled and core schema is incomplete; set ENABLE_STARTUP_SQL_MIGRATIONS=true for planned rollout")
+	}
+
+	return nil
+}
+
+func validateNonDevStartupMigrationAssets(hasSQLMigrations bool) error {
+	if hasSQLMigrations {
+		return nil
+	}
+
+	return errors.New("startup aborted: SQL migration assets not found in non-DEV environment; GORM bootstrap fallback is disabled")
+}
+
+func discoverStartupMigrationAssets(appEnv string, discover func() (bool, error)) (bool, error) {
+	if appEnv == "DEV" {
+		return false, nil
+	}
+	return discover()
+}
+
 func InitServer() (*Server, error) {
 	conf := config.NewConfig()
 	logger, err := logger.NewZapLogger()
@@ -47,52 +77,39 @@ func InitServer() (*Server, error) {
 	mongo := repository.NewMongoRepository(logger, conf)
 	redis := repository.NewRedisRepository(logger, conf)
 	sessionStore := session.NewSessionStore(redis)
-	hasSQLMigrations, err := db.HasMigrationSource()
+	hasSQLMigrations, err := discoverStartupMigrationAssets(conf.AppEnv, db.HasMigrationSource)
 	if err != nil {
 		logger.Error("Error checking migration source", "error", err)
 		return nil, err
 	}
 	if conf.AppEnv == "DEV" {
 		gin.SetMode(gin.DebugMode)
-		if err := db.BootstrapRegistrationSchema(postgres); err != nil {
-			logger.Error("Error with auto migration: %s", err)
-		}
 	} else {
 		gin.SetMode(gin.ReleaseMode)
-		if hasSQLMigrations {
-			if conf.EnableStartupSQLMigrations {
-				if err := db.MigrationDB(postgres, logger); err != nil {
-					logger.Error("Error with migrations: %s", err)
-					return nil, err
-				}
-				hasCoreSchema, err := db.HasCoreSchemaTables(postgres)
-				if err != nil {
-					logger.Error("Error checking core schema after migrations", "error", err)
-					return nil, err
-				}
-				if !hasCoreSchema {
-					logger.Info("Core schema tables are missing after SQL migrations, bootstrapping registration schema")
-					if err := db.BootstrapRegistrationSchema(postgres); err != nil {
-						logger.Error("Error bootstrapping registration schema", "error", err)
-						return nil, err
-					}
-				}
-			} else {
-				hasCoreSchema, err := db.HasCoreSchemaTables(postgres)
-				if err != nil {
-					logger.Error("Error checking core schema with startup migrations disabled", "error", err)
-					return nil, err
-				}
-				if !hasCoreSchema {
-					return nil, errors.New("startup SQL migrations are disabled and core schema is incomplete; set ENABLE_STARTUP_SQL_MIGRATIONS=true for planned rollout")
-				}
-				logger.Info("Startup SQL migrations disabled; core schema is already present, continuing without MigrationDB")
+		if err := validateNonDevStartupMigrationAssets(hasSQLMigrations); err != nil {
+			return nil, err
+		}
+
+		if conf.EnableStartupSQLMigrations {
+			if err := db.MigrationDB(postgres, logger); err != nil {
+				logger.Error("Error with migrations: %s", err)
+				return nil, err
 			}
-		} else {
-			logger.Info("No SQL migrations found, using GORM bootstrap for core schema")
+		}
+
+		hasCoreSchema, err := db.HasCoreSchemaTables(postgres)
+		if err != nil {
+			logger.Error("Error checking core schema after startup migration contract", "error", err)
+			return nil, err
+		}
+		if err := validateNonDevStartupWithSQLMigrations(conf.EnableStartupSQLMigrations, hasCoreSchema); err != nil {
+			return nil, err
+		}
+		if !conf.EnableStartupSQLMigrations {
+			logger.Info("Startup SQL migrations disabled; core schema is already present, continuing without MigrationDB")
 		}
 	}
-	if conf.AppEnv == "DEV" || !hasSQLMigrations {
+	if conf.AppEnv == "DEV" {
 		if err := db.BootstrapRegistrationSchema(postgres); err != nil {
 			logger.Error("Error bootstrapping registration schema", "error", err)
 			return nil, err
@@ -138,7 +155,17 @@ func InitServer() (*Server, error) {
 		c.Redirect(http.StatusMovedPermanently, "../swagger/index.html")
 	})
 	r.GET("/docs/runbooks", func(c *gin.Context) {
-		entries, err := os.ReadDir("migration")
+		migrationDir, err := db.ResolveMigrationDirectory()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if migrationDir == "" {
+			c.Data(http.StatusOK, "text/html; charset=utf-8", []byte("<html><head><meta charset=\"utf-8\"><title>Runbooks</title></head><body><h1>Runbooks</h1><ul></ul><p><a href=\"/swagger/index.html\">Back to Swagger</a></p></body></html>"))
+			return
+		}
+
+		entries, err := os.ReadDir(migrationDir)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to read migration dir: %v", err)})
 			return
@@ -170,7 +197,16 @@ func InitServer() (*Server, error) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid runbook name"})
 			return
 		}
-		fullPath := filepath.Join("migration", name)
+		migrationDir, err := db.ResolveMigrationDirectory()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if migrationDir == "" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "runbook not found"})
+			return
+		}
+		fullPath := filepath.Join(migrationDir, name)
 		content, err := os.ReadFile(fullPath)
 		if err != nil {
 			if os.IsNotExist(err) {

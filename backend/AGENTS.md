@@ -47,6 +47,11 @@ Known architecture debt:
   `PowerShell: $target = Resolve-Path .\.cache -ErrorAction SilentlyContinue; if ($target -and $target.Path.StartsWith((Resolve-Path .).Path)) { Remove-Item -LiteralPath $target.Path -Recurse -Force }`
 - If PowerShell displays Russian as mojibake, verify real bytes with `rg`. Do not introduce mojibake into files.
 - After every review/check pass, explicitly verify Russian and other non-ASCII strings for mojibake/encoding corruption before finalizing changes.
+- For implementation work, the main agent must orchestrate subagents by default:
+  - `golang-pro`/`backend` for backend code changes,
+  - dedicated test subagent for writing/updating tests,
+  - `reviewer` subagent for final diff review (bugs/regressions/missed coverage).
+  If a preferred subagent is unavailable in the current environment, document the fallback and continue with the closest available role.
 - For git commands in sandbox, use:
   `git -c safe.directory=D:/friendSheep ...`
 

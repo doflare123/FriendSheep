@@ -6,11 +6,15 @@ RUN go mod download
 
 COPY . .
 RUN go test ./...
-RUN CGO_ENABLED=0 GOOS=linux go build -o /docker-gs-ping
+RUN mkdir -p /out
+RUN CGO_ENABLED=0 GOOS=linux go build -o /out/server .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /out/migrate-rollout ./cmd/migrate-rollout
 
 FROM alpine:3.20
 RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-COPY --from=builder /docker-gs-ping .
+WORKDIR /app
+COPY --from=builder /out/server ./server
+COPY --from=builder /out/migrate-rollout ./migrate-rollout
+COPY --from=builder /app/migration ./migration
 EXPOSE 8080
-CMD ["./docker-gs-ping"]
+CMD ["./server"]

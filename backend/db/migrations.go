@@ -20,6 +20,14 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+const canonicalMigrationDir = "migration"
+
+var legacyMigrationDirs = []string{
+	filepath.Join(".", "backend", "migration"),
+	filepath.Join(".", "migrations"),
+	filepath.Join(".", "backend", "migrations"),
+}
+
 func AutoMigDB(db repository.PostgresRepository, models ...interface{}) error {
 	for _, m := range models {
 		if err := db.AutoMigrate(m); err != nil {
@@ -64,25 +72,50 @@ func BootstrapRegistrationSchema(db repository.PostgresRepository) error {
 }
 
 func HasMigrationSource() (bool, error) {
-	migrationsPath, err := resolveMigrationSource()
+	migrationDir, err := ResolveMigrationDirectory()
 	if err != nil {
 		return false, err
 	}
-	return migrationsPath != "", nil
+	if migrationDir == "" {
+		return false, nil
+	}
+
+	hasSQL, err := hasSQLMigrationFiles(migrationDir)
+	if err != nil {
+		return false, fmt.Errorf("read migration dir %s: %w", migrationDir, err)
+	}
+	return hasSQL, nil
+}
+
+func RequireMigrationSource() (string, error) {
+	migrationSource, err := resolveMigrationSourceStrict()
+	if err != nil {
+		return "", err
+	}
+	return migrationSource, nil
 }
 
 func MigrationDB(db repository.PostgresRepository, logger logger.Logger) error {
-	sqlDB, err := db.GetSQLDB()
-	if err != nil {
-		return err
-	}
-	migrationsPath, err := resolveMigrationSource()
+	return migrationDB(db, logger, false)
+}
+
+func MigrationDBStrict(db repository.PostgresRepository, logger logger.Logger) error {
+	return migrationDB(db, logger, true)
+}
+
+func migrationDB(db repository.PostgresRepository, logger logger.Logger, strict bool) error {
+	migrationsPath, err := resolveMigrationSourceWithMode(strict)
 	if err != nil {
 		return err
 	}
 	if migrationsPath == "" {
 		logger.Info("No SQL migrations found, skipping migrate bootstrap")
 		return nil
+	}
+
+	sqlDB, err := db.GetSQLDB()
+	if err != nil {
+		return err
 	}
 	driver, err := migratepg.WithInstance(sqlDB, &migratepg.Config{})
 	if err != nil {
@@ -143,37 +176,132 @@ func bootstrapRegistrationTableNames() ([]string, error) {
 }
 
 func resolveMigrationSource() (string, error) {
-	candidates := []string{
-		filepath.Join(".", "migration"),
-		filepath.Join(".", "backend", "migration"),
-		filepath.Join(".", "migrations"),
-		filepath.Join(".", "backend", "migrations"),
+	return resolveMigrationSourceWithMode(false)
+}
+
+func resolveMigrationSourceStrict() (string, error) {
+	return resolveMigrationSourceWithMode(true)
+}
+
+func resolveMigrationSourceWithMode(strict bool) (string, error) {
+	migrationDir, err := ResolveMigrationDirectory()
+	if err != nil {
+		return "", err
+	}
+	if migrationDir == "" {
+		if strict {
+			return "", errors.New("migration source is required for rollout phase but no SQL migration files were found")
+		}
+		return "", nil
 	}
 
-	for _, candidate := range candidates {
-		entries, err := os.ReadDir(candidate)
+	hasSQL, err := hasSQLMigrationFiles(migrationDir)
+	if err != nil {
+		return "", fmt.Errorf("read migration dir %s: %w", migrationDir, err)
+	}
+	if !hasSQL {
+		if strict {
+			return "", fmt.Errorf("migration source is required for rollout phase but resolved directory %s does not contain SQL migration files", migrationDir)
+		}
+		return "", nil
+	}
+
+	return "file://" + filepath.ToSlash(migrationDir), nil
+}
+
+func ResolveMigrationDirectory() (string, error) {
+	canonicalDir := filepath.Join(".", canonicalMigrationDir)
+	canonicalHasAssets, err := hasMigrationAssets(canonicalDir)
+	if err != nil {
+		return "", fmt.Errorf("read migration dir %s: %w", canonicalDir, err)
+	}
+
+	legacyDirs, err := findLegacyMigrationDirectories()
+	if err != nil {
+		return "", err
+	}
+
+	if canonicalHasAssets {
+		if len(legacyDirs) > 0 {
+			return "", fmt.Errorf(
+				"ambiguous migration discovery: canonical %s and legacy %s both contain migration assets; keep only %s",
+				canonicalDir,
+				strings.Join(legacyDirs, ", "),
+				canonicalDir,
+			)
+		}
+		absPath, err := filepath.Abs(canonicalDir)
 		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				continue
-			}
-			return "", fmt.Errorf("read migration dir %s: %w", candidate, err)
+			return "", fmt.Errorf("resolve migration dir %s: %w", canonicalDir, err)
 		}
+		return absPath, nil
+	}
 
-		for _, entry := range entries {
-			if entry.IsDir() {
-				continue
-			}
-			if !strings.HasSuffix(strings.ToLower(entry.Name()), ".sql") {
-				continue
-			}
+	if len(legacyDirs) > 1 {
+		return "", fmt.Errorf(
+			"ambiguous migration discovery across legacy directories %s; move SQL migrations and runbooks to %s",
+			strings.Join(legacyDirs, ", "),
+			canonicalDir,
+		)
+	}
 
-			absPath, err := filepath.Abs(candidate)
-			if err != nil {
-				return "", fmt.Errorf("resolve migration dir %s: %w", candidate, err)
-			}
-			return "file://" + filepath.ToSlash(absPath), nil
+	if len(legacyDirs) == 1 {
+		absPath, err := filepath.Abs(legacyDirs[0])
+		if err != nil {
+			return "", fmt.Errorf("resolve migration dir %s: %w", legacyDirs[0], err)
 		}
+		return absPath, nil
 	}
 
 	return "", nil
+}
+
+func findLegacyMigrationDirectories() ([]string, error) {
+	var dirs []string
+	for _, dir := range legacyMigrationDirs {
+		hasAssets, err := hasMigrationAssets(dir)
+		if err != nil {
+			return nil, fmt.Errorf("read migration dir %s: %w", dir, err)
+		}
+		if hasAssets {
+			dirs = append(dirs, dir)
+		}
+	}
+
+	return dirs, nil
+}
+
+func hasSQLMigrationFiles(dir string) (bool, error) {
+	return directoryHasMatchingFiles(dir, func(name string) bool {
+		return strings.HasSuffix(strings.ToLower(name), ".sql")
+	})
+}
+
+func hasMigrationAssets(dir string) (bool, error) {
+	return directoryHasMatchingFiles(dir, func(name string) bool {
+		lowerName := strings.ToLower(name)
+		return strings.HasSuffix(lowerName, ".sql") ||
+			(strings.HasSuffix(lowerName, ".md") && strings.Contains(lowerName, "runbook"))
+	})
+}
+
+func directoryHasMatchingFiles(dir string, match func(name string) bool) (bool, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if match(entry.Name()) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

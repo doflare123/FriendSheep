@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"friendship/models"
@@ -22,7 +23,8 @@ var _ repository.PostgresRepository = (*recordingRepository)(nil)
 var _ repository.PostgresRepository = (*gormRepository)(nil)
 
 type recordingRepository struct {
-	autoMigrated []reflect.Type
+	autoMigrated   []reflect.Type
+	getSQLDBCalled bool
 }
 
 func (r *recordingRepository) Model(value interface{}) *gorm.DB { panic("unexpected call to Model") }
@@ -66,7 +68,10 @@ func (r *recordingRepository) Close() error { panic("unexpected call to Close") 
 func (r *recordingRepository) DropTableIfExists(value interface{}) error {
 	panic("unexpected call to DropTableIfExists")
 }
-func (r *recordingRepository) GetSQLDB() (*sql.DB, error) { panic("unexpected call to GetSQLDB") }
+func (r *recordingRepository) GetSQLDB() (*sql.DB, error) {
+	r.getSQLDBCalled = true
+	return nil, nil
+}
 func (r *recordingRepository) Clauses(conds ...clause.Expression) *gorm.DB {
 	panic("unexpected call to Clauses")
 }
@@ -80,6 +85,15 @@ func (r *recordingRepository) Count(count *int64) *gorm.DB      { panic("unexpec
 func (r *recordingRepository) Association(column string) *gorm.Association {
 	panic("unexpected call to Association")
 }
+
+type noopLogger struct{}
+
+func (noopLogger) Info(string, ...interface{})  {}
+func (noopLogger) Error(string, ...interface{}) {}
+func (noopLogger) Debug(string, ...interface{}) {}
+func (noopLogger) Warn(string, ...interface{})  {}
+func (noopLogger) Fatal(string, ...interface{}) {}
+func (noopLogger) Panic(string, ...interface{}) {}
 
 type gormRepository struct {
 	db *gorm.DB
@@ -309,6 +323,363 @@ func TestHasMigrationSourceReturnsFalseWhenSQLMissing(t *testing.T) {
 	}
 	if got {
 		t.Fatal("HasMigrationSource returned true, want false")
+	}
+}
+
+func TestResolveMigrationSourceUsesBackendMigrationFallback(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tempDir, "backend", "migration"), 0o755); err != nil {
+		t.Fatalf("mkdir backend/migration: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "backend", "migration", "0001_init.SQL"), []byte("SELECT 1;"), 0o644); err != nil {
+		t.Fatalf("write migration file: %v", err)
+	}
+
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(wd); chdirErr != nil {
+			t.Fatalf("restore wd: %v", chdirErr)
+		}
+	})
+
+	got, err := resolveMigrationSource()
+	if err != nil {
+		t.Fatalf("resolveMigrationSource returned error: %v", err)
+	}
+
+	want := "file://" + filepath.ToSlash(filepath.Join(tempDir, "backend", "migration"))
+	if got != want {
+		t.Fatalf("unexpected migration source:\nwant: %s\ngot:  %s", want, got)
+	}
+}
+
+func TestResolveMigrationSourceUsesBackendMigrationsAsLastFallback(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tempDir, "backend", "migrations"), 0o755); err != nil {
+		t.Fatalf("mkdir backend/migrations: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "backend", "migrations", "0002_seed.up.sql"), []byte("SELECT 1;"), 0o644); err != nil {
+		t.Fatalf("write migration file: %v", err)
+	}
+
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(wd); chdirErr != nil {
+			t.Fatalf("restore wd: %v", chdirErr)
+		}
+	})
+
+	got, err := resolveMigrationSource()
+	if err != nil {
+		t.Fatalf("resolveMigrationSource returned error: %v", err)
+	}
+
+	want := "file://" + filepath.ToSlash(filepath.Join(tempDir, "backend", "migrations"))
+	if got != want {
+		t.Fatalf("unexpected migration source:\nwant: %s\ngot:  %s", want, got)
+	}
+}
+
+func TestHasMigrationSourceReturnsTrueWhenFallbackDirectoryContainsSQL(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tempDir, "backend", "migration"), 0o755); err != nil {
+		t.Fatalf("mkdir backend/migration: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "backend", "migration", "0001_init.up.sql"), []byte("SELECT 1;"), 0o644); err != nil {
+		t.Fatalf("write migration file: %v", err)
+	}
+
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(wd); chdirErr != nil {
+			t.Fatalf("restore wd: %v", chdirErr)
+		}
+	})
+
+	got, err := HasMigrationSource()
+	if err != nil {
+		t.Fatalf("HasMigrationSource returned error: %v", err)
+	}
+	if !got {
+		t.Fatal("HasMigrationSource returned false, want true")
+	}
+}
+
+func TestHasMigrationSourceReturnsFalseWhenOnlyNonSQLFilesExist(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(tempDir, "migration"), 0o755); err != nil {
+		t.Fatalf("mkdir migration: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "migration", "README.md"), []byte("no sql"), 0o644); err != nil {
+		t.Fatalf("write marker file: %v", err)
+	}
+
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(wd); chdirErr != nil {
+			t.Fatalf("restore wd: %v", chdirErr)
+		}
+	})
+
+	got, err := HasMigrationSource()
+	if err != nil {
+		t.Fatalf("HasMigrationSource returned error: %v", err)
+	}
+	if got {
+		t.Fatal("HasMigrationSource returned true, want false")
+	}
+}
+
+func TestHasMigrationSourceReturnsFalseWhenCanonicalHasOnlyRunbook(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(tempDir, "migration"), 0o755); err != nil {
+		t.Fatalf("mkdir migration: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "migration", "membership_uniqueness_runbook.ru.md"), []byte("runbook"), 0o644); err != nil {
+		t.Fatalf("write runbook file: %v", err)
+	}
+
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(wd); chdirErr != nil {
+			t.Fatalf("restore wd: %v", chdirErr)
+		}
+	})
+
+	got, err := HasMigrationSource()
+	if err != nil {
+		t.Fatalf("HasMigrationSource returned error: %v", err)
+	}
+	if got {
+		t.Fatal("HasMigrationSource returned true with runbook-only canonical migration dir, want false")
+	}
+}
+
+func TestRequireMigrationSourceFailsWhenSQLMissing(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(wd); chdirErr != nil {
+			t.Fatalf("restore wd: %v", chdirErr)
+		}
+	})
+
+	_, err = RequireMigrationSource()
+	if err == nil {
+		t.Fatal("RequireMigrationSource returned nil error, want missing source error")
+	}
+	if !strings.Contains(err.Error(), "migration source is required for rollout phase") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRequireMigrationSourceReturnsSourceWhenSQLPresent(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(tempDir, "migration"), 0o755); err != nil {
+		t.Fatalf("mkdir migration: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "migration", "0001_init.up.sql"), []byte("SELECT 1;"), 0o644); err != nil {
+		t.Fatalf("write sql file: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(wd); chdirErr != nil {
+			t.Fatalf("restore wd: %v", chdirErr)
+		}
+	})
+
+	got, err := RequireMigrationSource()
+	if err != nil {
+		t.Fatalf("RequireMigrationSource returned error: %v", err)
+	}
+	want := "file://" + filepath.ToSlash(filepath.Join(tempDir, "migration"))
+	if got != want {
+		t.Fatalf("unexpected migration source:\nwant: %s\ngot:  %s", want, got)
+	}
+}
+
+func TestRequireMigrationSourceFailsWhenResolvedDirectoryHasNoSQLFiles(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(tempDir, "migration"), 0o755); err != nil {
+		t.Fatalf("mkdir migration: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "migration", "membership_uniqueness_runbook.ru.md"), []byte("runbook"), 0o644); err != nil {
+		t.Fatalf("write runbook file: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(wd); chdirErr != nil {
+			t.Fatalf("restore wd: %v", chdirErr)
+		}
+	})
+
+	_, err = RequireMigrationSource()
+	if err == nil {
+		t.Fatal("RequireMigrationSource returned nil error, want strict missing-sql error")
+	}
+	if !strings.Contains(err.Error(), "does not contain SQL migration files") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestMigrationDBStrictFailsBeforeDBLookupWhenSourceMissing(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(wd); chdirErr != nil {
+			t.Fatalf("restore wd: %v", chdirErr)
+		}
+	})
+
+	repo := &recordingRepository{}
+	err = MigrationDBStrict(repo, noopLogger{})
+	if err == nil {
+		t.Fatal("MigrationDBStrict returned nil error, want strict missing source error")
+	}
+	if !strings.Contains(err.Error(), "migration source is required for rollout phase") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if repo.getSQLDBCalled {
+		t.Fatal("MigrationDBStrict called GetSQLDB before validating migration source")
+	}
+}
+
+func TestResolveMigrationDirectoryFailsOnCanonicalAndLegacyAmbiguity(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(tempDir, "migration"), 0o755); err != nil {
+		t.Fatalf("mkdir migration: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "migration", "0001_init.up.sql"), []byte("SELECT 1;"), 0o644); err != nil {
+		t.Fatalf("write canonical sql file: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(tempDir, "backend", "migration"), 0o755); err != nil {
+		t.Fatalf("mkdir backend/migration: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "backend", "migration", "0001_legacy.up.sql"), []byte("SELECT 1;"), 0o644); err != nil {
+		t.Fatalf("write legacy sql file: %v", err)
+	}
+
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(wd); chdirErr != nil {
+			t.Fatalf("restore wd: %v", chdirErr)
+		}
+	})
+
+	_, err = ResolveMigrationDirectory()
+	if err == nil {
+		t.Fatal("ResolveMigrationDirectory returned nil error, want ambiguity error")
+	}
+	if !strings.Contains(err.Error(), "ambiguous migration discovery: canonical") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestResolveMigrationDirectoryFailsOnMultipleLegacyDirsAmbiguity(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tempDir, "backend", "migration"), 0o755); err != nil {
+		t.Fatalf("mkdir backend/migration: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "backend", "migration", "0001_init.up.sql"), []byte("SELECT 1;"), 0o644); err != nil {
+		t.Fatalf("write backend/migration sql file: %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(tempDir, "migrations"), 0o755); err != nil {
+		t.Fatalf("mkdir migrations: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "migrations", "0001_alt.up.sql"), []byte("SELECT 1;"), 0o644); err != nil {
+		t.Fatalf("write migrations sql file: %v", err)
+	}
+
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(wd); chdirErr != nil {
+			t.Fatalf("restore wd: %v", chdirErr)
+		}
+	})
+
+	_, err = ResolveMigrationDirectory()
+	if err == nil {
+		t.Fatal("ResolveMigrationDirectory returned nil error, want ambiguity error")
+	}
+	if !strings.Contains(err.Error(), "ambiguous migration discovery across legacy directories") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
