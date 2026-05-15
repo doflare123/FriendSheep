@@ -9,7 +9,6 @@ import (
 	convertorsdto "friendship/models/dto/convertorsDto"
 	"friendship/models/events"
 	"friendship/models/groups"
-	"friendship/repository"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -58,13 +57,15 @@ type GenreDto struct {
 
 type eventsService struct {
 	logger logger.Logger
-	repo   repository.PostgresRepository
+	repo   eventsRepoPort
+	tx     eventsTransactionRunner
 }
 
-func NewEventsService(logger logger.Logger, repo repository.PostgresRepository) EventsService {
+func NewEventsService(logger logger.Logger, repo eventsRepoPort) EventsService {
 	return &eventsService{
 		logger: logger,
 		repo:   repo,
+		tx:     newEventsTransactionRunner(repo),
 	}
 }
 
@@ -141,7 +142,7 @@ func (s *eventsService) GetEventDetails(userID uint, eventID uint) (*dto.EventFu
 func (s *eventsService) JoinEvent(userID uint, eventID uint) (bool, error) {
 	var event events.Event
 
-	err := s.repo.Transaction(func(tx repository.PostgresRepository) error {
+	err := s.runInTx(func(tx eventsTxPort) error {
 		if err := tx.Model(&events.Event{}).Where("id = ?", eventID).First(&event).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrEventNotFound
@@ -212,7 +213,7 @@ func (s *eventsService) LeaveEvent(userID uint, eventID uint) (bool, error) {
 	var event events.Event
 	var eventUser events.EventsUser
 
-	err := s.repo.Transaction(func(tx repository.PostgresRepository) error {
+	err := s.runInTx(func(tx eventsTxPort) error {
 		if err := tx.First(&event, eventID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrEventNotFound
@@ -381,7 +382,7 @@ func (s *eventsService) isGroupMember(userID uint, groupID uint) (bool, error) {
 }
 
 // Записывает действие в журнал группы
-func (s *eventsService) logGroupAction(tx repository.PostgresRepository, groupID uint, userID uint, username, us, role, actionType, description string) error {
+func (s *eventsService) logGroupAction(tx eventsTxPort, groupID uint, userID uint, username, us, role, actionType, description string) error {
 	action := groups.GroupActionLog{
 		GroupID:     groupID,
 		UserID:      userID,

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"friendship/models"
 	"friendship/models/groups"
-	"friendship/repository"
 	"time"
 
 	"gorm.io/gorm"
@@ -79,7 +78,7 @@ func (s *groupService) CreateJoinInvite(actorID uint, input JoinInviteInput) (bo
 	var targetUser models.User
 	var actor models.User
 
-	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err = s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&targetUser, input.UserID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrUserNotFound
@@ -154,7 +153,7 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 	var actor models.User
 	count := 0
 
-	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err = s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&actor, actorID).Error; err != nil {
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}
@@ -165,8 +164,8 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 			return fmt.Errorf("ошибка получения заявок: %w", err)
 		}
 
-		memberRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleMember, s.post)
-		if memberRoleID == 0 {
+		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
+		if err != nil {
 			return fmt.Errorf("роль member не найдена")
 		}
 
@@ -232,7 +231,7 @@ func (s *groupService) RejectAllJoinRequests(actorID uint, groupID uint) (int, e
 	var actor models.User
 	count := 0
 
-	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err = s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&actor, actorID).Error; err != nil {
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}
@@ -270,7 +269,7 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 	var request groups.GroupJoinRequest
 	var actor models.User
 
-	err := s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err := s.runInTx(func(tx groupTx) error {
 		if err := tx.Preload("User").First(&request, requestID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrJoinRequestNotFound
@@ -305,8 +304,8 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 			return ErrUserInBlacklist
 		}
 
-		memberRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleMember, s.post)
-		if memberRoleID == 0 {
+		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
+		if err != nil {
 			return fmt.Errorf("роль member не найдена")
 		}
 
@@ -346,7 +345,7 @@ func (s *groupService) RejectJoinRequest(actorID uint, requestID uint) (bool, er
 	var request groups.GroupJoinRequest
 	var actor models.User
 
-	err := s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err := s.runInTx(func(tx groupTx) error {
 		if err := tx.Preload("User").First(&request, requestID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrJoinRequestNotFound

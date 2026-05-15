@@ -35,7 +35,7 @@ type Server struct {
 	popularEventsService event.PopularEventsService
 }
 
-func validateNonDevStartupWithSQLMigrations(startupMigrationsEnabled bool, hasCoreSchema bool) error {
+func validateNonDevStartupWithSQLMigrations(startupMigrationsEnabled bool, hasCoreSchema bool, hasPendingJoinRequestIndex bool) error {
 	if startupMigrationsEnabled {
 		if !hasCoreSchema {
 			return errors.New("core schema is incomplete after SQL migrations; aborting startup (non-DEV fail-fast)")
@@ -45,6 +45,9 @@ func validateNonDevStartupWithSQLMigrations(startupMigrationsEnabled bool, hasCo
 
 	if !hasCoreSchema {
 		return errors.New("startup SQL migrations are disabled and core schema is incomplete; set ENABLE_STARTUP_SQL_MIGRATIONS=true for planned rollout")
+	}
+	if !hasPendingJoinRequestIndex {
+		return errors.New("startup SQL migrations are disabled and required migration contract is missing (idx_group_join_request_pending_unique); set ENABLE_STARTUP_SQL_MIGRATIONS=true and apply SQL migrations")
 	}
 
 	return nil
@@ -102,7 +105,12 @@ func InitServer() (*Server, error) {
 			logger.Error("Error checking core schema after startup migration contract", "error", err)
 			return nil, err
 		}
-		if err := validateNonDevStartupWithSQLMigrations(conf.EnableStartupSQLMigrations, hasCoreSchema); err != nil {
+		hasPendingJoinRequestIndex, err := db.HasPendingJoinRequestUniqueIndex(postgres)
+		if err != nil {
+			logger.Error("Error checking pending join request unique index contract", "error", err)
+			return nil, err
+		}
+		if err := validateNonDevStartupWithSQLMigrations(conf.EnableStartupSQLMigrations, hasCoreSchema, hasPendingJoinRequestIndex); err != nil {
 			return nil, err
 		}
 		if !conf.EnableStartupSQLMigrations {

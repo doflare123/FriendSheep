@@ -208,6 +208,23 @@ func HasCoreSchemaTables(db repository.PostgresRepository) (bool, error) {
 	return present == int64(len(tableNames)), nil
 }
 
+func HasPendingJoinRequestUniqueIndex(db repository.PostgresRepository) (bool, error) {
+	var exists bool
+	err := db.Raw(
+		`SELECT EXISTS (
+			SELECT 1
+			FROM pg_indexes
+			WHERE schemaname = 'public'
+			  AND indexname = 'idx_group_join_request_pending_unique'
+		)`,
+	).Scan(&exists).Error
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
 func bootstrapRegistrationTableNames() ([]string, error) {
 	models := bootstrapRegistrationModels()
 	tableNames := make([]string, 0, len(models))

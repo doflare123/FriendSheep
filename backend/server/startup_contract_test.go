@@ -83,37 +83,49 @@ func TestValidateNonDevStartupWithSQLMigrations(t *testing.T) {
 		name                     string
 		startupMigrationsEnabled bool
 		hasCoreSchema            bool
+		hasPendingJoinIndex      bool
 		wantErr                  string
 	}{
 		{
 			name:                     "migration enabled and schema complete",
 			startupMigrationsEnabled: true,
 			hasCoreSchema:            true,
+			hasPendingJoinIndex:      false,
 			wantErr:                  "",
 		},
 		{
 			name:                     "migration enabled and schema incomplete fail fast",
 			startupMigrationsEnabled: true,
 			hasCoreSchema:            false,
+			hasPendingJoinIndex:      true,
 			wantErr:                  "core schema is incomplete after SQL migrations",
 		},
 		{
-			name:                     "migration disabled and schema complete",
+			name:                     "migration disabled and schema complete with required index",
 			startupMigrationsEnabled: false,
 			hasCoreSchema:            true,
+			hasPendingJoinIndex:      true,
 			wantErr:                  "",
 		},
 		{
 			name:                     "migration disabled and schema incomplete must fail",
 			startupMigrationsEnabled: false,
 			hasCoreSchema:            false,
+			hasPendingJoinIndex:      true,
 			wantErr:                  "startup SQL migrations are disabled and core schema is incomplete",
+		},
+		{
+			name:                     "migration disabled and schema complete without required index must fail",
+			startupMigrationsEnabled: false,
+			hasCoreSchema:            true,
+			hasPendingJoinIndex:      false,
+			wantErr:                  "required migration contract is missing",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateNonDevStartupWithSQLMigrations(tt.startupMigrationsEnabled, tt.hasCoreSchema)
+			err := validateNonDevStartupWithSQLMigrations(tt.startupMigrationsEnabled, tt.hasCoreSchema, tt.hasPendingJoinIndex)
 			if tt.wantErr == "" && err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

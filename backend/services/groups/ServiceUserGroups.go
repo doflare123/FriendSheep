@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"friendship/models"
 	"friendship/models/groups"
-	"friendship/repository"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -18,8 +17,8 @@ func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error
 	var user models.User
 	var group groups.Group
 
-	err := s.post.Transaction(func(tx repository.PostgresRepository) error {
-		if _, err := user.FindUserByID(userID, tx); err != nil {
+	err := s.runInTx(func(tx groupTx) error {
+		if err := tx.First(&user, userID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrUserNotFound
 			}
@@ -80,8 +79,8 @@ func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error
 			return nil
 		}
 
-		memberRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleMember, tx)
-		if memberRoleID == 0 {
+		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
+		if err != nil {
 			return fmt.Errorf("роль member не найдена")
 		}
 
@@ -137,7 +136,7 @@ func isPendingJoinRequestUniqueViolation(err error) bool {
 func (s *groupService) LeaveGroup(userID uint, groupID uint) (bool, error) {
 	var groupUser groups.GroupUsers
 
-	err := s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err := s.runInTx(func(tx groupTx) error {
 		err := tx.Where("user_id = ? AND group_id = ?", userID, groupID).
 			First(&groupUser).Error
 		if err != nil {
@@ -175,7 +174,7 @@ func (s *groupService) LeaveGroup(userID uint, groupID uint) (bool, error) {
 func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResult, error) {
 	var invite groups.GroupJoinInvite
 
-	err := s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err := s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&invite, inviteID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return fmt.Errorf("приглашение не найдено")
@@ -213,8 +212,8 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 			return ErrUserInBlacklist
 		}
 
-		memberRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleMember, tx)
-		if memberRoleID == 0 {
+		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
+		if err != nil {
 			return fmt.Errorf("роль member не найдена")
 		}
 
@@ -269,7 +268,7 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 	}, nil
 }
 
-func groupMembershipExists(tx repository.PostgresRepository, userID uint, groupID uint) (bool, error) {
+func groupMembershipExists(tx groupTx, userID uint, groupID uint) (bool, error) {
 	var existingCount int64
 	if err := tx.Model(&groups.GroupUsers{}).
 		Where("user_id = ? AND group_id = ?", userID, groupID).
@@ -283,7 +282,7 @@ func groupMembershipExists(tx repository.PostgresRepository, userID uint, groupI
 func (s *groupService) RejectJoinInvite(userID uint, inviteID uint) (bool, error) {
 	var invite groups.GroupJoinInvite
 
-	err := s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err := s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&invite, inviteID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return fmt.Errorf("приглашение не найдено")

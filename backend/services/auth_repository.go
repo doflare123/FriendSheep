@@ -11,8 +11,6 @@ import (
 const (
 	authPrivateGroupType = "приватная группа"
 	authPublicGroupType  = "открытая группа"
-	authAdminRole        = groupmodels.RoleAdmin
-	authModeratorRole    = groupmodels.RoleModerator
 )
 
 type AuthUser struct {
@@ -89,6 +87,8 @@ func (r *gormAuthRepository) GetAuthAdminGroups(userID uint) ([]dto.AdminGroupRe
 
 	var adminGroups []dto.AdminGroupResponse
 
+	moderateRoles := groupmodels.RolesWithCapability(groupmodels.CapabilityModerate)
+
 	err := r.db.Model(&authGroupRecord{}).
 		Select(
 			"groups.id, groups.name, groups.image, groups.small_description, CASE WHEN groups.is_private THEN ? ELSE ? END as type, COUNT(DISTINCT gu2.user_id) as member_count, rig.name as role",
@@ -98,7 +98,7 @@ func (r *gormAuthRepository) GetAuthAdminGroups(userID uint) ([]dto.AdminGroupRe
 		Joins("JOIN group_users gu ON gu.group_id = groups.id").
 		Joins("JOIN role_in_groups rig ON gu.role_in_group_id = rig.id").
 		Joins("LEFT JOIN group_users gu2 ON gu2.group_id = groups.id").
-		Where("gu.user_id = ? AND (rig.name = ? OR rig.name = ?)", userID, authAdminRole, authModeratorRole).
+		Where("gu.user_id = ? AND rig.name IN ?", userID, moderateRoles).
 		Group("groups.id, groups.name, groups.image, groups.small_description, groups.is_private, rig.name").
 		Order("groups.id DESC").
 		Scan(&adminGroups).Error

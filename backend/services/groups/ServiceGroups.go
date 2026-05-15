@@ -9,7 +9,6 @@ import (
 	convertorsdto "friendship/models/dto/convertorsDto"
 	"friendship/models/events"
 	"friendship/models/groups"
-	"friendship/repository"
 	"friendship/services"
 	"strings"
 	"time"
@@ -145,13 +144,15 @@ type GroupsService interface {
 
 type groupService struct {
 	logger logger.Logger
-	post   repository.PostgresRepository
+	post   groupStore
+	tx     groupTransactionRunner
 }
 
-func NewGroupService(logger logger.Logger, rep repository.PostgresRepository) GroupsService {
+func NewGroupService(logger logger.Logger, rep groupStore) GroupsService {
 	return &groupService{
 		logger: logger,
 		post:   rep,
+		tx:     newGroupTransactionRunner(rep),
 	}
 }
 
@@ -330,7 +331,7 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 	}
 
 	var newGroup *groups.Group
-	err := s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err := s.runInTx(func(tx groupTx) error {
 		newGroup = &groups.Group{
 			Name:             input.Name,
 			Description:      input.Description,
@@ -346,8 +347,8 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 			return fmt.Errorf("ошибка создания группы: %w", err)
 		}
 
-		roleID := new(groups.Role_in_group).GetIdRole(groups.RoleAdmin, s.post)
-		if roleID == 0 {
+		roleID, err := findGroupRoleID(tx, groups.RoleAdmin)
+		if err != nil {
 			return fmt.Errorf("роль Админ не найдена")
 		}
 
@@ -427,7 +428,7 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 	var group groups.Group
 	var actor models.User
 
-	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err = s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&group, input.GroupID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrGroupNotFound
@@ -539,7 +540,7 @@ func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
 	var actor models.User
 	var group groups.Group
 
-	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err = s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&group, groupID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrGroupNotFound
@@ -586,7 +587,7 @@ func (s *groupService) AddPermissions(actorID uint, input PermissionInput) (bool
 	var actor models.User
 	var groupUser groups.GroupUsers
 
-	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err = s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&actor, actorID).Error; err != nil {
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}
@@ -607,8 +608,8 @@ func (s *groupService) AddPermissions(actorID uint, input PermissionInput) (bool
 			return fmt.Errorf("ошибка поиска участника: %w", err)
 		}
 
-		operatorRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleModerator, s.post)
-		if operatorRoleID == 0 {
+		operatorRoleID, err := findGroupRoleID(tx, groups.RoleModerator)
+		if err != nil {
 			return fmt.Errorf("роль Модератор не найдена")
 		}
 
@@ -652,7 +653,7 @@ func (s *groupService) RemovePermissions(actorID uint, input PermissionInput) (b
 	var actor models.User
 	var groupUser groups.GroupUsers
 
-	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err = s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&actor, actorID).Error; err != nil {
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}
@@ -673,8 +674,8 @@ func (s *groupService) RemovePermissions(actorID uint, input PermissionInput) (b
 			return fmt.Errorf("ошибка поиска участника: %w", err)
 		}
 
-		memberRoleID := new(groups.Role_in_group).GetIdRole(groups.RoleMember, s.post)
-		if memberRoleID == 0 {
+		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
+		if err != nil {
 			return fmt.Errorf("роль Участник не найдена")
 		}
 
@@ -718,7 +719,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 	var actor models.User
 	var groupUser groups.GroupUsers
 
-	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err = s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&actor, actorID).Error; err != nil {
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}
@@ -795,7 +796,7 @@ func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUse
 	var targetUser models.User
 	var actor models.User
 
-	err = s.post.Transaction(func(tx repository.PostgresRepository) error {
+	err = s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&actor, actorID).Error; err != nil {
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}
@@ -952,7 +953,7 @@ func (s *groupService) GetGroupBlacklist(actorID uint, groupID uint, limit int) 
 }
 
 // updateContactsInTx обновляет контакты в транзакции
-func updateContactsInTx(tx repository.PostgresRepository, groupID *uint, newContacts map[string]string) error {
+func updateContactsInTx(tx groupTx, groupID *uint, newContacts map[string]string) error {
 	var existingContacts []groups.GroupContact
 	if err := tx.Where("group_id = ?", groupID).Find(&existingContacts).Error; err != nil {
 		return fmt.Errorf("ошибка получения существующих контактов: %v", err)
@@ -999,7 +1000,7 @@ func updateContactsInTx(tx repository.PostgresRepository, groupID *uint, newCont
 }
 
 // logAction записывает действие в лог
-func (s *groupService) logAction(tx repository.PostgresRepository, groupID uint, userID uint, username, us, role, actionType, description string) error {
+func (s *groupService) logAction(tx groupTx, groupID uint, userID uint, username, us, role, actionType, description string) error {
 	if strings.TrimSpace(username) == "" || strings.TrimSpace(us) == "" {
 		var actor models.User
 		if err := tx.Select("id", "name", "us").First(&actor, userID).Error; err == nil {

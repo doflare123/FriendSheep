@@ -8,7 +8,6 @@ import (
 	convertorsdto "friendship/models/dto/convertorsDto"
 	"friendship/models/events"
 	groupmodels "friendship/models/groups"
-	"friendship/repository"
 	"time"
 
 	"gorm.io/gorm"
@@ -57,7 +56,7 @@ func (s *eventsService) KickUserFromEvent(actorID uint, eventID uint, targetUser
 	var actor models.User
 	var targetUser models.User
 
-	err := s.repo.Transaction(func(tx repository.PostgresRepository) error {
+	err := s.runInTx(func(tx eventsTxPort) error {
 		if err := tx.First(&event, eventID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrEventNotFound
@@ -146,7 +145,7 @@ func (s *eventsService) CreateEvent(actorID uint, input CreateEventInput) (*dto.
 	var event events.Event
 	var actor models.User
 
-	err = s.repo.Transaction(func(tx repository.PostgresRepository) error {
+	err = s.runInTx(func(tx eventsTxPort) error {
 		if err := tx.First(&actor, actorID).Error; err != nil {
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}
@@ -270,7 +269,7 @@ func (s *eventsService) UpdateEvent(actorID uint, eventID uint, input UpdateEven
 		return nil, ErrEventAlreadyStarted
 	}
 
-	err = s.repo.Transaction(func(tx repository.PostgresRepository) error {
+	err = s.runInTx(func(tx eventsTxPort) error {
 		if err := tx.First(&actor, actorID).Error; err != nil {
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}
@@ -425,7 +424,7 @@ func (s *eventsService) DeleteEvent(actorID uint, eventID uint) (bool, error) {
 		return false, ErrPermissionDenied
 	}
 
-	err = s.repo.Transaction(func(tx repository.PostgresRepository) error {
+	err = s.runInTx(func(tx eventsTxPort) error {
 		if err := tx.First(&actor, actorID).Error; err != nil {
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}

@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"errors"
+	"net/http"
+
 	"friendship/services/register"
 	"friendship/utils"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,9 +27,7 @@ type regHandler struct {
 }
 
 func NewRegisterHandler(srv register.RegService) RegHandler {
-	return &regHandler{
-		srv: srv,
-	}
+	return &regHandler{srv: srv}
 }
 
 // CreateSessionRegister создает сессию регистрации по email
@@ -39,8 +38,8 @@ func NewRegisterHandler(srv register.RegService) RegHandler {
 // @Produce json
 // @Param input body SessionEmailInput true "Email пользователя"
 // @Success 200 {object} models.SessionRegResponse
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v2/register/session/register [post]
 func (h *regHandler) CreateSessionRegister(c *gin.Context) {
 	var input SessionEmailInput
@@ -51,7 +50,7 @@ func (h *regHandler) CreateSessionRegister(c *gin.Context) {
 
 	session, err := h.srv.CreateSessionRegister(c.Request.Context(), input.Email, input.TypeSes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать сессию"})
+		utils.InternalError(c, "Не удалось создать сессию")
 		return
 	}
 
@@ -66,15 +65,15 @@ func (h *regHandler) CreateSessionRegister(c *gin.Context) {
 // @Produce json
 // @Param input body register.VerifySessionInput true "Данные сессии для проверки"
 // @Success 200 {object} map[string]bool
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 429 {object} map[string]string
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 429 {object} dto.ErrorResponse
 // @Router /api/v2/register/session/verify [patch]
 func (h *regHandler) VerifySession(c *gin.Context) {
 	var input register.VerifySessionInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неправильный формат данных"})
+		utils.BadRequest(c, "Неправильный формат данных")
 		return
 	}
 
@@ -82,21 +81,21 @@ func (h *regHandler) VerifySession(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, register.ErrSessionNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Сессия не найдена или истекла"})
+			utils.NotFound(c, "Сессия не найдена или истекла")
 		case errors.Is(err, register.ErrTooManyAttempts):
-			c.JSON(http.StatusTooManyRequests, gin.H{"error": "Превышено количество попыток"})
+			utils.JSONError(c, http.StatusTooManyRequests, "Превышено количество попыток")
 		case errors.Is(err, register.ErrSessionTypeMismatch):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный тип сессии"})
+			utils.BadRequest(c, "Неверный тип сессии")
 		case errors.Is(err, register.ErrInvalidCode):
-			c.JSON(http.StatusUnauthorized, gin.H{"verified": false, "error": "Неверный код"})
+			utils.Unauthorized(c, "Неверный код", utils.WithDetails(map[string]bool{"verified": false}))
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Внутренняя ошибка сервера"})
+			utils.InternalError(c, "Внутренняя ошибка сервера")
 		}
 		return
 	}
 
 	if !verified {
-		c.JSON(http.StatusUnauthorized, gin.H{"verified": false, "error": "Код или тип некорректные"})
+		utils.Unauthorized(c, "Код или тип некорректные", utils.WithDetails(map[string]bool{"verified": false}))
 		return
 	}
 
@@ -111,14 +110,13 @@ func (h *regHandler) VerifySession(c *gin.Context) {
 // @Produce json
 // @Param input body register.CreateUserInput true "Данные для создания пользователя"
 // @Success 201 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 409 {object} map[string]string
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 409 {object} dto.ErrorResponse
 // @Router /api/v2/register/ [post]
 func (h *regHandler) CreateUser(c *gin.Context) {
 	var input register.CreateUserInput
-
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utils.ValidationError(c, err)
 		return
@@ -128,17 +126,17 @@ func (h *regHandler) CreateUser(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, register.ErrSessionNotVerified):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Сессия не подтверждена"})
+			utils.Forbidden(c, "Сессия не подтверждена")
 		case errors.Is(err, register.ErrSessionNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Сессия не найдена"})
+			utils.NotFound(c, "Сессия не найдена")
 		case errors.Is(err, register.ErrSessionTypeMismatch):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Неверный тип сессии для регистрации"})
+			utils.Forbidden(c, "Неверный тип сессии для регистрации")
 		case errors.Is(err, register.ErrSessionEmailMismatch):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Email не совпадает с подтвержденной сессией"})
+			utils.Forbidden(c, "Email не совпадает с подтвержденной сессией")
 		case errors.Is(err, register.ErrUserAlreadyExists):
-			c.JSON(http.StatusConflict, gin.H{"error": "Пользователь с таким email уже существует"})
+			utils.JSONError(c, http.StatusConflict, "Пользователь с таким email уже существует")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Внутренняя ошибка сервера"})
+			utils.InternalError(c, "Внутренняя ошибка сервера")
 		}
 		return
 	}
@@ -159,9 +157,9 @@ func (h *regHandler) CreateUser(c *gin.Context) {
 // @Produce json
 // @Param input body register.ChangePasswordInput true "Данные для смены пароля"
 // @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
 // @Router /api/v2/register/password/change [post]
 func (h *regHandler) ChangePassword(c *gin.Context) {
 	var input register.ChangePasswordInput
@@ -174,17 +172,17 @@ func (h *regHandler) ChangePassword(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, register.ErrSessionNotVerified):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Сессия не подтверждена"})
+			utils.Forbidden(c, "Сессия не подтверждена")
 		case errors.Is(err, register.ErrSessionNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Сессия не найдена"})
+			utils.NotFound(c, "Сессия не найдена")
 		case errors.Is(err, register.ErrSessionTypeMismatch):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Неверный тип сессии для смены пароля"})
+			utils.Forbidden(c, "Неверный тип сессии для смены пароля")
 		case errors.Is(err, register.ErrSessionEmailMismatch):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Email не совпадает с подтвержденной сессией"})
+			utils.Forbidden(c, "Email не совпадает с подтвержденной сессией")
 		case errors.Is(err, register.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+			utils.NotFound(c, "Пользователь не найден")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось изменить пароль"})
+			utils.InternalError(c, "Не удалось изменить пароль")
 		}
 		return
 	}
