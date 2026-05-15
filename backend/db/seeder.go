@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"friendship/models"
 	"friendship/models/events"
@@ -10,6 +11,7 @@ import (
 	"friendship/repository"
 	"os"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -94,6 +96,17 @@ func Seeder(db repository.PostgresRepository) []error {
 
 func genericSeed(db repository.PostgresRepository, items []interface{}) error {
 	for _, item := range items {
+		if status, ok := item.(*events.Status); ok {
+			var existing events.Status
+			err := db.Where("name = ?", status.Name).First(&existing).Error
+			if err == nil {
+				continue
+			}
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+		}
+
 		if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(item).Error; err != nil {
 			return err
 		}

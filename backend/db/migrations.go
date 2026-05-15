@@ -103,6 +103,10 @@ func MigrationDBStrict(db repository.PostgresRepository, logger logger.Logger) e
 	return migrationDB(db, logger, true)
 }
 
+func MigrationDBStrictToVersion(db repository.PostgresRepository, logger logger.Logger, targetVersion uint) error {
+	return migrationDBToVersion(db, logger, targetVersion)
+}
+
 func migrationDB(db repository.PostgresRepository, logger logger.Logger, strict bool) error {
 	migrationsPath, err := resolveMigrationSourceWithMode(strict)
 	if err != nil {
@@ -133,6 +137,55 @@ func migrationDB(db repository.PostgresRepository, logger logger.Logger, strict 
 		}
 	}
 	logger.Info("Migrations done")
+	return nil
+}
+
+func migrationDBToVersion(db repository.PostgresRepository, logger logger.Logger, targetVersion uint) error {
+	migrationsPath, err := resolveMigrationSourceWithMode(true)
+	if err != nil {
+		return err
+	}
+	if migrationsPath == "" {
+		return errors.New("migration source is required for rollout target version")
+	}
+
+	sqlDB, err := db.GetSQLDB()
+	if err != nil {
+		return err
+	}
+	driver, err := migratepg.WithInstance(sqlDB, &migratepg.Config{})
+	if err != nil {
+		return err
+	}
+	migrat, err := migrate.NewWithDatabaseInstance(migrationsPath, "postgres", driver)
+	if err != nil {
+		return err
+	}
+
+	currentVersion, dirty, versionErr := migrat.Version()
+	if versionErr != nil && !errors.Is(versionErr, migrate.ErrNilVersion) {
+		return versionErr
+	}
+	if dirty {
+		return fmt.Errorf("database is in dirty migration state at version %d", currentVersion)
+	}
+	if versionErr == nil && currentVersion > uint(targetVersion) {
+		return fmt.Errorf(
+			"current migration version %d is above requested target %d; refusing to migrate down",
+			currentVersion,
+			targetVersion,
+		)
+	}
+
+	if err := migrat.Migrate(uint(targetVersion)); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			logger.Info("No new migrations to apply for target", "targetVersion", targetVersion)
+			return nil
+		}
+		return err
+	}
+
+	logger.Info("Migrations done to target version", "targetVersion", targetVersion)
 	return nil
 }
 

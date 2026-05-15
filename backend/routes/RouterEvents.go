@@ -14,7 +14,6 @@ func RegisterEventsRoutes(
 	authMiddleware *middlewares.AuthMiddleware,
 	groupRoleMiddleware *middlewares.GroupRoleMiddleware,
 ) {
-	router.GET("/api/v2/events/genres", eventsHandler.GetAllGenres)
 	router.GET("/api/v2/references", eventsHandler.GetAllReferences)
 	router.GET("/api/v2/events/popular", popularHandler.GetPopularEvents)
 
@@ -25,11 +24,13 @@ func RegisterEventsRoutes(
 		events.POST("/:eventId/join", eventsHandler.JoinEvent)
 		events.POST("/:eventId/leave", eventsHandler.LeaveEvent)
 	}
+
 	eventsGroup := router.Group("/api/v2/groups/events")
-	eventsGroup.Use(authMiddleware.RequireAuth(), groupRoleMiddleware.RequireOperatorOrAdmin())
+	eventsGroup.Use(authMiddleware.RequireAuth())
 	{
 		eventsGroup.GET("/:groupId/events", eventsHandler.GetGroupEvents)
 	}
+
 	eventsAdmin := router.Group("/api/v2/admin/events")
 	eventsAdmin.Use(authMiddleware.RequireAuth())
 	{

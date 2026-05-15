@@ -45,6 +45,7 @@ func TestAuthMiddlewareRequireAuth(t *testing.T) {
 			if rec.Code != tt.wantStatus {
 				t.Fatalf("status = %d, want %d", rec.Code, tt.wantStatus)
 			}
+			assertCommonErrorShape(t, rec)
 		})
 	}
 }

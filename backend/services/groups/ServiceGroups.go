@@ -307,7 +307,7 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 	}
 
 	var creator models.User
-	if _, err := creator.FindUserByID(id, s.post); err != nil {
+	if err := s.post.First(&creator, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			s.logger.Error("Creator not found", "Id", id)
 			return nil, fmt.Errorf("%w: %d", ErrUserNotFound, id)
@@ -404,14 +404,19 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 
 	s.logger.Info("Group created successfully", "groupID", newGroup.ID, "name", newGroup.Name, "creatorID", creator.ID)
 
-	groupDto := convertGroupToDto(newGroup)
+	groupDto, err := s.GetGroupDetails(id, newGroup.ID)
+	if err != nil {
+		s.logger.Error("Failed to build full group dto after creation", "groupID", newGroup.ID, "error", err)
+		return nil, fmt.Errorf("ошибка формирования данных группы: %w", err)
+	}
+
 	return groupDto, nil
 }
 
 // UpdateGroup обновляет группу
 func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.GroupFullDto, error) {
 	// Проверяем права доступа
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{groups.RoleAdmin, groups.RoleModerator})
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.RolesWithCapability(groups.CapabilityModerate))
 	if err != nil {
 		return nil, err
 	}
@@ -512,13 +517,18 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 
 	s.logger.Info("Group updated successfully", "groupID", group.ID, "actorID", actorID)
 
-	groupDto := convertGroupToDto(&group)
+	groupDto, err := s.GetGroupDetails(actorID, group.ID)
+	if err != nil {
+		s.logger.Error("Failed to build full group dto after update", "groupID", group.ID, "error", err)
+		return nil, fmt.Errorf("ошибка формирования данных группы: %w", err)
+	}
+
 	return groupDto, nil
 }
 
 // DeleteGroup удаляет группу (только админ)
 func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin})
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.RolesWithCapability(groups.CapabilityAdmin))
 	if err != nil {
 		return false, err
 	}
@@ -564,7 +574,7 @@ func (s *groupService) AddPermissions(actorID uint, input PermissionInput) (bool
 		return false, ErrCannotChangeOwnRole
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{groups.RoleAdmin})
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.RolesWithCapability(groups.CapabilityAdmin))
 	if err != nil {
 		return false, err
 	}
@@ -630,7 +640,7 @@ func (s *groupService) RemovePermissions(actorID uint, input PermissionInput) (b
 		return false, ErrCannotChangeOwnRole
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, []string{groups.RoleAdmin})
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.RolesWithCapability(groups.CapabilityAdmin))
 	if err != nil {
 		return false, err
 	}
@@ -696,7 +706,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 		return false, ErrCannotRemoveSelf
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin, groups.RoleModerator})
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.RolesWithCapability(groups.CapabilityModerate))
 	if err != nil {
 		return false, err
 	}
@@ -713,7 +723,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}
 
-		if _, err := targetUser.FindUserByID(targetUserID, tx); err != nil {
+		if err := tx.First(&targetUser, targetUserID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrUserNotFound
 			}
@@ -732,7 +742,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 		// Проверяем, что целевой пользователь не админ
 		var targetRole groups.Role_in_group
 		if err := tx.First(&targetRole, groupUser.RoleInGroupID).Error; err == nil {
-			if targetRole.Name == groups.RoleAdmin {
+			if groups.HasCapability(targetRole.Name, groups.CapabilityAdmin) {
 				return fmt.Errorf("нельзя удалить администратора группы")
 			}
 		}
@@ -774,7 +784,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 
 // RemoveFromBlacklist убирает пользователя из черного списка
 func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUserID uint) (bool, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin, groups.RoleModerator})
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.RolesWithCapability(groups.CapabilityModerate))
 	if err != nil {
 		return false, err
 	}
@@ -790,7 +800,7 @@ func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUse
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}
 
-		if _, err := targetUser.FindUserByID(targetUserID, tx); err != nil {
+		if err := tx.First(&targetUser, targetUserID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrUserNotFound
 			}
@@ -829,7 +839,7 @@ func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUse
 // WatchRecentActions получает историю действий в группе
 func (s *groupService) WatchRecentActions(userID uint, groupID uint, limit int) ([]GroupAction, error) {
 	// Проверяем, что пользователь в группе
-	hasAccess, _, err := s.checkGroupAccess(userID, groupID, []string{groups.RoleAdmin, groups.RoleModerator, groups.RoleMember})
+	hasAccess, _, err := s.checkGroupAccess(userID, groupID, groups.RolesWithCapability(groups.CapabilityMember))
 	if err != nil {
 		return nil, err
 	}
@@ -884,19 +894,17 @@ func (s *groupService) checkGroupAccess(userID uint, groupID uint, allowedRoles 
 		return false, "", fmt.Errorf("ошибка получения роли: %w", err)
 	}
 
-	for _, allowedRole := range allowedRoles {
-		if strings.EqualFold(role.Name, allowedRole) {
-			return true, role.Name, nil
-		}
+	if groups.HasAnyRole(role.Name, allowedRoles...) {
+		return true, groups.NormalizeRoleName(role.Name), nil
 	}
 
-	return false, role.Name, nil
+	return false, groups.NormalizeRoleName(role.Name), nil
 }
 
 // GetGroupBlacklist получает черный список группы
 func (s *groupService) GetGroupBlacklist(actorID uint, groupID uint, limit int) ([]BlacklistUser, error) {
 	// Проверяем права доступа (admin или operator)
-	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin, groups.RoleModerator})
+	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, groups.RolesWithCapability(groups.CapabilityModerate))
 	if err != nil {
 		return nil, err
 	}
@@ -992,6 +1000,18 @@ func updateContactsInTx(tx repository.PostgresRepository, groupID *uint, newCont
 
 // logAction записывает действие в лог
 func (s *groupService) logAction(tx repository.PostgresRepository, groupID uint, userID uint, username, us, role, actionType, description string) error {
+	if strings.TrimSpace(username) == "" || strings.TrimSpace(us) == "" {
+		var actor models.User
+		if err := tx.Select("id", "name", "us").First(&actor, userID).Error; err == nil {
+			if strings.TrimSpace(username) == "" {
+				username = actor.Name
+			}
+			if strings.TrimSpace(us) == "" {
+				us = actor.Us
+			}
+		}
+	}
+
 	action := groups.GroupActionLog{
 		GroupID:     groupID,
 		UserID:      userID,
@@ -1027,44 +1047,4 @@ func parseContacts(contactsStr string) map[string]string {
 	}
 
 	return contacts
-}
-
-// convertGroupToDto конвертирует группу в DTO
-func convertGroupToDto(group *groups.Group) *dto.GroupFullDto {
-	if group == nil {
-		return nil
-	}
-
-	categoryNames := make([]string, 0, len(group.Categories))
-	for _, cat := range group.Categories {
-		categoryNames = append(categoryNames, cat.Name)
-	}
-
-	contacts := make([]dto.ContactDto, 0, len(group.Contacts))
-	for _, contact := range group.Contacts {
-		contacts = append(contacts, dto.ContactDto{
-			Name: contact.Name,
-			Link: contact.Link,
-		})
-	}
-
-	return &dto.GroupFullDto{
-		ID:               group.ID,
-		Name:             group.Name,
-		Description:      group.Description,
-		SmallDescription: group.SmallDescription,
-		Image:            group.Image,
-		Creator: dto.GroupCreatorDto{
-			ID:       group.CreaterID,
-			Name:     group.Creater.Name,
-			Username: group.Creater.Us,
-			Verified: group.Creater.VerifiedUser,
-		},
-		IsPrivate:  group.IsPrivate,
-		City:       group.City,
-		Categories: categoryNames,
-		Contacts:   contacts,
-		CreatedAt:  group.CreatedAt,
-		UpdatedAt:  group.UpdatedAt,
-	}
 }

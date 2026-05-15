@@ -69,7 +69,7 @@ func RegisterGroupsRoutes(
 	// Эндпоинты только для админов
 	groupsAdmin := router.Group("/api/v2/groups")
 	groupsAdmin.Use(authMiddleware.RequireAuth())
-	groupsAdmin.Use(groupRoleMiddleware.RequireAdmin()) // Раскомментировать для проверки роли через middleware
+	groupsAdmin.Use(groupRoleMiddleware.RequireAdmin())
 	{
 		// Удаление группы
 		groupsAdmin.DELETE("/:groupId", groupHandler.DeleteGroup)

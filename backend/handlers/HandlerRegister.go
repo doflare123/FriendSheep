@@ -33,7 +33,7 @@ func NewRegisterHandler(srv register.RegService) RegHandler {
 
 // CreateSessionRegister создает сессию регистрации по email
 // @Summary Создать сессию регистрации
-// @Description Создает сессию для подтверждения email пользователя при регистрации
+// @Description Создает сессию для подтверждения адреса электронной почты пользователя при регистрации
 // @Tags sessions
 // @Accept json
 // @Produce json
@@ -60,7 +60,7 @@ func (h *regHandler) CreateSessionRegister(c *gin.Context) {
 
 // VerifySession проверяет код сессии
 // @Summary Проверить сессию
-// @Description Проверяет код сессии, отправленный на email
+// @Description Проверяет код сессии, отправленный на адрес электронной почты
 // @Tags sessions
 // @Accept json
 // @Produce json

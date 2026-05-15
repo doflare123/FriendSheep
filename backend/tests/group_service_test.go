@@ -3,11 +3,13 @@ package tests
 import (
 	"errors"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"friendship/models"
 	groupmodels "friendship/models/groups"
+	"friendship/repository"
 	"friendship/services"
 	servicegroups "friendship/services/groups"
 
@@ -127,6 +129,55 @@ func TestGroupServiceJoinGroupRejectsDuplicatePendingRequest(t *testing.T) {
 	}
 	assertGroupMembershipExists(t, db, groupID, 2, false)
 	assertGroupJoinRequestCount(t, db, groupID, 2, "pending", 1)
+}
+
+func TestGroupServiceJoinGroupAllowsNewPendingAfterRejectedRequest(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, true)
+	seedGroupJoinRequest(t, db, groupID, 2, "rejected")
+	createPendingJoinRequestUniqueIndex(t, db)
+
+	result, err := service.JoinGroup(2, groupID)
+
+	if err != nil {
+		t.Fatalf("JoinGroup returned error: %v", err)
+	}
+	if result == nil || result.Joined {
+		t.Fatalf("result = %#v, want pending request result", result)
+	}
+	assertGroupJoinRequestCount(t, db, groupID, 2, "rejected", 1)
+	assertGroupJoinRequestCount(t, db, groupID, 2, "pending", 1)
+}
+
+func TestGroupServiceJoinGroupMapsPendingUniqueViolationToDuplicateRequest(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &duplicatePendingRequestRepository{testPostgresRepository: &testPostgresRepository{db: db}}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, true)
+	createPendingJoinRequestUniqueIndex(t, db)
+
+	result, err := service.JoinGroup(2, groupID)
+
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if !errors.Is(err, servicegroups.ErrRequestAlreadyExists) {
+		t.Fatalf("err = %v, want ErrRequestAlreadyExists", err)
+	}
+	if !repo.injected.Load() {
+		t.Fatal("test unique violation injection was not reached")
+	}
+	assertGroupJoinRequestCount(t, db, groupID, 2, "pending", 0)
 }
 
 func TestGroupServiceApproveJoinRequestAddsMembershipAndWritesActionLog(t *testing.T) {
@@ -319,6 +370,127 @@ func TestGroupServiceCreateGroupRejectsMissingCategoriesWithoutSideEffects(t *te
 	assertGroupServiceActionLogTotal(t, db, 0)
 }
 
+func TestGroupServiceCreateGroupReturnsFullDetailsForCreator(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	services.InitValidator(validator.New())
+
+	seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	setGroupServiceUserImage(t, db, 1, "https://cdn.example.com/avatar.png")
+	seedGroupCategory(t, db, 1, "Board Games")
+	isPrivate := true
+	categoryID := uint(1)
+
+	groupDTO, err := service.CreateGroup(1, servicegroups.CreateGroupInput{
+		Name:             "Board Game Club",
+		Description:      "Group for board game fans",
+		SmallDescription: "Play together",
+		Image:            "https://example.com/group.png",
+		IsPrivate:        &isPrivate,
+		Categories:       []*uint{&categoryID},
+		Contacts:         "tg:https://t.me/group",
+	})
+
+	if err != nil {
+		t.Fatalf("CreateGroup returned error: %v", err)
+	}
+	if groupDTO == nil {
+		t.Fatal("groupDTO is nil")
+	}
+	if groupDTO.Creator.Image != "https://cdn.example.com/avatar.png" {
+		t.Fatalf("creator image = %q, want avatar url", groupDTO.Creator.Image)
+	}
+	if groupDTO.MemberCount != 1 {
+		t.Fatalf("member count = %d, want 1", groupDTO.MemberCount)
+	}
+	if len(groupDTO.Members) != 1 {
+		t.Fatalf("members len = %d, want 1", len(groupDTO.Members))
+	}
+	if groupDTO.Members[0].ID != 1 {
+		t.Fatalf("member id = %d, want 1", groupDTO.Members[0].ID)
+	}
+	if groupDTO.Members[0].Role != groupmodels.RoleAdmin {
+		t.Fatalf("member role = %q, want %q", groupDTO.Members[0].Role, groupmodels.RoleAdmin)
+	}
+	if !groupDTO.IsSubscribed {
+		t.Fatal("isSubscribed = false, want true")
+	}
+	if groupDTO.UserRole != groupmodels.RoleAdmin {
+		t.Fatalf("user role = %q, want %q", groupDTO.UserRole, groupmodels.RoleAdmin)
+	}
+	assertGroupActionActorFields(t, db, groupDTO.ID, "create_group", "Group User", "group-user-1")
+}
+
+func TestGroupServiceUpdateGroupReturnsFullDetailsForActor(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	services.InitValidator(validator.New())
+
+	seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	setGroupServiceUserImage(t, db, 1, "https://cdn.example.com/avatar.png")
+	seedGroupCategory(t, db, 1, "Board Games")
+	isPrivate := true
+	categoryID := uint(1)
+
+	created, err := service.CreateGroup(1, servicegroups.CreateGroupInput{
+		Name:             "Board Game Club",
+		Description:      "Group for board game fans",
+		SmallDescription: "Play together",
+		Image:            "https://example.com/group.png",
+		IsPrivate:        &isPrivate,
+		Categories:       []*uint{&categoryID},
+		Contacts:         "tg:https://t.me/group",
+	})
+	if err != nil {
+		t.Fatalf("CreateGroup returned error: %v", err)
+	}
+
+	newName := "Board Game Club Updated"
+	newContacts := "tg:https://t.me/newgroup"
+	updated, err := service.UpdateGroup(1, servicegroups.GroupUpdateInput{
+		GroupID:  created.ID,
+		Name:     &newName,
+		Contacts: &newContacts,
+	})
+
+	if err != nil {
+		t.Fatalf("UpdateGroup returned error: %v", err)
+	}
+	if updated == nil {
+		t.Fatal("updated dto is nil")
+	}
+	if updated.Name != newName {
+		t.Fatalf("name = %q, want %q", updated.Name, newName)
+	}
+	if updated.Creator.Image != "https://cdn.example.com/avatar.png" {
+		t.Fatalf("creator image = %q, want avatar url", updated.Creator.Image)
+	}
+	if updated.MemberCount != 1 {
+		t.Fatalf("member count = %d, want 1", updated.MemberCount)
+	}
+	if len(updated.Members) != 1 {
+		t.Fatalf("members len = %d, want 1", len(updated.Members))
+	}
+	if updated.Members[0].ID != 1 {
+		t.Fatalf("member id = %d, want 1", updated.Members[0].ID)
+	}
+	if updated.Members[0].Role != groupmodels.RoleAdmin {
+		t.Fatalf("member role = %q, want %q", updated.Members[0].Role, groupmodels.RoleAdmin)
+	}
+	if !updated.IsSubscribed {
+		t.Fatal("isSubscribed = false, want true")
+	}
+	if updated.UserRole != groupmodels.RoleAdmin {
+		t.Fatalf("user role = %q, want %q", updated.UserRole, groupmodels.RoleAdmin)
+	}
+}
+
 func TestGroupServiceAddPermissionsPromotesMemberAndWritesActionLog(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
@@ -420,6 +592,7 @@ func TestGroupServiceDeleteUserFromGroupMovesMemberToBlacklistAndWritesActionLog
 	assertGroupMembershipExists(t, db, groupID, 2, false)
 	assertGroupBlacklistExists(t, db, groupID, 2, true)
 	assertGroupServiceActionLogCount(t, db, groupID, "ban_user", 1)
+	assertGroupServiceActionLogContains(t, db, groupID, "ban_user", "group-user-2")
 }
 
 func TestGroupServiceRemoveFromBlacklistDeletesEntryAndWritesActionLog(t *testing.T) {
@@ -444,6 +617,7 @@ func TestGroupServiceRemoveFromBlacklistDeletesEntryAndWritesActionLog(t *testin
 	}
 	assertGroupBlacklistExists(t, db, groupID, 2, false)
 	assertGroupServiceActionLogCount(t, db, groupID, "unban_user", 1)
+	assertGroupServiceActionLogContains(t, db, groupID, "unban_user", "group-user-2")
 }
 
 func TestGroupServiceAcceptJoinInviteAddsMembershipAndUpdatesStatus(t *testing.T) {
@@ -589,6 +763,14 @@ func seedGroupServiceUser(t *testing.T, db *gorm.DB, userID uint) {
 	}
 }
 
+func setGroupServiceUserImage(t *testing.T, db *gorm.DB, userID uint, image string) {
+	t.Helper()
+
+	if err := db.Model(&models.User{}).Where("id = ?", userID).Update("image", image).Error; err != nil {
+		t.Fatalf("update user image for %d: %v", userID, err)
+	}
+}
+
 func seedGroupServiceRole(t *testing.T, db *gorm.DB, roleName string) uint {
 	t.Helper()
 
@@ -670,6 +852,44 @@ func seedGroupJoinRequestWithID(t *testing.T, db *gorm.DB, groupID, userID uint,
 		t.Fatalf("create group join request: %v", err)
 	}
 	return request.ID
+}
+
+func createPendingJoinRequestUniqueIndex(t *testing.T, db *gorm.DB) {
+	t.Helper()
+
+	if err := db.Exec(
+		"CREATE UNIQUE INDEX idx_group_join_request_pending_unique ON group_join_requests (user_id, group_id) WHERE status = 'pending'",
+	).Error; err != nil {
+		t.Fatalf("create pending join request unique index: %v", err)
+	}
+}
+
+type duplicatePendingRequestRepository struct {
+	*testPostgresRepository
+	injected atomic.Bool
+}
+
+func (r *duplicatePendingRequestRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		return fc(&duplicatePendingRequestTxRepository{
+			testPostgresRepository: &testPostgresRepository{db: tx},
+			injected:               &r.injected,
+		})
+	})
+}
+
+type duplicatePendingRequestTxRepository struct {
+	*testPostgresRepository
+	injected *atomic.Bool
+}
+
+func (r *duplicatePendingRequestTxRepository) Create(value interface{}) *gorm.DB {
+	if _, ok := value.(*groupmodels.GroupJoinRequest); ok && r.injected.CompareAndSwap(false, true) {
+		result := r.db.Session(&gorm.Session{})
+		result.Error = errors.New("UNIQUE constraint failed: group_join_requests.user_id, group_join_requests.group_id")
+		return result
+	}
+	return r.testPostgresRepository.Create(value)
 }
 
 func seedGroupJoinInviteWithID(t *testing.T, db *gorm.DB, groupID, userID uint, status string) uint {
@@ -865,5 +1085,20 @@ func assertGroupServiceActionLogContains(t *testing.T, db *gorm.DB, groupID uint
 	}
 	if !strings.Contains(log.Description, wantSubstring) {
 		t.Fatalf("group action log description = %q, want substring %q", log.Description, wantSubstring)
+	}
+}
+
+func assertGroupActionActorFields(t *testing.T, db *gorm.DB, groupID uint, action, wantName, wantUs string) {
+	t.Helper()
+
+	var log groupmodels.GroupActionLog
+	if err := db.Where("group_id = ? AND action = ?", groupID, action).First(&log).Error; err != nil {
+		t.Fatalf("find group action log: %v", err)
+	}
+	if log.Username != wantName {
+		t.Fatalf("action username = %q, want %q", log.Username, wantName)
+	}
+	if log.Us != wantUs {
+		t.Fatalf("action us = %q, want %q", log.Us, wantUs)
 	}
 }

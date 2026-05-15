@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -30,12 +29,9 @@ func ValidationError(c *gin.Context, err error) {
 			}
 		}
 
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":  "Некорректные данные формы",
-			"fields": errorsMap,
-		})
+		BadRequest(c, "Некорректные данные формы", WithFields(errorsMap))
 		return
 	}
 
-	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	BadRequest(c, err.Error())
 }

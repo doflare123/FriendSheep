@@ -505,7 +505,7 @@ func TestEventsServiceGetEventDetailsReturnsSubscribedStateForGroupMember(t *tes
 	}
 }
 
-func TestEventsServiceGetEventDetailsRejectsNonGroupMember(t *testing.T) {
+func TestEventsServiceGetEventDetailsAllowsNonGroupMemberInPublicGroup(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
 	service := servicesevents.NewEventsService(&testLogger{}, repo)
@@ -513,6 +513,29 @@ func TestEventsServiceGetEventDetailsRejectsNonGroupMember(t *testing.T) {
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
 	groupID := seedEventGroup(t, db, 1, false)
+	eventID := seedEvent(t, db, groupID, 1, 1, 5)
+
+	eventDTO, err := service.GetEventDetails(2, eventID)
+
+	if err != nil {
+		t.Fatalf("GetEventDetails returned error: %v", err)
+	}
+	if eventDTO == nil || eventDTO.ID != eventID {
+		t.Fatalf("eventDTO = %#v, want event id %d", eventDTO, eventID)
+	}
+	if eventDTO.Subscribed {
+		t.Fatal("Subscribed = true, want false for non-member in public group")
+	}
+}
+
+func TestEventsServiceGetEventDetailsRejectsNonGroupMemberInPrivateGroup(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventsService(&testLogger{}, repo)
+
+	seedEventUser(t, db, 1)
+	seedEventUser(t, db, 2)
+	groupID := seedEventGroup(t, db, 1, true)
 	eventID := seedEvent(t, db, groupID, 1, 1, 5)
 
 	eventDTO, err := service.GetEventDetails(2, eventID)
@@ -571,6 +594,75 @@ func TestEventsServiceGetEventDetailsForAdminRejectsPlainMember(t *testing.T) {
 	}
 	if !errors.Is(err, servicesevents.ErrPermissionDenied) {
 		t.Fatalf("err = %v, want ErrPermissionDenied", err)
+	}
+}
+
+func TestEventsServiceGetGroupEventsAllowsPlainMember(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventsService(&testLogger{}, repo)
+
+	seedEventUser(t, db, 1)
+	seedEventUser(t, db, 2)
+	groupID := seedEventGroup(t, db, 1, false)
+	seedEventGroupMembershipWithRole(t, db, 2, groupID, groupmodels.RoleMember)
+	eventID := seedEvent(t, db, groupID, 1, 1, 5)
+	genreID := seedEventGenre(t, db, "Strategy")
+	seedEventGenreRelation(t, db, eventID, genreID)
+
+	eventsList, err := service.GetGroupEvents(2, groupID)
+
+	if err != nil {
+		t.Fatalf("GetGroupEvents returned error: %v", err)
+	}
+	if len(eventsList) != 1 {
+		t.Fatalf("events count = %d, want 1", len(eventsList))
+	}
+	if eventsList[0].ID != eventID {
+		t.Fatalf("event ID = %d, want %d", eventsList[0].ID, eventID)
+	}
+}
+
+func TestEventsServiceGetGroupEventsAllowsNonMemberInPublicGroup(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventsService(&testLogger{}, repo)
+
+	seedEventUser(t, db, 1)
+	seedEventUser(t, db, 2)
+	groupID := seedEventGroup(t, db, 1, false)
+	eventID := seedEvent(t, db, groupID, 1, 1, 5)
+
+	eventsList, err := service.GetGroupEvents(2, groupID)
+
+	if err != nil {
+		t.Fatalf("GetGroupEvents returned error: %v", err)
+	}
+	if len(eventsList) != 1 {
+		t.Fatalf("events count = %d, want 1", len(eventsList))
+	}
+	if eventsList[0].ID != eventID {
+		t.Fatalf("event ID = %d, want %d", eventsList[0].ID, eventID)
+	}
+}
+
+func TestEventsServiceGetGroupEventsRejectsNonMemberInPrivateGroup(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventsService(&testLogger{}, repo)
+
+	seedEventUser(t, db, 1)
+	seedEventUser(t, db, 2)
+	groupID := seedEventGroup(t, db, 1, true)
+	seedEvent(t, db, groupID, 1, 1, 5)
+
+	eventsList, err := service.GetGroupEvents(2, groupID)
+
+	if eventsList != nil {
+		t.Fatalf("eventsList = %#v, want nil", eventsList)
+	}
+	if !errors.Is(err, servicesevents.ErrNotGroupMember) {
+		t.Fatalf("err = %v, want ErrNotGroupMember", err)
 	}
 }
 

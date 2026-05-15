@@ -47,7 +47,7 @@ func (g *Group) GetAdminGroups(userID uint, rep repository.PostgresRepository) (
 		Joins("JOIN group_users gu ON gu.group_id = groups.id").
 		Joins("JOIN role_in_groups rig ON gu.role_in_group_id = rig.id").
 		Joins("LEFT JOIN group_users gu2 ON gu2.group_id = groups.id").
-		Where("gu.user_id = ? AND (rig.name = ? OR rig.name = ?)", userID, RoleAdmin, RoleModerator).
+		Where("gu.user_id = ? AND rig.name IN ?", userID, RolesWithCapability(CapabilityModerate)).
 		Group("groups.id, groups.name, groups.image, groups.small_description, groups.is_private, rig.name").
 		Order("groups.id DESC").
 		Scan(&adminGroups).Error

@@ -37,16 +37,17 @@ func NewEventsHandler(srv events.EventsService) EventsHandler {
 
 // CreateEvent godoc
 // @Summary      Создать событие
-// @Description  Создает новое событие в группе. Доступно для админов и операторов
+// @Description  Справочные значения берите из GET /api/v2/references: eventTypeId -> eventTypes[].id, locationId -> locations[].id, ageLimit -> ageLimits[].id. Поле status передавать не нужно, при создании ставится "Набор".
+// @Description  Создает новое событие в группе. Доступно модераторам и администраторам группы.
 // @Tags         events_admin
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        request body events.CreateEventInput true "Данные события"
-// @Success      201 {object} dto.EventFullDto "Событие создано"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
+// @Param        request  body      events.CreateEventInput  true  "Данные события"
+// @Success      201      {object}  dto.EventFullDto         "Событие создано"
+// @Failure      400      {object}  dto.ErrorResponse        "Ошибка валидации или справочников"
+// @Failure      401      {object}  dto.ErrorResponse        "Требуется авторизация"
+// @Failure      403      {object}  dto.ErrorResponse        "Недостаточно прав"
 // @Router       /api/v2/admin/events [post]
 func (h *eventsHandler) CreateEvent(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -61,15 +62,15 @@ func (h *eventsHandler) CreateEvent(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, events.ErrNotGroupMember):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в группе"})
+			utils.Forbidden(c, "Вы не состоите в группе")
 		case errors.Is(err, events.ErrInvalidGenres):
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			utils.BadRequest(c, err.Error())
 		case errors.Is(err, events.ErrAgeLimitNotFound):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Возрастное ограничение не найдено"})
+			utils.BadRequest(c, "Возрастное ограничение не найдено")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -79,18 +80,18 @@ func (h *eventsHandler) CreateEvent(c *gin.Context) {
 
 // UpdateEvent godoc
 // @Summary      Обновить событие
-// @Description  Обновляет информацию о событии. Доступно для админов и операторов
+// @Description  Обновляет событие. Доступно модераторам и администраторам группы.
 // @Tags         events_admin
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        eventId path int true "ID события"
-// @Param        request body events.UpdateEventInput true "Данные для обновления"
-// @Success      200 {object} dto.EventFullDto "Событие обновлено"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Событие не найдено"
+// @Param        eventId  path      int                      true  "ID события"
+// @Param        request  body      events.UpdateEventInput  true  "Данные для обновления"
+// @Success      200      {object}  dto.EventFullDto         "Событие обновлено"
+// @Failure      400      {object}  dto.ErrorResponse        "Ошибка валидации или состояния"
+// @Failure      401      {object}  dto.ErrorResponse        "Требуется авторизация"
+// @Failure      403      {object}  dto.ErrorResponse        "Недостаточно прав"
+// @Failure      404      {object}  dto.ErrorResponse        "Событие не найдено"
 // @Router       /api/v2/admin/events/{eventId} [put]
 func (h *eventsHandler) UpdateEvent(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -98,7 +99,7 @@ func (h *eventsHandler) UpdateEvent(c *gin.Context) {
 	eventIDStr := c.Param("eventId")
 	eventID, err := strconv.ParseUint(eventIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID события"})
+		utils.BadRequest(c, "Некорректный ID события")
 		return
 	}
 
@@ -112,17 +113,17 @@ func (h *eventsHandler) UpdateEvent(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Событие не найдено"})
+			utils.NotFound(c, "Событие не найдено")
 		case errors.Is(err, events.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, events.ErrEventAlreadyStarted):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Событие уже началось, изменение невозможно"})
+			utils.BadRequest(c, "Событие уже началось, изменение невозможно")
 		case errors.Is(err, events.ErrInvalidGenres):
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			utils.BadRequest(c, err.Error())
 		case errors.Is(err, events.ErrAgeLimitNotFound):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Возрастное ограничение не найдено"})
+			utils.BadRequest(c, "Возрастное ограничение не найдено")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -132,15 +133,15 @@ func (h *eventsHandler) UpdateEvent(c *gin.Context) {
 
 // DeleteEvent godoc
 // @Summary      Удалить событие
-// @Description  Удаляет событие. Доступно для админов и операторов
+// @Description  Удаляет событие. Доступно модераторам и администраторам группы.
 // @Tags         events_admin
 // @Produce      json
 // @Security     BearerAuth
-// @Param        eventId path int true "ID события"
-// @Success      200 {object} map[string]interface{} "Событие удалено"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Событие не найдено"
+// @Param        eventId  path      int               true  "ID события"
+// @Success      200      {object}  map[string]any    "Результат удаления"
+// @Failure      401      {object}  dto.ErrorResponse "Требуется авторизация"
+// @Failure      403      {object}  dto.ErrorResponse "Недостаточно прав"
+// @Failure      404      {object}  dto.ErrorResponse "Событие не найдено"
 // @Router       /api/v2/admin/events/{eventId} [delete]
 func (h *eventsHandler) DeleteEvent(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -148,7 +149,7 @@ func (h *eventsHandler) DeleteEvent(c *gin.Context) {
 	eventIDStr := c.Param("eventId")
 	eventID, err := strconv.ParseUint(eventIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID события"})
+		utils.BadRequest(c, "Некорректный ID события")
 		return
 	}
 
@@ -156,11 +157,11 @@ func (h *eventsHandler) DeleteEvent(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Событие не найдено"})
+			utils.NotFound(c, "Событие не найдено")
 		case errors.Is(err, events.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -172,16 +173,16 @@ func (h *eventsHandler) DeleteEvent(c *gin.Context) {
 }
 
 // GetEventDetailsForAdmin godoc
-// @Summary      Получить детали события для администратора
-// @Description  Возвращает полную информацию о событии со списком всех участников. Доступно для админов и операторов группы
+// @Summary      Получить событие для администратора
+// @Description  Возвращает детали события со списком участников для модераторов и администраторов группы.
 // @Tags         events_admin
 // @Produce      json
 // @Security     BearerAuth
-// @Param        eventId path int true "ID события"
-// @Success      200 {object} dto.EventAdminDto "Детали события для админа"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Событие не найдено"
+// @Param        eventId  path      int               true  "ID события"
+// @Success      200      {object}  dto.EventAdminDto "Детали события для администратора"
+// @Failure      401      {object}  dto.ErrorResponse "Требуется авторизация"
+// @Failure      403      {object}  dto.ErrorResponse "Недостаточно прав"
+// @Failure      404      {object}  dto.ErrorResponse "Событие не найдено"
 // @Router       /api/v2/admin/events/{eventId} [get]
 func (h *eventsHandler) GetEventDetailsForAdmin(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -189,7 +190,7 @@ func (h *eventsHandler) GetEventDetailsForAdmin(c *gin.Context) {
 	eventIDStr := c.Param("eventId")
 	eventID, err := strconv.ParseUint(eventIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID события"})
+		utils.BadRequest(c, "Некорректный ID события")
 		return
 	}
 
@@ -197,13 +198,13 @@ func (h *eventsHandler) GetEventDetailsForAdmin(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Событие не найдено"})
+			utils.NotFound(c, "Событие не найдено")
 		case errors.Is(err, events.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, events.ErrNotInGroup):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в группе"})
+			utils.Forbidden(c, "Вы не состоите в группе")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -212,18 +213,18 @@ func (h *eventsHandler) GetEventDetailsForAdmin(c *gin.Context) {
 }
 
 // KickUserFromEvent godoc
-// @Summary      Исключить участника из события
-// @Description  Удаляет участника из события. Доступно для админов и операторов группы. Создателя исключить нельзя
+// @Summary      Удалить участника события
+// @Description  Удаляет участника из события. Доступно модераторам и администраторам группы, кроме удаления создателя события.
 // @Tags         events_admin
 // @Produce      json
 // @Security     BearerAuth
-// @Param        eventId path int true "ID события"
-// @Param        userId path int true "ID пользователя"
-// @Success      200 {object} map[string]interface{} "Пользователь исключен"
-// @Failure      400 {object} map[string]string "Некорректные данные или нельзя исключить создателя"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Событие или пользователь не найден"
+// @Param        eventId  path      int               true  "ID события"
+// @Param        userId   path      int               true  "ID пользователя"
+// @Success      200      {object}  map[string]any    "Участник удален"
+// @Failure      400      {object}  dto.ErrorResponse "Некорректные ID или попытка удалить создателя"
+// @Failure      401      {object}  dto.ErrorResponse "Требуется авторизация"
+// @Failure      403      {object}  dto.ErrorResponse "Недостаточно прав"
+// @Failure      404      {object}  dto.ErrorResponse "Событие или пользователь не найдены"
 // @Router       /api/v2/admin/events/{eventId}/kick/{userId} [delete]
 func (h *eventsHandler) KickUserFromEvent(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -231,14 +232,14 @@ func (h *eventsHandler) KickUserFromEvent(c *gin.Context) {
 	eventIDStr := c.Param("eventId")
 	eventID, err := strconv.ParseUint(eventIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID события"})
+		utils.BadRequest(c, "Некорректный ID события")
 		return
 	}
 
 	userIDStr := c.Param("userId")
 	targetUserID, err := strconv.ParseUint(userIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID пользователя"})
+		utils.BadRequest(c, "Некорректный ID пользователя")
 		return
 	}
 
@@ -246,17 +247,17 @@ func (h *eventsHandler) KickUserFromEvent(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Событие не найдено"})
+			utils.NotFound(c, "Событие не найдено")
 		case errors.Is(err, events.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+			utils.NotFound(c, "Пользователь не найден")
 		case errors.Is(err, events.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, events.ErrCreatorCantLeave):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Нельзя исключить создателя события"})
+			utils.BadRequest(c, "Нельзя исключить создателя события")
 		case errors.Is(err, events.ErrNotJoined):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не участвует в событии"})
+			utils.NotFound(c, "Пользователь не участвует в событии")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -269,14 +270,14 @@ func (h *eventsHandler) KickUserFromEvent(c *gin.Context) {
 
 // GetGroupEvents godoc
 // @Summary      Получить события группы
-// @Description  Возвращает список всех событий группы. Доступно для админов и операторов
-// @Tags         events_admin
+// @Description  Возвращает список событий группы. Доступно любому участнику группы.
+// @Tags         events
 // @Produce      json
 // @Security     BearerAuth
-// @Param        groupId path int true "ID группы"
-// @Success      200 {array} dto.EventShortDto "Список событий"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
+// @Param        groupId  path      int               true  "ID группы"
+// @Success      200      {array}   dto.EventShortDto "События группы"
+// @Failure      401      {object}  dto.ErrorResponse "Требуется авторизация"
+// @Failure      403      {object}  dto.ErrorResponse "Требуется участие в группе"
 // @Router       /api/v2/groups/events/{groupId}/events [get]
 func (h *eventsHandler) GetGroupEvents(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -284,7 +285,7 @@ func (h *eventsHandler) GetGroupEvents(c *gin.Context) {
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		utils.BadRequest(c, "Некорректный ID группы")
 		return
 	}
 
@@ -292,11 +293,11 @@ func (h *eventsHandler) GetGroupEvents(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, events.ErrNotGroupMember):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в группе"})
+			utils.Forbidden(c, "Вы не состоите в группе")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -306,15 +307,15 @@ func (h *eventsHandler) GetGroupEvents(c *gin.Context) {
 
 // GetEventDetails godoc
 // @Summary      Получить детали события
-// @Description  Возвращает полную информацию о событии
+// @Description  Возвращает детали события для участника группы.
 // @Tags         events
 // @Produce      json
 // @Security     BearerAuth
-// @Param        eventId path int true "ID события"
-// @Success      200 {object} dto.EventFullDto "Детали события"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Событие не найдено"
+// @Param        eventId  path      int               true  "ID события"
+// @Success      200      {object}  dto.EventFullDto  "Детали события"
+// @Failure      401      {object}  dto.ErrorResponse "Требуется авторизация"
+// @Failure      403      {object}  dto.ErrorResponse "Требуется участие в группе"
+// @Failure      404      {object}  dto.ErrorResponse "Событие не найдено"
 // @Router       /api/v2/events/{eventId} [get]
 func (h *eventsHandler) GetEventDetails(c *gin.Context) {
 	userID := c.GetUint("userID")
@@ -322,7 +323,7 @@ func (h *eventsHandler) GetEventDetails(c *gin.Context) {
 	eventIDStr := c.Param("eventId")
 	eventID, err := strconv.ParseUint(eventIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID события"})
+		utils.BadRequest(c, "Некорректный ID события")
 		return
 	}
 
@@ -330,11 +331,11 @@ func (h *eventsHandler) GetEventDetails(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Событие не найдено"})
+			utils.NotFound(c, "Событие не найдено")
 		case errors.Is(err, events.ErrNotGroupMember):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в группе этого события"})
+			utils.Forbidden(c, "Вы не состоите в группе этого события")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -344,16 +345,16 @@ func (h *eventsHandler) GetEventDetails(c *gin.Context) {
 
 // JoinEvent godoc
 // @Summary      Присоединиться к событию
-// @Description  Пользователь присоединяется к событию (только для участников группы)
+// @Description  Добавляет текущего пользователя в событие. Доступно только участникам группы.
 // @Tags         events
 // @Produce      json
 // @Security     BearerAuth
-// @Param        eventId path int true "ID события"
-// @Success      200 {object} map[string]interface{} "Присоединение успешно"
-// @Failure      400 {object} map[string]string "Событие заполнено или уже присоединились"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Не состоите в группе"
-// @Failure      404 {object} map[string]string "Событие не найдено"
+// @Param        eventId  path      int               true  "ID события"
+// @Success      200      {object}  map[string]any    "Результат вступления"
+// @Failure      400      {object}  dto.ErrorResponse "Событие заполнено или пользователь уже участвует"
+// @Failure      401      {object}  dto.ErrorResponse "Требуется авторизация"
+// @Failure      403      {object}  dto.ErrorResponse "Требуется участие в группе"
+// @Failure      404      {object}  dto.ErrorResponse "Событие не найдено"
 // @Router       /api/v2/events/{eventId}/join [post]
 func (h *eventsHandler) JoinEvent(c *gin.Context) {
 	userID := c.GetUint("userID")
@@ -361,7 +362,7 @@ func (h *eventsHandler) JoinEvent(c *gin.Context) {
 	eventIDStr := c.Param("eventId")
 	eventID, err := strconv.ParseUint(eventIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID события"})
+		utils.BadRequest(c, "Некорректный ID события")
 		return
 	}
 
@@ -369,15 +370,15 @@ func (h *eventsHandler) JoinEvent(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Событие не найдено"})
+			utils.NotFound(c, "Событие не найдено")
 		case errors.Is(err, events.ErrNotGroupMember):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в группе"})
+			utils.Forbidden(c, "Вы не состоите в группе")
 		case errors.Is(err, events.ErrEventFull):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Событие заполнено"})
+			utils.BadRequest(c, "Событие заполнено")
 		case errors.Is(err, events.ErrAlreadyJoined):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Вы уже присоединились к этому событию"})
+			utils.BadRequest(c, "Вы уже присоединились к этому событию")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -390,15 +391,15 @@ func (h *eventsHandler) JoinEvent(c *gin.Context) {
 
 // LeaveEvent godoc
 // @Summary      Покинуть событие
-// @Description  Пользователь покидает событие (создатель не может покинуть)
+// @Description  Удаляет текущего пользователя из события. Создатель события не может его покинуть.
 // @Tags         events
 // @Produce      json
 // @Security     BearerAuth
-// @Param        eventId path int true "ID события"
-// @Success      200 {object} map[string]interface{} "Успешно покинули событие"
-// @Failure      400 {object} map[string]string "Создатель не может покинуть событие"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      404 {object} map[string]string "Вы не присоединялись к событию"
+// @Param        eventId  path      int               true  "ID события"
+// @Success      200      {object}  map[string]any    "Результат выхода"
+// @Failure      400      {object}  dto.ErrorResponse "Создатель не может покинуть событие"
+// @Failure      401      {object}  dto.ErrorResponse "Требуется авторизация"
+// @Failure      404      {object}  dto.ErrorResponse "Участие не найдено"
 // @Router       /api/v2/events/{eventId}/leave [post]
 func (h *eventsHandler) LeaveEvent(c *gin.Context) {
 	userID := c.GetUint("userID")
@@ -406,7 +407,7 @@ func (h *eventsHandler) LeaveEvent(c *gin.Context) {
 	eventIDStr := c.Param("eventId")
 	eventID, err := strconv.ParseUint(eventIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID события"})
+		utils.BadRequest(c, "Некорректный ID события")
 		return
 	}
 
@@ -414,13 +415,13 @@ func (h *eventsHandler) LeaveEvent(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Событие не найдено"})
+			utils.NotFound(c, "Событие не найдено")
 		case errors.Is(err, events.ErrCreatorCantLeave):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Создатель не может покинуть событие"})
+			utils.BadRequest(c, "Создатель не может покинуть событие")
 		case errors.Is(err, events.ErrNotJoined):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Вы не присоединялись к этому событию"})
+			utils.NotFound(c, "Вы не присоединялись к этому событию")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -432,17 +433,17 @@ func (h *eventsHandler) LeaveEvent(c *gin.Context) {
 }
 
 // GetAllGenres godoc
-// @Summary      Получить все жанры
-// @Description  Возвращает список всех доступных жанров событий
+// @Summary      Получить жанры
+// @Description  Возвращает все жанры событий.
 // @Tags         events
 // @Produce      json
 // @Success      200 {array} dto.ReferenceItemDto "Список жанров"
-// @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Failure      500 {object} dto.ErrorResponse    "Внутренняя ошибка сервера"
 // @Router       /api/v2/events/genres [get]
 func (h *eventsHandler) GetAllGenres(c *gin.Context) {
 	genres, err := h.srv.GetAllGenres()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.InternalError(c, err.Error())
 		return
 	}
 
@@ -450,17 +451,17 @@ func (h *eventsHandler) GetAllGenres(c *gin.Context) {
 }
 
 // GetAllReferences godoc
-// @Summary      Получить все справочники
-// @Description  Возвращает все справочники для событий и групп (типы, локации, возрастные ограничения, статусы, жанры, категории)
+// @Summary      Получить справочники
+// @Description  Возвращает все справочники, используемые группами и событиями.
 // @Tags         references
 // @Produce      json
-// @Success      200 {object} dto.ReferencesDto "Все справочники"
-// @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Success      200 {object} dto.ReferencesDto "Справочники"
+// @Failure      500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
 // @Router       /api/v2/references [get]
 func (h *eventsHandler) GetAllReferences(c *gin.Context) {
 	references, err := h.srv.GetAllReferences()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.InternalError(c, err.Error())
 		return
 	}
 

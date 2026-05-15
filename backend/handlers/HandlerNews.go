@@ -20,7 +20,7 @@ import (
 // @Success      201  {object} news.News "Новость успешно создана"
 // @Failure      400  {object} map[string]string "Некорректные данные или ошибка валидации"
 // @Failure      401  {object} map[string]string "Пользователь не авторизован или не является администратором"
-// Inactive legacy route: /api/news [post]
+// Неактивный устаревший маршрут: /api/news [post]
 func CreateNews(c *gin.Context) {
 	var input services.CreateNewsInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -45,7 +45,7 @@ func CreateNews(c *gin.Context) {
 // @Param        page query int false "Номер страницы" default(1)
 // @Success      200  {object}  services.NewsPage "Постраничный список новостей"
 // @Failure      500  {object}  map[string]string "Внутренняя ошибка сервера"
-// Inactive legacy route: /api/news [get]
+// Неактивный устаревший маршрут: /api/news [get]
 func GetNews(c *gin.Context) {
 	pageStr := c.DefaultQuery("page", "1")
 	page, err := strconv.Atoi(pageStr)
@@ -76,7 +76,7 @@ func GetNews(c *gin.Context) {
 // @Param        id path int true "ID новости"
 // @Success      200  {object} services.NewsDTO "Новость с текстом и комментариями"
 // @Failure      404  {object} map[string]string "Новость не найдена"
-// Inactive legacy route: /api/news/{id} [get]
+// Неактивный устаревший маршрут: /api/news/{id} [get]
 func GetNewsByID(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -106,7 +106,7 @@ func GetNewsByID(c *gin.Context) {
 // @Success      201 {object} news.Comments
 // @Failure      400 {object} map[string]string
 // @Failure      401 {object} map[string]string
-// Inactive legacy route: /api/news/{id}/comments [post]
+// Неактивный устаревший маршрут: /api/news/{id}/comments [post]
 func AddComment(c *gin.Context) {
 	emailValue, exists := c.Get("email")
 	if !exists {
@@ -159,7 +159,7 @@ func AddComment(c *gin.Context) {
 // @Failure      400 {object} map[string]string
 // @Failure      401 {object} map[string]string
 // @Failure      403 {object} map[string]string
-// Inactive legacy route: /api/news/{newsId}/comments/{commentId} [delete]
+// Неактивный устаревший маршрут: /api/news/{newsId}/comments/{commentId} [delete]
 func DeleteComment(c *gin.Context) {
 	emailValue, exists := c.Get("email")
 	if !exists {

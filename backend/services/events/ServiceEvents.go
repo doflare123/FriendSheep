@@ -70,12 +70,19 @@ func NewEventsService(logger logger.Logger, repo repository.PostgresRepository) 
 
 // Получает список событий группы
 func (s *eventsService) GetGroupEvents(actorID uint, groupID uint) ([]dto.EventShortDto, error) {
-	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, []string{groups.RoleAdmin, groups.RoleModerator})
+	privateGroup, err := s.isPrivateGroup(groupID)
 	if err != nil {
 		return nil, err
 	}
-	if !hasAccess {
-		return nil, ErrPermissionDenied
+
+	if privateGroup {
+		isMember, err := s.isGroupMember(actorID, groupID)
+		if err != nil {
+			return nil, err
+		}
+		if !isMember {
+			return nil, ErrNotGroupMember
+		}
 	}
 
 	var events []events.Event
@@ -117,13 +124,14 @@ func (s *eventsService) GetEventDetails(userID uint, eventID uint) (*dto.EventFu
 		return nil, fmt.Errorf("ошибка получения события: %w", err)
 	}
 
-	var count int64
-	s.repo.Model(&groups.GroupUsers{}).
-		Where("user_id = ? AND group_id = ?", userID, event.GroupID).
-		Count(&count)
-
-	if count == 0 {
-		return nil, ErrNotGroupMember
+	if event.Group.IsPrivate {
+		isMember, err := s.isGroupMember(userID, event.GroupID)
+		if err != nil {
+			return nil, err
+		}
+		if !isMember {
+			return nil, ErrNotGroupMember
+		}
 	}
 
 	return convertorsdto.ConvertToFullDto(&event, userID, true), nil
@@ -284,7 +292,12 @@ func (s *eventsService) GetAllReferences() (*dto.ReferencesDto, error) {
 
 	// Получаем статусы
 	var statuses []events.Status
-	if err := s.repo.Order("id ASC").Find(&statuses).Error; err != nil {
+	if err := s.repo.
+		Model(&events.Status{}).
+		Select("MIN(id) AS id, name").
+		Group("name").
+		Order("MIN(id) ASC").
+		Find(&statuses).Error; err != nil {
 		s.logger.Error("Failed to fetch statuses", "error", err)
 		return nil, fmt.Errorf("ошибка получения статусов: %w", err)
 	}
@@ -336,13 +349,35 @@ func (s *eventsService) checkGroupAccess(userID uint, groupID uint, allowedRoles
 		return false, "", fmt.Errorf("ошибка получения роли: %w", err)
 	}
 
-	for _, allowedRole := range allowedRoles {
-		if role.Name == allowedRole {
-			return true, role.Name, nil
-		}
+	if groups.HasAnyRole(role.Name, allowedRoles...) {
+		return true, groups.NormalizeRoleName(role.Name), nil
 	}
 
-	return false, role.Name, nil
+	return false, groups.NormalizeRoleName(role.Name), nil
+}
+
+func (s *eventsService) isPrivateGroup(groupID uint) (bool, error) {
+	var group groups.Group
+	err := s.repo.Select("id", "is_private").First(&group, groupID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, fmt.Errorf("ошибка получения группы: %w", err)
+	}
+
+	return group.IsPrivate, nil
+}
+
+func (s *eventsService) isGroupMember(userID uint, groupID uint) (bool, error) {
+	var count int64
+	if err := s.repo.Model(&groups.GroupUsers{}).
+		Where("user_id = ? AND group_id = ?", userID, groupID).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("ошибка проверки членства в группе: %w", err)
+	}
+
+	return count > 0, nil
 }
 
 // Записывает действие в журнал группы

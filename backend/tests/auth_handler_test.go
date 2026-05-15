@@ -65,6 +65,7 @@ func TestAuthHandlerLoginServiceError(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
 	}
+	assertCommonErrorShape(t, rec)
 }
 
 func TestAuthHandlerRefreshSuccess(t *testing.T) {
@@ -97,6 +98,7 @@ func TestAuthHandlerRejectsInvalidJSON(t *testing.T) {
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
+	assertCommonErrorShape(t, rec)
 }
 
 func performAuthRequest(handler gin.HandlerFunc, body string) *httptest.ResponseRecorder {

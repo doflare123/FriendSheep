@@ -6,6 +6,7 @@ import (
 	"friendship/models"
 	"friendship/models/groups"
 	"friendship/repository"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
@@ -71,6 +72,9 @@ func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error
 				Status:  "pending",
 			}
 			if err := tx.Create(&request).Error; err != nil {
+				if isPendingJoinRequestUniqueViolation(err) {
+					return ErrRequestAlreadyExists
+				}
 				return fmt.Errorf("ошибка создания заявки: %w", err)
 			}
 			return nil
@@ -118,6 +122,17 @@ func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error
 	}, nil
 }
 
+func isPendingJoinRequestUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23505" && pgErr.ConstraintName == "idx_group_join_request_pending_unique"
+	}
+
+	errText := err.Error()
+	return strings.Contains(errText, "idx_group_join_request_pending_unique") ||
+		strings.Contains(errText, "UNIQUE constraint failed: group_join_requests.user_id, group_join_requests.group_id")
+}
+
 // LeaveGroup выход из группы
 func (s *groupService) LeaveGroup(userID uint, groupID uint) (bool, error) {
 	var groupUser groups.GroupUsers
@@ -135,7 +150,7 @@ func (s *groupService) LeaveGroup(userID uint, groupID uint) (bool, error) {
 		// Проверяем, не админ ли это (админ не может выйти)
 		var role groups.Role_in_group
 		if err := tx.First(&role, groupUser.RoleInGroupID).Error; err == nil {
-			if role.Name == groups.RoleAdmin {
+			if groups.HasCapability(role.Name, groups.CapabilityAdmin) {
 				return fmt.Errorf("администратор не может покинуть группу. Передайте права другому участнику или удалите группу")
 			}
 		}

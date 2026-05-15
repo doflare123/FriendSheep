@@ -23,7 +23,7 @@ func NewSubHandler(imgService service.ImgService) SubHandler {
 
 // ChangePhoto godoc
 // @Summary      Загрузка фотографии
-// @Description  Загружает фотографию в хранилище и возвращает URL. Этот URL затем можно использовать для создания или обновления данных сущности (например, группы).
+// @Description  Загружает фотографию в хранилище и возвращает ссылку. Эту ссылку затем можно использовать для создания или обновления данных сущности (например, группы).
 // @Tags         sub_func
 // @Accept       multipart/form-data
 // @Produce      json

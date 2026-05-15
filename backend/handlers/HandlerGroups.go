@@ -115,7 +115,7 @@ func (h *groupHandler) GetGroupDetails(c *gin.Context) {
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		utils.BadRequest(c, "Некорректный ID группы")
 		return
 	}
 
@@ -123,11 +123,11 @@ func (h *groupHandler) GetGroupDetails(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrGroupNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Группа не найдена"})
+			utils.NotFound(c, "Группа не найдена")
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Доступ к приватной группе запрещен"})
+			utils.Forbidden(c, "Доступ к приватной группе запрещен")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -152,9 +152,7 @@ func (h *groupHandler) GetGroupDetails(c *gin.Context) {
 func (h *groupHandler) CreateGroup(c *gin.Context) {
 	idValue, exists := c.Get("userID")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Не найден userID в контексте",
-		})
+		utils.Unauthorized(c, "Не найден userID в контексте")
 		return
 	}
 	id := idValue.(uint)
@@ -166,9 +164,7 @@ func (h *groupHandler) CreateGroup(c *gin.Context) {
 	}
 
 	if request.Image == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Изображение группы обязательно",
-		})
+		utils.BadRequest(c, "Изображение группы обязательно")
 		return
 	}
 
@@ -176,26 +172,15 @@ func (h *groupHandler) CreateGroup(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "Пользователь не найден",
-			})
+			utils.NotFound(c, "Пользователь не найден")
 		case errors.Is(err, group.ErrCategoriesNotFound):
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "Некоторые категории не найдены",
-			})
+			utils.BadRequest(c, "Некоторые категории не найдены")
 		case errors.Is(err, group.ErrInvalidInput):
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
+			utils.BadRequest(c, err.Error())
 		case errors.Is(err, group.ErrGroupCreation):
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "Ошибка при создании группы",
-				"details": err.Error(),
-			})
+			utils.InternalError(c, "Ошибка при создании группы", utils.WithDetails(err.Error()))
 		default:
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
+			utils.BadRequest(c, err.Error())
 		}
 		return
 	}
@@ -205,7 +190,7 @@ func (h *groupHandler) CreateGroup(c *gin.Context) {
 
 // UpdateGroup godoc
 // @Summary      Обновление группы
-// @Description  Обновляет информацию о группе. Все поля кроме groupId опциональны
+// @Description  Обновляет информацию о группе. Все поля, кроме идентификатора группы, опциональны
 // @Tags         groups_admin
 // @Accept       json
 // @Produce      json
@@ -223,10 +208,7 @@ func (h *groupHandler) UpdateGroup(c *gin.Context) {
 
 	var request GroupUpdateRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Некорректные данные",
-			"details": err.Error(),
-		})
+		utils.BadRequest(c, "Некорректные данные", utils.WithDetails(err.Error()))
 		return
 	}
 
@@ -247,13 +229,13 @@ func (h *groupHandler) UpdateGroup(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrGroupNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Группа не найдена"})
+			utils.NotFound(c, "Группа не найдена")
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, group.ErrNotInGroup):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в этой группе"})
+			utils.Forbidden(c, "Вы не состоите в этой группе")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -280,7 +262,7 @@ func (h *groupHandler) DeleteGroup(c *gin.Context) {
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		utils.BadRequest(c, "Некорректный ID группы")
 		return
 	}
 
@@ -288,13 +270,13 @@ func (h *groupHandler) DeleteGroup(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrGroupNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Группа не найдена"})
+			utils.NotFound(c, "Группа не найдена")
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Только админ может удалить группу"})
+			utils.Forbidden(c, "Только админ может удалить группу")
 		case errors.Is(err, group.ErrNotInGroup):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в этой группе"})
+			utils.Forbidden(c, "Вы не состоите в этой группе")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -325,7 +307,7 @@ func (h *groupHandler) JoinGroup(c *gin.Context) {
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		utils.BadRequest(c, "Некорректный ID группы")
 		return
 	}
 
@@ -333,17 +315,17 @@ func (h *groupHandler) JoinGroup(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrGroupNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Группа не найдена"})
+			utils.NotFound(c, "Группа не найдена")
 		case errors.Is(err, group.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+			utils.NotFound(c, "Пользователь не найден")
 		case errors.Is(err, group.ErrAlreadyInGroup):
-			c.JSON(http.StatusConflict, gin.H{"error": "Вы уже состоите в этой группе"})
+			utils.JSONError(c, http.StatusConflict, "Вы уже состоите в этой группе")
 		case errors.Is(err, group.ErrRequestAlreadyExists):
-			c.JSON(http.StatusConflict, gin.H{"error": "Ваша заявка уже отправлена"})
+			utils.JSONError(c, http.StatusConflict, "Ваша заявка уже отправлена")
 		case errors.Is(err, group.ErrUserInBlacklist):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы в черном списке этой группы"})
+			utils.Forbidden(c, "Вы в черном списке этой группы")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -370,7 +352,7 @@ func (h *groupHandler) LeaveGroup(c *gin.Context) {
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		utils.BadRequest(c, "Некорректный ID группы")
 		return
 	}
 
@@ -378,9 +360,9 @@ func (h *groupHandler) LeaveGroup(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrNotInGroup):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Вы не состоите в этой группе"})
+			utils.NotFound(c, "Вы не состоите в этой группе")
 		default:
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			utils.Forbidden(c, err.Error())
 		}
 		return
 	}
@@ -409,7 +391,7 @@ func (h *groupHandler) ApproveAllJoinRequests(c *gin.Context) {
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		utils.BadRequest(c, "Некорректный ID группы")
 		return
 	}
 
@@ -417,11 +399,11 @@ func (h *groupHandler) ApproveAllJoinRequests(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, group.ErrNotInGroup):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в этой группе"})
+			utils.Forbidden(c, "Вы не состоите в этой группе")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -450,7 +432,7 @@ func (h *groupHandler) RejectAllJoinRequests(c *gin.Context) {
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		utils.BadRequest(c, "Некорректный ID группы")
 		return
 	}
 
@@ -458,11 +440,11 @@ func (h *groupHandler) RejectAllJoinRequests(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, group.ErrNotInGroup):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в этой группе"})
+			utils.Forbidden(c, "Вы не состоите в этой группе")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -492,7 +474,7 @@ func (h *groupHandler) ApproveJoinRequest(c *gin.Context) {
 	requestIDStr := c.Param("requestId")
 	requestID, err := strconv.ParseUint(requestIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID заявки"})
+		utils.BadRequest(c, "Некорректный ID заявки")
 		return
 	}
 
@@ -500,13 +482,13 @@ func (h *groupHandler) ApproveJoinRequest(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, group.ErrUserInBlacklist):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Пользователь в черном списке"})
+			utils.Forbidden(c, "Пользователь в черном списке")
 		case errors.Is(err, group.ErrJoinRequestNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Заявка не найдена"})
+			utils.NotFound(c, "Заявка не найдена")
 		default:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			utils.BadRequest(c, err.Error())
 		}
 		return
 	}
@@ -536,7 +518,7 @@ func (h *groupHandler) RejectJoinRequest(c *gin.Context) {
 	requestIDStr := c.Param("requestId")
 	requestID, err := strconv.ParseUint(requestIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID заявки"})
+		utils.BadRequest(c, "Некорректный ID заявки")
 		return
 	}
 
@@ -544,11 +526,11 @@ func (h *groupHandler) RejectJoinRequest(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, group.ErrJoinRequestNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Заявка не найдена"})
+			utils.NotFound(c, "Заявка не найдена")
 		default:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			utils.BadRequest(c, err.Error())
 		}
 		return
 	}
@@ -586,15 +568,15 @@ func (h *groupHandler) AddPermissions(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Только админ может назначать операторов"})
+			utils.Forbidden(c, "Только админ может назначать операторов")
 		case errors.Is(err, group.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+			utils.NotFound(c, "Пользователь не найден")
 		case errors.Is(err, group.ErrNotInGroup):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Пользователь не состоит в группе"})
+			utils.BadRequest(c, "Пользователь не состоит в группе")
 		case errors.Is(err, group.ErrCannotChangeOwnRole):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Нельзя изменить собственную роль"})
+			utils.BadRequest(c, "Нельзя изменить собственную роль")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -632,15 +614,15 @@ func (h *groupHandler) RemovePermissions(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Только админ может снимать права оператора"})
+			utils.Forbidden(c, "Только админ может снимать права оператора")
 		case errors.Is(err, group.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+			utils.NotFound(c, "Пользователь не найден")
 		case errors.Is(err, group.ErrNotInGroup):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Пользователь не состоит в группе"})
+			utils.BadRequest(c, "Пользователь не состоит в группе")
 		case errors.Is(err, group.ErrCannotChangeOwnRole):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Нельзя изменить собственную роль"})
+			utils.BadRequest(c, "Нельзя изменить собственную роль")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -671,14 +653,14 @@ func (h *groupHandler) DeleteUserFromGroup(c *gin.Context) {
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		utils.BadRequest(c, "Некорректный ID группы")
 		return
 	}
 
 	userIDStr := c.Param("userId")
 	targetUserID, err := strconv.ParseUint(userIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID пользователя"})
+		utils.BadRequest(c, "Некорректный ID пользователя")
 		return
 	}
 
@@ -686,15 +668,15 @@ func (h *groupHandler) DeleteUserFromGroup(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, group.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+			utils.NotFound(c, "Пользователь не найден")
 		case errors.Is(err, group.ErrNotInGroup):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не состоит в группе"})
+			utils.NotFound(c, "Пользователь не состоит в группе")
 		case errors.Is(err, group.ErrCannotRemoveSelf):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Нельзя удалить самого себя"})
+			utils.BadRequest(c, "Нельзя удалить самого себя")
 		default:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			utils.BadRequest(c, err.Error())
 		}
 		return
 	}
@@ -725,14 +707,14 @@ func (h *groupHandler) RemoveFromBlacklist(c *gin.Context) {
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		utils.BadRequest(c, "Некорректный ID группы")
 		return
 	}
 
 	userIDStr := c.Param("userId")
 	targetUserID, err := strconv.ParseUint(userIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID пользователя"})
+		utils.BadRequest(c, "Некорректный ID пользователя")
 		return
 	}
 
@@ -740,11 +722,11 @@ func (h *groupHandler) RemoveFromBlacklist(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, group.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+			utils.NotFound(c, "Пользователь не найден")
 		default:
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			utils.NotFound(c, err.Error())
 		}
 		return
 	}
@@ -783,15 +765,15 @@ func (h *groupHandler) CreateJoinInvite(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, group.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+			utils.NotFound(c, "Пользователь не найден")
 		case errors.Is(err, group.ErrAlreadyInGroup):
-			c.JSON(http.StatusConflict, gin.H{"error": "Пользователь уже в группе"})
+			utils.JSONError(c, http.StatusConflict, "Пользователь уже в группе")
 		case errors.Is(err, group.ErrInviteAlreadyExists):
-			c.JSON(http.StatusConflict, gin.H{"error": "Приглашение уже отправлено"})
+			utils.JSONError(c, http.StatusConflict, "Приглашение уже отправлено")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -821,7 +803,7 @@ func (h *groupHandler) AcceptJoinInvite(c *gin.Context) {
 	inviteIDStr := c.Param("inviteId")
 	inviteID, err := strconv.ParseUint(inviteIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID приглашения"})
+		utils.BadRequest(c, "Некорректный ID приглашения")
 		return
 	}
 
@@ -829,9 +811,9 @@ func (h *groupHandler) AcceptJoinInvite(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrUserInBlacklist):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы в черном списке этой группы"})
+			utils.Forbidden(c, "Вы в черном списке этой группы")
 		default:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			utils.BadRequest(c, err.Error())
 		}
 		return
 	}
@@ -857,13 +839,13 @@ func (h *groupHandler) RejectJoinInvite(c *gin.Context) {
 	inviteIDStr := c.Param("inviteId")
 	inviteID, err := strconv.ParseUint(inviteIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID приглашения"})
+		utils.BadRequest(c, "Некорректный ID приглашения")
 		return
 	}
 
 	success, err := h.srv.RejectJoinInvite(userID, uint(inviteID))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.BadRequest(c, err.Error())
 		return
 	}
 
@@ -892,7 +874,7 @@ func (h *groupHandler) WatchRecentActions(c *gin.Context) {
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		utils.BadRequest(c, "Некорректный ID группы")
 		return
 	}
 
@@ -906,11 +888,11 @@ func (h *groupHandler) WatchRecentActions(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, group.ErrNotInGroup):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в этой группе"})
+			utils.Forbidden(c, "Вы не состоите в этой группе")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -937,7 +919,7 @@ func (h *groupHandler) GetGroupBlacklist(c *gin.Context) {
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		utils.BadRequest(c, "Некорректный ID группы")
 		return
 	}
 
@@ -951,11 +933,11 @@ func (h *groupHandler) GetGroupBlacklist(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, group.ErrNotInGroup):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в этой группе"})
+			utils.Forbidden(c, "Вы не состоите в этой группе")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}
@@ -983,7 +965,7 @@ func (h *groupHandler) GetJoinRequests(c *gin.Context) {
 	groupIDStr := c.Param("groupId")
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ID группы"})
+		utils.BadRequest(c, "Некорректный ID группы")
 		return
 	}
 
@@ -998,11 +980,11 @@ func (h *groupHandler) GetJoinRequests(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Недостаточно прав"})
+			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, group.ErrNotInGroup):
-			c.JSON(http.StatusForbidden, gin.H{"error": "Вы не состоите в этой группе"})
+			utils.Forbidden(c, "Вы не состоите в этой группе")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			utils.InternalError(c, err.Error())
 		}
 		return
 	}

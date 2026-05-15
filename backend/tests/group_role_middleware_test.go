@@ -2,7 +2,6 @@ package tests
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -34,6 +33,129 @@ func TestGroupRoleMiddlewareRejectsUnauthorizedRequest(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
 	}
+	assertCommonErrorShape(t, rec)
+}
+
+func TestGroupRoleCapabilitySourcePreservesAccessMatrix(t *testing.T) {
+	tests := []struct {
+		role          string
+		adminAccess   bool
+		operateAccess bool
+		memberAccess  bool
+	}{
+		{role: groupmodels.RoleAdmin, adminAccess: true, operateAccess: true, memberAccess: true},
+		{role: groupmodels.RoleModerator, operateAccess: true, memberAccess: true},
+		{role: groupmodels.RoleMember, memberAccess: true},
+		{role: "unknown"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.role, func(t *testing.T) {
+			if got := groupmodels.HasCapability(tt.role, groupmodels.CapabilityAdmin); got != tt.adminAccess {
+				t.Fatalf("admin capability = %v, want %v", got, tt.adminAccess)
+			}
+			if got := groupmodels.HasCapability(tt.role, groupmodels.CapabilityModerate); got != tt.operateAccess {
+				t.Fatalf("moderate capability = %v, want %v", got, tt.operateAccess)
+			}
+			if got := groupmodels.HasCapability(tt.role, groupmodels.CapabilityMember); got != tt.memberAccess {
+				t.Fatalf("member capability = %v, want %v", got, tt.memberAccess)
+			}
+		})
+	}
+
+	assertSameStringSlice(t, groupmodels.RolesWithCapability(groupmodels.CapabilityAdmin), []string{groupmodels.RoleAdmin})
+	assertSameStringSlice(t, groupmodels.RolesWithCapability(groupmodels.CapabilityModerate), []string{groupmodels.RoleAdmin, groupmodels.RoleModerator})
+	assertSameStringSlice(t, groupmodels.RolesWithCapability(groupmodels.CapabilityMember), []string{groupmodels.RoleAdmin, groupmodels.RoleModerator, groupmodels.RoleMember})
+}
+
+func TestGroupRoleMiddlewareCapabilityWrappersPreserveRouteAccess(t *testing.T) {
+	tests := []struct {
+		name       string
+		role       string
+		middleware func(*middlewares.GroupRoleMiddleware) gin.HandlerFunc
+		wantStatus int
+	}{
+		{"admin allows admin", groupmodels.RoleAdmin, func(m *middlewares.GroupRoleMiddleware) gin.HandlerFunc { return m.RequireAdmin() }, http.StatusNoContent},
+		{"admin rejects moderator", groupmodels.RoleModerator, func(m *middlewares.GroupRoleMiddleware) gin.HandlerFunc { return m.RequireAdmin() }, http.StatusForbidden},
+		{"admin rejects member", groupmodels.RoleMember, func(m *middlewares.GroupRoleMiddleware) gin.HandlerFunc { return m.RequireAdmin() }, http.StatusForbidden},
+		{"operator allows admin", groupmodels.RoleAdmin, func(m *middlewares.GroupRoleMiddleware) gin.HandlerFunc { return m.RequireOperatorOrAdmin() }, http.StatusNoContent},
+		{"operator allows moderator", groupmodels.RoleModerator, func(m *middlewares.GroupRoleMiddleware) gin.HandlerFunc { return m.RequireOperatorOrAdmin() }, http.StatusNoContent},
+		{"operator rejects member", groupmodels.RoleMember, func(m *middlewares.GroupRoleMiddleware) gin.HandlerFunc { return m.RequireOperatorOrAdmin() }, http.StatusForbidden},
+		{"member allows admin", groupmodels.RoleAdmin, func(m *middlewares.GroupRoleMiddleware) gin.HandlerFunc { return m.RequireMember() }, http.StatusNoContent},
+		{"member allows moderator", groupmodels.RoleModerator, func(m *middlewares.GroupRoleMiddleware) gin.HandlerFunc { return m.RequireMember() }, http.StatusNoContent},
+		{"member allows member", groupmodels.RoleMember, func(m *middlewares.GroupRoleMiddleware) gin.HandlerFunc { return m.RequireMember() }, http.StatusNoContent},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := newGroupRoleRepo(t)
+			seedGroupRoleMembership(t, repo.db, 71, 88, tt.role)
+
+			router := gin.New()
+			router.GET("/groups/:groupId", withUserID(71), tt.middleware(middlewares.NewGroupRoleMiddleware(repo)), func(c *gin.Context) {
+				c.Status(http.StatusNoContent)
+			})
+
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/groups/88", nil)
+
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d, body = %s", rec.Code, tt.wantStatus, rec.Body.String())
+			}
+			if tt.wantStatus >= 400 {
+				assertCommonErrorShape(t, rec)
+			}
+		})
+	}
+}
+
+func TestGroupRoleMiddlewareRequireMemberGroupEventsRoute(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := newGroupRoleRepo(t)
+	seedGroupRoleMembership(t, repo.db, 81, 91, groupmodels.RoleMember)
+
+	router := gin.New()
+	router.GET("/api/v2/groups/events/:groupId/events", withUserID(81), middlewares.NewGroupRoleMiddleware(repo).RequireMember(), func(c *gin.Context) {
+		if got := c.GetUint("groupID"); got != 91 {
+			t.Fatalf("groupID = %d, want 91", got)
+		}
+		if got := c.GetString("groupRole"); got != groupmodels.RoleMember {
+			t.Fatalf("groupRole = %q, want %q", got, groupmodels.RoleMember)
+		}
+		c.Status(http.StatusNoContent)
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v2/groups/events/91/events", nil)
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusNoContent, rec.Body.String())
+	}
+}
+
+func TestGroupRoleMiddlewareRequireMemberGroupEventsRouteRejectsNonMember(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := newGroupRoleRepo(t)
+	seedGroupRoleMembership(t, repo.db, 81, 91, groupmodels.RoleMember)
+
+	router := gin.New()
+	router.GET("/api/v2/groups/events/:groupId/events", withUserID(82), middlewares.NewGroupRoleMiddleware(repo).RequireMember(), func(c *gin.Context) {
+		t.Fatal("handler should not be reached")
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v2/groups/events/91/events", nil)
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusForbidden, rec.Body.String())
+	}
+	assertCommonErrorShape(t, rec)
 }
 
 func TestGroupRoleMiddlewareRejectsMissingAndBadGroupID(t *testing.T) {
@@ -145,12 +267,22 @@ func TestGroupRoleMiddlewareRejectsForbiddenRole(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
 	}
 
-	var payload map[string]any
-	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
-		t.Fatalf("unmarshal response: %v", err)
-	}
+	payload := assertCommonErrorShape(t, rec)
 	if got := payload["your_role"]; got != "member" {
 		t.Fatalf("your_role = %v, want member", got)
+	}
+}
+
+func assertSameStringSlice(t *testing.T, got, want []string) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("slice length = %d, want %d; got=%#v want=%#v", len(got), len(want), got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("slice[%d] = %q, want %q; got=%#v want=%#v", i, got[i], want[i], got, want)
+		}
 	}
 }
 

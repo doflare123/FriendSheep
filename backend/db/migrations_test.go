@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -605,6 +606,132 @@ func TestMigrationDBStrictFailsBeforeDBLookupWhenSourceMissing(t *testing.T) {
 	if repo.getSQLDBCalled {
 		t.Fatal("MigrationDBStrict called GetSQLDB before validating migration source")
 	}
+}
+
+func TestMigrationDBStrictToVersionFailsBeforeDBLookupWhenSourceMissing(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(wd); chdirErr != nil {
+			t.Fatalf("restore wd: %v", chdirErr)
+		}
+	})
+
+	repo := &recordingRepository{}
+	err = MigrationDBStrictToVersion(repo, noopLogger{}, 2)
+	if err == nil {
+		t.Fatal("MigrationDBStrictToVersion returned nil error, want strict missing source error")
+	}
+	if !strings.Contains(err.Error(), "migration source is required for rollout phase") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if repo.getSQLDBCalled {
+		t.Fatal("MigrationDBStrictToVersion called GetSQLDB before validating migration source")
+	}
+}
+
+func TestPendingJoinRequestUniquenessMigrationArtifacts(t *testing.T) {
+	repoRoot := repoRootFromDBTest(t)
+	files := map[string][]string{
+		filepath.Join(repoRoot, "migration", "000002_group_join_request_pending_uniqueness.up.sql"): {
+			"CREATE UNIQUE INDEX idx_group_join_request_pending_unique",
+			"ON public.group_join_requests (user_id, group_id)",
+			"WHERE status = 'pending'",
+		},
+		filepath.Join(repoRoot, "migration", "000002_group_join_request_pending_uniqueness_preflight.sql"): {
+			"group_join_request_pending_uniqueness_preflight_checks",
+			"data.pending_join_request_duplicates",
+			"WHERE status = ''pending''",
+			"RAISE EXCEPTION",
+		},
+		filepath.Join(repoRoot, "migration", "000002_group_join_request_pending_uniqueness_postflight.sql"): {
+			"group_join_request_pending_uniqueness_postflight_checks",
+			"index_contract.idx_group_join_request_pending_unique",
+			"data.pending_join_request_duplicates_removed",
+			"RAISE EXCEPTION",
+		},
+	}
+
+	for path, snippets := range files {
+		t.Run(filepath.Base(path), func(t *testing.T) {
+			content, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("read %s: %v", path, err)
+			}
+			sqlText := string(content)
+			for _, snippet := range snippets {
+				if !strings.Contains(sqlText, snippet) {
+					t.Fatalf("%s does not contain %q", path, snippet)
+				}
+			}
+		})
+	}
+}
+
+func TestMembershipUniquenessMigrationArtifacts(t *testing.T) {
+	repoRoot := repoRootFromDBTest(t)
+	files := map[string][]string{
+		filepath.Join(repoRoot, "migration", "000001_membership_uniqueness.up.sql"): {
+			"membership_dedupe_audit",
+			"DELETE FROM public.group_users",
+			"DELETE FROM public.events_users",
+			"UPDATE public.events e",
+			"CREATE UNIQUE INDEX idx_group_user_membership",
+			"CREATE UNIQUE INDEX idx_event_user_membership",
+		},
+		filepath.Join(repoRoot, "migration", "000001_membership_uniqueness_preflight.sql"): {
+			"membership_uniqueness_preflight_checks",
+			"readiness.group_users_duplicates",
+			"readiness.events_users_duplicates",
+			"readiness.events_current_users_drift",
+			"RAISE EXCEPTION",
+		},
+		filepath.Join(repoRoot, "migration", "000001_membership_uniqueness_postflight.sql"): {
+			"membership_uniqueness_postflight_checks",
+			"data.group_users_duplicates_removed",
+			"data.events_users_duplicates_removed",
+			"data.events_current_users_reconciled",
+			"RAISE EXCEPTION",
+		},
+		filepath.Join(repoRoot, "migration", "000001_membership_uniqueness_rollout_checks.sql"): {
+			"duplicate group_users with chosen keeper",
+			"duplicate events_users",
+			"current_users drift",
+			"postflight: duplicate keys must be zero",
+		},
+	}
+
+	for path, snippets := range files {
+		t.Run(filepath.Base(path), func(t *testing.T) {
+			content, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("read %s: %v", path, err)
+			}
+			sqlText := string(content)
+			for _, snippet := range snippets {
+				if !strings.Contains(sqlText, snippet) {
+					t.Fatalf("%s does not contain %q", path, snippet)
+				}
+			}
+		})
+	}
+}
+
+func repoRootFromDBTest(t *testing.T) string {
+	t.Helper()
+
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
+	return filepath.Dir(filepath.Dir(file))
 }
 
 func TestResolveMigrationDirectoryFailsOnCanonicalAndLegacyAmbiguity(t *testing.T) {

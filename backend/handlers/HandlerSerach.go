@@ -22,7 +22,7 @@ import (
 // @Failure 401 {object} map[string]string "Пользователь не авторизован"
 // @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Security BearerAuth
-// Inactive legacy route: /api/users/search [get]
+// Неактивный устаревший маршрут: /api/users/search [get]
 func SearchUsers(c *gin.Context) {
 	emailValue, exists := c.Get("email")
 	if !exists {
@@ -77,7 +77,7 @@ func SearchUsers(c *gin.Context) {
 // @Failure 401 {object} map[string]string "Пользователь не авторизован"
 // @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Security BearerAuth
-// Inactive legacy route: /api/groups/search [get]
+// Неактивный устаревший маршрут: /api/groups/search [get]
 func SearchGroups(c *gin.Context) {
 	_, exists := c.Get("email")
 	if !exists {

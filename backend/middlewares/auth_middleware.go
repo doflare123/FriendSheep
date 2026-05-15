@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"friendship/utils"
-	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -20,19 +19,13 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "отсутствует токен авторизации",
-			})
-			c.Abort()
+			utils.AbortJSONError(c, 401, "отсутствует токен авторизации")
 			return
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "неверный формат токена",
-			})
-			c.Abort()
+			utils.AbortJSONError(c, 401, "неверный формат токена")
 			return
 		}
 
@@ -40,10 +33,7 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 
 		claims, err := m.jwtUtils.ParseAccessToken(tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "невалидный токен",
-			})
-			c.Abort()
+			utils.AbortJSONError(c, 401, "невалидный токен")
 			return
 		}
 
