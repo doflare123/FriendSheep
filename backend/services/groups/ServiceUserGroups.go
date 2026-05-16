@@ -177,13 +177,13 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 	err := s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&invite, inviteID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return fmt.Errorf("приглашение не найдено")
+				return ErrInviteNotFound
 			}
 			return fmt.Errorf("ошибка поиска приглашения: %w", err)
 		}
 
 		if invite.UserID != userID {
-			return fmt.Errorf("это не ваше приглашение")
+			return ErrInviteNotOwned
 		}
 
 		if invite.Status == "accepted" {
@@ -194,11 +194,11 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 			if isMember {
 				return nil
 			}
-			return fmt.Errorf("приглашение уже принято, но членство не найдено")
+			return ErrInviteAlreadyHandled
 		}
 
 		if invite.Status != "pending" {
-			return fmt.Errorf("приглашение уже обработано")
+			return ErrInviteAlreadyHandled
 		}
 
 		// Проверяем черный список
@@ -285,17 +285,17 @@ func (s *groupService) RejectJoinInvite(userID uint, inviteID uint) (bool, error
 	err := s.runInTx(func(tx groupTx) error {
 		if err := tx.First(&invite, inviteID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return fmt.Errorf("приглашение не найдено")
+				return ErrInviteNotFound
 			}
 			return fmt.Errorf("ошибка поиска приглашения: %w", err)
 		}
 
 		if invite.UserID != userID {
-			return fmt.Errorf("это не ваше приглашение")
+			return ErrInviteNotOwned
 		}
 
 		if invite.Status != "pending" {
-			return fmt.Errorf("приглашение уже обработано")
+			return ErrInviteAlreadyHandled
 		}
 
 		if err := tx.Model(&invite).Update("status", "rejected").Error; err != nil {

@@ -36,7 +36,7 @@ func NewSubHandler(imgService service.ImgService) SubHandler {
 func (h *subHandler) ChangePhoto(c *gin.Context) {
 	header, err := c.FormFile("image")
 	if err != nil {
-		utils.BadRequest(c, "Image upload failed")
+		utils.BadRequest(c, "Image upload failed", utils.WithDetails(err.Error()))
 		return
 	}
 

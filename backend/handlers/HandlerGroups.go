@@ -104,10 +104,10 @@ func (r CreateGroupRequest) toServiceInput() group.CreateGroupInput {
 // @Security     BearerAuth
 // @Param        groupId path int true "ID группы"
 // @Success      200 {object} dto.GroupFullDto "Информация о группе"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Группа приватная, доступ запрещен"
-// @Failure      404 {object} map[string]string "Группа не найдена"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Группа приватная, доступ запрещен"
+// @Failure      404 {object} dto.ErrorResponse "Группа не найдена"
 // @Router       /api/v2/groups/{groupId} [get]
 func (h *groupHandler) GetGroupDetails(c *gin.Context) {
 	userID := c.GetUint("userID")
@@ -144,10 +144,10 @@ func (h *groupHandler) GetGroupDetails(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        request body CreateGroupRequest true "Данные для создания группы"
 // @Success      201 {object} dto.GroupFullDto "Группа успешно создана"
-// @Failure      400 {object} map[string]interface{} "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      404 {object} map[string]string "Пользователь не найден"
-// @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      404 {object} dto.ErrorResponse "Пользователь не найден"
+// @Failure      500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
 // @Router       /api/v2/groups [post]
 func (h *groupHandler) CreateGroup(c *gin.Context) {
 	idValue, exists := c.Get("userID")
@@ -197,18 +197,18 @@ func (h *groupHandler) CreateGroup(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        request body GroupUpdateRequest true "Данные для обновления группы"
 // @Success      200 {object} dto.GroupFullDto "Группа успешно обновлена"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Группа не найдена"
-// @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
+// @Failure      404 {object} dto.ErrorResponse "Группа не найдена"
+// @Failure      500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
 // @Router       /api/v2/groups [put]
 func (h *groupHandler) UpdateGroup(c *gin.Context) {
 	actorID := c.GetUint("userID")
 
 	var request GroupUpdateRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		utils.BadRequest(c, "Некорректные данные", utils.WithDetails(err.Error()))
+		utils.ValidationError(c, err)
 		return
 	}
 
@@ -251,10 +251,10 @@ func (h *groupHandler) UpdateGroup(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        groupId path int true "ID группы"
 // @Success      200 {object} map[string]interface{} "Группа успешно удалена"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Группа не найдена"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
+// @Failure      404 {object} dto.ErrorResponse "Группа не найдена"
 // @Router       /api/v2/groups/{groupId} [delete]
 func (h *groupHandler) DeleteGroup(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -296,10 +296,10 @@ func (h *groupHandler) DeleteGroup(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        groupId path int true "ID группы"
 // @Success      200 {object} group.GroupResult "Результат вступления в группу"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      404 {object} map[string]string "Группа не найдена"
-// @Failure      409 {object} map[string]string "Уже в группе или заявка уже отправлена"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      404 {object} dto.ErrorResponse "Группа не найдена"
+// @Failure      409 {object} dto.ErrorResponse "Уже в группе или заявка уже отправлена"
 // @Router       /api/v2/groups/{groupId}/join [post]
 func (h *groupHandler) JoinGroup(c *gin.Context) {
 	userID := c.GetUint("userID")
@@ -341,10 +341,10 @@ func (h *groupHandler) JoinGroup(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        groupId path int true "ID группы"
 // @Success      200 {object} map[string]interface{} "Вы покинули группу"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Админ не может покинуть группу"
-// @Failure      404 {object} map[string]string "Вы не состоите в группе"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Админ не может покинуть группу"
+// @Failure      404 {object} dto.ErrorResponse "Вы не состоите в группе"
 // @Router       /api/v2/groups/{groupId}/leave [post]
 func (h *groupHandler) LeaveGroup(c *gin.Context) {
 	userID := c.GetUint("userID")
@@ -381,9 +381,9 @@ func (h *groupHandler) LeaveGroup(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        groupId path int true "ID группы"
 // @Success      200 {object} map[string]interface{} "Количество одобренных заявок"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
 // @Router       /api/v2/groups/{groupId}/requests/approve-all [post]
 func (h *groupHandler) ApproveAllJoinRequests(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -422,9 +422,9 @@ func (h *groupHandler) ApproveAllJoinRequests(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        groupId path int true "ID группы"
 // @Success      200 {object} map[string]interface{} "Количество отклоненных заявок"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
 // @Router       /api/v2/groups/{groupId}/requests/reject-all [post]
 func (h *groupHandler) RejectAllJoinRequests(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -463,10 +463,10 @@ func (h *groupHandler) RejectAllJoinRequests(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        requestId path int true "ID заявки"
 // @Success      200 {object} map[string]interface{} "Заявка одобрена"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Заявка не найдена"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
+// @Failure      404 {object} dto.ErrorResponse "Заявка не найдена"
 // @Router       /api/v2/groups/requests/{requestId}/approve [post]
 func (h *groupHandler) ApproveJoinRequest(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -507,10 +507,10 @@ func (h *groupHandler) ApproveJoinRequest(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        requestId path int true "ID заявки"
 // @Success      200 {object} map[string]interface{} "Заявка отклонена"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Заявка не найдена"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
+// @Failure      404 {object} dto.ErrorResponse "Заявка не найдена"
 // @Router       /api/v2/groups/requests/{requestId}/reject [post]
 func (h *groupHandler) RejectJoinRequest(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -550,10 +550,10 @@ func (h *groupHandler) RejectJoinRequest(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        request body group.PermissionInput true "ID группы и пользователя"
 // @Success      200 {object} map[string]interface{} "Права успешно назначены"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Пользователь не найден"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
+// @Failure      404 {object} dto.ErrorResponse "Пользователь не найден"
 // @Router       /api/v2/groups/permissions/add [post]
 func (h *groupHandler) AddPermissions(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -596,10 +596,10 @@ func (h *groupHandler) AddPermissions(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        request body group.PermissionInput true "ID группы и пользователя"
 // @Success      200 {object} map[string]interface{} "Права успешно сняты"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Пользователь не найден"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
+// @Failure      404 {object} dto.ErrorResponse "Пользователь не найден"
 // @Router       /api/v2/groups/permissions/remove [post]
 func (h *groupHandler) RemovePermissions(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -642,10 +642,10 @@ func (h *groupHandler) RemovePermissions(c *gin.Context) {
 // @Param        groupId path int true "ID группы"
 // @Param        userId path int true "ID пользователя"
 // @Success      200 {object} map[string]interface{} "Пользователь удален из группы"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Пользователь не найден"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
+// @Failure      404 {object} dto.ErrorResponse "Пользователь не найден"
 // @Router       /api/v2/groups/{groupId}/members/{userId} [delete]
 func (h *groupHandler) DeleteUserFromGroup(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -696,10 +696,10 @@ func (h *groupHandler) DeleteUserFromGroup(c *gin.Context) {
 // @Param        groupId path int true "ID группы"
 // @Param        userId path int true "ID пользователя"
 // @Success      200 {object} map[string]interface{} "Пользователь удален из черного списка"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Пользователь не найден в черном списке"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
+// @Failure      404 {object} dto.ErrorResponse "Пользователь не найден в черном списке"
 // @Router       /api/v2/groups/{groupId}/blacklist/{userId} [delete]
 func (h *groupHandler) RemoveFromBlacklist(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -746,11 +746,11 @@ func (h *groupHandler) RemoveFromBlacklist(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        request body group.JoinInviteInput true "ID группы и пользователя"
 // @Success      200 {object} map[string]interface{} "Приглашение отправлено"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
-// @Failure      404 {object} map[string]string "Пользователь не найден"
-// @Failure      409 {object} map[string]string "Приглашение уже существует или пользователь уже в группе"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
+// @Failure      404 {object} dto.ErrorResponse "Пользователь не найден"
+// @Failure      409 {object} dto.ErrorResponse "Приглашение уже существует или пользователь уже в группе"
 // @Router       /api/v2/groups/invites [post]
 func (h *groupHandler) CreateJoinInvite(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -792,10 +792,10 @@ func (h *groupHandler) CreateJoinInvite(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        inviteId path int true "ID приглашения"
 // @Success      200 {object} group.GroupResult "Приглашение принято"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Пользователь в черном списке"
-// @Failure      404 {object} map[string]string "Приглашение не найдено"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
+// @Failure      404 {object} dto.ErrorResponse "Приглашение не найдено"
 // @Router       /api/v2/groups/invites/{inviteId}/accept [post]
 func (h *groupHandler) AcceptJoinInvite(c *gin.Context) {
 	userID := c.GetUint("userID")
@@ -812,8 +812,14 @@ func (h *groupHandler) AcceptJoinInvite(c *gin.Context) {
 		switch {
 		case errors.Is(err, group.ErrUserInBlacklist):
 			utils.Forbidden(c, "Вы в черном списке этой группы")
+		case errors.Is(err, group.ErrInviteNotFound):
+			utils.NotFound(c, "Приглашение не найдено")
+		case errors.Is(err, group.ErrInviteNotOwned):
+			utils.Forbidden(c, "Это приглашение вам не принадлежит")
+		case errors.Is(err, group.ErrInviteAlreadyHandled):
+			utils.BadRequest(c, "Приглашение уже обработано")
 		default:
-			utils.BadRequest(c, err.Error())
+			utils.InternalError(c, "Ошибка при принятии приглашения")
 		}
 		return
 	}
@@ -829,9 +835,10 @@ func (h *groupHandler) AcceptJoinInvite(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        inviteId path int true "ID приглашения"
 // @Success      200 {object} map[string]interface{} "Приглашение отклонено"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      404 {object} map[string]string "Приглашение не найдено"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
+// @Failure      404 {object} dto.ErrorResponse "Приглашение не найдено"
 // @Router       /api/v2/groups/invites/{inviteId}/reject [post]
 func (h *groupHandler) RejectJoinInvite(c *gin.Context) {
 	userID := c.GetUint("userID")
@@ -845,7 +852,16 @@ func (h *groupHandler) RejectJoinInvite(c *gin.Context) {
 
 	success, err := h.srv.RejectJoinInvite(userID, uint(inviteID))
 	if err != nil {
-		utils.BadRequest(c, err.Error())
+		switch {
+		case errors.Is(err, group.ErrInviteNotFound):
+			utils.NotFound(c, "Приглашение не найдено")
+		case errors.Is(err, group.ErrInviteNotOwned):
+			utils.Forbidden(c, "Это приглашение вам не принадлежит")
+		case errors.Is(err, group.ErrInviteAlreadyHandled):
+			utils.BadRequest(c, "Приглашение уже обработано")
+		default:
+			utils.InternalError(c, "Ошибка при отклонении приглашения")
+		}
 		return
 	}
 
@@ -864,9 +880,9 @@ func (h *groupHandler) RejectJoinInvite(c *gin.Context) {
 // @Param        groupId path int true "ID группы"
 // @Param        limit query int false "Количество записей (по умолчанию 50, максимум 100)"
 // @Success      200 {array} group.GroupAction "История действий"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
 // @Router       /api/v2/groups/{groupId}/actions [get]
 func (h *groupHandler) WatchRecentActions(c *gin.Context) {
 	userID := c.GetUint("userID")
@@ -909,9 +925,9 @@ func (h *groupHandler) WatchRecentActions(c *gin.Context) {
 // @Param        groupId path int true "ID группы"
 // @Param        limit query int false "Количество записей (по умолчанию 50, максимум 100)"
 // @Success      200 {array} group.BlacklistUser "Черный список"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
 // @Router       /api/v2/groups/{groupId}/blacklist [get]
 func (h *groupHandler) GetGroupBlacklist(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -955,9 +971,9 @@ func (h *groupHandler) GetGroupBlacklist(c *gin.Context) {
 // @Param        status query string false "Статус заявки (pending, approved, rejected)"
 // @Param        limit query int false "Количество записей (по умолчанию 50, максимум 100)"
 // @Success      200 {array} group.JoinRequestInfo "Список заявок"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      401 {object} map[string]string "Не авторизован"
-// @Failure      403 {object} map[string]string "Недостаточно прав"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      403 {object} dto.ErrorResponse "Недостаточно прав"
 // @Router       /api/v2/groups/{groupId}/requests [get]
 func (h *groupHandler) GetJoinRequests(c *gin.Context) {
 	actorID := c.GetUint("userID")

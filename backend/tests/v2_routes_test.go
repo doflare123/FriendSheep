@@ -268,6 +268,7 @@ func TestRegisterEventsRoutesPublicEndpoints(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status for removed genres route = %d, want %d", rec.Code, http.StatusUnauthorized)
 	}
+	assertCommonErrorShape(t, rec)
 }
 
 func TestRegisterEventsRoutesProtectedEndpointRequiresAuth(t *testing.T) {
@@ -279,6 +280,7 @@ func TestRegisterEventsRoutesProtectedEndpointRequiresAuth(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
 	}
+	assertCommonErrorShape(t, rec)
 }
 
 func TestRegisterEventsRoutesGroupEventsAllowsMemberRole(t *testing.T) {
@@ -444,6 +446,7 @@ func TestRegisterEventsRoutesEventIDAdminEndpointsRejectNonAdminRole(t *testing.
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
 	}
+	assertCommonErrorShape(t, rec)
 	if eventsHandler.called != "" {
 		t.Fatalf("handler was called: %q", eventsHandler.called)
 	}
@@ -476,6 +479,7 @@ func TestRegisterGroupsRoutesRequireAuth(t *testing.T) {
 			if rec.Code != http.StatusUnauthorized {
 				t.Fatalf("%s %s status = %d, want %d", tt.method, tt.path, rec.Code, http.StatusUnauthorized)
 			}
+			assertCommonErrorShape(t, rec)
 		})
 	}
 }
@@ -529,6 +533,7 @@ func TestRegisterGroupsRoutesRequestIDActionsRejectPlainMemberBeforeHandler(t *t
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusForbidden, rec.Body.String())
 	}
+	assertCommonErrorShape(t, rec)
 	if groupHandler.called != "" {
 		t.Fatalf("handler was called: %q", groupHandler.called)
 	}
@@ -556,6 +561,7 @@ func TestRegisterGroupsRoutesRequestIDActionsReturnNotFoundBeforeHandler(t *test
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusNotFound, rec.Body.String())
 	}
+	assertCommonErrorShape(t, rec)
 	if groupHandler.called != "" {
 		t.Fatalf("handler was called: %q", groupHandler.called)
 	}

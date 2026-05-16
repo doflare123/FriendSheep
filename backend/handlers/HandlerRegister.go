@@ -73,7 +73,7 @@ func (h *regHandler) CreateSessionRegister(c *gin.Context) {
 func (h *regHandler) VerifySession(c *gin.Context) {
 	var input register.VerifySessionInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.BadRequest(c, "Неправильный формат данных")
+		utils.ValidationError(c, err)
 		return
 	}
 
