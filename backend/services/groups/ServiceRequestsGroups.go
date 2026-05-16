@@ -13,7 +13,7 @@ import (
 // GetJoinRequests получает все заявки на вступление в группу
 func (s *groupService) GetJoinRequests(actorID uint, groupID uint, status string, limit int) ([]JoinRequestInfo, error) {
 	// Проверяем права доступа (admin или operator)
-	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, groups.RolesWithCapability(groups.CapabilityModerate))
+	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, groups.CapabilityModerate)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (s *groupService) GetJoinRequests(actorID uint, groupID uint, status string
 
 // CreateJoinInvite создает приглашение в группу
 func (s *groupService) CreateJoinInvite(actorID uint, input JoinInviteInput) (bool, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.RolesWithCapability(groups.CapabilityModerate))
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.CapabilityModerate)
 	if err != nil {
 		return false, err
 	}
@@ -141,7 +141,7 @@ func (s *groupService) CreateJoinInvite(actorID uint, input JoinInviteInput) (bo
 
 // ApproveAllJoinRequests одобряет все заявки
 func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.RolesWithCapability(groups.CapabilityModerate))
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.CapabilityModerate)
 	if err != nil {
 		return 0, err
 	}
@@ -220,7 +220,7 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 
 // RejectAllJoinRequests отклоняет все заявки
 func (s *groupService) RejectAllJoinRequests(actorID uint, groupID uint) (int, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.RolesWithCapability(groups.CapabilityModerate))
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.CapabilityModerate)
 	if err != nil {
 		return 0, err
 	}
@@ -277,7 +277,7 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 			return fmt.Errorf("ошибка поиска заявки: %w", err)
 		}
 
-		hasAccess, role, err := s.checkGroupAccess(actorID, request.GroupID, groups.RolesWithCapability(groups.CapabilityModerate))
+		hasAccess, role, err := s.checkGroupAccess(actorID, request.GroupID, groups.CapabilityModerate)
 		if err != nil {
 			return err
 		}
@@ -353,7 +353,7 @@ func (s *groupService) RejectJoinRequest(actorID uint, requestID uint) (bool, er
 			return fmt.Errorf("ошибка поиска заявки: %w", err)
 		}
 
-		hasAccess, role, err := s.checkGroupAccess(actorID, request.GroupID, groups.RolesWithCapability(groups.CapabilityModerate))
+		hasAccess, role, err := s.checkGroupAccess(actorID, request.GroupID, groups.CapabilityModerate)
 		if err != nil {
 			return err
 		}

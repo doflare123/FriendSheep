@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	groupmodels "friendship/models/groups"
-	"friendship/repository"
 	servicesevents "friendship/services/events"
 	servicegroups "friendship/services/groups"
 
@@ -25,7 +24,6 @@ type groupServiceLocalPort interface {
 	Delete(value interface{}) *gorm.DB
 	Where(query interface{}, args ...interface{}) *gorm.DB
 	Preload(column string, conditions ...interface{}) *gorm.DB
-	Transaction(fc func(tx repository.PostgresRepository) error) error
 	Clauses(conds ...clause.Expression) *gorm.DB
 	Order(value interface{}) *gorm.DB
 	Limit(limit int) *gorm.DB
@@ -43,7 +41,6 @@ type eventsServiceLocalPort interface {
 	Delete(value interface{}) *gorm.DB
 	Where(query interface{}, args ...interface{}) *gorm.DB
 	Preload(column string, conditions ...interface{}) *gorm.DB
-	Transaction(fc func(tx repository.PostgresRepository) error) error
 	Order(value interface{}) *gorm.DB
 	Count(count *int64) *gorm.DB
 }

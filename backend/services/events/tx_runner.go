@@ -1,6 +1,7 @@
 package events
 
 import (
+	"errors"
 	"friendship/repository"
 
 	"gorm.io/gorm"
@@ -13,7 +14,6 @@ type eventsRepoPort interface {
 	Where(query interface{}, args ...interface{}) *gorm.DB
 	Preload(column string, conditions ...interface{}) *gorm.DB
 	Order(value interface{}) *gorm.DB
-	Transaction(func(tx repository.PostgresRepository) error) error
 }
 
 type eventsTxPort interface {
@@ -28,18 +28,37 @@ type eventsTransactionRunner interface {
 	WithinTransaction(func(eventsTxPort) error) error
 }
 
-type eventsRepositoryTransactionRunner struct {
-	transactor eventsRepoPort
+type eventsRepositoryTransactor interface {
+	Transaction(func(tx repository.PostgresRepository) error) error
 }
 
-func newEventsTransactionRunner(store eventsRepoPort) eventsTransactionRunner {
-	return eventsRepositoryTransactionRunner{transactor: store}
+type eventsRepositoryTransactionRunner struct {
+	transactor eventsRepositoryTransactor
+}
+
+type eventsUnsupportedTransactionRunner struct {
+	err error
+}
+
+func newEventsTransactionRunner(store interface{}) eventsTransactionRunner {
+	transactor, ok := store.(eventsRepositoryTransactor)
+	if !ok {
+		return eventsUnsupportedTransactionRunner{
+			err: errors.New("events service store does not support transactions"),
+		}
+	}
+
+	return eventsRepositoryTransactionRunner{transactor: transactor}
 }
 
 func (r eventsRepositoryTransactionRunner) WithinTransaction(fn func(eventsTxPort) error) error {
 	return r.transactor.Transaction(func(tx repository.PostgresRepository) error {
 		return fn(tx)
 	})
+}
+
+func (r eventsUnsupportedTransactionRunner) WithinTransaction(func(eventsTxPort) error) error {
+	return r.err
 }
 
 func (s *eventsService) runInTx(fn func(eventsTxPort) error) error {

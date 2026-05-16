@@ -38,7 +38,7 @@ func (s *eventsService) GetEventDetailsForAdmin(actorID uint, eventID uint) (*dt
 		return nil, fmt.Errorf("ошибка получения события: %w", err)
 	}
 
-	hasAccess, _, err := s.checkGroupAccess(actorID, event.GroupID, groupmodels.RolesWithCapability(groupmodels.CapabilityModerate))
+	hasAccess, _, err := s.checkGroupAccess(actorID, event.GroupID, groupmodels.CapabilityModerate)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (s *eventsService) KickUserFromEvent(actorID uint, eventID uint, targetUser
 			return fmt.Errorf("ошибка поиска события: %w", err)
 		}
 
-		hasAccess, role, err := s.checkGroupAccess(actorID, event.GroupID, groupmodels.RolesWithCapability(groupmodels.CapabilityModerate))
+		hasAccess, role, err := s.checkGroupAccess(actorID, event.GroupID, groupmodels.CapabilityModerate)
 		if err != nil {
 			return err
 		}
@@ -130,7 +130,7 @@ func (s *eventsService) KickUserFromEvent(actorID uint, eventID uint, targetUser
 // Создает новое событие
 func (s *eventsService) CreateEvent(actorID uint, input CreateEventInput) (*dto.EventFullDto, error) {
 	// Проверяем права доступа (admin или operator)
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groupmodels.RolesWithCapability(groupmodels.CapabilityModerate))
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groupmodels.CapabilityModerate)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +257,7 @@ func (s *eventsService) UpdateEvent(actorID uint, eventID uint, input UpdateEven
 		return nil, fmt.Errorf("ошибка поиска события: %w", err)
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, event.GroupID, groupmodels.RolesWithCapability(groupmodels.CapabilityModerate))
+	hasAccess, role, err := s.checkGroupAccess(actorID, event.GroupID, groupmodels.CapabilityModerate)
 	if err != nil {
 		return nil, err
 	}
@@ -416,7 +416,7 @@ func (s *eventsService) DeleteEvent(actorID uint, eventID uint) (bool, error) {
 		return false, fmt.Errorf("ошибка поиска события: %w", err)
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, event.GroupID, groupmodels.RolesWithCapability(groupmodels.CapabilityModerate))
+	hasAccess, role, err := s.checkGroupAccess(actorID, event.GroupID, groupmodels.CapabilityModerate)
 	if err != nil {
 		return false, err
 	}

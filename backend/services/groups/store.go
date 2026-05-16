@@ -1,6 +1,7 @@
 package group
 
 import (
+	"errors"
 	"friendship/models/groups"
 	"friendship/repository"
 
@@ -18,7 +19,6 @@ type groupStore interface {
 	Preload(column string, conditions ...interface{}) *gorm.DB
 	Order(value interface{}) *gorm.DB
 	Limit(limit int) *gorm.DB
-	Transaction(func(tx repository.PostgresRepository) error) error
 }
 
 type groupTx interface {
@@ -40,18 +40,37 @@ type groupTransactionRunner interface {
 	WithinTransaction(func(groupTx) error) error
 }
 
-type groupRepositoryTransactionRunner struct {
-	transactor groupStore
+type groupRepositoryTransactor interface {
+	Transaction(func(tx repository.PostgresRepository) error) error
 }
 
-func newGroupTransactionRunner(store groupStore) groupTransactionRunner {
-	return groupRepositoryTransactionRunner{transactor: store}
+type groupRepositoryTransactionRunner struct {
+	transactor groupRepositoryTransactor
+}
+
+type groupUnsupportedTransactionRunner struct {
+	err error
+}
+
+func newGroupTransactionRunner(store interface{}) groupTransactionRunner {
+	transactor, ok := store.(groupRepositoryTransactor)
+	if !ok {
+		return groupUnsupportedTransactionRunner{
+			err: errors.New("group service store does not support transactions"),
+		}
+	}
+
+	return groupRepositoryTransactionRunner{transactor: transactor}
 }
 
 func (r groupRepositoryTransactionRunner) WithinTransaction(fn func(groupTx) error) error {
 	return r.transactor.Transaction(func(tx repository.PostgresRepository) error {
 		return fn(tx)
 	})
+}
+
+func (r groupUnsupportedTransactionRunner) WithinTransaction(func(groupTx) error) error {
+	return r.err
 }
 
 func (s *groupService) runInTx(fn func(groupTx) error) error {

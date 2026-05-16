@@ -893,6 +893,54 @@ func TestHasCoreSchemaTablesReturnsTrueForBootstrapSchemaSet(t *testing.T) {
 	}
 }
 
+func TestPendingJoinRequestIndexContractHelpers(t *testing.T) {
+	t.Run("columns exact order", func(t *testing.T) {
+		if !hasPendingJoinRequestIndexColumns("user_id,group_id") {
+			t.Fatal("expected user_id,group_id to match required columns")
+		}
+		if hasPendingJoinRequestIndexColumns("group_id,user_id") {
+			t.Fatal("expected group_id,user_id to not match required columns order")
+		}
+	})
+
+	t.Run("predicate normalization", func(t *testing.T) {
+		cases := []string{
+			"(status = 'pending'::text)",
+			"((status='pending'))",
+			" status = 'pending' ",
+			"(status = 'pending'::character varying)",
+		}
+		for _, predicate := range cases {
+			if !hasPendingJoinRequestIndexPredicate(predicate) {
+				t.Fatalf("expected predicate to match: %q", predicate)
+			}
+		}
+
+		if hasPendingJoinRequestIndexPredicate("(status = 'approved'::text)") {
+			t.Fatal("unexpected predicate match for approved status")
+		}
+	})
+
+	t.Run("full contract", func(t *testing.T) {
+		ok := matchesPendingJoinRequestUniqueIndexContract(pendingJoinRequestIndexContract{
+			IsUnique:  true,
+			Columns:   "user_id,group_id",
+			Predicate: "(status = 'pending'::text)",
+		})
+		if !ok {
+			t.Fatal("expected full index contract to match")
+		}
+
+		if matchesPendingJoinRequestUniqueIndexContract(pendingJoinRequestIndexContract{
+			IsUnique:  false,
+			Columns:   "user_id,group_id",
+			Predicate: "(status = 'pending'::text)",
+		}) {
+			t.Fatal("unexpected match for non-unique index")
+		}
+	})
+}
+
 func restoreWorkingDirDBTest(t *testing.T, target string) {
 	t.Helper()
 

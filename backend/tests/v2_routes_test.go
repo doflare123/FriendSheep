@@ -217,6 +217,7 @@ func TestRegisterSubRoutesRequiresAuth(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("unauthenticated upload status = %d, want %d", rec.Code, http.StatusUnauthorized)
 	}
+	assertCommonErrorShape(t, rec)
 	if handler.called {
 		t.Fatal("unauthenticated upload reached handler")
 	}

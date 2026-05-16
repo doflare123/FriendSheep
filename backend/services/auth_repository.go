@@ -87,8 +87,6 @@ func (r *gormAuthRepository) GetAuthAdminGroups(userID uint) ([]dto.AdminGroupRe
 
 	var adminGroups []dto.AdminGroupResponse
 
-	moderateRoles := groupmodels.RolesWithCapability(groupmodels.CapabilityModerate)
-
 	err := r.db.Model(&authGroupRecord{}).
 		Select(
 			"groups.id, groups.name, groups.image, groups.small_description, CASE WHEN groups.is_private THEN ? ELSE ? END as type, COUNT(DISTINCT gu2.user_id) as member_count, rig.name as role",
@@ -98,7 +96,7 @@ func (r *gormAuthRepository) GetAuthAdminGroups(userID uint) ([]dto.AdminGroupRe
 		Joins("JOIN group_users gu ON gu.group_id = groups.id").
 		Joins("JOIN role_in_groups rig ON gu.role_in_group_id = rig.id").
 		Joins("LEFT JOIN group_users gu2 ON gu2.group_id = groups.id").
-		Where("gu.user_id = ? AND rig.name IN ?", userID, moderateRoles).
+		Where("gu.user_id = ?", userID).
 		Group("groups.id, groups.name, groups.image, groups.small_description, groups.is_private, rig.name").
 		Order("groups.id DESC").
 		Scan(&adminGroups).Error
@@ -107,7 +105,11 @@ func (r *gormAuthRepository) GetAuthAdminGroups(userID uint) ([]dto.AdminGroupRe
 		return nil, fmt.Errorf("ошибка при получении групп: %w", err)
 	}
 
+	filteredGroups := make([]dto.AdminGroupResponse, 0, len(adminGroups))
 	for i := range adminGroups {
+		if adminGroups[i].Role == "" || !groupmodels.HasCapability(adminGroups[i].Role, groupmodels.CapabilityModerate) {
+			continue
+		}
 		if adminGroups[i].ID == nil {
 			continue
 		}
@@ -117,9 +119,10 @@ func (r *gormAuthRepository) GetAuthAdminGroups(userID uint) ([]dto.AdminGroupRe
 			return nil, fmt.Errorf("ошибка при получении категорий для группы %d: %w", *adminGroups[i].ID, err)
 		}
 		adminGroups[i].Category = categories
+		filteredGroups = append(filteredGroups, adminGroups[i])
 	}
 
-	return adminGroups, nil
+	return filteredGroups, nil
 }
 
 func (r *gormAuthRepository) loadGroupCategories(groupID uint) ([]*string, error) {

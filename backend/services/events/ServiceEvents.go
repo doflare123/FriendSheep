@@ -332,7 +332,7 @@ func (s *eventsService) GetAllReferences() (*dto.ReferencesDto, error) {
 // Вспомогательные функции
 
 // Проверяет права доступа к группе
-func (s *eventsService) checkGroupAccess(userID uint, groupID uint, allowedRoles []string) (bool, string, error) {
+func (s *eventsService) checkGroupAccess(userID uint, groupID uint, required groups.Capability) (bool, string, error) {
 	var groupUser groups.GroupUsers
 	err := s.repo.
 		Where("user_id = ? AND group_id = ?", userID, groupID).
@@ -350,7 +350,7 @@ func (s *eventsService) checkGroupAccess(userID uint, groupID uint, allowedRoles
 		return false, "", fmt.Errorf("ошибка получения роли: %w", err)
 	}
 
-	if groups.HasAnyRole(role.Name, allowedRoles...) {
+	if groups.HasCapability(role.Name, required) {
 		return true, groups.NormalizeRoleName(role.Name), nil
 	}
 

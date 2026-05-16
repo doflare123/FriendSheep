@@ -417,7 +417,7 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 // UpdateGroup обновляет группу
 func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.GroupFullDto, error) {
 	// Проверяем права доступа
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.RolesWithCapability(groups.CapabilityModerate))
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.CapabilityModerate)
 	if err != nil {
 		return nil, err
 	}
@@ -529,7 +529,7 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 
 // DeleteGroup удаляет группу (только админ)
 func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.RolesWithCapability(groups.CapabilityAdmin))
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.CapabilityAdmin)
 	if err != nil {
 		return false, err
 	}
@@ -575,7 +575,7 @@ func (s *groupService) AddPermissions(actorID uint, input PermissionInput) (bool
 		return false, ErrCannotChangeOwnRole
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.RolesWithCapability(groups.CapabilityAdmin))
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.CapabilityAdmin)
 	if err != nil {
 		return false, err
 	}
@@ -641,7 +641,7 @@ func (s *groupService) RemovePermissions(actorID uint, input PermissionInput) (b
 		return false, ErrCannotChangeOwnRole
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.RolesWithCapability(groups.CapabilityAdmin))
+	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.CapabilityAdmin)
 	if err != nil {
 		return false, err
 	}
@@ -707,7 +707,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 		return false, ErrCannotRemoveSelf
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.RolesWithCapability(groups.CapabilityModerate))
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.CapabilityModerate)
 	if err != nil {
 		return false, err
 	}
@@ -785,7 +785,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 
 // RemoveFromBlacklist убирает пользователя из черного списка
 func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUserID uint) (bool, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.RolesWithCapability(groups.CapabilityModerate))
+	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.CapabilityModerate)
 	if err != nil {
 		return false, err
 	}
@@ -840,7 +840,7 @@ func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUse
 // WatchRecentActions получает историю действий в группе
 func (s *groupService) WatchRecentActions(userID uint, groupID uint, limit int) ([]GroupAction, error) {
 	// Проверяем, что пользователь в группе
-	hasAccess, _, err := s.checkGroupAccess(userID, groupID, groups.RolesWithCapability(groups.CapabilityMember))
+	hasAccess, _, err := s.checkGroupAccess(userID, groupID, groups.CapabilityMember)
 	if err != nil {
 		return nil, err
 	}
@@ -873,7 +873,7 @@ func (s *groupService) WatchRecentActions(userID uint, groupID uint, limit int) 
 // Вспомогательные функции
 
 // checkGroupAccess проверяет, имеет ли пользователь доступ к группе с нужной ролью
-func (s *groupService) checkGroupAccess(userID uint, groupID uint, allowedRoles []string) (bool, string, error) {
+func (s *groupService) checkGroupAccess(userID uint, groupID uint, required groups.Capability) (bool, string, error) {
 	var groupUser groups.GroupUsers
 	if userID != 0 || groupID != 0 {
 		s.logger.Info("Тут прикол?", "Пользователь", userID, "Группа", groupID)
@@ -895,7 +895,7 @@ func (s *groupService) checkGroupAccess(userID uint, groupID uint, allowedRoles 
 		return false, "", fmt.Errorf("ошибка получения роли: %w", err)
 	}
 
-	if groups.HasAnyRole(role.Name, allowedRoles...) {
+	if groups.HasCapability(role.Name, required) {
 		return true, groups.NormalizeRoleName(role.Name), nil
 	}
 
@@ -905,7 +905,7 @@ func (s *groupService) checkGroupAccess(userID uint, groupID uint, allowedRoles 
 // GetGroupBlacklist получает черный список группы
 func (s *groupService) GetGroupBlacklist(actorID uint, groupID uint, limit int) ([]BlacklistUser, error) {
 	// Проверяем права доступа (admin или operator)
-	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, groups.RolesWithCapability(groups.CapabilityModerate))
+	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, groups.CapabilityModerate)
 	if err != nil {
 		return nil, err
 	}

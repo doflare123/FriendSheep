@@ -2,6 +2,7 @@ package handlers
 
 import (
 	service "friendship/services/sub"
+	"friendship/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,9 +17,7 @@ type subHandler struct {
 }
 
 func NewSubHandler(imgService service.ImgService) SubHandler {
-	return &subHandler{
-		imgService: imgService,
-	}
+	return &subHandler{imgService: imgService}
 }
 
 // ChangePhoto godoc
@@ -29,21 +28,21 @@ func NewSubHandler(imgService service.ImgService) SubHandler {
 // @Produce      json
 // @Param        image formData file true "Изображение для загрузки (JPG, PNG, максимум 10MB)"
 // @Success      200  {object}  map[string]string "URL загруженного изображения"
-// @Failure      400  {object}  map[string]string "Файл не предоставлен, имеет неверный тип или размер"
-// @Failure      401  {object}  map[string]string "Пользователь не авторизован"
-// @Failure      500  {object}  map[string]string "Внутренняя ошибка сервера"
+// @Failure      400  {object}  dto.ErrorResponse "Файл не предоставлен, имеет неверный тип или размер"
+// @Failure      401  {object}  dto.ErrorResponse "Пользователь не авторизован"
+// @Failure      500  {object}  dto.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     BearerAuth
 // @Router       /api/v2/sub/UploadImg [post]
 func (h *subHandler) ChangePhoto(c *gin.Context) {
 	header, err := c.FormFile("image")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка загрузки изображения"})
+		utils.BadRequest(c, "Image upload failed")
 		return
 	}
 
 	url, err := h.imgService.UploadImg(c.Request.Context(), header, "photos")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.InternalError(c, err.Error())
 		return
 	}
 

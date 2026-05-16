@@ -11,6 +11,8 @@ import (
 	"friendship/repository"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
@@ -209,20 +211,75 @@ func HasCoreSchemaTables(db repository.PostgresRepository) (bool, error) {
 }
 
 func HasPendingJoinRequestUniqueIndex(db repository.PostgresRepository) (bool, error) {
-	var exists bool
+	var indexes []pendingJoinRequestIndexContract
 	err := db.Raw(
-		`SELECT EXISTS (
-			SELECT 1
-			FROM pg_indexes
-			WHERE schemaname = 'public'
-			  AND indexname = 'idx_group_join_request_pending_unique'
-		)`,
-	).Scan(&exists).Error
+		`SELECT
+			idx.indisunique AS is_unique,
+			COALESCE(pg_get_expr(idx.indpred, idx.indrelid), '') AS predicate,
+			COALESCE(string_agg(att.attname, ',' ORDER BY ord.ordinality), '') AS columns
+		FROM pg_index idx
+		JOIN pg_class tbl ON tbl.oid = idx.indrelid
+		JOIN pg_namespace ns ON ns.oid = tbl.relnamespace
+		JOIN LATERAL unnest(idx.indkey) WITH ORDINALITY AS ord(attnum, ordinality) ON TRUE
+		JOIN pg_attribute att ON att.attrelid = idx.indrelid AND att.attnum = ord.attnum
+		WHERE ns.nspname = 'public'
+		  AND tbl.relname = 'group_join_requests'
+		GROUP BY idx.indexrelid, idx.indisunique, idx.indpred, idx.indrelid`,
+	).Scan(&indexes).Error
 	if err != nil {
 		return false, err
 	}
 
-	return exists, nil
+	for _, index := range indexes {
+		if matchesPendingJoinRequestUniqueIndexContract(index) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+type pendingJoinRequestIndexContract struct {
+	IsUnique  bool   `gorm:"column:is_unique"`
+	Predicate string `gorm:"column:predicate"`
+	Columns   string `gorm:"column:columns"`
+}
+
+var indexPredicateWhitespace = regexp.MustCompile(`\s+`)
+
+func matchesPendingJoinRequestUniqueIndexContract(index pendingJoinRequestIndexContract) bool {
+	return index.IsUnique &&
+		hasPendingJoinRequestIndexColumns(index.Columns) &&
+		hasPendingJoinRequestIndexPredicate(index.Predicate)
+}
+
+func hasPendingJoinRequestIndexColumns(columns string) bool {
+	parts := strings.Split(columns, ",")
+	for i := range parts {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
+
+	return slices.Equal(parts, []string{"user_id", "group_id"})
+}
+
+func hasPendingJoinRequestIndexPredicate(predicate string) bool {
+	normalized := normalizeIndexPredicate(predicate)
+	return normalized == "status = 'pending'"
+}
+
+func normalizeIndexPredicate(predicate string) string {
+	normalized := strings.ToLower(strings.TrimSpace(predicate))
+	normalized = strings.ReplaceAll(normalized, `"`, "")
+	normalized = strings.ReplaceAll(normalized, "::text", "")
+	normalized = strings.ReplaceAll(normalized, "::character varying", "")
+	normalized = strings.ReplaceAll(normalized, "=", " = ")
+	normalized = indexPredicateWhitespace.ReplaceAllString(normalized, " ")
+
+	for strings.HasPrefix(normalized, "(") && strings.HasSuffix(normalized, ")") {
+		normalized = strings.TrimSpace(normalized[1 : len(normalized)-1])
+	}
+
+	return normalized
 }
 
 func bootstrapRegistrationTableNames() ([]string, error) {
