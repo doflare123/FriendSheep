@@ -8,7 +8,7 @@ type AdminGroupResponse struct {
 	Image            *string   `json:"image"`
 	Type             *string   `json:"type"`
 	SmallDescription *string   `json:"small_description"`
-	Category         []*string `json:"category"`
+	Category         []*string `json:"category" gorm:"-"`
 	MemberCount      *int64    `json:"member_count"`
 	Role             string    `json:"role_in_group"`
 }
