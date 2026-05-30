@@ -81,7 +81,7 @@ func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error
 
 		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
 		if err != nil {
-			return fmt.Errorf("роль member не найдена")
+			return ErrRoleMemberNotFound
 		}
 
 		member := groups.GroupUsers{
@@ -101,20 +101,20 @@ func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to join group", "userID", userID, "groupID", groupID, "error", err)
+		s.logger.Error("Не удалось вступить в группу", "userID", userID, "groupID", groupID, "error", err)
 		return nil, err
 	}
 
 	// Приватная группа - создаем заявку
 	if group.IsPrivate {
-		s.logger.Info("Join request created", "userID", userID, "groupID", groupID)
+		s.logger.Info("Создана заявка на вступление", "userID", userID, "groupID", groupID)
 		return &GroupResult{
 			Message: "Заявка на вступление отправлена, ожидайте подтверждения от администратора группы",
 			Joined:  false,
 		}, nil
 	}
 
-	s.logger.Info("User joined group", "userID", userID, "groupID", groupID)
+	s.logger.Info("Пользователь вступил в группу", "userID", userID, "groupID", groupID)
 	return &GroupResult{
 		Message: "Вы успешно присоединились к группе",
 		Joined:  true,
@@ -162,11 +162,11 @@ func (s *groupService) LeaveGroup(userID uint, groupID uint) (bool, error) {
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to leave group", "userID", userID, "groupID", groupID, "error", err)
+		s.logger.Error("Не удалось выйти из группы", "userID", userID, "groupID", groupID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("User left group", "userID", userID, "groupID", groupID)
+	s.logger.Info("Пользователь вышел из группы", "userID", userID, "groupID", groupID)
 	return true, nil
 }
 
@@ -214,7 +214,7 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 
 		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
 		if err != nil {
-			return fmt.Errorf("роль member не найдена")
+			return ErrRoleMemberNotFound
 		}
 
 		isMember, err := groupMembershipExists(tx, userID, invite.GroupID)
@@ -244,7 +244,7 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 				return err
 			}
 			if !isMember {
-				return fmt.Errorf("членство пользователя в группе не подтверждено после accept invite")
+				return fmt.Errorf("членство пользователя в группе не подтверждено после принятия приглашения")
 			}
 		}
 
@@ -257,11 +257,11 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to accept invite", "userID", userID, "inviteID", inviteID, "error", err)
+		s.logger.Error("Не удалось принять приглашение", "userID", userID, "inviteID", inviteID, "error", err)
 		return nil, err
 	}
 
-	s.logger.Info("Accepted join invite", "userID", userID, "inviteID", inviteID)
+	s.logger.Info("Приглашение в группу принято", "userID", userID, "inviteID", inviteID)
 	return &GroupResult{
 		Message: "Вы успешно приняли приглашение и присоединились к группе",
 		Joined:  true,
@@ -306,10 +306,10 @@ func (s *groupService) RejectJoinInvite(userID uint, inviteID uint) (bool, error
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to reject invite", "userID", userID, "inviteID", inviteID, "error", err)
+		s.logger.Error("Не удалось отклонить приглашение", "userID", userID, "inviteID", inviteID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("Rejected join invite", "userID", userID, "inviteID", inviteID)
+	s.logger.Info("Приглашение в группу отклонено", "userID", userID, "inviteID", inviteID)
 	return true, nil
 }

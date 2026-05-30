@@ -112,18 +112,18 @@ func (s *eventsService) KickUserFromEvent(actorID uint, eventID uint, targetUser
 		action := fmt.Sprintf("Исключил пользователя '%s' (@%s) из события '%s' (ID: %d)",
 			targetUser.Name, targetUser.Us, event.Title, event.ID)
 		if err := s.logGroupAction(tx, event.GroupID, actorID, actor.Name, actor.Us, role, "kick_from_event", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to kick user from event", "eventID", eventID, "userID", targetUserID, "error", err)
+		s.logger.Error("Не удалось исключить пользователя из события", "eventID", eventID, "userID", targetUserID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("User kicked from event", "eventID", eventID, "kickedUserID", targetUserID, "actorID", actorID)
+	s.logger.Info("Пользователь исключен из события", "eventID", eventID, "kickedUserID", targetUserID, "actorID", actorID)
 	return true, nil
 }
 
@@ -216,14 +216,14 @@ func (s *eventsService) CreateEvent(actorID uint, input CreateEventInput) (*dto.
 
 		action := fmt.Sprintf("Создал событие '%s' (ID: %d)", event.Title, event.ID)
 		if err := s.logGroupAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, "create_event", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to create event", "error", err)
+		s.logger.Error("Не удалось создать событие", "error", err)
 		return nil, err
 	}
 
@@ -240,7 +240,7 @@ func (s *eventsService) CreateEvent(actorID uint, input CreateEventInput) (*dto.
 		return nil, fmt.Errorf("ошибка загрузки события: %w", err)
 	}
 
-	s.logger.Info("Event created successfully", "eventID", event.ID, "groupID", input.GroupID)
+	s.logger.Info("Событие успешно создано", "eventID", event.ID, "groupID", input.GroupID)
 
 	return convertorsdto.ConvertToFullDto(&event, actorID, false), nil
 }
@@ -375,14 +375,14 @@ func (s *eventsService) UpdateEvent(actorID uint, eventID uint, input UpdateEven
 
 		action := fmt.Sprintf("Обновил событие '%s' (ID: %d)", event.Title, event.ID)
 		if err := s.logGroupAction(tx, event.GroupID, actorID, actor.Name, actor.Us, role, "update_event", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to update event", "eventID", eventID, "error", err)
+		s.logger.Error("Не удалось обновить событие", "eventID", eventID, "error", err)
 		return nil, err
 	}
 
@@ -399,7 +399,7 @@ func (s *eventsService) UpdateEvent(actorID uint, eventID uint, input UpdateEven
 		return nil, fmt.Errorf("ошибка загрузки события: %w", err)
 	}
 
-	s.logger.Info("Event updated successfully", "eventID", eventID)
+	s.logger.Info("Событие успешно обновлено", "eventID", eventID)
 
 	return convertorsdto.ConvertToFullDto(&event, actorID, false), nil
 }
@@ -443,17 +443,17 @@ func (s *eventsService) DeleteEvent(actorID uint, eventID uint) (bool, error) {
 
 		action := fmt.Sprintf("Удалил событие '%s' (ID: %d)", event.Title, event.ID)
 		if err := s.logGroupAction(tx, event.GroupID, actorID, actor.Name, actor.Us, role, "delete_event", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to delete event", "eventID", eventID, "error", err)
+		s.logger.Error("Не удалось удалить событие", "eventID", eventID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("Event deleted successfully", "eventID", eventID)
+	s.logger.Info("Событие успешно удалено", "eventID", eventID)
 	return true, nil
 }

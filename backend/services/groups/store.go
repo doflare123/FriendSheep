@@ -56,7 +56,7 @@ func newGroupTransactionRunner(store interface{}) groupTransactionRunner {
 	transactor, ok := store.(groupRepositoryTransactor)
 	if !ok {
 		return groupUnsupportedTransactionRunner{
-			err: errors.New("group service store does not support transactions"),
+			err: errors.New("хранилище сервиса групп не поддерживает транзакции"),
 		}
 	}
 

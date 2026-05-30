@@ -17,23 +17,27 @@ import (
 )
 
 var (
-	ErrUserNotFound         = errors.New("пользователь не найден")
-	ErrCategoriesNotFound   = errors.New("категории не найдены")
-	ErrInvalidInput         = errors.New("невалидная структура данных")
-	ErrGroupCreation        = errors.New("ошибка создания группы")
-	ErrGroupNotFound        = errors.New("группа не найдена")
-	ErrPermissionDenied     = errors.New("недостаточно прав")
-	ErrAlreadyInGroup       = errors.New("пользователь уже в группе")
-	ErrNotInGroup           = errors.New("пользователь не в группе")
-	ErrRequestAlreadyExists = errors.New("заявка уже существует")
-	ErrJoinRequestNotFound  = errors.New("заявка не найдена")
-	ErrInviteAlreadyExists  = errors.New("приглашение уже существует")
-	ErrUserInBlacklist      = errors.New("пользователь в черном списке")
-	ErrInviteNotFound       = errors.New("приглашение не найдено")
-	ErrInviteNotOwned       = errors.New("приглашение не принадлежит пользователю")
-	ErrInviteAlreadyHandled = errors.New("приглашение уже обработано")
-	ErrCannotRemoveSelf     = errors.New("нельзя удалить самого себя")
-	ErrCannotChangeOwnRole  = errors.New("нельзя изменить собственную роль")
+	ErrUserNotFound          = errors.New("пользователь не найден")
+	ErrCategoriesNotFound    = errors.New("категории не найдены")
+	ErrInvalidInput          = errors.New("невалидная структура данных")
+	ErrGroupCreation         = errors.New("ошибка создания группы")
+	ErrGroupNotFound         = errors.New("группа не найдена")
+	ErrPermissionDenied      = errors.New("недостаточно прав")
+	ErrAlreadyInGroup        = errors.New("пользователь уже в группе")
+	ErrNotInGroup            = errors.New("пользователь не в группе")
+	ErrRequestAlreadyExists  = errors.New("заявка уже существует")
+	ErrJoinRequestNotFound   = errors.New("заявка не найдена")
+	ErrInviteAlreadyExists   = errors.New("приглашение уже существует")
+	ErrUserInBlacklist       = errors.New("пользователь в черном списке")
+	ErrInviteNotFound        = errors.New("приглашение не найдено")
+	ErrInviteNotOwned        = errors.New("приглашение не принадлежит пользователю")
+	ErrInviteAlreadyHandled  = errors.New("приглашение уже обработано")
+	ErrCannotRemoveSelf      = errors.New("нельзя удалить самого себя")
+	ErrCannotChangeOwnRole   = errors.New("нельзя изменить собственную роль")
+	ErrRoleAdminNotFound     = errors.New("роль администратора не найдена")
+	ErrRoleModeratorNotFound = errors.New("роль модератора не найдена")
+	ErrRoleMemberNotFound    = errors.New("роль участника не найдена")
+	ErrJoinRequestHandled    = errors.New("заявка уже обработана")
 )
 
 type CreateGroupInput struct {
@@ -201,7 +205,7 @@ func (s *groupService) GetGroupDetails(userID uint, groupID uint) (*dto.GroupFul
 		Find(&groupUsers).Error
 
 	if err != nil {
-		s.logger.Error("Failed to fetch group members", "groupID", groupID, "error", err)
+		s.logger.Error("Не удалось получить участников группы", "groupID", groupID, "error", err)
 		return nil, fmt.Errorf("ошибка получения участников: %w", err)
 	}
 
@@ -229,7 +233,7 @@ func (s *groupService) GetGroupDetails(userID uint, groupID uint) (*dto.GroupFul
 		Find(&activeEvents).Error
 
 	if err != nil {
-		s.logger.Error("Failed to fetch group events", "groupID", groupID, "error", err)
+		s.logger.Error("Не удалось получить события группы", "groupID", groupID, "error", err)
 		activeEvents = []events.Event{}
 	}
 
@@ -302,7 +306,7 @@ func (s *groupService) GetGroupDetails(userID uint, groupID uint) (*dto.GroupFul
 // CreateGroup создает новую группу
 func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupFullDto, error) {
 	if err := services.ValidateInput(input); err != nil {
-		return nil, fmt.Errorf("невалидная структура данных: %v", err)
+		return nil, fmt.Errorf("невалидная структура данных: %w", err)
 	}
 
 	var contacts map[string]string
@@ -313,22 +317,22 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 	var creator models.User
 	if err := s.post.First(&creator, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			s.logger.Error("Creator not found", "Id", id)
+			s.logger.Error("Создатель группы не найден", "Id", id)
 			return nil, fmt.Errorf("%w: %d", ErrUserNotFound, id)
 		}
-		s.logger.Error("Database error while finding creator", "Id", id, "error", err)
+		s.logger.Error("Ошибка БД при поиске создателя", "Id", id, "error", err)
 		return nil, fmt.Errorf("ошибка поиска пользователя: %w", err)
 	}
 
 	var categories []models.Category
 	if len(input.Categories) > 0 {
 		if err := s.post.Where("id IN ?", input.Categories).Find(&categories).Error; err != nil {
-			s.logger.Error("Error loading categories", "categoryIDs", input.Categories, "error", err)
+			s.logger.Error("Ошибка загрузки категорий", "categoryIDs", input.Categories, "error", err)
 			return nil, fmt.Errorf("%w: %v", ErrCategoriesNotFound, err)
 		}
 
 		if len(categories) != len(input.Categories) {
-			s.logger.Warn("Not all categories found", "requested", len(input.Categories), "found", len(categories))
+			s.logger.Warn("Найдены не все запрошенные категории", "requested", len(input.Categories), "found", len(categories))
 			return nil, ErrCategoriesNotFound
 		}
 	}
@@ -352,7 +356,7 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 
 		roleID, err := findGroupRoleID(tx, groups.RoleAdmin)
 		if err != nil {
-			return fmt.Errorf("роль Админ не найдена")
+			return ErrRoleAdminNotFound
 		}
 
 		groupUser := groups.GroupUsers{
@@ -387,14 +391,14 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 		// Логируем действие
 		action := fmt.Sprintf("Создал группу '%s'", newGroup.Name)
 		if err := s.logAction(tx, newGroup.ID, id, creator.Name, creator.Us, groups.RoleAdmin, "create_group", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Transaction failed during group creation", "error", err)
+		s.logger.Error("Транзакция создания группы завершилась с ошибкой", "error", err)
 		return nil, fmt.Errorf("%w: %v", ErrGroupCreation, err)
 	}
 
@@ -403,14 +407,14 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 		Preload("Contacts").
 		Preload("Creater").
 		First(newGroup, newGroup.ID).Error; err != nil {
-		s.logger.Warn("Failed to reload group with associations", "groupID", newGroup.ID, "error", err)
+		s.logger.Warn("Не удалось перезагрузить группу с ассоциациями", "groupID", newGroup.ID, "error", err)
 	}
 
-	s.logger.Info("Group created successfully", "groupID", newGroup.ID, "name", newGroup.Name, "creatorID", creator.ID)
+	s.logger.Info("Группа успешно создана", "groupID", newGroup.ID, "name", newGroup.Name, "creatorID", creator.ID)
 
 	groupDto, err := s.GetGroupDetails(id, newGroup.ID)
 	if err != nil {
-		s.logger.Error("Failed to build full group dto after creation", "groupID", newGroup.ID, "error", err)
+		s.logger.Error("Не удалось сформировать полный DTO группы после создания", "groupID", newGroup.ID, "error", err)
 		return nil, fmt.Errorf("ошибка формирования данных группы: %w", err)
 	}
 
@@ -500,14 +504,14 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 		// Логируем действие
 		action := fmt.Sprintf("Обновил информацию группы '%s'", group.Name)
 		if err := s.logAction(tx, group.ID, actorID, actor.Name, actor.Us, role, "update_group", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to update group", "groupID", input.GroupID, "error", err)
+		s.logger.Error("Не удалось обновить группу", "groupID", input.GroupID, "error", err)
 		return nil, err
 	}
 
@@ -516,14 +520,14 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 		Preload("Contacts").
 		Preload("Creater").
 		First(&group, group.ID).Error; err != nil {
-		s.logger.Warn("Failed to reload group with associations", "groupID", group.ID, "error", err)
+		s.logger.Warn("Не удалось перезагрузить группу с ассоциациями", "groupID", group.ID, "error", err)
 	}
 
-	s.logger.Info("Group updated successfully", "groupID", group.ID, "actorID", actorID)
+	s.logger.Info("Группа успешно обновлена", "groupID", group.ID, "actorID", actorID)
 
 	groupDto, err := s.GetGroupDetails(actorID, group.ID)
 	if err != nil {
-		s.logger.Error("Failed to build full group dto after update", "groupID", group.ID, "error", err)
+		s.logger.Error("Не удалось сформировать полный DTO группы после обновления", "groupID", group.ID, "error", err)
 		return nil, fmt.Errorf("ошибка формирования данных группы: %w", err)
 	}
 
@@ -564,11 +568,11 @@ func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to delete group", "groupID", groupID, "error", err)
+		s.logger.Error("Не удалось удалить группу", "groupID", groupID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("Group deleted successfully", "groupID", groupID, "actorID", actorID, "role", role)
+	s.logger.Info("Группа успешно удалена", "groupID", groupID, "actorID", actorID, "role", role)
 	return true, nil
 }
 
@@ -613,7 +617,7 @@ func (s *groupService) AddPermissions(actorID uint, input PermissionInput) (bool
 
 		operatorRoleID, err := findGroupRoleID(tx, groups.RoleModerator)
 		if err != nil {
-			return fmt.Errorf("роль Модератор не найдена")
+			return ErrRoleModeratorNotFound
 		}
 
 		if err := tx.Model(&groupUser).Update("role_in_group_id", operatorRoleID).Error; err != nil {
@@ -623,18 +627,18 @@ func (s *groupService) AddPermissions(actorID uint, input PermissionInput) (bool
 		// Логируем действие
 		action := fmt.Sprintf("Назначил пользователя '%s' (@%s) оператором группы", targetUser.Name, targetUser.Us)
 		if err := s.logAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, "add_operator", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to add permissions", "actorID", actorID, "targetUserID", input.UserID, "error", err)
+		s.logger.Error("Не удалось добавить права", "actorID", actorID, "targetUserID", input.UserID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("Added operator permissions", "actorID", actorID, "targetUserID", input.UserID, "groupID", input.GroupID)
+	s.logger.Info("Права модератора выданы", "actorID", actorID, "targetUserID", input.UserID, "groupID", input.GroupID)
 	return true, nil
 }
 
@@ -679,7 +683,7 @@ func (s *groupService) RemovePermissions(actorID uint, input PermissionInput) (b
 
 		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
 		if err != nil {
-			return fmt.Errorf("роль Участник не найдена")
+			return ErrRoleMemberNotFound
 		}
 
 		if err := tx.Model(&groupUser).Update("role_in_group_id", memberRoleID).Error; err != nil {
@@ -689,18 +693,18 @@ func (s *groupService) RemovePermissions(actorID uint, input PermissionInput) (b
 		// Логируем действие
 		action := fmt.Sprintf("Снял с пользователя '%s' (@%s) права оператора", targetUser.Name, targetUser.Us)
 		if err := s.logAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, "remove_operator", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to remove permissions", "actorID", actorID, "targetUserID", input.UserID, "error", err)
+		s.logger.Error("Не удалось снять права", "actorID", actorID, "targetUserID", input.UserID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("Removed operator permissions", "actorID", actorID, "targetUserID", input.UserID, "groupID", input.GroupID)
+	s.logger.Info("Права модератора сняты", "actorID", actorID, "targetUserID", input.UserID, "groupID", input.GroupID)
 	return true, nil
 }
 
@@ -771,18 +775,18 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 		// Логируем действие
 		action := fmt.Sprintf("Удалил пользователя '%s' (@%s) из группы и добавил в черный список", targetUser.Name, targetUser.Us)
 		if err := s.logAction(tx, groupID, actorID, actor.Name, actor.Us, role, "ban_user", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to delete user from group", "actorID", actorID, "targetUserID", targetUserID, "error", err)
+		s.logger.Error("Не удалось удалить пользователя из группы", "actorID", actorID, "targetUserID", targetUserID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("Deleted user from group and added to blacklist", "actorID", actorID, "targetUserID", targetUserID, "groupID", groupID)
+	s.logger.Info("Пользователь удален из группы и добавлен в черный список", "actorID", actorID, "targetUserID", targetUserID, "groupID", groupID)
 	return true, nil
 }
 
@@ -825,18 +829,18 @@ func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUse
 		// Логируем действие
 		action := fmt.Sprintf("Убрал пользователя '%s' (@%s) из черного списка", targetUser.Name, targetUser.Us)
 		if err := s.logAction(tx, groupID, actorID, actor.Name, actor.Us, role, "unban_user", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to remove from blacklist", "actorID", actorID, "targetUserID", targetUserID, "error", err)
+		s.logger.Error("Не удалось убрать пользователя из черного списка", "actorID", actorID, "targetUserID", targetUserID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("Removed from blacklist", "actorID", actorID, "targetUserID", targetUserID, "groupID", groupID)
+	s.logger.Info("Пользователь убран из черного списка", "actorID", actorID, "targetUserID", targetUserID, "groupID", groupID)
 	return true, nil
 }
 
@@ -866,7 +870,7 @@ func (s *groupService) WatchRecentActions(userID uint, groupID uint, limit int) 
 		Find(&actions).Error
 
 	if err != nil {
-		s.logger.Error("Failed to fetch group actions", "groupID", groupID, "error", err)
+		s.logger.Error("Не удалось получить историю действий группы", "groupID", groupID, "error", err)
 		return nil, fmt.Errorf("ошибка получения истории действий: %w", err)
 	}
 
@@ -878,9 +882,6 @@ func (s *groupService) WatchRecentActions(userID uint, groupID uint, limit int) 
 // checkGroupAccess проверяет, имеет ли пользователь доступ к группе с нужной ролью
 func (s *groupService) checkGroupAccess(userID uint, groupID uint, required groups.Capability) (bool, string, error) {
 	var groupUser groups.GroupUsers
-	if userID != 0 || groupID != 0 {
-		s.logger.Info("Тут прикол?", "Пользователь", userID, "Группа", groupID)
-	}
 	err := s.post.
 		Preload("RoleInGroup").
 		Where("user_id = ? AND group_id = ?", userID, groupID).
@@ -933,7 +934,7 @@ func (s *groupService) GetGroupBlacklist(actorID uint, groupID uint, limit int) 
 		Find(&blacklist).Error
 
 	if err != nil {
-		s.logger.Error("Failed to fetch blacklist", "groupID", groupID, "error", err)
+		s.logger.Error("Не удалось получить черный список", "groupID", groupID, "error", err)
 		return nil, fmt.Errorf("ошибка получения черного списка: %w", err)
 	}
 
@@ -959,7 +960,7 @@ func (s *groupService) GetGroupBlacklist(actorID uint, groupID uint, limit int) 
 func updateContactsInTx(tx groupTx, groupID *uint, newContacts map[string]string) error {
 	var existingContacts []groups.GroupContact
 	if err := tx.Where("group_id = ?", groupID).Find(&existingContacts).Error; err != nil {
-		return fmt.Errorf("ошибка получения существующих контактов: %v", err)
+		return fmt.Errorf("ошибка получения существующих контактов: %w", err)
 	}
 
 	existingMap := make(map[string]groups.GroupContact)
@@ -973,7 +974,7 @@ func updateContactsInTx(tx groupTx, groupID *uint, newContacts map[string]string
 		if existingContact, ok := existingMap[name]; ok {
 			if existingContact.Link != "" && existingContact.Link != link {
 				if err := tx.Model(&existingContact).Update("link", link).Error; err != nil {
-					return fmt.Errorf("ошибка обновления контакта '%s': %v", name, err)
+					return fmt.Errorf("ошибка обновления контакта '%s': %w", name, err)
 				}
 			}
 			delete(existingMap, name)
@@ -984,7 +985,7 @@ func updateContactsInTx(tx groupTx, groupID *uint, newContacts map[string]string
 				Link:    link,
 			}
 			if err := tx.Create(&newContact).Error; err != nil {
-				return fmt.Errorf("ошибка добавления контакта '%s': %v", name, err)
+				return fmt.Errorf("ошибка добавления контакта '%s': %w", name, err)
 			}
 		}
 	}
@@ -995,7 +996,7 @@ func updateContactsInTx(tx groupTx, groupID *uint, newContacts map[string]string
 			if contactToDelete.Name != "" {
 				contactName = contactToDelete.Name
 			}
-			return fmt.Errorf("ошибка удаления старого контакта '%s': %v", contactName, err)
+			return fmt.Errorf("ошибка удаления старого контакта '%s': %w", contactName, err)
 		}
 	}
 

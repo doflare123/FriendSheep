@@ -97,7 +97,7 @@ func (s *eventsService) GetGroupEvents(actorID uint, groupID uint) ([]dto.EventS
 		Find(&events).Error
 
 	if err != nil {
-		s.logger.Error("Failed to fetch group events", "groupID", groupID, "error", err)
+		s.logger.Error("Не удалось получить события группы", "groupID", groupID, "error", err)
 		return nil, fmt.Errorf("ошибка получения событий: %w", err)
 	}
 
@@ -200,11 +200,11 @@ func (s *eventsService) JoinEvent(userID uint, eventID uint) (bool, error) {
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to join event", "eventID", eventID, "userID", userID, "error", err)
+		s.logger.Error("Не удалось вступить в событие", "eventID", eventID, "userID", userID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("User joined event", "eventID", eventID, "userID", userID)
+	s.logger.Info("Пользователь вступил в событие", "eventID", eventID, "userID", userID)
 	return true, nil
 }
 
@@ -247,11 +247,11 @@ func (s *eventsService) LeaveEvent(userID uint, eventID uint) (bool, error) {
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to leave event", "eventID", eventID, "userID", userID, "error", err)
+		s.logger.Error("Не удалось покинуть событие", "eventID", eventID, "userID", userID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("User left event", "eventID", eventID, "userID", userID)
+	s.logger.Info("Пользователь покинул событие", "eventID", eventID, "userID", userID)
 	return true, nil
 }
 
@@ -260,7 +260,7 @@ func (s *eventsService) GetAllGenres() ([]dto.ReferenceItemDto, error) {
 	var genres []events.Genre
 
 	if err := s.repo.Order("name ASC").Find(&genres).Error; err != nil {
-		s.logger.Error("Failed to fetch genres", "error", err)
+		s.logger.Error("Не удалось получить жанры", "error", err)
 		return nil, fmt.Errorf("ошибка получения жанров: %w", err)
 	}
 	result := convertorsdto.ConvertGenresToReferenceItems(genres)
@@ -273,21 +273,21 @@ func (s *eventsService) GetAllReferences() (*dto.ReferencesDto, error) {
 	// Получаем типы событий
 	var eventTypes []models.Category
 	if err := s.repo.Order("name ASC").Find(&eventTypes).Error; err != nil {
-		s.logger.Error("Failed to fetch event types", "error", err)
+		s.logger.Error("Не удалось получить типы событий", "error", err)
 		return nil, fmt.Errorf("ошибка получения типов событий: %w", err)
 	}
 
 	// Получаем места проведения
 	var locations []events.EventLocation
 	if err := s.repo.Order("name ASC").Find(&locations).Error; err != nil {
-		s.logger.Error("Failed to fetch locations", "error", err)
+		s.logger.Error("Не удалось получить места проведения", "error", err)
 		return nil, fmt.Errorf("ошибка получения мест проведения: %w", err)
 	}
 
 	// Получаем возрастные ограничения
 	var ageLimits []events.AgeLimit
 	if err := s.repo.Order("id ASC").Find(&ageLimits).Error; err != nil {
-		s.logger.Error("Failed to fetch age limits", "error", err)
+		s.logger.Error("Не удалось получить возрастные ограничения", "error", err)
 		return nil, fmt.Errorf("ошибка получения возрастных ограничений: %w", err)
 	}
 
@@ -299,20 +299,20 @@ func (s *eventsService) GetAllReferences() (*dto.ReferencesDto, error) {
 		Group("name").
 		Order("MIN(id) ASC").
 		Find(&statuses).Error; err != nil {
-		s.logger.Error("Failed to fetch statuses", "error", err)
+		s.logger.Error("Не удалось получить статусы", "error", err)
 		return nil, fmt.Errorf("ошибка получения статусов: %w", err)
 	}
 
 	var genres []events.Genre
 	if err := s.repo.Order("name ASC").Find(&genres).Error; err != nil {
-		s.logger.Error("Failed to fetch genres", "error", err)
+		s.logger.Error("Не удалось получить жанры", "error", err)
 		return nil, fmt.Errorf("ошибка получения жанров: %w", err)
 	}
 
 	// Получаем категории групп (одно и тоже что и типы, но мб что-то сломается)
 	var groupCategories []models.Category
 	if err := s.repo.Order("name ASC").Find(&groupCategories).Error; err != nil {
-		s.logger.Error("Failed to fetch group categories", "error", err)
+		s.logger.Error("Не удалось получить категории групп", "error", err)
 		return nil, fmt.Errorf("ошибка получения категорий групп: %w", err)
 	}
 

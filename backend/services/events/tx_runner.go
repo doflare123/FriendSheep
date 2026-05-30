@@ -44,7 +44,7 @@ func newEventsTransactionRunner(store interface{}) eventsTransactionRunner {
 	transactor, ok := store.(eventsRepositoryTransactor)
 	if !ok {
 		return eventsUnsupportedTransactionRunner{
-			err: errors.New("events service store does not support transactions"),
+			err: errors.New("хранилище сервиса событий не поддерживает транзакции"),
 		}
 	}
 

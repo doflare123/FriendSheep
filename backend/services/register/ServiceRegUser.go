@@ -118,13 +118,13 @@ func NewRegisterSrvWithEmailSender(
 func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dto.AuthResponse, error) {
 	sess, err := s.redis.GetSession(ctx, input.SessionID)
 	if err != nil {
-		s.logger.Error("Failed to get session", "sessionID", input.SessionID, "error", err)
+		s.logger.Error("Не удалось получить сессию", "sessionID", input.SessionID, "error", err)
 		return nil, mapRegisterSessionLookupError(err)
 	}
 
 	boundEmail, err := validateVerifiedSessionBinding(sess, models.SessionTypeRegister, input.Email)
 	if err != nil {
-		s.logger.Warn("Session binding mismatch during registration", "sessionID", input.SessionID, "email", input.Email, "error", err)
+		s.logger.Warn("Несовпадение привязки сессии при регистрации", "sessionID", input.SessionID, "email", input.Email, "error", err)
 		return nil, err
 	}
 
@@ -132,7 +132,7 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 
 	hashPass, err := utils.HashPassword(input.Password)
 	if err != nil {
-		s.logger.Error("Failed to hash password", "error", err)
+		s.logger.Error("Не удалось захешировать пароль", "error", err)
 		return nil, fmt.Errorf("ошибка хэширования пароля: %w", err)
 	}
 
@@ -188,22 +188,22 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to create user", "error", err)
+		s.logger.Error("Не удалось создать пользователя", "error", err)
 		return nil, err
 	}
 
 	if err := s.redis.DeleteSession(ctx, input.SessionID); err != nil {
-		s.logger.Warn("Failed to delete session after user creation", "sessionID", input.SessionID, "error", err)
+		s.logger.Warn("Не удалось удалить сессию после создания пользователя", "sessionID", input.SessionID, "error", err)
 	}
 	if err := s.notifier.SendWelcomeEmail(user.Email, user.Name); err != nil {
-		s.logger.Warn("Failed to send welcome email after user creation", "userID", user.ID, "email", user.Email, "error", err)
+		s.logger.Warn("Не удалось отправить приветственное письмо после создания пользователя", "userID", user.ID, "email", user.Email, "error", err)
 	}
 
-	s.logger.Info("User created successfully", "userID", user.ID, "email", user.Email)
+	s.logger.Info("Пользователь успешно создан", "userID", user.ID, "email", user.Email)
 
 	tokenPair, err := s.jwtService.GenerateTokenPair(user.ID, user.Name, user.Us, user.Image)
 	if err != nil {
-		s.logger.Error("Failed to generate tokens after registration", "userID", user.ID, "error", err)
+		s.logger.Error("Не удалось сгенерировать токены после регистрации", "userID", user.ID, "error", err)
 		return nil, fmt.Errorf("пользователь создан, но не удалось сгенерировать токены: %w", err)
 	}
 
@@ -213,7 +213,7 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 		AdminGroups:  []dto.AdminGroupResponse{},
 	}
 
-	s.logger.Info("User auto-logged in after registration", "userID", user.ID)
+	s.logger.Info("Пользователь автоматически авторизован после регистрации", "userID", user.ID)
 
 	return authResponse, nil
 }
@@ -243,7 +243,7 @@ func (s *regService) CreateSessionRegister(ctx context.Context, email, type_ses 
 			},
 		)
 		if err != nil {
-			s.logger.Error("Failed to create session", "email", normalizedEmail, "error", err)
+			s.logger.Error("Не удалось создать сессию", "email", normalizedEmail, "error", err)
 			return nil, fmt.Errorf("не удалось создать сессию: %w", err)
 		}
 	} else {
@@ -258,19 +258,19 @@ func (s *regService) CreateSessionRegister(ctx context.Context, email, type_ses 
 			},
 		)
 		if err != nil {
-			s.logger.Error("Failed to create session", "email", normalizedEmail, "error", err)
+			s.logger.Error("Не удалось создать сессию", "email", normalizedEmail, "error", err)
 			return nil, fmt.Errorf("не удалось создать сессию: %w", err)
 		}
 	}
 
 	if err := s.notifier.SendVerificationEmail(normalizedEmail, code, type_ses); err != nil {
 		if deleteErr := s.redis.DeleteSession(ctx, sessionID); deleteErr != nil {
-			s.logger.Warn("Failed to delete session after email send error", "sessionID", sessionID, "error", deleteErr)
+			s.logger.Warn("Не удалось удалить сессию после ошибки отправки письма", "sessionID", sessionID, "error", deleteErr)
 		}
 		return nil, fmt.Errorf("не удалось отправить письмо подтверждения: %w", err)
 	}
 
-	s.logger.Info("Registration session created", "sessionID", sessionID, "email", normalizedEmail)
+	s.logger.Info("Сессия регистрации создана", "sessionID", sessionID, "email", normalizedEmail)
 	return &models.SessionRegResponse{SessionID: sessionID}, nil
 }
 
@@ -310,11 +310,11 @@ func (s *templateRegistrationEmailSender) SendVerificationEmail(userEmail, code,
 
 	subject := email.GetSubject(templateType, "")
 	if err := utils.SendEmail(userEmail, subject, body, s.cfg); err != nil {
-		s.logger.Error("Failed to send verification email", "email", userEmail, "error", err)
+		s.logger.Error("Не удалось отправить письмо с кодом подтверждения", "email", userEmail, "error", err)
 		return err
 	}
 
-	s.logger.Info("Verification email sent", "email", userEmail, "type", actionType)
+	s.logger.Info("Письмо с кодом подтверждения отправлено", "email", userEmail, "type", actionType)
 	return nil
 }
 
@@ -332,11 +332,11 @@ func (s *templateRegistrationEmailSender) SendWelcomeEmail(userEmail, userName s
 
 	subject := email.GetSubject(email.TemplateWelcome, "")
 	if err := utils.SendEmail(userEmail, subject, body, s.cfg); err != nil {
-		s.logger.Error("Failed to send welcome email", "email", userEmail, "error", err)
+		s.logger.Error("Не удалось отправить приветственное письмо", "email", userEmail, "error", err)
 		return err
 	}
 
-	s.logger.Info("Welcome email sent", "email", userEmail)
+	s.logger.Info("Приветственное письмо отправлено", "email", userEmail)
 	return nil
 }
 
@@ -344,22 +344,22 @@ func (s *regService) VerifySession(ctx context.Context, input VerifySessionInput
 	sess, err := s.redis.GetSession(ctx, input.SessionID)
 	if err != nil {
 		if errors.Is(err, session.ErrSessionNotFound) {
-			s.logger.Warn("Session not found", "sessionID", input.SessionID)
+			s.logger.Warn("Сессия не найдена", "sessionID", input.SessionID)
 			return false, ErrSessionNotFound
 		}
-		s.logger.Error("Failed to get session", "sessionID", input.SessionID, "error", err)
+		s.logger.Error("Не удалось получить сессию", "sessionID", input.SessionID, "error", err)
 		return false, err
 	}
 
 	if string(sess.Type) != input.Type {
-		s.logger.Warn("Session type mismatch", "sessionID", input.SessionID, "expected", input.Type, "actual", sess.Type)
+		s.logger.Warn("Несовпадение типа сессии", "sessionID", input.SessionID, "expected", input.Type, "actual", sess.Type)
 		return false, ErrSessionTypeMismatch
 	}
 
 	if sess.Attempts >= 3 {
-		s.logger.Warn("Too many attempts, deleting session", "sessionID", input.SessionID)
+		s.logger.Warn("Превышено число попыток, удаляем сессию", "sessionID", input.SessionID)
 		if err := s.redis.DeleteSession(ctx, input.SessionID); err != nil {
-			s.logger.Error("Failed to delete session after too many attempts", "sessionID", input.SessionID, "error", err)
+			s.logger.Error("Не удалось удалить сессию после превышения числа попыток", "sessionID", input.SessionID, "error", err)
 		}
 		return false, ErrTooManyAttempts
 	}
@@ -367,15 +367,15 @@ func (s *regService) VerifySession(ctx context.Context, input VerifySessionInput
 	if sess.Code != input.Code {
 		attempts, err := s.redis.IncrementAttempts(ctx, input.SessionID)
 		if err != nil {
-			s.logger.Error("Failed to increment attempts", "sessionID", input.SessionID, "error", err)
+			s.logger.Error("Не удалось увеличить счетчик попыток", "sessionID", input.SessionID, "error", err)
 			return false, err
 		}
 
-		s.logger.Warn("Invalid code", "sessionID", input.SessionID, "attempts", attempts)
+		s.logger.Warn("Неверный код", "sessionID", input.SessionID, "attempts", attempts)
 
 		if attempts >= 3 {
 			if err := s.redis.DeleteSession(ctx, input.SessionID); err != nil {
-				s.logger.Error("Failed to delete session after last attempt", "sessionID", input.SessionID, "error", err)
+				s.logger.Error("Не удалось удалить сессию после последней попытки", "sessionID", input.SessionID, "error", err)
 			}
 			return false, ErrTooManyAttempts
 		}
@@ -384,53 +384,53 @@ func (s *regService) VerifySession(ctx context.Context, input VerifySessionInput
 	}
 
 	if err := s.redis.MarkAsVerified(ctx, input.SessionID); err != nil {
-		s.logger.Error("Failed to mark session as verified", "sessionID", input.SessionID, "error", err)
+		s.logger.Error("Не удалось пометить сессию как подтвержденную", "sessionID", input.SessionID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("Session verified successfully", "sessionID", input.SessionID)
+	s.logger.Info("Сессия успешно подтверждена", "sessionID", input.SessionID)
 	return true, nil
 }
 
 func (s *regService) ChangePassword(ctx context.Context, input ChangePasswordInput) error {
 	sess, err := s.redis.GetSession(ctx, input.SessionID)
 	if err != nil {
-		s.logger.Error("Failed to get session", "sessionID", input.SessionID, "error", err)
+		s.logger.Error("Не удалось получить сессию", "sessionID", input.SessionID, "error", err)
 		return mapRegisterSessionLookupError(err)
 	}
 
 	boundEmail, err := validateVerifiedSessionBinding(sess, models.SessionTypeResetPassword, input.Email)
 	if err != nil {
-		s.logger.Warn("Session binding mismatch during password reset", "sessionID", input.SessionID, "email", input.Email, "error", err)
+		s.logger.Warn("Несовпадение привязки сессии при смене пароля", "sessionID", input.SessionID, "email", input.Email, "error", err)
 		return err
 	}
 
 	var user models.User
 	if err := s.postgres.Where("email = ?", boundEmail).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			s.logger.Warn("User not found for password change", "email", boundEmail)
+			s.logger.Warn("Пользователь для смены пароля не найден", "email", boundEmail)
 			return ErrUserNotFound
 		}
-		s.logger.Error("Failed to find user", "email", boundEmail, "error", err)
+		s.logger.Error("Не удалось найти пользователя", "email", boundEmail, "error", err)
 		return err
 	}
 
 	hashPass, err := utils.HashPassword(input.NewPassword)
 	if err != nil {
-		s.logger.Error("Failed to hash new password", "error", err)
+		s.logger.Error("Не удалось захешировать новый пароль", "error", err)
 		return fmt.Errorf("ошибка хэширования пароля: %w", err)
 	}
 
 	if err := s.postgres.Model(&user).Update("password", hashPass).Error; err != nil {
-		s.logger.Error("Failed to update user password", "userID", user.ID, "error", err)
+		s.logger.Error("Не удалось обновить пароль пользователя", "userID", user.ID, "error", err)
 		return err
 	}
 
 	if err := s.redis.DeleteSession(ctx, input.SessionID); err != nil {
-		s.logger.Warn("Failed to delete session after password change", "sessionID", input.SessionID, "error", err)
+		s.logger.Warn("Не удалось удалить сессию после смены пароля", "sessionID", input.SessionID, "error", err)
 	}
 
-	s.logger.Info("Password changed successfully", "userID", user.ID, "email", boundEmail)
+	s.logger.Info("Пароль успешно изменен", "userID", user.ID, "email", boundEmail)
 	return nil
 }
 

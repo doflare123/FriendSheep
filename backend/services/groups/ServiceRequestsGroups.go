@@ -44,7 +44,7 @@ func (s *groupService) GetJoinRequests(actorID uint, groupID uint, status string
 		Find(&requests).Error
 
 	if err != nil {
-		s.logger.Error("Failed to fetch join requests", "groupID", groupID, "error", err)
+		s.logger.Error("Не удалось получить заявки на вступление", "groupID", groupID, "error", err)
 		return nil, fmt.Errorf("ошибка получения заявок: %w", err)
 	}
 
@@ -124,18 +124,18 @@ func (s *groupService) CreateJoinInvite(actorID uint, input JoinInviteInput) (bo
 		// Логируем действие
 		action := fmt.Sprintf("Отправил приглашение пользователю '%s' (@%s)", targetUser.Name, targetUser.Us)
 		if err := s.logAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, "send_invite", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to create invite", "actorID", actorID, "targetUserID", input.UserID, "error", err)
+		s.logger.Error("Не удалось создать приглашение", "actorID", actorID, "targetUserID", input.UserID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("Created join invite", "actorID", actorID, "targetUserID", input.UserID, "groupID", input.GroupID)
+	s.logger.Info("Приглашение в группу создано", "actorID", actorID, "targetUserID", input.UserID, "groupID", input.GroupID)
 	return true, nil
 }
 
@@ -166,7 +166,7 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 
 		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
 		if err != nil {
-			return fmt.Errorf("роль member не найдена")
+			return ErrRoleMemberNotFound
 		}
 
 		for _, req := range requests {
@@ -188,13 +188,13 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 				RoleInGroupID: memberRoleID,
 			}
 			if err := tx.Create(&groupUser).Error; err != nil {
-				s.logger.Warn("Failed to add user to group", "userID", req.UserID, "error", err)
+				s.logger.Warn("Не удалось добавить пользователя в группу", "userID", req.UserID, "error", err)
 				continue
 			}
 
 			// Обновляем статус заявки
 			if err := tx.Model(&req).Update("status", "approved").Error; err != nil {
-				s.logger.Warn("Failed to update request status", "requestID", req.ID, "error", err)
+				s.logger.Warn("Не удалось обновить статус заявки", "requestID", req.ID, "error", err)
 			}
 
 			count++
@@ -202,7 +202,7 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 			// Логируем действие
 			action := fmt.Sprintf("Одобрил заявку пользователя '%s' (@%s)", req.User.Name, req.User.Us)
 			if err := s.logAction(tx, groupID, actorID, actor.Name, actor.Us, role, "approve_request", action); err != nil {
-				s.logger.Warn("Failed to log action", "error", err)
+				s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 			}
 		}
 
@@ -210,11 +210,11 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to approve all requests", "groupID", groupID, "error", err)
+		s.logger.Error("Не удалось одобрить все заявки", "groupID", groupID, "error", err)
 		return 0, err
 	}
 
-	s.logger.Info("Approved all join requests", "groupID", groupID, "count", count, "actorID", actorID)
+	s.logger.Info("Все заявки на вступление одобрены", "groupID", groupID, "count", count, "actorID", actorID)
 	return count, nil
 }
 
@@ -249,18 +249,18 @@ func (s *groupService) RejectAllJoinRequests(actorID uint, groupID uint) (int, e
 		// Логируем действие
 		action := fmt.Sprintf("Отклонил все заявки на вступление (%d шт.)", count)
 		if err := s.logAction(tx, groupID, actorID, actor.Name, actor.Us, role, "reject_all_requests", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to reject all requests", "groupID", groupID, "error", err)
+		s.logger.Error("Не удалось отклонить все заявки", "groupID", groupID, "error", err)
 		return 0, err
 	}
 
-	s.logger.Info("Rejected all join requests", "groupID", groupID, "count", count, "actorID", actorID)
+	s.logger.Info("Все заявки на вступление отклонены", "groupID", groupID, "count", count, "actorID", actorID)
 	return count, nil
 }
 
@@ -290,7 +290,7 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 		}
 
 		if request.Status != "pending" {
-			return fmt.Errorf("заявка уже обработана")
+			return ErrJoinRequestHandled
 		}
 
 		// Проверяем черный список
@@ -306,7 +306,7 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 
 		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
 		if err != nil {
-			return fmt.Errorf("роль member не найдена")
+			return ErrRoleMemberNotFound
 		}
 
 		groupUser := groups.GroupUsers{
@@ -325,18 +325,18 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 		// Логируем действие
 		action := fmt.Sprintf("Одобрил заявку пользователя '%s' (@%s)", request.User.Name, request.User.Us)
 		if err := s.logAction(tx, request.GroupID, actorID, actor.Name, actor.Us, role, "approve_request", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to approve request", "requestID", requestID, "error", err)
+		s.logger.Error("Не удалось одобрить заявку", "requestID", requestID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("Approved join request", "requestID", requestID, "actorID", actorID)
+	s.logger.Info("Заявка на вступление одобрена", "requestID", requestID, "actorID", actorID)
 	return true, nil
 }
 
@@ -366,7 +366,7 @@ func (s *groupService) RejectJoinRequest(actorID uint, requestID uint) (bool, er
 		}
 
 		if request.Status != "pending" {
-			return fmt.Errorf("заявка уже обработана")
+			return ErrJoinRequestHandled
 		}
 
 		if err := tx.Model(&request).Update("status", "rejected").Error; err != nil {
@@ -376,17 +376,17 @@ func (s *groupService) RejectJoinRequest(actorID uint, requestID uint) (bool, er
 		// Логируем действие
 		action := fmt.Sprintf("Отклонил заявку пользователя '%s' (@%s)", request.User.Name, request.User.Us)
 		if err := s.logAction(tx, request.GroupID, actorID, actor.Name, actor.Us, role, "reject_request", action); err != nil {
-			s.logger.Warn("Failed to log action", "error", err)
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to reject request", "requestID", requestID, "error", err)
+		s.logger.Error("Не удалось отклонить заявку", "requestID", requestID, "error", err)
 		return false, err
 	}
 
-	s.logger.Info("Rejected join request", "requestID", requestID, "actorID", actorID)
+	s.logger.Info("Заявка на вступление отклонена", "requestID", requestID, "actorID", actorID)
 	return true, nil
 }
