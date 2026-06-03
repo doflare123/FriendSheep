@@ -81,3 +81,32 @@ type CachedPopularEvents struct {
 	UpdatedAt time.Time       `json:"updated_at"`
 	Count     int             `json:"count"`
 }
+
+type EventSearchGroupDto struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+}
+
+type EventSearchItemDto struct {
+	ID                uint                `json:"id"`
+	Title             string              `json:"title"`
+	Group             EventSearchGroupDto `json:"group"`
+	Image             string              `json:"image"`
+	ParticipantsCount uint16              `json:"participantsCount"`
+	MaxUsers          uint16              `json:"maxUsers"`
+	Duration          uint16              `json:"duration"`
+	StartDate         string              `json:"startDate"`
+	EventType         string              `json:"eventType"`
+	LocationType      string              `json:"locationType"`
+	City              string              `json:"city,omitempty"`
+	Genres            []string            `json:"genres"`
+}
+
+type EventSearchResponse struct {
+	Items       []EventSearchItemDto `json:"items"`
+	Total       int64                `json:"total"`
+	Limit       int                  `json:"limit"`
+	CurrentPage int                  `json:"currentPage"`
+	TotalPages  int                  `json:"totalPages"`
+	HasMore     bool                 `json:"hasMore"`
+}

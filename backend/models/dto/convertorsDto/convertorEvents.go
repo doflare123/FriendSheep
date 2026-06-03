@@ -109,3 +109,42 @@ func ConvertManyToShortDto(events []events.Event) []dto.EventShortDto {
 	}
 	return result
 }
+
+func ConvertToSearchItemDto(event *events.Event) *dto.EventSearchItemDto {
+	if event == nil {
+		return nil
+	}
+
+	genres := make([]string, 0, len(event.Genres))
+	for _, g := range event.Genres {
+		genres = append(genres, g.Genre.Name)
+	}
+
+	return &dto.EventSearchItemDto{
+		ID:    event.ID,
+		Title: event.Title,
+		Group: dto.EventSearchGroupDto{
+			ID:   event.Group.ID,
+			Name: event.Group.Name,
+		},
+		Image:             event.ImageURL,
+		ParticipantsCount: event.CurrentUsers,
+		MaxUsers:          event.MaxUsers,
+		Duration:          event.Duration,
+		StartDate:         event.StartTime.Format("2006-01-02"),
+		EventType:         event.EventType.Name,
+		LocationType:      event.EventLocation.Name,
+		City:              event.Group.City,
+		Genres:            genres,
+	}
+}
+
+func ConvertManyToSearchItemDto(events []events.Event) []dto.EventSearchItemDto {
+	result := make([]dto.EventSearchItemDto, 0, len(events))
+	for i := range events {
+		if searchDto := ConvertToSearchItemDto(&events[i]); searchDto != nil {
+			result = append(result, *searchDto)
+		}
+	}
+	return result
+}

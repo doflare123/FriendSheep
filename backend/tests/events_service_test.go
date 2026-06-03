@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"friendship/models"
+	"friendship/models/dto"
 	eventmodels "friendship/models/events"
 	groupmodels "friendship/models/groups"
 	servicesevents "friendship/services/events"
@@ -363,15 +364,17 @@ func TestEventsServiceUpdateEventRecomputesEndTimeReplacesGenresAndWritesActionL
 	oldGenreID := seedEventGenre(t, db, "Old")
 	newGenreID := seedEventGenre(t, db, "New")
 	seedEventGenreRelation(t, db, eventID, oldGenreID)
+	newLocationID := seedEventLocation(t, db, "Online")
 	newStart := time.Now().Add(48 * time.Hour).Truncate(time.Second)
 	newDuration := uint16(180)
 	newTitle := "Updated Event Title"
 
 	eventDTO, err := service.UpdateEvent(1, eventID, servicesevents.UpdateEventInput{
-		Title:     &newTitle,
-		StartTime: &newStart,
-		Duration:  &newDuration,
-		Genres:    []uint{newGenreID},
+		Title:      &newTitle,
+		LocationID: &newLocationID,
+		StartTime:  &newStart,
+		Duration:   &newDuration,
+		Genres:     []uint{newGenreID},
 	})
 
 	if err != nil {
@@ -381,6 +384,7 @@ func TestEventsServiceUpdateEventRecomputesEndTimeReplacesGenresAndWritesActionL
 		t.Fatalf("eventDTO = %#v, want updated title %q", eventDTO, newTitle)
 	}
 	assertEventTiming(t, db, eventID, newStart, newStart.Add(time.Duration(newDuration)*time.Minute), newDuration)
+	assertEventLocation(t, db, eventID, newLocationID)
 	assertEventGenreLinked(t, db, eventID, oldGenreID, false)
 	assertEventGenreLinked(t, db, eventID, newGenreID, true)
 	assertGroupActionLogCount(t, db, groupID, "update_event", 1)
@@ -666,6 +670,126 @@ func TestEventsServiceGetGroupEventsRejectsNonMemberInPrivateGroup(t *testing.T)
 	}
 }
 
+func TestEventsServiceSearchEventsHidesPrivateGroupsFromAnonymousAndAllowsMember(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventsService(&testLogger{}, repo)
+
+	seedEventUser(t, db, 1)
+	seedEventUser(t, db, 2)
+	publicGroupID := seedEventGroup(t, db, 1, false)
+	privateGroupID := seedEventGroup(t, db, 1, true)
+	seedEventGroupMembership(t, db, 2, privateGroupID)
+	publicEventID := seedEvent(t, db, publicGroupID, 1, 1, 5)
+	privateEventID := seedEvent(t, db, privateGroupID, 1, 1, 5)
+
+	anonymousResult, err := service.SearchEvents(0, servicesevents.EventSearchInput{Page: 1, Limit: 20})
+	if err != nil {
+		t.Fatalf("SearchEvents anonymous returned error: %v", err)
+	}
+	if anonymousResult.Total != 1 || len(anonymousResult.Items) != 1 || anonymousResult.Items[0].ID != publicEventID {
+		t.Fatalf("anonymous result = %#v, want only public event %d", anonymousResult, publicEventID)
+	}
+
+	memberResult, err := service.SearchEvents(2, servicesevents.EventSearchInput{Page: 1, Limit: 20})
+	if err != nil {
+		t.Fatalf("SearchEvents member returned error: %v", err)
+	}
+	if memberResult.Total != 2 || len(memberResult.Items) != 2 {
+		t.Fatalf("member result = %#v, want public and private events", memberResult)
+	}
+	assertSearchResultHasEvent(t, memberResult, publicEventID)
+	assertSearchResultHasEvent(t, memberResult, privateEventID)
+}
+
+func TestEventsServiceSearchEventsAppliesFiltersExclusionsAndPagination(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventsService(&testLogger{}, repo)
+
+	seedEventUser(t, db, 1)
+	seedEventReferences(t, db)
+	seedEventCategory(t, db, 2, "Movie")
+	strategyGenreID := seedEventGenre(t, db, "Strategy")
+	horrorGenreID := seedEventGenre(t, db, "Horror")
+
+	groupID := seedEventGroup(t, db, 1, false)
+	setEventGroupCity(t, db, groupID, "Moscow")
+	seedEventGroupCategory(t, db, groupID, 1)
+
+	otherGroupID := seedEventGroup(t, db, 1, false)
+	setEventGroupCity(t, db, otherGroupID, "Kazan")
+	seedEventGroupCategory(t, db, otherGroupID, 2)
+
+	start := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	firstEventID := seedEvent(t, db, groupID, 1, 1, 5)
+	setEventSearchFields(t, db, firstEventID, "First Strategy", start, 1, 1)
+	seedEventGenreRelation(t, db, firstEventID, strategyGenreID)
+
+	secondEventID := seedEvent(t, db, groupID, 1, 1, 5)
+	setEventSearchFields(t, db, secondEventID, "Second Strategy", start.Add(24*time.Hour), 1, 1)
+	seedEventGenreRelation(t, db, secondEventID, strategyGenreID)
+
+	excludedByGenreID := seedEvent(t, db, groupID, 1, 1, 5)
+	setEventSearchFields(t, db, excludedByGenreID, "Horror Event", start.Add(48*time.Hour), 1, 1)
+	seedEventGenreRelation(t, db, excludedByGenreID, horrorGenreID)
+
+	excludedByCategoryID := seedEvent(t, db, otherGroupID, 1, 1, 5)
+	setEventSearchFields(t, db, excludedByCategoryID, "Other City", start.Add(72*time.Hour), 1, 1)
+	seedEventGenreRelation(t, db, excludedByCategoryID, strategyGenreID)
+
+	dateFrom := start.Add(-time.Hour)
+	dateTo := start.Add(25 * time.Hour)
+	result, err := service.SearchEvents(0, servicesevents.EventSearchInput{
+		CategoryIDs:     []uint{1},
+		ExcludeGenreIDs: []uint{horrorGenreID},
+		LocationTypes:   []string{"offline"},
+		City:            "mos",
+		DateFrom:        &dateFrom,
+		DateTo:          &dateTo,
+		Page:            1,
+		Limit:           1,
+	})
+
+	if err != nil {
+		t.Fatalf("SearchEvents returned error: %v", err)
+	}
+	if result.Total != 2 || result.TotalPages != 2 || !result.HasMore || len(result.Items) != 1 {
+		t.Fatalf("result page = %#v, want total=2 totalPages=2 hasMore=true one item", result)
+	}
+	if result.Items[0].ID != firstEventID {
+		t.Fatalf("first page event = %d, want %d", result.Items[0].ID, firstEventID)
+	}
+}
+
+func TestEventsServiceSearchEventsSubscriptionNewsReturnsUnjoinedGroupEvents(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventsService(&testLogger{}, repo)
+
+	seedEventUser(t, db, 1)
+	seedEventUser(t, db, 2)
+	privateGroupID := seedEventGroup(t, db, 1, true)
+	seedEventGroupMembership(t, db, 2, privateGroupID)
+	joinedEventID := seedEvent(t, db, privateGroupID, 1, 1, 5)
+	freshEventID := seedEvent(t, db, privateGroupID, 1, 1, 5)
+	seedEventParticipant(t, db, joinedEventID, 2)
+
+	result, err := service.SearchEvents(2, servicesevents.EventSearchInput{
+		OnlySubscriptionNews: true,
+		Page:                 1,
+		Limit:                20,
+	})
+
+	if err != nil {
+		t.Fatalf("SearchEvents subscription news returned error: %v", err)
+	}
+	if result.Total != 1 || len(result.Items) != 1 || result.Items[0].ID != freshEventID {
+		t.Fatalf("subscription news result = %#v, want only fresh event %d", result, freshEventID)
+	}
+	assertSearchResultMissingEvent(t, result, joinedEventID)
+}
+
 func TestEventsServiceGetAllReferencesIncludesGenres(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
@@ -810,6 +934,46 @@ func seedEventReferences(t *testing.T, db *gorm.DB) {
 	}
 }
 
+func seedEventLocation(t *testing.T, db *gorm.DB, name string) uint {
+	t.Helper()
+
+	location := eventmodels.EventLocation{Name: name}
+	if err := db.Create(&location).Error; err != nil {
+		t.Fatalf("create event location: %v", err)
+	}
+	return location.ID
+}
+
+func seedEventCategory(t *testing.T, db *gorm.DB, categoryID uint, name string) {
+	t.Helper()
+
+	if err := db.Where("id = ?", categoryID).FirstOrCreate(&models.Category{}, models.Category{ID: categoryID, Name: name}).Error; err != nil {
+		t.Fatalf("create event category: %v", err)
+	}
+}
+
+func seedEventGroupCategory(t *testing.T, db *gorm.DB, groupID, categoryID uint) {
+	t.Helper()
+
+	if err := db.Exec(
+		"INSERT INTO group_group_categories (group_id, group_category_id) VALUES (?, ?)",
+		groupID,
+		categoryID,
+	).Error; err != nil {
+		t.Fatalf("create group category relation: %v", err)
+	}
+}
+
+func setEventGroupCity(t *testing.T, db *gorm.DB, groupID uint, city string) {
+	t.Helper()
+
+	if err := db.Model(&groupmodels.Group{}).
+		Where("id = ?", groupID).
+		Update("city", city).Error; err != nil {
+		t.Fatalf("update group city: %v", err)
+	}
+}
+
 func seedEventGenre(t *testing.T, db *gorm.DB, name string) uint {
 	t.Helper()
 
@@ -856,6 +1020,23 @@ func seedEvent(t *testing.T, db *gorm.DB, groupID, creatorID uint, currentUsers,
 		t.Fatalf("create event: %v", err)
 	}
 	return event.ID
+}
+
+func setEventSearchFields(t *testing.T, db *gorm.DB, eventID uint, title string, startTime time.Time, eventTypeID, locationID uint) {
+	t.Helper()
+
+	if err := db.Model(&eventmodels.Event{}).
+		Where("id = ?", eventID).
+		Updates(map[string]interface{}{
+			"title":             title,
+			"description":       title + " description",
+			"start_time":        startTime,
+			"end_time":          startTime.Add(2 * time.Hour),
+			"event_type_id":     eventTypeID,
+			"event_location_id": locationID,
+		}).Error; err != nil {
+		t.Fatalf("update event search fields: %v", err)
+	}
 }
 
 func seedEventParticipant(t *testing.T, db *gorm.DB, eventID, userID uint) {
@@ -938,6 +1119,18 @@ func assertEventTiming(t *testing.T, db *gorm.DB, eventID uint, wantStart, wantE
 	}
 	if event.Duration != wantDuration {
 		t.Fatalf("duration = %d, want %d", event.Duration, wantDuration)
+	}
+}
+
+func assertEventLocation(t *testing.T, db *gorm.DB, eventID, wantLocationID uint) {
+	t.Helper()
+
+	var event eventmodels.Event
+	if err := db.First(&event, eventID).Error; err != nil {
+		t.Fatalf("find event: %v", err)
+	}
+	if event.EventLocationID != wantLocationID {
+		t.Fatalf("event location ID = %d, want %d", event.EventLocationID, wantLocationID)
 	}
 }
 
@@ -1030,6 +1223,27 @@ func assertGroupActionLogCount(t *testing.T, db *gorm.DB, groupID uint, action s
 	}
 	if count != want {
 		t.Fatalf("group action log count = %d, want %d", count, want)
+	}
+}
+
+func assertSearchResultHasEvent(t *testing.T, result *dto.EventSearchResponse, eventID uint) {
+	t.Helper()
+
+	for _, item := range result.Items {
+		if item.ID == eventID {
+			return
+		}
+	}
+	t.Fatalf("search result missing event %d: %#v", eventID, result)
+}
+
+func assertSearchResultMissingEvent(t *testing.T, result *dto.EventSearchResponse, eventID uint) {
+	t.Helper()
+
+	for _, item := range result.Items {
+		if item.ID == eventID {
+			t.Fatalf("search result contains event %d: %#v", eventID, result)
+		}
 	}
 }
 

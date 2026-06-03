@@ -16,6 +16,7 @@ func RegisterEventsRoutes(
 ) {
 	router.GET("/api/v2/references", eventsHandler.GetAllReferences)
 	router.GET("/api/v2/events/popular", popularHandler.GetPopularEvents)
+	router.GET("/api/v2/events/search", authMiddleware.OptionalAuth(), eventsHandler.SearchEvents)
 
 	events := router.Group("/api/v2/events")
 	events.Use(authMiddleware.RequireAuth())

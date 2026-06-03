@@ -51,11 +51,22 @@ definitions:
     type: object
   dto.ErrorResponse:
     properties:
+      details: {}
       error:
         example: invalid_request
         type: string
+      fields:
+        additionalProperties:
+          type: string
+        type: object
       message:
         example: Некорректный формат запроса
+        type: string
+      required_role:
+        items:
+          type: string
+        type: array
+      your_role:
         type: string
     type: object
   dto.EventAdminDto:
@@ -228,6 +239,59 @@ definitions:
         type: string
       name:
         type: string
+    type: object
+  dto.EventSearchGroupDto:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  dto.EventSearchItemDto:
+    properties:
+      city:
+        type: string
+      duration:
+        type: integer
+      eventType:
+        type: string
+      genres:
+        items:
+          type: string
+        type: array
+      group:
+        $ref: '#/definitions/dto.EventSearchGroupDto'
+      id:
+        type: integer
+      image:
+        type: string
+      locationType:
+        type: string
+      maxUsers:
+        type: integer
+      participantsCount:
+        type: integer
+      startDate:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.EventSearchResponse:
+    properties:
+      currentPage:
+        type: integer
+      hasMore:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/dto.EventSearchItemDto'
+        type: array
+      limit:
+        type: integer
+      total:
+        type: integer
+      totalPages:
+        type: integer
     type: object
   dto.EventShortDto:
     properties:
@@ -963,7 +1027,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Создает новое событие в группе. Доступно для админов и операторов
+      description: |-
+        Справочные значения берите из GET /api/v2/references: eventTypeId -> eventTypes[].id, locationId -> locations[].id, ageLimit -> ageLimits[].id. Поле status передавать не нужно, при создании ставится "Набор".
+        Создает новое событие в группе. Доступно модераторам и администраторам группы.
       parameters:
       - description: Данные события
         in: body
@@ -979,23 +1045,17 @@ paths:
           schema:
             $ref: '#/definitions/dto.EventFullDto'
         "400":
-          description: Некорректные данные
+          description: Ошибка валидации или справочников
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Не авторизован
+          description: Требуется авторизация
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Создать событие
@@ -1003,7 +1063,7 @@ paths:
       - events_admin
   /api/v2/admin/events/{eventId}:
     delete:
-      description: Удаляет событие. Доступно для админов и операторов
+      description: Удаляет событие. Доступно модераторам и администраторам группы.
       parameters:
       - description: ID события
         in: path
@@ -1014,36 +1074,30 @@ paths:
       - application/json
       responses:
         "200":
-          description: Событие удалено
+          description: Результат удаления
           schema:
             additionalProperties: true
             type: object
         "401":
-          description: Не авторизован
+          description: Требуется авторизация
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Событие не найдено
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Удалить событие
       tags:
       - events_admin
     get:
-      description: Возвращает полную информацию о событии со списком всех участников.
-        Доступно для админов и операторов группы
+      description: Возвращает детали события со списком участников для модераторов
+        и администраторов группы.
       parameters:
       - description: ID события
         in: path
@@ -1054,36 +1108,30 @@ paths:
       - application/json
       responses:
         "200":
-          description: Детали события для админа
+          description: Детали события для администратора
           schema:
             $ref: '#/definitions/dto.EventAdminDto'
         "401":
-          description: Не авторизован
+          description: Требуется авторизация
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Событие не найдено
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Получить детали события для администратора
+      summary: Получить событие для администратора
       tags:
       - events_admin
     put:
       consumes:
       - application/json
-      description: Обновляет информацию о событии. Доступно для админов и операторов
+      description: Обновляет событие. Доступно модераторам и администраторам группы.
       parameters:
       - description: ID события
         in: path
@@ -1104,29 +1152,21 @@ paths:
           schema:
             $ref: '#/definitions/dto.EventFullDto'
         "400":
-          description: Некорректные данные
+          description: Ошибка валидации или состояния
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Не авторизован
+          description: Требуется авторизация
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Событие не найдено
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Обновить событие
@@ -1134,8 +1174,8 @@ paths:
       - events_admin
   /api/v2/admin/events/{eventId}/kick/{userId}:
     delete:
-      description: Удаляет участника из события. Доступно для админов и операторов
-        группы. Создателя исключить нельзя
+      description: Удаляет участника из события. Доступно модераторам и администраторам
+        группы, кроме удаления создателя события.
       parameters:
       - description: ID события
         in: path
@@ -1151,46 +1191,39 @@ paths:
       - application/json
       responses:
         "200":
-          description: Пользователь исключен
+          description: Участник удален
           schema:
             additionalProperties: true
             type: object
         "400":
-          description: Некорректные данные или нельзя исключить создателя
+          description: Некорректные ID или попытка удалить создателя
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Не авторизован
+          description: Требуется авторизация
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
-          description: Событие или пользователь не найден
+          description: Событие или пользователь не найдены
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Исключить участника из события
+      summary: Удалить участника события
       tags:
       - events_admin
   /api/v2/auth/login:
     post:
       consumes:
       - application/json
-      description: Checks email and password, then returns access and refresh tokens.
+      description: Проверяет адрес электронной почты и пароль, затем возвращает токены
+        доступа и обновления.
       parameters:
-      - description: Email and password
+      - description: Email и пароль
         in: body
         name: user
         required: true
@@ -1200,28 +1233,28 @@ paths:
       - application/json
       responses:
         "200":
-          description: Tokens created
+          description: Токены созданы
           schema:
             $ref: '#/definitions/dto.AuthResponse'
         "400":
-          description: Invalid JSON or validation error
+          description: Некорректный JSON или ошибка валидации
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Authentication failed
+          description: Ошибка аутентификации
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
-      summary: User login
+      summary: Вход пользователя
       tags:
       - auth
   /api/v2/auth/refresh:
     post:
       consumes:
       - application/json
-      description: Accepts a refresh token and returns a new access/refresh token
-        pair.
+      description: Принимает токен обновления и возвращает новую пару токенов доступа
+        и обновления.
       parameters:
-      - description: Refresh token payload
+      - description: Данные refresh-токена
         in: body
         name: refreshRequest
         required: true
@@ -1231,23 +1264,23 @@ paths:
       - application/json
       responses:
         "200":
-          description: Tokens refreshed
+          description: Токены обновлены
           schema:
             $ref: '#/definitions/dto.AuthResponse'
         "400":
-          description: Missing or invalid refresh_token
+          description: Отсутствует или некорректный refresh-токен
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Invalid or expired refresh token
+          description: Невалидный или истекший refresh-токен
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
-      summary: Refresh auth tokens
+      summary: Обновить токены авторизации
       tags:
       - auth
   /api/v2/events/{eventId}:
     get:
-      description: Возвращает полную информацию о событии
+      description: Возвращает детали события для участника группы.
       parameters:
       - description: ID события
         in: path
@@ -1262,23 +1295,17 @@ paths:
           schema:
             $ref: '#/definitions/dto.EventFullDto'
         "401":
-          description: Не авторизован
+          description: Требуется авторизация
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
-          description: Недостаточно прав
+          description: Требуется участие в группе
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Событие не найдено
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Получить детали события
@@ -1286,7 +1313,8 @@ paths:
       - events
   /api/v2/events/{eventId}/join:
     post:
-      description: Пользователь присоединяется к событию (только для участников группы)
+      description: Добавляет текущего пользователя в событие. Доступно только участникам
+        группы.
       parameters:
       - description: ID события
         in: path
@@ -1297,34 +1325,26 @@ paths:
       - application/json
       responses:
         "200":
-          description: Присоединение успешно
+          description: Результат вступления
           schema:
             additionalProperties: true
             type: object
         "400":
-          description: Событие заполнено или уже присоединились
+          description: Событие заполнено или пользователь уже участвует
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Не авторизован
+          description: Требуется авторизация
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
-          description: Не состоите в группе
+          description: Требуется участие в группе
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Событие не найдено
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Присоединиться к событию
@@ -1332,7 +1352,8 @@ paths:
       - events
   /api/v2/events/{eventId}/leave:
     post:
-      description: Пользователь покидает событие (создатель не может покинуть)
+      description: Удаляет текущего пользователя из события. Создатель события не
+        может его покинуть.
       parameters:
       - description: ID события
         in: path
@@ -1343,28 +1364,22 @@ paths:
       - application/json
       responses:
         "200":
-          description: Успешно покинули событие
+          description: Результат выхода
           schema:
             additionalProperties: true
             type: object
         "400":
           description: Создатель не может покинуть событие
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Не авторизован
+          description: Требуется авторизация
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
-          description: Вы не присоединялись к событию
+          description: Участие не найдено
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Покинуть событие
@@ -1372,7 +1387,7 @@ paths:
       - events
   /api/v2/events/genres:
     get:
-      description: Возвращает список всех доступных жанров событий
+      description: Возвращает все жанры событий.
       produces:
       - application/json
       responses:
@@ -1385,10 +1400,8 @@ paths:
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Получить все жанры
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Получить жанры
       tags:
       - events
   /api/v2/events/popular:
@@ -1410,6 +1423,116 @@ paths:
               type: string
             type: object
       summary: Получить популярные события
+      tags:
+      - events
+  /api/v2/events/search:
+    get:
+      description: |-
+        Публичный поиск событий с фильтрами, исключениями и пагинацией. События приватных групп видны только участникам этих групп. Если передать JWT, дополнительно доступны события приватных групп пользователя и режим feed=subscription_news.
+        Поддерживаются алиасы query: q/query, categoryIds/categoryId/categories, genreIds/genreId/genres, pageSize/limit, dateFrom/from, dateTo/to, locationType/locationTypes/type, excludeLocationType/excludeLocationTypes/excludeType, feed=subscription_news/subscription-news/новинки подписок.
+      parameters:
+      - description: Поиск по названию/описанию события и названию группы
+        in: query
+        name: q
+        type: string
+      - description: ID группы
+        in: query
+        name: groupId
+        type: integer
+      - collectionFormat: csv
+        description: ID категорий групп, повтором или CSV
+        in: query
+        items:
+          type: integer
+        name: categoryIds
+        type: array
+      - collectionFormat: csv
+        description: ID категорий групп для исключения, повтором или CSV
+        in: query
+        items:
+          type: integer
+        name: excludeCategoryIds
+        type: array
+      - collectionFormat: csv
+        description: ID жанров, повтором или CSV
+        in: query
+        items:
+          type: integer
+        name: genreIds
+        type: array
+      - collectionFormat: csv
+        description: ID жанров для исключения, повтором или CSV
+        in: query
+        items:
+          type: integer
+        name: excludeGenreIds
+        type: array
+      - collectionFormat: csv
+        description: ID типов событий, повтором или CSV
+        in: query
+        items:
+          type: integer
+        name: eventTypeIds
+        type: array
+      - collectionFormat: csv
+        description: ID типов событий для исключения, повтором или CSV
+        in: query
+        items:
+          type: integer
+        name: excludeEventTypeIds
+        type: array
+      - description: online/offline
+        in: query
+        name: locationType
+        type: string
+      - description: online/offline для исключения
+        in: query
+        name: excludeLocationType
+        type: string
+      - description: Город проведения
+        in: query
+        name: city
+        type: string
+      - description: Дата/время начала от, RFC3339 или YYYY-MM-DD
+        in: query
+        name: dateFrom
+        type: string
+      - description: Дата/время начала до, RFC3339 или YYYY-MM-DD
+        in: query
+        name: dateTo
+        type: string
+      - description: true - только со свободными местами, false - только заполненные
+        in: query
+        name: hasFreeSlots
+        type: boolean
+      - description: Страница, по умолчанию 1
+        in: query
+        name: page
+        type: integer
+      - description: Размер страницы, по умолчанию 20, максимум 100
+        in: query
+        name: limit
+        type: integer
+      - description: subscription_news для новинок подписок
+        in: query
+        name: feed
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Страница событий
+          schema:
+            $ref: '#/definitions/dto.EventSearchResponse'
+        "400":
+          description: Некорректные параметры поиска
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Поиск событий
       tags:
       - events
   /api/v2/groups:
@@ -1435,26 +1558,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Пользователь не найден
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Создание группы
@@ -1463,7 +1579,8 @@ paths:
     put:
       consumes:
       - application/json
-      description: Обновляет информацию о группе. Все поля кроме groupId опциональны
+      description: Обновляет информацию о группе. Все поля, кроме идентификатора группы,
+        опциональны
       parameters:
       - description: Данные для обновления группы
         in: body
@@ -1481,33 +1598,23 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Группа не найдена
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Обновление группы
@@ -1533,27 +1640,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Группа не найдена
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Удаление группы
@@ -1578,27 +1677,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Группа приватная, доступ запрещен
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Группа не найдена
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Получить информацию о группе
@@ -1630,21 +1721,15 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Получить историю действий в группе
@@ -1676,21 +1761,15 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Получить черный список группы
@@ -1722,27 +1801,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Пользователь не найден в черном списке
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Убрать из черного списка
@@ -1770,27 +1841,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Группа не найдена
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "409":
           description: Уже в группе или заявка уже отправлена
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Вступление в группу
@@ -1816,27 +1879,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Админ не может покинуть группу
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Вы не состоите в группе
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Выход из группы
@@ -1868,27 +1923,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Пользователь не найден
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Удалить пользователя из группы
@@ -1924,21 +1971,15 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Получить заявки на вступление
@@ -1965,21 +2006,15 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Одобрить все заявки на вступление
@@ -2006,21 +2041,15 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Отклонить все заявки на вступление
@@ -2028,7 +2057,7 @@ paths:
       - groups_admin
   /api/v2/groups/events/{groupId}/events:
     get:
-      description: Возвращает список всех событий группы. Доступно для админов и операторов
+      description: Возвращает список событий группы. Доступно любому участнику группы.
       parameters:
       - description: ID группы
         in: path
@@ -2039,28 +2068,24 @@ paths:
       - application/json
       responses:
         "200":
-          description: Список событий
+          description: События группы
           schema:
             items:
               $ref: '#/definitions/dto.EventShortDto'
             type: array
         "401":
-          description: Не авторизован
+          description: Требуется авторизация
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
-          description: Недостаточно прав
+          description: Требуется участие в группе
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Получить события группы
       tags:
-      - events_admin
+      - events
   /api/v2/groups/invites:
     post:
       consumes:
@@ -2085,33 +2110,23 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Пользователь не найден
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "409":
           description: Приглашение уже существует или пользователь уже в группе
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Создать приглашение в группу
@@ -2136,27 +2151,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
-          description: Пользователь в черном списке
+          description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Приглашение не найдено
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Принять приглашение в группу
@@ -2182,21 +2189,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Недостаточно прав
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Приглашение не найдено
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Отклонить приглашение в группу
@@ -2225,27 +2230,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Пользователь не найден
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Назначить оператора
@@ -2275,27 +2272,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Пользователь не найден
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Снять права оператора
@@ -2322,27 +2311,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Заявка не найдена
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Одобрить заявку на вступление
@@ -2369,27 +2350,19 @@ paths:
         "400":
           description: Некорректные данные
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Недостаточно прав
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Заявка не найдена
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Отклонить заявку на вступление
@@ -2397,22 +2370,19 @@ paths:
       - groups_admin
   /api/v2/references:
     get:
-      description: Возвращает все справочники для событий и групп (типы, локации,
-        возрастные ограничения, статусы, жанры, категории)
+      description: Возвращает все справочники, используемые группами и событиями.
       produces:
       - application/json
       responses:
         "200":
-          description: Все справочники
+          description: Справочники
           schema:
             $ref: '#/definitions/dto.ReferencesDto'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Получить все справочники
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Получить справочники
       tags:
       - references
   /api/v2/register/:
@@ -2439,27 +2409,19 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       summary: Создать пользователя
       tags:
       - users
@@ -2487,21 +2449,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       summary: Изменить пароль
       tags:
       - users
@@ -2509,7 +2465,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Создает сессию для подтверждения email пользователя при регистрации
+      description: Создает сессию для подтверждения адреса электронной почты пользователя
+        при регистрации
       parameters:
       - description: Email пользователя
         in: body
@@ -2527,15 +2484,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       summary: Создать сессию регистрации
       tags:
       - sessions
@@ -2543,7 +2496,7 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Проверяет код сессии, отправленный на email
+      description: Проверяет код сессии, отправленный на адрес электронной почты
       parameters:
       - description: Данные сессии для проверки
         in: body
@@ -2563,27 +2516,19 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "429":
           description: Too Many Requests
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       summary: Проверить сессию
       tags:
       - sessions
@@ -2591,8 +2536,8 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: Загружает фотографию в хранилище и возвращает URL. Этот URL затем
-        можно использовать для создания или обновления данных сущности (например,
+      description: Загружает фотографию в хранилище и возвращает ссылку. Эту ссылку
+        затем можно использовать для создания или обновления данных сущности (например,
         группы).
       parameters:
       - description: Изображение для загрузки (JPG, PNG, максимум 10MB)
@@ -2612,21 +2557,15 @@ paths:
         "400":
           description: Файл не предоставлен, имеет неверный тип или размер
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Пользователь не авторизован
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Загрузка фотографии

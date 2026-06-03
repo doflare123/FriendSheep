@@ -9,6 +9,7 @@ import (
 	convertorsdto "friendship/models/dto/convertorsDto"
 	"friendship/models/events"
 	"friendship/models/groups"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -36,6 +37,7 @@ type EventsService interface {
 	DeleteEvent(actorID uint, eventID uint) (bool, error)
 
 	// Получение информации
+	SearchEvents(userID uint, input EventSearchInput) (*dto.EventSearchResponse, error)
 	GetGroupEvents(actorID uint, groupID uint) ([]dto.EventShortDto, error)
 	GetEventDetails(userID uint, eventID uint) (*dto.EventFullDto, error)
 	GetEventDetailsForAdmin(actorID uint, eventID uint) (*dto.EventAdminDto, error)
@@ -55,6 +57,26 @@ type GenreDto struct {
 	Name string `json:"name"`
 }
 
+type EventSearchInput struct {
+	Query                string
+	GroupID              *uint
+	CategoryIDs          []uint
+	ExcludeCategoryIDs   []uint
+	GenreIDs             []uint
+	ExcludeGenreIDs      []uint
+	EventTypeIDs         []uint
+	ExcludeEventTypeIDs  []uint
+	LocationTypes        []string
+	ExcludeLocationTypes []string
+	City                 string
+	DateFrom             *time.Time
+	DateTo               *time.Time
+	HasFreeSlots         *bool
+	OnlySubscriptionNews bool
+	Page                 int
+	Limit                int
+}
+
 type eventsService struct {
 	logger logger.Logger
 	repo   eventsRepoPort
@@ -70,6 +92,59 @@ func NewEventsService(logger logger.Logger, repo eventsRepoPort) EventsService {
 }
 
 // Получает список событий группы
+func (s *eventsService) SearchEvents(userID uint, input EventSearchInput) (*dto.EventSearchResponse, error) {
+	input = normalizeEventSearchInput(input)
+
+	if input.OnlySubscriptionNews && userID == 0 {
+		return emptyEventSearchResponse(input.Page, input.Limit), nil
+	}
+
+	query := s.repo.
+		Model(&events.Event{}).
+		Joins("JOIN groups ON groups.id = events.group_id").
+		Joins("LEFT JOIN event_locations ON event_locations.id = events.event_location_id")
+
+	query = applyEventSearchVisibility(query, userID)
+	query = applyEventSearchFilters(query, userID, input)
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		s.logger.Error("Не удалось посчитать события для поиска", "error", err)
+		return nil, fmt.Errorf("ошибка поиска событий: %w", err)
+	}
+
+	totalPages := calculateTotalPages(total, input.Limit)
+	offset64 := int64(input.Page-1) * int64(input.Limit)
+	if offset64 > int64(maxIntValue()) {
+		return nil, fmt.Errorf("ошибка поиска событий: слишком большое смещение страницы")
+	}
+	offset := int(offset64)
+
+	var found []events.Event
+	err := query.
+		Preload("Group").
+		Preload("EventType").
+		Preload("EventLocation").
+		Preload("Genres.Genre").
+		Order(eventSearchOrder(input)).
+		Limit(input.Limit).
+		Offset(offset).
+		Find(&found).Error
+	if err != nil {
+		s.logger.Error("Не удалось выполнить поиск событий", "error", err)
+		return nil, fmt.Errorf("ошибка поиска событий: %w", err)
+	}
+
+	return &dto.EventSearchResponse{
+		Items:       convertorsdto.ConvertManyToSearchItemDto(found),
+		Total:       total,
+		Limit:       input.Limit,
+		CurrentPage: input.Page,
+		TotalPages:  totalPages,
+		HasMore:     input.Page < totalPages,
+	}, nil
+}
+
 func (s *eventsService) GetGroupEvents(actorID uint, groupID uint) ([]dto.EventShortDto, error) {
 	privateGroup, err := s.isPrivateGroup(groupID)
 	if err != nil {
@@ -330,6 +405,168 @@ func (s *eventsService) GetAllReferences() (*dto.ReferencesDto, error) {
 }
 
 // Вспомогательные функции
+
+func normalizeEventSearchInput(input EventSearchInput) EventSearchInput {
+	if input.Page < 1 {
+		input.Page = 1
+	}
+	if input.Page > 10000 {
+		input.Page = 10000
+	}
+	if input.Limit < 1 {
+		input.Limit = 20
+	}
+	if input.Limit > 100 {
+		input.Limit = 100
+	}
+	input.Query = strings.TrimSpace(input.Query)
+	input.City = strings.TrimSpace(input.City)
+	input.LocationTypes = normalizeLocationTypes(input.LocationTypes)
+	input.ExcludeLocationTypes = normalizeLocationTypes(input.ExcludeLocationTypes)
+	return input
+}
+
+func maxIntValue() int {
+	return int(^uint(0) >> 1)
+}
+
+func emptyEventSearchResponse(page, limit int) *dto.EventSearchResponse {
+	return &dto.EventSearchResponse{
+		Items:       []dto.EventSearchItemDto{},
+		Total:       0,
+		Limit:       limit,
+		CurrentPage: page,
+		TotalPages:  0,
+		HasMore:     false,
+	}
+}
+
+func calculateTotalPages(total int64, limit int) int {
+	if total == 0 {
+		return 0
+	}
+	return int((total + int64(limit) - 1) / int64(limit))
+}
+
+func applyEventSearchVisibility(query *gorm.DB, userID uint) *gorm.DB {
+	if userID == 0 {
+		return query.Where("groups.is_private = ?", false)
+	}
+
+	return query.Where(
+		"groups.is_private = ? OR EXISTS (SELECT 1 FROM group_users gu_visibility WHERE gu_visibility.group_id = groups.id AND gu_visibility.user_id = ?)",
+		false,
+		userID,
+	)
+}
+
+func applyEventSearchFilters(query *gorm.DB, userID uint, input EventSearchInput) *gorm.DB {
+	if input.Query != "" {
+		like := "%" + strings.ToLower(input.Query) + "%"
+		query = query.Where(
+			"LOWER(events.title) LIKE ? OR LOWER(events.description) LIKE ? OR LOWER(groups.name) LIKE ?",
+			like,
+			like,
+			like,
+		)
+	}
+
+	if input.GroupID != nil {
+		query = query.Where("events.group_id = ?", *input.GroupID)
+	}
+	if len(input.CategoryIDs) > 0 {
+		query = query.Where(
+			"EXISTS (SELECT 1 FROM group_group_categories ggc WHERE ggc.group_id = groups.id AND ggc.group_category_id IN ?)",
+			input.CategoryIDs,
+		)
+	}
+	if len(input.ExcludeCategoryIDs) > 0 {
+		query = query.Where(
+			"NOT EXISTS (SELECT 1 FROM group_group_categories ggc_ex WHERE ggc_ex.group_id = groups.id AND ggc_ex.group_category_id IN ?)",
+			input.ExcludeCategoryIDs,
+		)
+	}
+	if len(input.GenreIDs) > 0 {
+		query = query.Where(
+			"EXISTS (SELECT 1 FROM event_genres eg WHERE eg.event_id = events.id AND eg.genre_id IN ?)",
+			input.GenreIDs,
+		)
+	}
+	if len(input.ExcludeGenreIDs) > 0 {
+		query = query.Where(
+			"NOT EXISTS (SELECT 1 FROM event_genres eg_ex WHERE eg_ex.event_id = events.id AND eg_ex.genre_id IN ?)",
+			input.ExcludeGenreIDs,
+		)
+	}
+	if len(input.EventTypeIDs) > 0 {
+		query = query.Where("events.event_type_id IN ?", input.EventTypeIDs)
+	}
+	if len(input.ExcludeEventTypeIDs) > 0 {
+		query = query.Where("events.event_type_id NOT IN ?", input.ExcludeEventTypeIDs)
+	}
+	if len(input.LocationTypes) > 0 {
+		query = query.Where("LOWER(event_locations.name) IN ?", input.LocationTypes)
+	}
+	if len(input.ExcludeLocationTypes) > 0 {
+		query = query.Where("LOWER(event_locations.name) NOT IN ?", input.ExcludeLocationTypes)
+	}
+	if input.City != "" {
+		query = query.Where("LOWER(groups.city) LIKE ?", "%"+strings.ToLower(input.City)+"%")
+	}
+	if input.DateFrom != nil {
+		query = query.Where("events.start_time >= ?", *input.DateFrom)
+	}
+	if input.DateTo != nil {
+		query = query.Where("events.start_time <= ?", *input.DateTo)
+	}
+	if input.HasFreeSlots != nil {
+		if *input.HasFreeSlots {
+			query = query.Where("events.current_users < events.max_users")
+		} else {
+			query = query.Where("events.current_users >= events.max_users")
+		}
+	}
+	if input.OnlySubscriptionNews {
+		query = query.Where(
+			"EXISTS (SELECT 1 FROM group_users gu_subscription WHERE gu_subscription.group_id = events.group_id AND gu_subscription.user_id = ?)",
+			userID,
+		)
+		query = query.Where(
+			"NOT EXISTS (SELECT 1 FROM events_users eu_subscription WHERE eu_subscription.event_id = events.id AND eu_subscription.user_id = ?)",
+			userID,
+		)
+	}
+
+	return query
+}
+
+func eventSearchOrder(input EventSearchInput) string {
+	if input.OnlySubscriptionNews {
+		return "events.created_at DESC, events.id DESC"
+	}
+	return "events.start_time ASC, events.id DESC"
+}
+
+func normalizeLocationTypes(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+
+	normalized := make([]string, 0, len(values))
+	for _, value := range values {
+		switch strings.ToLower(strings.TrimSpace(value)) {
+		case "online", "онлайн":
+			normalized = append(normalized, "online", "онлайн")
+		case "offline", "off-line", "офлайн", "оффлайн":
+			normalized = append(normalized, "offline", "off-line", "офлайн", "оффлайн")
+		case "":
+		default:
+			normalized = append(normalized, strings.ToLower(strings.TrimSpace(value)))
+		}
+	}
+
+	return normalized
+}
 
 // Проверяет права доступа к группе
 func (s *eventsService) checkGroupAccess(userID uint, groupID uint, required groups.Capability) (bool, string, error) {

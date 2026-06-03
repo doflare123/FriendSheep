@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"friendship/services/events"
 	"friendship/utils"
@@ -15,6 +17,7 @@ type EventsHandler interface {
 	CreateEvent(c *gin.Context)
 	UpdateEvent(c *gin.Context)
 	DeleteEvent(c *gin.Context)
+	SearchEvents(c *gin.Context)
 	GetGroupEvents(c *gin.Context)
 	GetEventDetails(c *gin.Context)
 	GetEventDetailsForAdmin(c *gin.Context)
@@ -305,6 +308,51 @@ func (h *eventsHandler) GetGroupEvents(c *gin.Context) {
 	c.JSON(http.StatusOK, event)
 }
 
+// SearchEvents godoc
+// @Summary      Поиск событий
+// @Description  Публичный поиск событий с фильтрами, исключениями и пагинацией. События приватных групп видны только участникам этих групп. Если передать JWT, дополнительно доступны события приватных групп пользователя и режим feed=subscription_news.
+// @Description  Поддерживаются алиасы query: q/query, categoryIds/categoryId/categories, genreIds/genreId/genres, pageSize/limit, dateFrom/from, dateTo/to, locationType/locationTypes/type, excludeLocationType/excludeLocationTypes/excludeType, feed=subscription_news/subscription-news/новинки подписок.
+// @Tags         events
+// @Produce      json
+// @Param        q query string false "Поиск по названию/описанию события и названию группы"
+// @Param        groupId query int false "ID группы"
+// @Param        categoryIds query []int false "ID категорий групп, повтором или CSV"
+// @Param        excludeCategoryIds query []int false "ID категорий групп для исключения, повтором или CSV"
+// @Param        genreIds query []int false "ID жанров, повтором или CSV"
+// @Param        excludeGenreIds query []int false "ID жанров для исключения, повтором или CSV"
+// @Param        eventTypeIds query []int false "ID типов событий, повтором или CSV"
+// @Param        excludeEventTypeIds query []int false "ID типов событий для исключения, повтором или CSV"
+// @Param        locationType query string false "online/offline"
+// @Param        excludeLocationType query string false "online/offline для исключения"
+// @Param        city query string false "Город проведения"
+// @Param        dateFrom query string false "Дата/время начала от, RFC3339 или YYYY-MM-DD"
+// @Param        dateTo query string false "Дата/время начала до, RFC3339 или YYYY-MM-DD"
+// @Param        hasFreeSlots query bool false "true - только со свободными местами, false - только заполненные"
+// @Param        page query int false "Страница, по умолчанию 1"
+// @Param        limit query int false "Размер страницы, по умолчанию 20, максимум 100"
+// @Param        feed query string false "subscription_news для новинок подписок"
+// @Success      200 {object} dto.EventSearchResponse "Страница событий"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные параметры поиска"
+// @Failure      500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
+// @Router       /api/v2/events/search [get]
+func (h *eventsHandler) SearchEvents(c *gin.Context) {
+	userID := c.GetUint("userID")
+
+	input, err := bindEventSearchQuery(c)
+	if err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+
+	result, err := h.srv.SearchEvents(userID, input)
+	if err != nil {
+		utils.InternalError(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 // GetEventDetails godoc
 // @Summary      Получить детали события
 // @Description  Возвращает детали события для участника группы.
@@ -466,4 +514,328 @@ func (h *eventsHandler) GetAllReferences(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, references)
+}
+
+func bindEventSearchQuery(c *gin.Context) (events.EventSearchInput, error) {
+	var input events.EventSearchInput
+
+	input.Query = firstQuery(c, "q", "query")
+
+	groupID, err := parseOptionalUintQuery(c, "groupId")
+	if err != nil {
+		return input, err
+	}
+	input.GroupID = groupID
+
+	input.CategoryIDs, err = parseUintListQuery(c, "categoryIds", "categoryId", "categories")
+	if err != nil {
+		return input, err
+	}
+	input.ExcludeCategoryIDs, err = parseUintListQuery(c, "excludeCategoryIds", "excludeCategoryId", "excludeCategories")
+	if err != nil {
+		return input, err
+	}
+	input.GenreIDs, err = parseUintListQuery(c, "genreIds", "genreId", "genres")
+	if err != nil {
+		return input, err
+	}
+	input.ExcludeGenreIDs, err = parseUintListQuery(c, "excludeGenreIds", "excludeGenreId", "excludeGenres")
+	if err != nil {
+		return input, err
+	}
+	input.EventTypeIDs, err = parseUintListQuery(c, "eventTypeIds", "eventTypeId")
+	if err != nil {
+		return input, err
+	}
+	input.ExcludeEventTypeIDs, err = parseUintListQuery(c, "excludeEventTypeIds", "excludeEventTypeId")
+	if err != nil {
+		return input, err
+	}
+	if hasQueryParam(c, "locationId") {
+		return input, errors.New("Параметр locationId не используется в поиске событий, используйте locationType")
+	}
+	input.LocationTypes = collectQueryValues(c, "locationTypes", "locationType", "type")
+	input.ExcludeLocationTypes = collectQueryValues(c, "excludeLocationTypes", "excludeLocationType", "excludeType")
+	input.City = firstQuery(c, "city")
+
+	input.DateFrom, err = parseOptionalTimeQuery(c, false, "dateFrom", "from")
+	if err != nil {
+		return input, err
+	}
+	input.DateTo, err = parseOptionalTimeQuery(c, true, "dateTo", "to")
+	if err != nil {
+		return input, err
+	}
+	input.HasFreeSlots, err = parseOptionalBoolQuery(c, "hasFreeSlots")
+	if err != nil {
+		return input, err
+	}
+
+	input.Page, err = parseOptionalIntQuery(c, 1, "page")
+	if err != nil {
+		return input, err
+	}
+	input.Limit, err = parseOptionalIntQuery(c, 20, "limit", "pageSize")
+	if err != nil {
+		return input, err
+	}
+
+	feed := strings.ToLower(strings.TrimSpace(firstQuery(c, "feed", "category")))
+	if feed != "" {
+		switch feed {
+		case "subscription_news", "subscription-news", "новинки подписок":
+			input.OnlySubscriptionNews = true
+		default:
+			return input, errors.New("Некорректный параметр feed")
+		}
+	}
+
+	if err := validateEventSearchInput(input); err != nil {
+		return input, err
+	}
+
+	return input, nil
+}
+
+func firstQuery(c *gin.Context, names ...string) string {
+	for _, name := range names {
+		if value := strings.TrimSpace(c.Query(name)); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func hasQueryParam(c *gin.Context, name string) bool {
+	_, ok := c.Request.URL.Query()[name]
+	return ok
+}
+
+func collectQueryValues(c *gin.Context, names ...string) []string {
+	result := make([]string, 0)
+	for _, name := range names {
+		for _, raw := range c.QueryArray(name) {
+			for _, part := range strings.Split(raw, ",") {
+				if value := strings.TrimSpace(part); value != "" {
+					result = append(result, value)
+				}
+			}
+		}
+	}
+	return result
+}
+
+func parseUintListQuery(c *gin.Context, names ...string) ([]uint, error) {
+	values, err := collectStrictCSVQueryValues(c, names...)
+	if err != nil {
+		return nil, err
+	}
+	if len(values) == 0 {
+		return nil, nil
+	}
+
+	result := make([]uint, 0, len(values))
+	seen := make(map[uint]struct{}, len(values))
+	for _, value := range values {
+		parsed, err := strconv.ParseUint(value, 10, 32)
+		if err != nil || parsed == 0 {
+			return nil, errors.New("Некорректный параметр " + names[0])
+		}
+		id := uint(parsed)
+		if _, ok := seen[id]; ok {
+			return nil, errors.New("Параметр " + names[0] + " содержит повторяющееся значение " + value)
+		}
+		seen[id] = struct{}{}
+		result = append(result, id)
+	}
+	if len(result) > 100 {
+		return nil, errors.New("Параметр " + names[0] + " содержит слишком много значений")
+	}
+
+	return result, nil
+}
+
+func collectStrictCSVQueryValues(c *gin.Context, names ...string) ([]string, error) {
+	result := make([]string, 0)
+	for _, name := range names {
+		for _, raw := range c.QueryArray(name) {
+			if raw == "" {
+				continue
+			}
+			for _, part := range strings.Split(raw, ",") {
+				value := strings.TrimSpace(part)
+				if value == "" {
+					return nil, errors.New("Некорректный параметр " + name)
+				}
+				result = append(result, value)
+			}
+		}
+	}
+	return result, nil
+}
+
+func parseOptionalUintQuery(c *gin.Context, name string) (*uint, error) {
+	value := strings.TrimSpace(c.Query(name))
+	if value == "" {
+		return nil, nil
+	}
+
+	parsed, err := strconv.ParseUint(value, 10, 32)
+	if err != nil || parsed == 0 {
+		return nil, errors.New("Некорректный параметр " + name)
+	}
+
+	result := uint(parsed)
+	return &result, nil
+}
+
+func parseOptionalIntQuery(c *gin.Context, defaultValue int, names ...string) (int, error) {
+	value := firstQuery(c, names...)
+	if value == "" {
+		return defaultValue, nil
+	}
+
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, errors.New("Некорректный параметр " + names[0])
+	}
+
+	return parsed, nil
+}
+
+func parseOptionalBoolQuery(c *gin.Context, name string) (*bool, error) {
+	value := strings.TrimSpace(c.Query(name))
+	if value == "" {
+		return nil, nil
+	}
+
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return nil, errors.New("Некорректный параметр " + name)
+	}
+
+	return &parsed, nil
+}
+
+func parseOptionalTimeQuery(c *gin.Context, endOfDay bool, names ...string) (*time.Time, error) {
+	value := firstQuery(c, names...)
+	if value == "" {
+		return nil, nil
+	}
+
+	if parsed, err := time.Parse(time.RFC3339, value); err == nil {
+		return &parsed, nil
+	}
+
+	parsed, err := time.Parse("2006-01-02", value)
+	if err != nil {
+		return nil, errors.New("Некорректный параметр " + names[0])
+	}
+	if endOfDay {
+		parsed = parsed.AddDate(0, 0, 1).Add(-time.Nanosecond)
+	}
+
+	return &parsed, nil
+}
+
+func validateEventSearchInput(input events.EventSearchInput) error {
+	if input.Page < 1 {
+		return errors.New("Параметр page должен быть больше 0")
+	}
+	if input.Page > 10000 {
+		return errors.New("Параметр page слишком большой")
+	}
+	if input.Limit < 1 || input.Limit > 100 {
+		return errors.New("Параметр limit должен быть от 1 до 100")
+	}
+	if len(input.Query) > 200 {
+		return errors.New("Параметр q слишком длинный")
+	}
+	if len(input.City) > 100 {
+		return errors.New("Параметр city слишком длинный")
+	}
+	if input.DateFrom != nil && input.DateTo != nil && input.DateFrom.After(*input.DateTo) {
+		return errors.New("Параметр dateFrom не может быть позже dateTo")
+	}
+	if err := rejectUintIntersections("categoryIds", input.CategoryIDs, "excludeCategoryIds", input.ExcludeCategoryIDs); err != nil {
+		return err
+	}
+	if err := rejectUintIntersections("genreIds", input.GenreIDs, "excludeGenreIds", input.ExcludeGenreIDs); err != nil {
+		return err
+	}
+	if err := rejectUintIntersections("eventTypeIds", input.EventTypeIDs, "excludeEventTypeIds", input.ExcludeEventTypeIDs); err != nil {
+		return err
+	}
+	if err := validateLocationTypeValues("locationType", input.LocationTypes); err != nil {
+		return err
+	}
+	if err := validateLocationTypeValues("excludeLocationType", input.ExcludeLocationTypes); err != nil {
+		return err
+	}
+	if err := rejectStringIntersections("locationType", input.LocationTypes, "excludeLocationType", input.ExcludeLocationTypes); err != nil {
+		return err
+	}
+	return nil
+}
+
+func rejectUintIntersections(leftName string, left []uint, rightName string, right []uint) error {
+	if len(left) == 0 || len(right) == 0 {
+		return nil
+	}
+
+	seen := make(map[uint]struct{}, len(left))
+	for _, value := range left {
+		seen[value] = struct{}{}
+	}
+	for _, value := range right {
+		if _, ok := seen[value]; ok {
+			return errors.New("Параметры " + leftName + " и " + rightName + " конфликтуют: " + strconv.FormatUint(uint64(value), 10))
+		}
+	}
+	return nil
+}
+
+func validateLocationTypeValues(name string, values []string) error {
+	for _, value := range values {
+		switch normalizeLocationTypeKey(value) {
+		case "", "online", "offline":
+		default:
+			return errors.New("Некорректный параметр " + name)
+		}
+	}
+	return nil
+}
+
+func rejectStringIntersections(leftName string, left []string, rightName string, right []string) error {
+	if len(left) == 0 || len(right) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]struct{}, len(left))
+	for _, value := range left {
+		key := normalizeLocationTypeKey(value)
+		if key != "" {
+			seen[key] = struct{}{}
+		}
+	}
+	for _, value := range right {
+		key := normalizeLocationTypeKey(value)
+		if _, ok := seen[key]; ok {
+			return errors.New("Параметры " + leftName + " и " + rightName + " конфликтуют: " + key)
+		}
+	}
+	return nil
+}
+
+func normalizeLocationTypeKey(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "online", "онлайн":
+		return "online"
+	case "offline", "off-line", "офлайн", "оффлайн":
+		return "offline"
+	case "":
+		return ""
+	default:
+		return strings.ToLower(strings.TrimSpace(value))
+	}
 }

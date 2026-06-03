@@ -11,7 +11,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Создает новое событие в группе. Доступно для админов и операторов",
+                "description": "Справочные значения берите из GET /api/v2/references: eventTypeId -\u003e eventTypes[].id, locationId -\u003e locations[].id, ageLimit -\u003e ageLimits[].id. Поле status передавать не нужно, при создании ставится \"Набор\".\nСоздает новое событие в группе. Доступно модераторам и администраторам группы.",
                 "consumes": [
                     "application/json"
                 ],
@@ -41,30 +41,21 @@
                         }
                     },
                     "400": {
-                        "description": "Некорректные данные",
+                        "description": "Ошибка валидации или справочников",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Не авторизован",
+                        "description": "Требуется авторизация",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -77,14 +68,14 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает полную информацию о событии со списком всех участников. Доступно для админов и операторов группы",
+                "description": "Возвращает детали события со списком участников для модераторов и администраторов группы.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "events_admin"
                 ],
-                "summary": "Получить детали события для администратора",
+                "summary": "Получить событие для администратора",
                 "parameters": [
                     {
                         "type": "integer",
@@ -96,36 +87,27 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Детали события для админа",
+                        "description": "Детали события для администратора",
                         "schema": {
                             "$ref": "#/definitions/dto.EventAdminDto"
                         }
                     },
                     "401": {
-                        "description": "Не авторизован",
+                        "description": "Требуется авторизация",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Событие не найдено",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -136,7 +118,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Обновляет информацию о событии. Доступно для админов и операторов",
+                "description": "Обновляет событие. Доступно модераторам и администраторам группы.",
                 "consumes": [
                     "application/json"
                 ],
@@ -173,39 +155,27 @@
                         }
                     },
                     "400": {
-                        "description": "Некорректные данные",
+                        "description": "Ошибка валидации или состояния",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Не авторизован",
+                        "description": "Требуется авторизация",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Событие не найдено",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -216,7 +186,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Удаляет событие. Доступно для админов и операторов",
+                "description": "Удаляет событие. Доступно модераторам и администраторам группы.",
                 "produces": [
                     "application/json"
                 ],
@@ -235,37 +205,28 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Событие удалено",
+                        "description": "Результат удаления",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "401": {
-                        "description": "Не авторизован",
+                        "description": "Требуется авторизация",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Событие не найдено",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -278,14 +239,14 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Удаляет участника из события. Доступно для админов и операторов группы. Создателя исключить нельзя",
+                "description": "Удаляет участника из события. Доступно модераторам и администраторам группы, кроме удаления создателя события.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "events_admin"
                 ],
-                "summary": "Исключить участника из события",
+                "summary": "Удалить участника события",
                 "parameters": [
                     {
                         "type": "integer",
@@ -304,46 +265,34 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Пользователь исключен",
+                        "description": "Участник удален",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Некорректные данные или нельзя исключить создателя",
+                        "description": "Некорректные ID или попытка удалить создателя",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Не авторизован",
+                        "description": "Требуется авторизация",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Событие или пользователь не найден",
+                        "description": "Событие или пользователь не найдены",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -351,7 +300,7 @@
         },
         "/api/v2/auth/login": {
             "post": {
-                "description": "Checks email and password, then returns access and refresh tokens.",
+                "description": "Проверяет адрес электронной почты и пароль, затем возвращает токены доступа и обновления.",
                 "consumes": [
                     "application/json"
                 ],
@@ -361,10 +310,10 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "User login",
+                "summary": "Вход пользователя",
                 "parameters": [
                     {
-                        "description": "Email and password",
+                        "description": "Email и пароль",
                         "name": "user",
                         "in": "body",
                         "required": true,
@@ -375,19 +324,19 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Tokens created",
+                        "description": "Токены созданы",
                         "schema": {
                             "$ref": "#/definitions/dto.AuthResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid JSON or validation error",
+                        "description": "Некорректный JSON или ошибка валидации",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Authentication failed",
+                        "description": "Ошибка аутентификации",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -397,7 +346,7 @@
         },
         "/api/v2/auth/refresh": {
             "post": {
-                "description": "Accepts a refresh token and returns a new access/refresh token pair.",
+                "description": "Принимает токен обновления и возвращает новую пару токенов доступа и обновления.",
                 "consumes": [
                     "application/json"
                 ],
@@ -407,10 +356,10 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "Refresh auth tokens",
+                "summary": "Обновить токены авторизации",
                 "parameters": [
                     {
-                        "description": "Refresh token payload",
+                        "description": "Данные refresh-токена",
                         "name": "refreshRequest",
                         "in": "body",
                         "required": true,
@@ -421,19 +370,19 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Tokens refreshed",
+                        "description": "Токены обновлены",
                         "schema": {
                             "$ref": "#/definitions/dto.AuthResponse"
                         }
                     },
                     "400": {
-                        "description": "Missing or invalid refresh_token",
+                        "description": "Отсутствует или некорректный refresh-токен",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Invalid or expired refresh token",
+                        "description": "Невалидный или истекший refresh-токен",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -443,14 +392,14 @@
         },
         "/api/v2/events/genres": {
             "get": {
-                "description": "Возвращает список всех доступных жанров событий",
+                "description": "Возвращает все жанры событий.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "events"
                 ],
-                "summary": "Получить все жанры",
+                "summary": "Получить жанры",
                 "responses": {
                     "200": {
                         "description": "Список жанров",
@@ -464,10 +413,7 @@
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -505,6 +451,166 @@
                 }
             }
         },
+        "/api/v2/events/search": {
+            "get": {
+                "description": "Публичный поиск событий с фильтрами, исключениями и пагинацией. События приватных групп видны только участникам этих групп. Если передать JWT, дополнительно доступны события приватных групп пользователя и режим feed=subscription_news.\nПоддерживаются алиасы query: q/query, categoryIds/categoryId/categories, genreIds/genreId/genres, pageSize/limit, dateFrom/from, dateTo/to, locationType/locationTypes/type, excludeLocationType/excludeLocationTypes/excludeType, feed=subscription_news/subscription-news/новинки подписок.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Поиск событий",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Поиск по названию/описанию события и названию группы",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "groupId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "ID категорий групп, повтором или CSV",
+                        "name": "categoryIds",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "ID категорий групп для исключения, повтором или CSV",
+                        "name": "excludeCategoryIds",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "ID жанров, повтором или CSV",
+                        "name": "genreIds",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "ID жанров для исключения, повтором или CSV",
+                        "name": "excludeGenreIds",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "ID типов событий, повтором или CSV",
+                        "name": "eventTypeIds",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "ID типов событий для исключения, повтором или CSV",
+                        "name": "excludeEventTypeIds",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "online/offline",
+                        "name": "locationType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "online/offline для исключения",
+                        "name": "excludeLocationType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Город проведения",
+                        "name": "city",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата/время начала от, RFC3339 или YYYY-MM-DD",
+                        "name": "dateFrom",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата/время начала до, RFC3339 или YYYY-MM-DD",
+                        "name": "dateTo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "true - только со свободными местами, false - только заполненные",
+                        "name": "hasFreeSlots",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Страница, по умолчанию 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Размер страницы, по умолчанию 20, максимум 100",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "subscription_news для новинок подписок",
+                        "name": "feed",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Страница событий",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EventSearchResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные параметры поиска",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v2/events/{eventId}": {
             "get": {
                 "security": [
@@ -512,7 +618,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает полную информацию о событии",
+                "description": "Возвращает детали события для участника группы.",
                 "produces": [
                     "application/json"
                 ],
@@ -537,30 +643,21 @@
                         }
                     },
                     "401": {
-                        "description": "Не авторизован",
+                        "description": "Требуется авторизация",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
-                        "description": "Недостаточно прав",
+                        "description": "Требуется участие в группе",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Событие не найдено",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -573,7 +670,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Пользователь присоединяется к событию (только для участников группы)",
+                "description": "Добавляет текущего пользователя в событие. Доступно только участникам группы.",
                 "produces": [
                     "application/json"
                 ],
@@ -592,46 +689,34 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Присоединение успешно",
+                        "description": "Результат вступления",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Событие заполнено или уже присоединились",
+                        "description": "Событие заполнено или пользователь уже участвует",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Не авторизован",
+                        "description": "Требуется авторизация",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
-                        "description": "Не состоите в группе",
+                        "description": "Требуется участие в группе",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Событие не найдено",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -644,7 +729,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Пользователь покидает событие (создатель не может покинуть)",
+                "description": "Удаляет текущего пользователя из события. Создатель события не может его покинуть.",
                 "produces": [
                     "application/json"
                 ],
@@ -663,7 +748,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Успешно покинули событие",
+                        "description": "Результат выхода",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -672,28 +757,19 @@
                     "400": {
                         "description": "Создатель не может покинуть событие",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Не авторизован",
+                        "description": "Требуется авторизация",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Вы не присоединялись к событию",
+                        "description": "Участие не найдено",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -706,7 +782,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Обновляет информацию о группе. Все поля кроме groupId опциональны",
+                "description": "Обновляет информацию о группе. Все поля, кроме идентификатора группы, опциональны",
                 "consumes": [
                     "application/json"
                 ],
@@ -738,46 +814,31 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Группа не найдена",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -820,35 +881,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -861,12 +912,12 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает список всех событий группы. Доступно для админов и операторов",
+                "description": "Возвращает список событий группы. Доступно любому участнику группы.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "events_admin"
+                    "events"
                 ],
                 "summary": "Получить события группы",
                 "parameters": [
@@ -880,7 +931,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Список событий",
+                        "description": "События группы",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -889,21 +940,15 @@
                         }
                     },
                     "401": {
-                        "description": "Не авторизован",
+                        "description": "Требуется авторизация",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
-                        "description": "Недостаточно прав",
+                        "description": "Требуется участие в группе",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -949,46 +994,31 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Приглашение уже существует или пользователь уже в группе",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1028,37 +1058,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
-                        "description": "Пользователь в черном списке",
+                        "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Приглашение не найдено",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1099,28 +1117,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Приглашение не найдено",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1166,37 +1181,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1242,37 +1245,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1313,37 +1304,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Заявка не найдена",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1384,37 +1363,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Заявка не найдена",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1454,37 +1421,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Группа приватная, доступ запрещен",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Группа не найдена",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1523,37 +1478,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Группа не найдена",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1602,28 +1545,19 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1672,28 +1606,19 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1741,37 +1666,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь не найден в черном списке",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1814,37 +1727,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Группа не найдена",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Уже в группе или заявка уже отправлена",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1885,37 +1786,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Админ не может покинуть группу",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Вы не состоите в группе",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1963,37 +1852,25 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -2048,28 +1925,19 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -2110,28 +1978,19 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -2172,28 +2031,19 @@
                     "400": {
                         "description": "Некорректные данные",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Недостаточно прав",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -2201,17 +2051,17 @@
         },
         "/api/v2/references": {
             "get": {
-                "description": "Возвращает все справочники для событий и групп (типы, локации, возрастные ограничения, статусы, жанры, категории)",
+                "description": "Возвращает все справочники, используемые группами и событиями.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "references"
                 ],
-                "summary": "Получить все справочники",
+                "summary": "Получить справочники",
                 "responses": {
                     "200": {
-                        "description": "Все справочники",
+                        "description": "Справочники",
                         "schema": {
                             "$ref": "#/definitions/dto.ReferencesDto"
                         }
@@ -2219,10 +2069,7 @@
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -2265,37 +2112,25 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -2338,28 +2173,19 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -2367,7 +2193,7 @@
         },
         "/api/v2/register/session/register": {
             "post": {
-                "description": "Создает сессию для подтверждения email пользователя при регистрации",
+                "description": "Создает сессию для подтверждения адреса электронной почты пользователя при регистрации",
                 "consumes": [
                     "application/json"
                 ],
@@ -2399,19 +2225,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -2419,7 +2239,7 @@
         },
         "/api/v2/register/session/verify": {
             "patch": {
-                "description": "Проверяет код сессии, отправленный на email",
+                "description": "Проверяет код сессии, отправленный на адрес электронной почты",
                 "consumes": [
                     "application/json"
                 ],
@@ -2454,37 +2274,25 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "429": {
                         "description": "Too Many Requests",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -2497,7 +2305,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Загружает фотографию в хранилище и возвращает URL. Этот URL затем можно использовать для создания или обновления данных сущности (например, группы).",
+                "description": "Загружает фотографию в хранилище и возвращает ссылку. Эту ссылку затем можно использовать для создания или обновления данных сущности (например, группы).",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2530,28 +2338,19 @@
                     "400": {
                         "description": "Файл не предоставлен, имеет неверный тип или размер",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Пользователь не авторизован",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -2639,13 +2438,29 @@
         "dto.ErrorResponse": {
             "type": "object",
             "properties": {
+                "details": {},
                 "error": {
                     "type": "string",
                     "example": "invalid_request"
                 },
+                "fields": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "message": {
                     "type": "string",
                     "example": "Некорректный формат запроса"
+                },
+                "required_role": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "your_role": {
+                    "type": "string"
                 }
             }
         },
@@ -2903,6 +2718,87 @@
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.EventSearchGroupDto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.EventSearchItemDto": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "eventType": {
+                    "type": "string"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "group": {
+                    "$ref": "#/definitions/dto.EventSearchGroupDto"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "locationType": {
+                    "type": "string"
+                },
+                "maxUsers": {
+                    "type": "integer"
+                },
+                "participantsCount": {
+                    "type": "integer"
+                },
+                "startDate": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.EventSearchResponse": {
+            "type": "object",
+            "properties": {
+                "currentPage": {
+                    "type": "integer"
+                },
+                "hasMore": {
+                    "type": "boolean"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.EventSearchItemDto"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "totalPages": {
+                    "type": "integer"
                 }
             }
         },

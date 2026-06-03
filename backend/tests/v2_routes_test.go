@@ -81,6 +81,10 @@ func (h *eventsRouteHandlerStub) DeleteEvent(c *gin.Context) {
 	h.called = "delete-event"
 	c.Status(http.StatusNoContent)
 }
+func (h *eventsRouteHandlerStub) SearchEvents(c *gin.Context) {
+	h.called = "search-events"
+	c.Status(http.StatusNoContent)
+}
 func (h *eventsRouteHandlerStub) GetGroupEvents(c *gin.Context) {
 	h.called = "group-events"
 	c.Status(http.StatusNoContent)
@@ -250,6 +254,7 @@ func TestRegisterEventsRoutesPublicEndpoints(t *testing.T) {
 	}{
 		{"references", "/api/v2/references", func() bool { return eventsHandler.called == "references" }},
 		{"popular", "/api/v2/events/popular", func() bool { return popularHandler.called }},
+		{"search", "/api/v2/events/search?q=test", func() bool { return eventsHandler.called == "search-events" }},
 	}
 
 	for _, tt := range tests {
