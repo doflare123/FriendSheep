@@ -28,3 +28,25 @@ func TestIsPendingJoinRequestUniqueViolationRejectsOtherErrors(t *testing.T) {
 		t.Fatal("expected helper to reject unrelated error")
 	}
 }
+
+func TestIsGroupMembershipUniqueViolationMatchesPostgresConstraint(t *testing.T) {
+	if !isGroupMembershipUniqueViolation(&pgconn.PgError{
+		Code:           "23505",
+		ConstraintName: "idx_group_user_membership",
+	}) {
+		t.Fatal("expected helper to match group membership unique violation")
+	}
+}
+
+func TestIsGroupMembershipUniqueViolationMatchesSQLiteFallback(t *testing.T) {
+	err := errors.New("UNIQUE constraint failed: group_users.user_id, group_users.group_id")
+	if !isGroupMembershipUniqueViolation(err) {
+		t.Fatal("expected helper to match sqlite group membership unique violation text")
+	}
+}
+
+func TestIsGroupMembershipUniqueViolationRejectsOtherErrors(t *testing.T) {
+	if isGroupMembershipUniqueViolation(errors.New("boom")) {
+		t.Fatal("expected helper to reject unrelated error")
+	}
+}

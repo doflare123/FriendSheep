@@ -180,6 +180,30 @@ func TestGroupServiceJoinGroupMapsPendingUniqueViolationToDuplicateRequest(t *te
 	assertGroupJoinRequestCount(t, db, groupID, 2, "pending", 0)
 }
 
+func TestGroupServiceJoinGroupMapsMembershipUniqueViolationToAlreadyInGroup(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &duplicateMembershipRepository{testPostgresRepository: &testPostgresRepository{db: db}}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+
+	result, err := service.JoinGroup(2, groupID)
+
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if !errors.Is(err, servicegroups.ErrAlreadyInGroup) {
+		t.Fatalf("err = %v, want ErrAlreadyInGroup", err)
+	}
+	if !repo.injected.Load() {
+		t.Fatal("test membership unique violation injection was not reached")
+	}
+	assertGroupMembershipCount(t, db, groupID, 2, 0)
+}
+
 func TestGroupServiceApproveJoinRequestAddsMembershipAndWritesActionLog(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
@@ -887,6 +911,34 @@ func (r *duplicatePendingRequestTxRepository) Create(value interface{}) *gorm.DB
 	if _, ok := value.(*groupmodels.GroupJoinRequest); ok && r.injected.CompareAndSwap(false, true) {
 		result := r.db.Session(&gorm.Session{})
 		result.Error = errors.New("UNIQUE constraint failed: group_join_requests.user_id, group_join_requests.group_id")
+		return result
+	}
+	return r.testPostgresRepository.Create(value)
+}
+
+type duplicateMembershipRepository struct {
+	*testPostgresRepository
+	injected atomic.Bool
+}
+
+func (r *duplicateMembershipRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		return fc(&duplicateMembershipTxRepository{
+			testPostgresRepository: &testPostgresRepository{db: tx},
+			injected:               &r.injected,
+		})
+	})
+}
+
+type duplicateMembershipTxRepository struct {
+	*testPostgresRepository
+	injected *atomic.Bool
+}
+
+func (r *duplicateMembershipTxRepository) Create(value interface{}) *gorm.DB {
+	if _, ok := value.(*groupmodels.GroupUsers); ok && r.injected.CompareAndSwap(false, true) {
+		result := r.db.Session(&gorm.Session{})
+		result.Error = errors.New("UNIQUE constraint failed: group_users.user_id, group_users.group_id")
 		return result
 	}
 	return r.testPostgresRepository.Create(value)

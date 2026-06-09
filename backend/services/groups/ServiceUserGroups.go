@@ -3,7 +3,6 @@ package group
 import (
 	"errors"
 	"fmt"
-	"friendship/models"
 	"friendship/models/groups"
 	"strings"
 
@@ -14,90 +13,50 @@ import (
 
 // JoinGroup вступление в группу
 func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error) {
-	var user models.User
-	var group groups.Group
+	var target joinGroupTarget
 
 	err := s.runInTx(func(tx groupTx) error {
-		if err := tx.First(&user, userID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrUserNotFound
-			}
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		store := newJoinGroupStore(tx)
+
+		if err := store.EnsureUserExists(userID); err != nil {
+			return err
 		}
 
-		if err := tx.First(&group, groupID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrGroupNotFound
-			}
-			return fmt.Errorf("ошибка поиска группы: %w", err)
+		foundTarget, err := store.FindJoinGroupTarget(groupID)
+		if err != nil {
+			return err
 		}
+		target = foundTarget
 
-		// Проверяем черный список
-		var blacklistCount int64
-		if err := tx.Model(&groups.GroupBlacklist{}).
-			Where("group_id = ? AND user_id = ?", groupID, userID).
-			Count(&blacklistCount).Error; err != nil {
-			return fmt.Errorf("ошибка проверки черного списка: %w", err)
+		isBlacklisted, err := store.IsUserBlacklisted(groupID, userID)
+		if err != nil {
+			return err
 		}
-		if blacklistCount > 0 {
+		if isBlacklisted {
 			return ErrUserInBlacklist
 		}
 
-		// Проверяем, состоит ли уже в группе
-		var existingCount int64
-		if err := tx.Model(&groups.GroupUsers{}).
-			Where("user_id = ? AND group_id = ?", userID, groupID).
-			Count(&existingCount).Error; err != nil {
-			return fmt.Errorf("ошибка проверки членства: %w", err)
+		isMember, err := store.IsGroupMember(groupID, userID)
+		if err != nil {
+			return err
 		}
-		if existingCount > 0 {
+		if isMember {
 			return ErrAlreadyInGroup
 		}
 
-		// Проверяем существующие заявки
-		var existingRequest groups.GroupJoinRequest
-		err := tx.Where("user_id = ? AND group_id = ? AND status = ?", userID, groupID, "pending").
-			First(&existingRequest).Error
-		if err == nil {
-			return ErrRequestAlreadyExists
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("ошибка проверки заявок: %w", err)
-		}
-
-		if group.IsPrivate {
-			request := groups.GroupJoinRequest{
-				UserID:  userID,
-				GroupID: groupID,
-				Status:  "pending",
-			}
-			if err := tx.Create(&request).Error; err != nil {
-				if isPendingJoinRequestUniqueViolation(err) {
-					return ErrRequestAlreadyExists
-				}
-				return fmt.Errorf("ошибка создания заявки: %w", err)
-			}
-			return nil
-		}
-
-		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
+		hasPendingRequest, err := store.HasPendingJoinRequest(groupID, userID)
 		if err != nil {
-			return ErrRoleMemberNotFound
+			return err
+		}
+		if hasPendingRequest {
+			return ErrRequestAlreadyExists
 		}
 
-		member := groups.GroupUsers{
-			UserID:        userID,
-			GroupID:       groupID,
-			RoleInGroupID: memberRoleID,
-		}
-		if err := tx.Create(&member).Error; err != nil {
-			var pgErr *pgconn.PgError
-			if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "idx_group_user_membership" {
-				return ErrAlreadyInGroup
-			}
-			return fmt.Errorf("ошибка добавления пользователя в группу: %w", err)
+		if target.IsPrivate {
+			return store.CreatePendingJoinRequest(groupID, userID)
 		}
 
-		return nil
+		return store.CreateGroupMember(groupID, userID)
 	})
 
 	if err != nil {
@@ -106,7 +65,7 @@ func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error
 	}
 
 	// Приватная группа - создаем заявку
-	if group.IsPrivate {
+	if target.IsPrivate {
 		s.logger.Info("Создана заявка на вступление", "userID", userID, "groupID", groupID)
 		return &GroupResult{
 			Message: "Заявка на вступление отправлена, ожидайте подтверждения от администратора группы",
@@ -130,6 +89,17 @@ func isPendingJoinRequestUniqueViolation(err error) bool {
 	errText := err.Error()
 	return strings.Contains(errText, "idx_group_join_request_pending_unique") ||
 		strings.Contains(errText, "UNIQUE constraint failed: group_join_requests.user_id, group_join_requests.group_id")
+}
+
+func isGroupMembershipUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23505" && pgErr.ConstraintName == "idx_group_user_membership"
+	}
+
+	errText := err.Error()
+	return strings.Contains(errText, "idx_group_user_membership") ||
+		strings.Contains(errText, "UNIQUE constraint failed: group_users.user_id, group_users.group_id")
 }
 
 // LeaveGroup выход из группы
