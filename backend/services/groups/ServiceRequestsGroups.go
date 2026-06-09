@@ -266,18 +266,15 @@ func (s *groupService) RejectAllJoinRequests(actorID uint, groupID uint) (int, e
 
 // ApproveJoinRequest одобряет конкретную заявку
 func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, error) {
-	var request groups.GroupJoinRequest
-	var actor models.User
-
 	err := s.runInTx(func(tx groupTx) error {
-		if err := tx.Preload("User").First(&request, requestID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrJoinRequestNotFound
-			}
-			return fmt.Errorf("ошибка поиска заявки: %w", err)
+		store := newJoinRequestReviewStore(tx)
+
+		request, err := store.FindJoinRequest(requestID)
+		if err != nil {
+			return err
 		}
 
-		hasAccess, role, err := s.checkGroupAccess(actorID, request.GroupID, groups.CapabilityModerate)
+		hasAccess, role, err := store.FindActorRole(actorID, request.GroupID, groups.CapabilityModerate)
 		if err != nil {
 			return err
 		}
@@ -285,46 +282,34 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 			return ErrPermissionDenied
 		}
 
-		if err := tx.First(&actor, actorID).Error; err != nil {
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		actor, err := store.FindActor(actorID)
+		if err != nil {
+			return err
 		}
 
 		if request.Status != "pending" {
 			return ErrJoinRequestHandled
 		}
 
-		// Проверяем черный список
-		var blacklistCount int64
-		if err := tx.Model(&groups.GroupBlacklist{}).
-			Where("group_id = ? AND user_id = ?", request.GroupID, request.UserID).
-			Count(&blacklistCount).Error; err != nil {
-			return fmt.Errorf("ошибка проверки черного списка: %w", err)
+		isBlacklisted, err := store.IsUserBlacklisted(request.GroupID, request.UserID)
+		if err != nil {
+			return err
 		}
-		if blacklistCount > 0 {
+		if isBlacklisted {
 			return ErrUserInBlacklist
 		}
 
-		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
-		if err != nil {
-			return ErrRoleMemberNotFound
+		if err := store.CreateRequestUserMembership(request.GroupID, request.UserID); err != nil {
+			return err
 		}
 
-		groupUser := groups.GroupUsers{
-			UserID:        request.UserID,
-			GroupID:       request.GroupID,
-			RoleInGroupID: memberRoleID,
-		}
-		if err := tx.Create(&groupUser).Error; err != nil {
-			return fmt.Errorf("ошибка добавления пользователя в группу: %w", err)
-		}
-
-		if err := tx.Model(&request).Update("status", "approved").Error; err != nil {
-			return fmt.Errorf("ошибка обновления статуса заявки: %w", err)
+		if err := store.UpdateJoinRequestStatus(request.ID, "approved"); err != nil {
+			return err
 		}
 
 		// Логируем действие
-		action := fmt.Sprintf("Одобрил заявку пользователя '%s' (@%s)", request.User.Name, request.User.Us)
-		if err := s.logAction(tx, request.GroupID, actorID, actor.Name, actor.Us, role, "approve_request", action); err != nil {
+		action := fmt.Sprintf("Одобрил заявку пользователя '%s' (@%s)", request.UserName, request.UserUs)
+		if err := store.CreateActionLog(request.GroupID, actor, role, "approve_request", action); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -342,18 +327,15 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 
 // RejectJoinRequest отклоняет конкретную заявку
 func (s *groupService) RejectJoinRequest(actorID uint, requestID uint) (bool, error) {
-	var request groups.GroupJoinRequest
-	var actor models.User
-
 	err := s.runInTx(func(tx groupTx) error {
-		if err := tx.Preload("User").First(&request, requestID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrJoinRequestNotFound
-			}
-			return fmt.Errorf("ошибка поиска заявки: %w", err)
+		store := newJoinRequestReviewStore(tx)
+
+		request, err := store.FindJoinRequest(requestID)
+		if err != nil {
+			return err
 		}
 
-		hasAccess, role, err := s.checkGroupAccess(actorID, request.GroupID, groups.CapabilityModerate)
+		hasAccess, role, err := store.FindActorRole(actorID, request.GroupID, groups.CapabilityModerate)
 		if err != nil {
 			return err
 		}
@@ -361,21 +343,22 @@ func (s *groupService) RejectJoinRequest(actorID uint, requestID uint) (bool, er
 			return ErrPermissionDenied
 		}
 
-		if err := tx.First(&actor, actorID).Error; err != nil {
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		actor, err := store.FindActor(actorID)
+		if err != nil {
+			return err
 		}
 
 		if request.Status != "pending" {
 			return ErrJoinRequestHandled
 		}
 
-		if err := tx.Model(&request).Update("status", "rejected").Error; err != nil {
-			return fmt.Errorf("ошибка обновления статуса заявки: %w", err)
+		if err := store.UpdateJoinRequestStatus(request.ID, "rejected"); err != nil {
+			return err
 		}
 
 		// Логируем действие
-		action := fmt.Sprintf("Отклонил заявку пользователя '%s' (@%s)", request.User.Name, request.User.Us)
-		if err := s.logAction(tx, request.GroupID, actorID, actor.Name, actor.Us, role, "reject_request", action); err != nil {
+		action := fmt.Sprintf("Отклонил заявку пользователя '%s' (@%s)", request.UserName, request.UserUs)
+		if err := store.CreateActionLog(request.GroupID, actor, role, "reject_request", action); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 

@@ -230,6 +230,31 @@ func TestGroupServiceApproveJoinRequestAddsMembershipAndWritesActionLog(t *testi
 	assertGroupServiceActionLogCount(t, db, groupID, "approve_request", 1)
 }
 
+func TestGroupServiceApproveJoinRequestUsesTransactionForActorRoleLookup(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &rootGroupAccessPoisonRepository{testPostgresRepository: &testPostgresRepository{db: db}}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, true)
+	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
+	requestID := seedGroupJoinRequestWithID(t, db, groupID, 2, "pending")
+
+	approved, err := service.ApproveJoinRequest(1, requestID)
+
+	if err != nil {
+		t.Fatalf("ApproveJoinRequest returned error: %v", err)
+	}
+	if !approved {
+		t.Fatal("ApproveJoinRequest returned false")
+	}
+	assertGroupMembershipExists(t, db, groupID, 2, true)
+	assertGroupJoinRequestStatus(t, db, requestID, "approved")
+}
+
 func TestGroupServiceApproveJoinRequestRejectsMemberActorWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
@@ -249,6 +274,35 @@ func TestGroupServiceApproveJoinRequestRejectsMemberActorWithoutSideEffects(t *t
 	}
 	if !errors.Is(err, servicegroups.ErrPermissionDenied) {
 		t.Fatalf("err = %v, want ErrPermissionDenied", err)
+	}
+	assertGroupMembershipExists(t, db, groupID, 2, false)
+	assertGroupJoinRequestStatus(t, db, requestID, "pending")
+	assertGroupServiceActionLogCount(t, db, groupID, "approve_request", 0)
+}
+
+func TestGroupServiceApproveJoinRequestMapsMembershipUniqueViolationToAlreadyInGroup(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &duplicateMembershipRepository{testPostgresRepository: &testPostgresRepository{db: db}}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, true)
+	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
+	requestID := seedGroupJoinRequestWithID(t, db, groupID, 2, "pending")
+
+	approved, err := service.ApproveJoinRequest(1, requestID)
+
+	if approved {
+		t.Fatal("ApproveJoinRequest returned true")
+	}
+	if !errors.Is(err, servicegroups.ErrAlreadyInGroup) {
+		t.Fatalf("err = %v, want ErrAlreadyInGroup", err)
+	}
+	if !repo.injected.Load() {
+		t.Fatal("test membership unique violation injection was not reached")
 	}
 	assertGroupMembershipExists(t, db, groupID, 2, false)
 	assertGroupJoinRequestStatus(t, db, requestID, "pending")
@@ -305,6 +359,55 @@ func TestGroupServiceRejectJoinRequestUpdatesStatusAndWritesActionLog(t *testing
 	assertGroupMembershipExists(t, db, groupID, 2, false)
 	assertGroupJoinRequestStatus(t, db, requestID, "rejected")
 	assertGroupServiceActionLogCount(t, db, groupID, "reject_request", 1)
+}
+
+func TestGroupServiceRejectJoinRequestRejectsMemberActorWithoutSideEffects(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, true)
+	seedGroupServiceMembership(t, db, groupID, 1, memberRoleID)
+	requestID := seedGroupJoinRequestWithID(t, db, groupID, 2, "pending")
+
+	rejected, err := service.RejectJoinRequest(1, requestID)
+
+	if rejected {
+		t.Fatal("RejectJoinRequest returned true")
+	}
+	if !errors.Is(err, servicegroups.ErrPermissionDenied) {
+		t.Fatalf("err = %v, want ErrPermissionDenied", err)
+	}
+	assertGroupMembershipExists(t, db, groupID, 2, false)
+	assertGroupJoinRequestStatus(t, db, requestID, "pending")
+	assertGroupServiceActionLogCount(t, db, groupID, "reject_request", 0)
+}
+
+func TestGroupServiceRejectJoinRequestUsesTransactionForActorRoleLookup(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &rootGroupAccessPoisonRepository{testPostgresRepository: &testPostgresRepository{db: db}}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	operatorRoleID := seedGroupServiceRole(t, db, groupmodels.RoleModerator)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, true)
+	seedGroupServiceMembership(t, db, groupID, 1, operatorRoleID)
+	requestID := seedGroupJoinRequestWithID(t, db, groupID, 2, "pending")
+
+	rejected, err := service.RejectJoinRequest(1, requestID)
+
+	if err != nil {
+		t.Fatalf("RejectJoinRequest returned error: %v", err)
+	}
+	if !rejected {
+		t.Fatal("RejectJoinRequest returned false")
+	}
+	assertGroupMembershipExists(t, db, groupID, 2, false)
+	assertGroupJoinRequestStatus(t, db, requestID, "rejected")
 }
 
 func TestGroupServiceCreateJoinInviteLoadsTargetUserAndRejectsMissingUser(t *testing.T) {
@@ -942,6 +1045,16 @@ func (r *duplicateMembershipTxRepository) Create(value interface{}) *gorm.DB {
 		return result
 	}
 	return r.testPostgresRepository.Create(value)
+}
+
+type rootGroupAccessPoisonRepository struct {
+	*testPostgresRepository
+}
+
+func (r *rootGroupAccessPoisonRepository) Preload(column string, conditions ...interface{}) *gorm.DB {
+	result := r.db.Session(&gorm.Session{})
+	result.Error = errors.New("root repository role lookup should not be used inside request review transaction")
+	return result
 }
 
 func seedGroupJoinInviteWithID(t *testing.T, db *gorm.DB, groupID, userID uint, status string) uint {
