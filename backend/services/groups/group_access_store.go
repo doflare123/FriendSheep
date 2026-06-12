@@ -23,9 +23,10 @@ func newTxGroupAccessStore(tx groupTx) txGroupAccessStore {
 
 func (s txGroupAccessStore) FindActorRole(actorID uint, groupID uint, required groups.Capability) (bool, string, error) {
 	var groupUser groups.GroupUsers
-	err := s.tx.
-		Where("user_id = ? AND group_id = ?", actorID, groupID).
-		First(&groupUser).Error
+	err := s.tx.Where(&groups.GroupUsers{
+		UserID:  actorID,
+		GroupID: groupID,
+	}).Take(&groupUser).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -35,7 +36,7 @@ func (s txGroupAccessStore) FindActorRole(actorID uint, groupID uint, required g
 	}
 
 	var role groups.Role_in_group
-	if err := s.tx.First(&role, groupUser.RoleInGroupID).Error; err != nil {
+	if err := s.tx.Where(&groups.Role_in_group{Id: groupUser.RoleInGroupID}).Take(&role).Error; err != nil {
 		return false, "", fmt.Errorf("ошибка получения роли: %w", err)
 	}
 
