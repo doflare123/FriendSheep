@@ -1,13 +1,9 @@
 package group
 
 import (
-	"errors"
 	"fmt"
 	"friendship/models"
 	"friendship/models/groups"
-	"time"
-
-	"gorm.io/gorm"
 )
 
 // GetJoinRequests получает все заявки на вступление в группу
@@ -67,63 +63,50 @@ func (s *groupService) GetJoinRequests(actorID uint, groupID uint, status string
 
 // CreateJoinInvite создает приглашение в группу
 func (s *groupService) CreateJoinInvite(actorID uint, input JoinInviteInput) (bool, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.CapabilityModerate)
-	if err != nil {
-		return false, err
-	}
-	if !hasAccess {
-		return false, ErrPermissionDenied
-	}
+	err := s.runInTx(func(tx groupTx) error {
+		store := newJoinInviteCreationStore(tx)
 
-	var targetUser models.User
-	var actor models.User
-
-	err = s.runInTx(func(tx groupTx) error {
-		if err := tx.First(&targetUser, input.UserID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrUserNotFound
-			}
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		hasAccess, role, err := store.FindActorRole(actorID, input.GroupID, groups.CapabilityModerate)
+		if err != nil {
+			return err
+		}
+		if !hasAccess {
+			return ErrPermissionDenied
 		}
 
-		if err := tx.First(&actor, actorID).Error; err != nil {
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		targetUser, err := store.FindInviteUser(input.UserID)
+		if err != nil {
+			return err
 		}
-		// Проверяем, состоит ли уже в группе
-		var existingCount int64
-		if err := tx.Model(&groups.GroupUsers{}).
-			Where("user_id = ? AND group_id = ?", input.UserID, input.GroupID).
-			Count(&existingCount).Error; err != nil {
-			return fmt.Errorf("ошибка проверки членства: %w", err)
+
+		actor, err := store.FindInviteActor(actorID)
+		if err != nil {
+			return err
 		}
-		if existingCount > 0 {
+
+		isMember, err := store.IsGroupMember(input.GroupID, input.UserID)
+		if err != nil {
+			return err
+		}
+		if isMember {
 			return ErrAlreadyInGroup
 		}
 
-		// Проверяем существующие приглашения
-		var existingInvite groups.GroupJoinInvite
-		err := tx.Where("user_id = ? AND group_id = ? AND status = ?", input.UserID, input.GroupID, "pending").
-			First(&existingInvite).Error
-		if err == nil {
+		hasPendingInvite, err := store.HasPendingInvite(input.GroupID, input.UserID)
+		if err != nil {
+			return err
+		}
+		if hasPendingInvite {
 			return ErrInviteAlreadyExists
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("ошибка проверки приглашений: %w", err)
 		}
 
-		// Создаем приглашение
-		invite := groups.GroupJoinInvite{
-			UserID:    input.UserID,
-			GroupID:   input.GroupID,
-			Status:    "pending",
-			CreatedAt: time.Now(),
-		}
-		if err := tx.Create(&invite).Error; err != nil {
-			return fmt.Errorf("ошибка создания приглашения: %w", err)
+		if err := store.CreatePendingInvite(input.GroupID, input.UserID); err != nil {
+			return err
 		}
 
 		// Логируем действие
 		action := fmt.Sprintf("Отправил приглашение пользователю '%s' (@%s)", targetUser.Name, targetUser.Us)
-		if err := s.logAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, "send_invite", action); err != nil {
+		if err := store.CreateActionLog(input.GroupID, actor, role, "send_invite", action); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 

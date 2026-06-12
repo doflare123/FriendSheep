@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"friendship/models"
 	"friendship/models/groups"
-	"time"
 
 	"gorm.io/gorm"
 )
 
 type joinRequestReviewStore interface {
+	groupActorRoleFinder
+
 	FindJoinRequest(requestID uint) (joinRequestReview, error)
 	FindActor(actorID uint) (joinRequestActor, error)
-	FindActorRole(actorID uint, groupID uint, required groups.Capability) (bool, string, error)
 	IsUserBlacklisted(groupID uint, userID uint) (bool, error)
 	CreateRequestUserMembership(groupID uint, userID uint) error
 	UpdateJoinRequestStatus(requestID uint, status string) error
@@ -37,10 +37,14 @@ type joinRequestActor struct {
 
 type gormJoinRequestReviewStore struct {
 	tx groupTx
+	txGroupAccessStore
 }
 
 func newJoinRequestReviewStore(tx groupTx) joinRequestReviewStore {
-	return gormJoinRequestReviewStore{tx: tx}
+	return gormJoinRequestReviewStore{
+		tx:                 tx,
+		txGroupAccessStore: newTxGroupAccessStore(tx),
+	}
 }
 
 func (s gormJoinRequestReviewStore) FindJoinRequest(requestID uint) (joinRequestReview, error) {
@@ -73,33 +77,6 @@ func (s gormJoinRequestReviewStore) FindActor(actorID uint) (joinRequestActor, e
 		Name: actor.Name,
 		Us:   actor.Us,
 	}, nil
-}
-
-func (s gormJoinRequestReviewStore) FindActorRole(actorID uint, groupID uint, required groups.Capability) (bool, string, error) {
-	var groupUser groups.GroupUsers
-	err := s.tx.
-		Preload("RoleInGroup").
-		Where("user_id = ? AND group_id = ?", actorID, groupID).
-		First(&groupUser).Error
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, "", ErrNotInGroup
-		}
-		return false, "", fmt.Errorf("ошибка проверки доступа: %w", err)
-	}
-
-	var role groups.Role_in_group
-	if err := s.tx.First(&role, groupUser.RoleInGroupID).Error; err != nil {
-		return false, "", fmt.Errorf("ошибка получения роли: %w", err)
-	}
-
-	normalizedRole := groups.NormalizeRoleName(role.Name)
-	if groups.HasCapability(role.Name, required) {
-		return true, normalizedRole, nil
-	}
-
-	return false, normalizedRole, nil
 }
 
 func (s gormJoinRequestReviewStore) IsUserBlacklisted(groupID uint, userID uint) (bool, error) {
@@ -150,16 +127,5 @@ func (s gormJoinRequestReviewStore) UpdateJoinRequestStatus(requestID uint, stat
 }
 
 func (s gormJoinRequestReviewStore) CreateActionLog(groupID uint, actor joinRequestActor, role string, action string, description string) error {
-	actionLog := groups.GroupActionLog{
-		GroupID:     groupID,
-		UserID:      actor.ID,
-		Username:    actor.Name,
-		Us:          actor.Us,
-		Role:        role,
-		Action:      action,
-		Description: description,
-		CreatedAt:   time.Now(),
-	}
-
-	return s.tx.Create(&actionLog).Error
+	return createGroupActionLog(s.tx, groupID, actor, role, action, description)
 }

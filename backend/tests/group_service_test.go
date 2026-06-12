@@ -435,6 +435,137 @@ func TestGroupServiceCreateJoinInviteLoadsTargetUserAndRejectsMissingUser(t *tes
 	assertGroupServiceActionLogCount(t, db, groupID, "send_invite", 0)
 }
 
+func TestGroupServiceCreateJoinInviteUsesTransactionForActorRoleLookup(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &rootGroupAccessPoisonRepository{testPostgresRepository: &testPostgresRepository{db: db}}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	operatorRoleID := seedGroupServiceRole(t, db, groupmodels.RoleModerator)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	seedGroupServiceMembership(t, db, groupID, 1, operatorRoleID)
+
+	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+		GroupID: groupID,
+		UserID:  2,
+	})
+
+	if err != nil {
+		t.Fatalf("CreateJoinInvite returned error: %v", err)
+	}
+	if !created {
+		t.Fatal("CreateJoinInvite returned false")
+	}
+	assertGroupJoinInviteCount(t, db, groupID, 2, "pending", 1)
+	assertGroupServiceActionLogCount(t, db, groupID, "send_invite", 1)
+}
+
+func TestGroupServiceCreateJoinInviteRejectsMemberActorWithoutSideEffects(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	seedGroupServiceMembership(t, db, groupID, 1, memberRoleID)
+
+	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+		GroupID: groupID,
+		UserID:  2,
+	})
+
+	if created {
+		t.Fatal("CreateJoinInvite returned true")
+	}
+	if !errors.Is(err, servicegroups.ErrPermissionDenied) {
+		t.Fatalf("err = %v, want ErrPermissionDenied", err)
+	}
+	assertGroupJoinInviteCount(t, db, groupID, 2, "pending", 0)
+	assertGroupServiceActionLogCount(t, db, groupID, "send_invite", 0)
+}
+
+func TestGroupServiceCreateJoinInviteRejectsMissingActorMembershipWithoutSideEffects(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+
+	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+		GroupID: groupID,
+		UserID:  2,
+	})
+
+	if created {
+		t.Fatal("CreateJoinInvite returned true")
+	}
+	if !errors.Is(err, servicegroups.ErrNotInGroup) {
+		t.Fatalf("err = %v, want ErrNotInGroup", err)
+	}
+	assertGroupJoinInviteCount(t, db, groupID, 2, "pending", 0)
+	assertGroupServiceActionLogCount(t, db, groupID, "send_invite", 0)
+}
+
+func TestGroupServiceCreateJoinInviteRejectsExistingMemberWithoutSideEffects(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
+	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
+	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
+
+	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+		GroupID: groupID,
+		UserID:  2,
+	})
+
+	if created {
+		t.Fatal("CreateJoinInvite returned true")
+	}
+	if !errors.Is(err, servicegroups.ErrAlreadyInGroup) {
+		t.Fatalf("err = %v, want ErrAlreadyInGroup", err)
+	}
+	assertGroupJoinInviteCount(t, db, groupID, 2, "pending", 0)
+	assertGroupServiceActionLogCount(t, db, groupID, "send_invite", 0)
+}
+
+func TestGroupServiceCreateJoinInviteRejectsDuplicatePendingInviteWithoutSideEffects(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
+	seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
+
+	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+		GroupID: groupID,
+		UserID:  2,
+	})
+
+	if created {
+		t.Fatal("CreateJoinInvite returned true")
+	}
+	if !errors.Is(err, servicegroups.ErrInviteAlreadyExists) {
+		t.Fatalf("err = %v, want ErrInviteAlreadyExists", err)
+	}
+	assertGroupJoinInviteCount(t, db, groupID, 2, "pending", 1)
+	assertGroupServiceActionLogCount(t, db, groupID, "send_invite", 0)
+}
+
 func TestGroupServiceCreateJoinInviteCreatesPendingInviteAndActionLog(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
@@ -460,6 +591,32 @@ func TestGroupServiceCreateJoinInviteCreatesPendingInviteAndActionLog(t *testing
 	assertGroupJoinInviteCount(t, db, groupID, 2, "pending", 1)
 	assertGroupServiceActionLogCount(t, db, groupID, "send_invite", 1)
 	assertGroupServiceActionLogContains(t, db, groupID, "send_invite", "group-user-2")
+}
+
+func TestGroupServiceCreateJoinInviteKeepsInviteWhenActionLogFails(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &actionLogFailureRepository{testPostgresRepository: &testPostgresRepository{db: db}}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
+
+	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+		GroupID: groupID,
+		UserID:  2,
+	})
+
+	if err != nil {
+		t.Fatalf("CreateJoinInvite returned error: %v", err)
+	}
+	if !created {
+		t.Fatal("CreateJoinInvite returned false")
+	}
+	assertGroupJoinInviteCount(t, db, groupID, 2, "pending", 1)
+	assertGroupServiceActionLogCount(t, db, groupID, "send_invite", 0)
 }
 
 func TestGroupServiceCreateGroupRejectsMissingCategoriesWithoutSideEffects(t *testing.T) {
@@ -1055,6 +1212,34 @@ func (r *rootGroupAccessPoisonRepository) Preload(column string, conditions ...i
 	result := r.db.Session(&gorm.Session{})
 	result.Error = errors.New("root repository role lookup should not be used inside request review transaction")
 	return result
+}
+
+type actionLogFailureRepository struct {
+	*testPostgresRepository
+	injected atomic.Bool
+}
+
+func (r *actionLogFailureRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		return fc(&actionLogFailureTxRepository{
+			testPostgresRepository: &testPostgresRepository{db: tx},
+			injected:               &r.injected,
+		})
+	})
+}
+
+type actionLogFailureTxRepository struct {
+	*testPostgresRepository
+	injected *atomic.Bool
+}
+
+func (r *actionLogFailureTxRepository) Create(value interface{}) *gorm.DB {
+	if _, ok := value.(*groupmodels.GroupActionLog); ok && r.injected.CompareAndSwap(false, true) {
+		result := r.db.Session(&gorm.Session{})
+		result.Error = errors.New("forced group action log failure")
+		return result
+	}
+	return r.testPostgresRepository.Create(value)
 }
 
 func seedGroupJoinInviteWithID(t *testing.T, db *gorm.DB, groupID, userID uint, status string) uint {
