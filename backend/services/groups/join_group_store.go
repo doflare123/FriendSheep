@@ -10,10 +10,10 @@ import (
 )
 
 type joinGroupStore interface {
+	groupRelationChecks
+
 	EnsureUserExists(userID uint) error
 	FindJoinGroupTarget(groupID uint) (joinGroupTarget, error)
-	IsUserBlacklisted(groupID uint, userID uint) (bool, error)
-	IsGroupMember(groupID uint, userID uint) (bool, error)
 	HasPendingJoinRequest(groupID uint, userID uint) (bool, error)
 	CreatePendingJoinRequest(groupID uint, userID uint) error
 	CreateGroupMember(groupID uint, userID uint) error
@@ -26,10 +26,14 @@ type joinGroupTarget struct {
 
 type gormJoinGroupStore struct {
 	tx groupTx
+	txGroupRelationStore
 }
 
 func newJoinGroupStore(tx groupTx) joinGroupStore {
-	return gormJoinGroupStore{tx: tx}
+	return gormJoinGroupStore{
+		tx:                   tx,
+		txGroupRelationStore: newTxGroupRelationStore(tx),
+	}
 }
 
 func (s gormJoinGroupStore) EnsureUserExists(userID uint) error {
@@ -59,31 +63,9 @@ func (s gormJoinGroupStore) FindJoinGroupTarget(groupID uint) (joinGroupTarget, 
 	}, nil
 }
 
-func (s gormJoinGroupStore) IsUserBlacklisted(groupID uint, userID uint) (bool, error) {
-	var count int64
-	if err := s.tx.Model(&groups.GroupBlacklist{}).
-		Where("group_id = ? AND user_id = ?", groupID, userID).
-		Count(&count).Error; err != nil {
-		return false, fmt.Errorf("ошибка проверки черного списка: %w", err)
-	}
-
-	return count > 0, nil
-}
-
-func (s gormJoinGroupStore) IsGroupMember(groupID uint, userID uint) (bool, error) {
-	var count int64
-	if err := s.tx.Model(&groups.GroupUsers{}).
-		Where("user_id = ? AND group_id = ?", userID, groupID).
-		Count(&count).Error; err != nil {
-		return false, fmt.Errorf("ошибка проверки членства: %w", err)
-	}
-
-	return count > 0, nil
-}
-
 func (s gormJoinGroupStore) HasPendingJoinRequest(groupID uint, userID uint) (bool, error) {
 	var request groups.GroupJoinRequest
-	err := s.tx.Where("user_id = ? AND group_id = ? AND status = ?", userID, groupID, "pending").
+	err := s.tx.Where("user_id = ? AND group_id = ? AND status = ?", userID, groupID, groups.JoinStatusPending).
 		First(&request).Error
 	if err == nil {
 		return true, nil
@@ -99,7 +81,7 @@ func (s gormJoinGroupStore) CreatePendingJoinRequest(groupID uint, userID uint) 
 	request := groups.GroupJoinRequest{
 		UserID:  userID,
 		GroupID: groupID,
-		Status:  "pending",
+		Status:  groups.JoinStatusPending,
 	}
 	if err := s.tx.Create(&request).Error; err != nil {
 		if isPendingJoinRequestUniqueViolation(err) {

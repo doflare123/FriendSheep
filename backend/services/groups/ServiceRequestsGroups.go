@@ -141,7 +141,7 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 			return fmt.Errorf("ошибка поиска пользователя: %w", err)
 		}
 
-		if err := tx.Where("group_id = ? AND status = ?", groupID, "pending").
+		if err := tx.Where("group_id = ? AND status = ?", groupID, groups.JoinStatusPending).
 			Preload("User").
 			Find(&requests).Error; err != nil {
 			return fmt.Errorf("ошибка получения заявок: %w", err)
@@ -176,7 +176,7 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 			}
 
 			// Обновляем статус заявки
-			if err := tx.Model(&req).Update("status", "approved").Error; err != nil {
+			if err := tx.Model(&req).Update("status", groups.JoinStatusApproved).Error; err != nil {
 				s.logger.Warn("Не удалось обновить статус заявки", "requestID", req.ID, "error", err)
 			}
 
@@ -220,8 +220,8 @@ func (s *groupService) RejectAllJoinRequests(actorID uint, groupID uint) (int, e
 		}
 
 		result := tx.Model(&groups.GroupJoinRequest{}).
-			Where("group_id = ? AND status = ?", groupID, "pending").
-			Update("status", "rejected")
+			Where("group_id = ? AND status = ?", groupID, groups.JoinStatusPending).
+			Update("status", groups.JoinStatusRejected)
 
 		if result.Error != nil {
 			return fmt.Errorf("ошибка отклонения заявок: %w", result.Error)
@@ -270,7 +270,7 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 			return err
 		}
 
-		if request.Status != "pending" {
+		if request.Status != groups.JoinStatusPending {
 			return ErrJoinRequestHandled
 		}
 
@@ -286,7 +286,7 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 			return err
 		}
 
-		if err := store.UpdateJoinRequestStatus(request.ID, "approved"); err != nil {
+		if err := store.UpdateJoinRequestStatus(request.ID, groups.JoinStatusApproved); err != nil {
 			return err
 		}
 
@@ -331,11 +331,11 @@ func (s *groupService) RejectJoinRequest(actorID uint, requestID uint) (bool, er
 			return err
 		}
 
-		if request.Status != "pending" {
+		if request.Status != groups.JoinStatusPending {
 			return ErrJoinRequestHandled
 		}
 
-		if err := store.UpdateJoinRequestStatus(request.ID, "rejected"); err != nil {
+		if err := store.UpdateJoinRequestStatus(request.ID, groups.JoinStatusRejected); err != nil {
 			return err
 		}
 

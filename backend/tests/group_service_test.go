@@ -977,6 +977,189 @@ func TestGroupServiceAcceptJoinInviteIdempotentForAcceptedInvite(t *testing.T) {
 	assertGroupJoinInviteStatus(t, db, inviteID, "accepted")
 }
 
+func TestGroupServiceAcceptJoinInviteRejectsMissingInvite(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	result, err := service.AcceptJoinInvite(2, 404)
+
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if !errors.Is(err, servicegroups.ErrInviteNotFound) {
+		t.Fatalf("err = %v, want ErrInviteNotFound", err)
+	}
+}
+
+func TestGroupServiceAcceptJoinInviteRejectsInviteOwnedByAnotherUser(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	seedGroupServiceUser(t, db, 3)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
+
+	result, err := service.AcceptJoinInvite(3, inviteID)
+
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if !errors.Is(err, servicegroups.ErrInviteNotOwned) {
+		t.Fatalf("err = %v, want ErrInviteNotOwned", err)
+	}
+	assertGroupMembershipExists(t, db, groupID, 3, false)
+	assertGroupJoinInviteStatus(t, db, inviteID, "pending")
+}
+
+func TestGroupServiceAcceptJoinInviteRejectsAcceptedInviteWithoutMembership(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "accepted")
+
+	result, err := service.AcceptJoinInvite(2, inviteID)
+
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if !errors.Is(err, servicegroups.ErrInviteAlreadyHandled) {
+		t.Fatalf("err = %v, want ErrInviteAlreadyHandled", err)
+	}
+	assertGroupMembershipExists(t, db, groupID, 2, false)
+	assertGroupJoinInviteStatus(t, db, inviteID, "accepted")
+}
+
+func TestGroupServiceAcceptJoinInviteRejectsRejectedInvite(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "rejected")
+
+	result, err := service.AcceptJoinInvite(2, inviteID)
+
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if !errors.Is(err, servicegroups.ErrInviteAlreadyHandled) {
+		t.Fatalf("err = %v, want ErrInviteAlreadyHandled", err)
+	}
+	assertGroupMembershipExists(t, db, groupID, 2, false)
+	assertGroupJoinInviteStatus(t, db, inviteID, "rejected")
+}
+
+func TestGroupServiceAcceptJoinInviteRejectsBlacklistedUserWithoutSideEffects(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	seedGroupBlacklist(t, db, groupID, 2, 1)
+	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
+
+	result, err := service.AcceptJoinInvite(2, inviteID)
+
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if !errors.Is(err, servicegroups.ErrUserInBlacklist) {
+		t.Fatalf("err = %v, want ErrUserInBlacklist", err)
+	}
+	assertGroupMembershipExists(t, db, groupID, 2, false)
+	assertGroupJoinInviteStatus(t, db, inviteID, "pending")
+}
+
+func TestGroupServiceAcceptJoinInviteRejectsMissingMemberRoleWithoutSideEffects(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
+
+	result, err := service.AcceptJoinInvite(2, inviteID)
+
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if !errors.Is(err, servicegroups.ErrRoleMemberNotFound) {
+		t.Fatalf("err = %v, want ErrRoleMemberNotFound", err)
+	}
+	assertGroupMembershipExists(t, db, groupID, 2, false)
+	assertGroupJoinInviteStatus(t, db, inviteID, "pending")
+}
+
+func TestGroupServiceAcceptJoinInviteHandlesStatusRaceWithoutSideEffects(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &inviteStatusRaceRepository{testPostgresRepository: &testPostgresRepository{db: db}}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
+
+	result, err := service.AcceptJoinInvite(2, inviteID)
+
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if !errors.Is(err, servicegroups.ErrInviteAlreadyHandled) {
+		t.Fatalf("err = %v, want ErrInviteAlreadyHandled", err)
+	}
+	if !repo.injected.Load() {
+		t.Fatal("test status race injection was not reached")
+	}
+	assertGroupMembershipExists(t, db, groupID, 2, false)
+	assertGroupJoinInviteStatus(t, db, inviteID, "pending")
+}
+
+func TestGroupServiceAcceptJoinInviteRollsBackMembershipWhenStatusUpdateFails(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &inviteStatusUpdateFailureRepository{testPostgresRepository: &testPostgresRepository{db: db}}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
+
+	result, err := service.AcceptJoinInvite(2, inviteID)
+
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if err == nil || !strings.Contains(err.Error(), "forced invite status update failure") {
+		t.Fatalf("err = %v, want forced invite status update failure", err)
+	}
+	if !repo.injected.Load() {
+		t.Fatal("test status update failure injection was not reached")
+	}
+	assertGroupMembershipExists(t, db, groupID, 2, false)
+	assertGroupJoinInviteStatus(t, db, inviteID, "pending")
+}
+
 func TestGroupServiceRejectJoinInviteUpdatesStatusWithoutMembership(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
@@ -997,6 +1180,64 @@ func TestGroupServiceRejectJoinInviteUpdatesStatusWithoutMembership(t *testing.T
 	}
 	assertGroupMembershipExists(t, db, groupID, 2, false)
 	assertGroupJoinInviteStatus(t, db, inviteID, "rejected")
+}
+
+func TestGroupServiceRejectJoinInviteRejectsMissingInvite(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	rejected, err := service.RejectJoinInvite(2, 404)
+
+	if rejected {
+		t.Fatal("RejectJoinInvite returned true")
+	}
+	if !errors.Is(err, servicegroups.ErrInviteNotFound) {
+		t.Fatalf("err = %v, want ErrInviteNotFound", err)
+	}
+}
+
+func TestGroupServiceRejectJoinInviteRejectsInviteOwnedByAnotherUser(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	seedGroupServiceUser(t, db, 3)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
+
+	rejected, err := service.RejectJoinInvite(3, inviteID)
+
+	if rejected {
+		t.Fatal("RejectJoinInvite returned true")
+	}
+	if !errors.Is(err, servicegroups.ErrInviteNotOwned) {
+		t.Fatalf("err = %v, want ErrInviteNotOwned", err)
+	}
+	assertGroupJoinInviteStatus(t, db, inviteID, "pending")
+}
+
+func TestGroupServiceRejectJoinInviteRejectsHandledInvite(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "accepted")
+
+	rejected, err := service.RejectJoinInvite(2, inviteID)
+
+	if rejected {
+		t.Fatal("RejectJoinInvite returned true")
+	}
+	if !errors.Is(err, servicegroups.ErrInviteAlreadyHandled) {
+		t.Fatalf("err = %v, want ErrInviteAlreadyHandled", err)
+	}
+	assertGroupJoinInviteStatus(t, db, inviteID, "accepted")
 }
 
 func newGroupServiceDB(t *testing.T) *gorm.DB {
@@ -1240,6 +1481,66 @@ func (r *actionLogFailureTxRepository) Create(value interface{}) *gorm.DB {
 		return result
 	}
 	return r.testPostgresRepository.Create(value)
+}
+
+type inviteStatusRaceRepository struct {
+	*testPostgresRepository
+	injected atomic.Bool
+}
+
+func (r *inviteStatusRaceRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		return fc(&inviteStatusRaceTxRepository{
+			testPostgresRepository: &testPostgresRepository{db: tx},
+			injected:               &r.injected,
+		})
+	})
+}
+
+type inviteStatusRaceTxRepository struct {
+	*testPostgresRepository
+	injected *atomic.Bool
+}
+
+func (r *inviteStatusRaceTxRepository) Model(value interface{}) *gorm.DB {
+	if _, ok := value.(*groupmodels.GroupJoinInvite); ok && r.injected.CompareAndSwap(false, true) {
+		if err := r.db.Model(&groupmodels.GroupJoinInvite{}).
+			Where("status = ?", "pending").
+			Update("status", "rejected").Error; err != nil {
+			result := r.db.Session(&gorm.Session{})
+			result.Error = err
+			return result
+		}
+	}
+	return r.testPostgresRepository.Model(value)
+}
+
+type inviteStatusUpdateFailureRepository struct {
+	*testPostgresRepository
+	injected atomic.Bool
+}
+
+func (r *inviteStatusUpdateFailureRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		return fc(&inviteStatusUpdateFailureTxRepository{
+			testPostgresRepository: &testPostgresRepository{db: tx},
+			injected:               &r.injected,
+		})
+	})
+}
+
+type inviteStatusUpdateFailureTxRepository struct {
+	*testPostgresRepository
+	injected *atomic.Bool
+}
+
+func (r *inviteStatusUpdateFailureTxRepository) Model(value interface{}) *gorm.DB {
+	if _, ok := value.(*groupmodels.GroupJoinInvite); ok && r.injected.CompareAndSwap(false, true) {
+		result := r.db.Session(&gorm.Session{})
+		result.Error = errors.New("forced invite status update failure")
+		return result
+	}
+	return r.testPostgresRepository.Model(value)
 }
 
 func seedGroupJoinInviteWithID(t *testing.T, db *gorm.DB, groupID, userID uint, status string) uint {

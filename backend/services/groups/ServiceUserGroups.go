@@ -8,7 +8,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // JoinGroup вступление в группу
@@ -142,22 +141,23 @@ func (s *groupService) LeaveGroup(userID uint, groupID uint) (bool, error) {
 
 // AcceptJoinInvite принимает приглашение в группу
 func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResult, error) {
-	var invite groups.GroupJoinInvite
+	var invite joinInviteResponse
 
 	err := s.runInTx(func(tx groupTx) error {
-		if err := tx.First(&invite, inviteID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrInviteNotFound
-			}
-			return fmt.Errorf("ошибка поиска приглашения: %w", err)
+		store := newJoinInviteResponseStore(tx)
+
+		foundInvite, err := store.FindJoinInvite(inviteID)
+		if err != nil {
+			return err
 		}
+		invite = foundInvite
 
 		if invite.UserID != userID {
 			return ErrInviteNotOwned
 		}
 
-		if invite.Status == "accepted" {
-			isMember, err := groupMembershipExists(tx, userID, invite.GroupID)
+		if invite.Status == groups.JoinStatusAccepted {
+			isMember, err := store.IsGroupMember(invite.GroupID, userID)
 			if err != nil {
 				return err
 			}
@@ -167,63 +167,23 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 			return ErrInviteAlreadyHandled
 		}
 
-		if invite.Status != "pending" {
+		if invite.Status != groups.JoinStatusPending {
 			return ErrInviteAlreadyHandled
 		}
 
-		// Проверяем черный список
-		var blacklistCount int64
-		if err := tx.Model(&groups.GroupBlacklist{}).
-			Where("group_id = ? AND user_id = ?", invite.GroupID, userID).
-			Count(&blacklistCount).Error; err != nil {
-			return fmt.Errorf("ошибка проверки черного списка: %w", err)
-		}
-		if blacklistCount > 0 {
-			return ErrUserInBlacklist
-		}
-
-		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
-		if err != nil {
-			return ErrRoleMemberNotFound
-		}
-
-		isMember, err := groupMembershipExists(tx, userID, invite.GroupID)
+		isBlacklisted, err := store.IsUserBlacklisted(invite.GroupID, userID)
 		if err != nil {
 			return err
 		}
-		if isMember {
-			if err := tx.Model(&invite).Update("status", "accepted").Error; err != nil {
-				return fmt.Errorf("ошибка обновления статуса приглашения: %w", err)
-			}
-			return nil
+		if isBlacklisted {
+			return ErrUserInBlacklist
 		}
 
-		// Добавляем в группу
-		groupUser := groups.GroupUsers{
-			UserID:        userID,
-			GroupID:       invite.GroupID,
-			RoleInGroupID: memberRoleID,
-		}
-		createMembership := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&groupUser)
-		if createMembership.Error != nil {
-			return fmt.Errorf("ошибка добавления пользователя в группу: %w", createMembership.Error)
-		}
-		if createMembership.RowsAffected == 0 {
-			isMember, err = groupMembershipExists(tx, userID, invite.GroupID)
-			if err != nil {
-				return err
-			}
-			if !isMember {
-				return fmt.Errorf("членство пользователя в группе не подтверждено после принятия приглашения")
-			}
+		if err := store.CreateGroupMemberIfMissing(invite.GroupID, userID); err != nil {
+			return err
 		}
 
-		// Обновляем статус приглашения
-		if err := tx.Model(&invite).Update("status", "accepted").Error; err != nil {
-			return fmt.Errorf("ошибка обновления статуса приглашения: %w", err)
-		}
-
-		return nil
+		return store.UpdateInviteStatus(invite.ID, groups.JoinStatusAccepted)
 	})
 
 	if err != nil {
@@ -238,41 +198,25 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 	}, nil
 }
 
-func groupMembershipExists(tx groupTx, userID uint, groupID uint) (bool, error) {
-	var existingCount int64
-	if err := tx.Model(&groups.GroupUsers{}).
-		Where("user_id = ? AND group_id = ?", userID, groupID).
-		Count(&existingCount).Error; err != nil {
-		return false, fmt.Errorf("ошибка проверки членства: %w", err)
-	}
-	return existingCount > 0, nil
-}
-
 // RejectJoinInvite отклоняет приглашение в группу
 func (s *groupService) RejectJoinInvite(userID uint, inviteID uint) (bool, error) {
-	var invite groups.GroupJoinInvite
-
 	err := s.runInTx(func(tx groupTx) error {
-		if err := tx.First(&invite, inviteID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrInviteNotFound
-			}
-			return fmt.Errorf("ошибка поиска приглашения: %w", err)
+		store := newJoinInviteResponseStore(tx)
+
+		invite, err := store.FindJoinInvite(inviteID)
+		if err != nil {
+			return err
 		}
 
 		if invite.UserID != userID {
 			return ErrInviteNotOwned
 		}
 
-		if invite.Status != "pending" {
+		if invite.Status != groups.JoinStatusPending {
 			return ErrInviteAlreadyHandled
 		}
 
-		if err := tx.Model(&invite).Update("status", "rejected").Error; err != nil {
-			return fmt.Errorf("ошибка обновления статуса приглашения: %w", err)
-		}
-
-		return nil
+		return store.UpdateInviteStatus(invite.ID, groups.JoinStatusRejected)
 	})
 
 	if err != nil {

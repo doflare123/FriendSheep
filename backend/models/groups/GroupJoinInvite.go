@@ -11,6 +11,6 @@ type GroupJoinInvite struct {
 	User      models.User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	GroupID   uint        `json:"groupId"`
 	Group     Group       `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Status    string      `json:"status"` // "pending", "approved", "rejected"
+	Status    string      `json:"status"` // JoinStatusPending, JoinStatusAccepted, JoinStatusRejected
 	CreatedAt time.Time
 }

@@ -12,10 +12,10 @@ import (
 
 type joinInviteCreationStore interface {
 	groupActorRoleFinder
+	groupRelationChecks
 
 	FindInviteUser(userID uint) (joinInviteUser, error)
 	FindInviteActor(actorID uint) (joinRequestActor, error)
-	IsGroupMember(groupID uint, userID uint) (bool, error)
 	HasPendingInvite(groupID uint, userID uint) (bool, error)
 	CreatePendingInvite(groupID uint, userID uint) error
 	CreateActionLog(groupID uint, actor joinRequestActor, role string, action string, description string) error
@@ -30,12 +30,14 @@ type joinInviteUser struct {
 type gormJoinInviteCreationStore struct {
 	tx groupTx
 	txGroupAccessStore
+	txGroupRelationStore
 }
 
 func newJoinInviteCreationStore(tx groupTx) joinInviteCreationStore {
 	return gormJoinInviteCreationStore{
-		tx:                 tx,
-		txGroupAccessStore: newTxGroupAccessStore(tx),
+		tx:                   tx,
+		txGroupAccessStore:   newTxGroupAccessStore(tx),
+		txGroupRelationStore: newTxGroupRelationStore(tx),
 	}
 }
 
@@ -68,20 +70,9 @@ func (s gormJoinInviteCreationStore) FindInviteActor(actorID uint) (joinRequestA
 	}, nil
 }
 
-func (s gormJoinInviteCreationStore) IsGroupMember(groupID uint, userID uint) (bool, error) {
-	var count int64
-	if err := s.tx.Model(&groups.GroupUsers{}).
-		Where("user_id = ? AND group_id = ?", userID, groupID).
-		Count(&count).Error; err != nil {
-		return false, fmt.Errorf("ошибка проверки членства: %w", err)
-	}
-
-	return count > 0, nil
-}
-
 func (s gormJoinInviteCreationStore) HasPendingInvite(groupID uint, userID uint) (bool, error) {
 	var invite groups.GroupJoinInvite
-	err := s.tx.Where("user_id = ? AND group_id = ? AND status = ?", userID, groupID, "pending").
+	err := s.tx.Where("user_id = ? AND group_id = ? AND status = ?", userID, groupID, groups.JoinStatusPending).
 		First(&invite).Error
 	if err == nil {
 		return true, nil
@@ -97,7 +88,7 @@ func (s gormJoinInviteCreationStore) CreatePendingInvite(groupID uint, userID ui
 	invite := groups.GroupJoinInvite{
 		UserID:    userID,
 		GroupID:   groupID,
-		Status:    "pending",
+		Status:    groups.JoinStatusPending,
 		CreatedAt: time.Now(),
 	}
 	if err := s.tx.Create(&invite).Error; err != nil {

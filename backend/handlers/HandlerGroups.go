@@ -819,7 +819,7 @@ func (h *groupHandler) AcceptJoinInvite(c *gin.Context) {
 		case errors.Is(err, group.ErrInviteAlreadyHandled):
 			utils.BadRequest(c, "Приглашение уже обработано")
 		default:
-			utils.InternalError(c, "Ошибка при принятии приглашения")
+			utils.InternalError(c, "Ошибка при принятии приглашения", utils.WithDetails(err.Error()))
 		}
 		return
 	}
@@ -860,7 +860,7 @@ func (h *groupHandler) RejectJoinInvite(c *gin.Context) {
 		case errors.Is(err, group.ErrInviteAlreadyHandled):
 			utils.BadRequest(c, "Приглашение уже обработано")
 		default:
-			utils.InternalError(c, "Ошибка при отклонении приглашения")
+			utils.InternalError(c, "Ошибка при отклонении приглашения", utils.WithDetails(err.Error()))
 		}
 		return
 	}

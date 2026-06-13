@@ -11,10 +11,10 @@ import (
 
 type joinRequestReviewStore interface {
 	groupActorRoleFinder
+	groupRelationChecks
 
 	FindJoinRequest(requestID uint) (joinRequestReview, error)
 	FindActor(actorID uint) (joinRequestActor, error)
-	IsUserBlacklisted(groupID uint, userID uint) (bool, error)
 	CreateRequestUserMembership(groupID uint, userID uint) error
 	UpdateJoinRequestStatus(requestID uint, status string) error
 	CreateActionLog(groupID uint, actor joinRequestActor, role string, action string, description string) error
@@ -38,12 +38,14 @@ type joinRequestActor struct {
 type gormJoinRequestReviewStore struct {
 	tx groupTx
 	txGroupAccessStore
+	txGroupRelationStore
 }
 
 func newJoinRequestReviewStore(tx groupTx) joinRequestReviewStore {
 	return gormJoinRequestReviewStore{
-		tx:                 tx,
-		txGroupAccessStore: newTxGroupAccessStore(tx),
+		tx:                   tx,
+		txGroupAccessStore:   newTxGroupAccessStore(tx),
+		txGroupRelationStore: newTxGroupRelationStore(tx),
 	}
 }
 
@@ -79,17 +81,6 @@ func (s gormJoinRequestReviewStore) FindActor(actorID uint) (joinRequestActor, e
 	}, nil
 }
 
-func (s gormJoinRequestReviewStore) IsUserBlacklisted(groupID uint, userID uint) (bool, error) {
-	var count int64
-	if err := s.tx.Model(&groups.GroupBlacklist{}).
-		Where("group_id = ? AND user_id = ?", groupID, userID).
-		Count(&count).Error; err != nil {
-		return false, fmt.Errorf("ошибка проверки черного списка: %w", err)
-	}
-
-	return count > 0, nil
-}
-
 func (s gormJoinRequestReviewStore) CreateRequestUserMembership(groupID uint, userID uint) error {
 	memberRoleID, err := findGroupRoleID(s.tx, groups.RoleMember)
 	if err != nil {
@@ -114,7 +105,7 @@ func (s gormJoinRequestReviewStore) CreateRequestUserMembership(groupID uint, us
 func (s gormJoinRequestReviewStore) UpdateJoinRequestStatus(requestID uint, status string) error {
 	result := s.tx.Model(&groups.GroupJoinRequest{}).
 		Where("id = ?", requestID).
-		Where("status = ?", "pending").
+		Where("status = ?", groups.JoinStatusPending).
 		Update("status", status)
 	if result.Error != nil {
 		return fmt.Errorf("ошибка обновления статуса заявки: %w", result.Error)
