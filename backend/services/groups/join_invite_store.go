@@ -8,14 +8,15 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type joinInviteCreationStore interface {
 	groupActorRoleFinder
+	groupActorFinder
 	groupRelationChecks
 
 	FindInviteUser(userID uint) (joinInviteUser, error)
-	FindInviteActor(actorID uint) (joinRequestActor, error)
 	HasPendingInvite(groupID uint, userID uint) (bool, error)
 	CreatePendingInvite(groupID uint, userID uint) error
 	CreateActionLog(groupID uint, actor joinRequestActor, role string, action string, description string) error
@@ -30,6 +31,7 @@ type joinInviteUser struct {
 type gormJoinInviteCreationStore struct {
 	tx groupTx
 	txGroupAccessStore
+	txGroupActorStore
 	txGroupRelationStore
 }
 
@@ -37,6 +39,7 @@ func newJoinInviteCreationStore(tx groupTx) joinInviteCreationStore {
 	return gormJoinInviteCreationStore{
 		tx:                   tx,
 		txGroupAccessStore:   newTxGroupAccessStore(tx),
+		txGroupActorStore:    newTxGroupActorStore(tx),
 		txGroupRelationStore: newTxGroupRelationStore(tx),
 	}
 }
@@ -54,19 +57,6 @@ func (s gormJoinInviteCreationStore) FindInviteUser(userID uint) (joinInviteUser
 		ID:   user.ID,
 		Name: user.Name,
 		Us:   user.Us,
-	}, nil
-}
-
-func (s gormJoinInviteCreationStore) FindInviteActor(actorID uint) (joinRequestActor, error) {
-	var actor models.User
-	if err := s.tx.First(&actor, actorID).Error; err != nil {
-		return joinRequestActor{}, fmt.Errorf("ошибка поиска пользователя: %w", err)
-	}
-
-	return joinRequestActor{
-		ID:   actor.ID,
-		Name: actor.Name,
-		Us:   actor.Us,
 	}, nil
 }
 
@@ -100,4 +90,93 @@ func (s gormJoinInviteCreationStore) CreatePendingInvite(groupID uint, userID ui
 
 func (s gormJoinInviteCreationStore) CreateActionLog(groupID uint, actor joinRequestActor, role string, action string, description string) error {
 	return createGroupActionLog(s.tx, groupID, actor, role, action, description)
+}
+
+type joinInviteResponseStore interface {
+	groupRelationChecks
+
+	FindJoinInvite(inviteID uint) (joinInviteResponse, error)
+	CreateGroupMemberIfMissing(groupID uint, userID uint) error
+	UpdateInviteStatus(inviteID uint, status string) error
+}
+
+type joinInviteResponse struct {
+	ID      uint
+	UserID  uint
+	GroupID uint
+	Status  string
+}
+
+type gormJoinInviteResponseStore struct {
+	tx groupTx
+	txGroupRelationStore
+}
+
+func newJoinInviteResponseStore(tx groupTx) joinInviteResponseStore {
+	return gormJoinInviteResponseStore{
+		tx:                   tx,
+		txGroupRelationStore: newTxGroupRelationStore(tx),
+	}
+}
+
+func (s gormJoinInviteResponseStore) FindJoinInvite(inviteID uint) (joinInviteResponse, error) {
+	var invite groups.GroupJoinInvite
+	if err := s.tx.First(&invite, inviteID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return joinInviteResponse{}, ErrInviteNotFound
+		}
+		return joinInviteResponse{}, fmt.Errorf("ошибка поиска приглашения: %w", err)
+	}
+
+	return joinInviteResponse{
+		ID:      invite.ID,
+		UserID:  invite.UserID,
+		GroupID: invite.GroupID,
+		Status:  invite.Status,
+	}, nil
+}
+
+func (s gormJoinInviteResponseStore) CreateGroupMemberIfMissing(groupID uint, userID uint) error {
+	memberRoleID, err := findGroupRoleID(s.tx, groups.RoleMember)
+	if err != nil {
+		return ErrRoleMemberNotFound
+	}
+
+	groupUser := groups.GroupUsers{
+		UserID:        userID,
+		GroupID:       groupID,
+		RoleInGroupID: memberRoleID,
+	}
+	createMembership := s.tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&groupUser)
+	if createMembership.Error != nil {
+		return fmt.Errorf("ошибка добавления пользователя в группу: %w", createMembership.Error)
+	}
+	if createMembership.RowsAffected > 0 {
+		return nil
+	}
+
+	isMember, err := s.IsGroupMember(groupID, userID)
+	if err != nil {
+		return err
+	}
+	if !isMember {
+		return fmt.Errorf("членство пользователя в группе не подтверждено после принятия приглашения")
+	}
+
+	return nil
+}
+
+func (s gormJoinInviteResponseStore) UpdateInviteStatus(inviteID uint, status string) error {
+	result := s.tx.Model(&groups.GroupJoinInvite{}).
+		Where(&groups.GroupJoinInvite{ID: inviteID}).
+		Where("status = ?", groups.JoinStatusPending).
+		Update("status", status)
+	if result.Error != nil {
+		return fmt.Errorf("ошибка обновления статуса приглашения: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return ErrInviteAlreadyHandled
+	}
+
+	return nil
 }

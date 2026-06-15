@@ -2,12 +2,10 @@ package group
 
 import (
 	"errors"
-	"fmt"
 	"friendship/models/groups"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"gorm.io/gorm"
 )
 
 // JoinGroup вступление в группу
@@ -103,31 +101,8 @@ func isGroupMembershipUniqueViolation(err error) bool {
 
 // LeaveGroup выход из группы
 func (s *groupService) LeaveGroup(userID uint, groupID uint) (bool, error) {
-	var groupUser groups.GroupUsers
-
 	err := s.runInTx(func(tx groupTx) error {
-		err := tx.Where("user_id = ? AND group_id = ?", userID, groupID).
-			First(&groupUser).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrNotInGroup
-			}
-			return fmt.Errorf("ошибка поиска участника: %w", err)
-		}
-
-		// Проверяем, не админ ли это (админ не может выйти)
-		var role groups.Role_in_group
-		if err := tx.First(&role, groupUser.RoleInGroupID).Error; err == nil {
-			if groups.HasCapability(role.Name, groups.CapabilityAdmin) {
-				return fmt.Errorf("администратор не может покинуть группу. Передайте права другому участнику или удалите группу")
-			}
-		}
-
-		if err := tx.Delete(&groupUser).Error; err != nil {
-			return fmt.Errorf("ошибка удаления участника: %w", err)
-		}
-
-		return nil
+		return newLeaveGroupStore(tx).LeaveGroup(userID, groupID)
 	})
 
 	if err != nil {

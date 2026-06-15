@@ -113,3 +113,40 @@ func (s gormJoinGroupStore) CreateGroupMember(groupID uint, userID uint) error {
 
 	return nil
 }
+
+type leaveGroupStore interface {
+	LeaveGroup(userID uint, groupID uint) error
+}
+
+type gormLeaveGroupStore struct {
+	tx groupTx
+}
+
+func newLeaveGroupStore(tx groupTx) leaveGroupStore {
+	return gormLeaveGroupStore{tx: tx}
+}
+
+func (s gormLeaveGroupStore) LeaveGroup(userID uint, groupID uint) error {
+	var groupUser groups.GroupUsers
+	err := s.tx.Where("user_id = ? AND group_id = ?", userID, groupID).
+		First(&groupUser).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrNotInGroup
+		}
+		return fmt.Errorf("ошибка поиска участника: %w", err)
+	}
+
+	var role groups.Role_in_group
+	if err := s.tx.First(&role, groupUser.RoleInGroupID).Error; err == nil {
+		if groups.HasCapability(role.Name, groups.CapabilityAdmin) {
+			return fmt.Errorf("администратор не может покинуть группу. Передайте права другому участнику или удалите группу")
+		}
+	}
+
+	if err := s.tx.Delete(&groupUser).Error; err != nil {
+		return fmt.Errorf("ошибка удаления участника: %w", err)
+	}
+
+	return nil
+}

@@ -2,7 +2,6 @@ package group
 
 import (
 	"fmt"
-	"friendship/models"
 	"friendship/models/groups"
 )
 
@@ -51,7 +50,7 @@ func (s *groupService) CreateJoinInvite(actorID uint, input JoinInviteInput) (bo
 			return err
 		}
 
-		actor, err := store.FindInviteActor(actorID)
+		actor, err := store.FindActor(actorID)
 		if err != nil {
 			return err
 		}
@@ -104,64 +103,18 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 		return 0, ErrPermissionDenied
 	}
 
-	var requests []groups.GroupJoinRequest
-	var actor models.User
-	count := 0
+	var result bulkJoinRequestResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		if err := tx.First(&actor, actorID).Error; err != nil {
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
-		}
-
-		if err := tx.Where("group_id = ? AND status = ?", groupID, groups.JoinStatusPending).
-			Preload("User").
-			Find(&requests).Error; err != nil {
-			return fmt.Errorf("ошибка получения заявок: %w", err)
-		}
-
-		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
+		store := newBulkJoinRequestStore(tx)
+		actor, err := store.FindActor(actorID)
 		if err != nil {
-			return ErrRoleMemberNotFound
+			return err
 		}
 
-		for _, req := range requests {
-			// Проверяем черный список
-			var blacklistCount int64
-			if err := tx.Model(&groups.GroupBlacklist{}).
-				Where("group_id = ? AND user_id = ?", groupID, req.UserID).
-				Count(&blacklistCount).Error; err != nil {
-				return fmt.Errorf("ошибка проверки черного списка: %w", err)
-			}
-			if blacklistCount > 0 {
-				continue
-			}
-
-			// Добавляем в группу
-			groupUser := groups.GroupUsers{
-				UserID:        req.UserID,
-				GroupID:       groupID,
-				RoleInGroupID: memberRoleID,
-			}
-			if err := tx.Create(&groupUser).Error; err != nil {
-				s.logger.Warn("Не удалось добавить пользователя в группу", "userID", req.UserID, "error", err)
-				continue
-			}
-
-			// Обновляем статус заявки
-			if err := tx.Model(&req).Update("status", groups.JoinStatusApproved).Error; err != nil {
-				s.logger.Warn("Не удалось обновить статус заявки", "requestID", req.ID, "error", err)
-			}
-
-			count++
-
-			// Логируем действие
-			action := fmt.Sprintf("Одобрил заявку пользователя '%s' (@%s)", req.User.Name, req.User.Us)
-			if err := s.logAction(tx, groupID, actorID, actor.Name, actor.Us, role, "approve_request", action); err != nil {
-				s.logger.Warn("Не удалось записать действие в журнал", "error", err)
-			}
-		}
-
-		return nil
+		var approveErr error
+		result, approveErr = store.ApproveAllPending(groupID, actor, role)
+		return approveErr
 	})
 
 	if err != nil {
@@ -169,8 +122,12 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 		return 0, err
 	}
 
-	s.logger.Info("Все заявки на вступление одобрены", "groupID", groupID, "count", count, "actorID", actorID)
-	return count, nil
+	for _, warning := range result.Warnings {
+		s.logger.Warn(warning.Message, warning.Args...)
+	}
+
+	s.logger.Info("Все заявки на вступление одобрены", "groupID", groupID, "count", result.Count, "actorID", actorID)
+	return result.Count, nil
 }
 
 // RejectAllJoinRequests отклоняет все заявки
@@ -183,31 +140,18 @@ func (s *groupService) RejectAllJoinRequests(actorID uint, groupID uint) (int, e
 		return 0, ErrPermissionDenied
 	}
 
-	var actor models.User
-	count := 0
+	var result bulkJoinRequestResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		if err := tx.First(&actor, actorID).Error; err != nil {
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		store := newBulkJoinRequestStore(tx)
+		actor, err := store.FindActor(actorID)
+		if err != nil {
+			return err
 		}
 
-		result := tx.Model(&groups.GroupJoinRequest{}).
-			Where("group_id = ? AND status = ?", groupID, groups.JoinStatusPending).
-			Update("status", groups.JoinStatusRejected)
-
-		if result.Error != nil {
-			return fmt.Errorf("ошибка отклонения заявок: %w", result.Error)
-		}
-
-		count = int(result.RowsAffected)
-
-		// Логируем действие
-		action := fmt.Sprintf("Отклонил все заявки на вступление (%d шт.)", count)
-		if err := s.logAction(tx, groupID, actorID, actor.Name, actor.Us, role, "reject_all_requests", action); err != nil {
-			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
-		}
-
-		return nil
+		var rejectErr error
+		result, rejectErr = store.RejectAllPending(groupID, actor, role)
+		return rejectErr
 	})
 
 	if err != nil {
@@ -215,8 +159,12 @@ func (s *groupService) RejectAllJoinRequests(actorID uint, groupID uint) (int, e
 		return 0, err
 	}
 
-	s.logger.Info("Все заявки на вступление отклонены", "groupID", groupID, "count", count, "actorID", actorID)
-	return count, nil
+	for _, warning := range result.Warnings {
+		s.logger.Warn(warning.Message, warning.Args...)
+	}
+
+	s.logger.Info("Все заявки на вступление отклонены", "groupID", groupID, "count", result.Count, "actorID", actorID)
+	return result.Count, nil
 }
 
 // ApproveJoinRequest одобряет конкретную заявку

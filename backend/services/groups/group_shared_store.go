@@ -3,6 +3,7 @@ package group
 import (
 	"errors"
 	"fmt"
+	"friendship/models"
 	"friendship/models/groups"
 	"time"
 
@@ -26,12 +27,37 @@ type groupActorRoleFinder interface {
 	FindActorRole(actorID uint, groupID uint, required groups.Capability) (bool, string, error)
 }
 
+type groupActorFinder interface {
+	FindActor(actorID uint) (joinRequestActor, error)
+}
+
+type txGroupActorStore struct {
+	tx groupTx
+}
+
+type groupRelationChecks interface {
+	IsUserBlacklisted(groupID uint, userID uint) (bool, error)
+	IsGroupMember(groupID uint, userID uint) (bool, error)
+}
+
+type txGroupRelationStore struct {
+	tx groupTx
+}
+
 func newTxGroupAccessStore(tx groupTx) txGroupAccessStore {
 	return newGroupAccessStore(tx)
 }
 
 func newGroupAccessStore(store groupRoleStore) txGroupAccessStore {
 	return txGroupAccessStore{lookup: gormGroupRoleLookup{store: store}}
+}
+
+func newTxGroupActorStore(tx groupTx) txGroupActorStore {
+	return txGroupActorStore{tx: tx}
+}
+
+func newTxGroupRelationStore(tx groupTx) txGroupRelationStore {
+	return txGroupRelationStore{tx: tx}
 }
 
 func (s txGroupAccessStore) FindActorRole(actorID uint, groupID uint, required groups.Capability) (bool, string, error) {
@@ -81,6 +107,41 @@ func (s gormGroupRoleLookup) FindRoleName(roleID uint) (string, error) {
 	}
 
 	return role.Name, nil
+}
+
+func (s txGroupActorStore) FindActor(actorID uint) (joinRequestActor, error) {
+	var actor models.User
+	if err := s.tx.First(&actor, actorID).Error; err != nil {
+		return joinRequestActor{}, fmt.Errorf("ошибка поиска пользователя: %w", err)
+	}
+
+	return joinRequestActor{
+		ID:   actor.ID,
+		Name: actor.Name,
+		Us:   actor.Us,
+	}, nil
+}
+
+func (s txGroupRelationStore) IsUserBlacklisted(groupID uint, userID uint) (bool, error) {
+	var count int64
+	if err := s.tx.Model(&groups.GroupBlacklist{}).
+		Where(&groups.GroupBlacklist{GroupID: groupID, UserID: userID}).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("ошибка проверки черного списка: %w", err)
+	}
+
+	return count > 0, nil
+}
+
+func (s txGroupRelationStore) IsGroupMember(groupID uint, userID uint) (bool, error) {
+	var count int64
+	if err := s.tx.Model(&groups.GroupUsers{}).
+		Where(&groups.GroupUsers{UserID: userID, GroupID: groupID}).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("ошибка проверки членства: %w", err)
+	}
+
+	return count > 0, nil
 }
 
 func createGroupActionLog(tx groupTx, groupID uint, actor joinRequestActor, role string, action string, description string) error {
