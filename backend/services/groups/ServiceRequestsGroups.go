@@ -24,41 +24,13 @@ func (s *groupService) GetJoinRequests(actorID uint, groupID uint, status string
 		limit = 100
 	}
 
-	query := s.post.
-		Preload("User").
-		Where("group_id = ?", groupID)
-
-	// Фильтр по статусу (опционально)
-	if status != "" {
-		query = query.Where("status = ?", status)
-	}
-
-	var requests []groups.GroupJoinRequest
-	err = query.
-		Order("created_at DESC").
-		Limit(limit).
-		Find(&requests).Error
-
+	requests, err := s.reads.ListJoinRequests(groupID, status, limit)
 	if err != nil {
 		s.logger.Error("Не удалось получить заявки на вступление", "groupID", groupID, "error", err)
-		return nil, fmt.Errorf("ошибка получения заявок: %w", err)
+		return nil, err
 	}
 
-	result := make([]JoinRequestInfo, 0, len(requests))
-	for _, req := range requests {
-		result = append(result, JoinRequestInfo{
-			ID:        req.ID,
-			UserID:    req.UserID,
-			Name:      req.User.Name,
-			Us:        req.User.Us,
-			Image:     req.User.Image,
-			GroupID:   req.GroupID,
-			Status:    req.Status,
-			CreatedAt: req.CreatedAt,
-		})
-	}
-
-	return result, nil
+	return requests, nil
 }
 
 // CreateJoinInvite создает приглашение в группу

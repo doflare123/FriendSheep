@@ -12,7 +12,7 @@ type GroupBlacklist struct {
 	UserID    uint        `json:"userId"`
 	User      models.User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	BannedBy  uint        `json:"bannedBy"`
-	Banner    models.User `gorm:"foreignKey:BannedBy;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Banned    models.User `gorm:"foreignKey:BannedBy;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Reason    string      `json:"reason"`
 	CreatedAt time.Time   `json:"createdAt"`
 }

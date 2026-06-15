@@ -153,6 +153,8 @@ type groupService struct {
 	logger logger.Logger
 	post   groupStore
 	tx     groupTransactionRunner
+	access groupActorRoleFinder
+	reads  groupManagementReadStore
 }
 
 func NewGroupService(logger logger.Logger, rep groupStore) GroupsService {
@@ -160,6 +162,8 @@ func NewGroupService(logger logger.Logger, rep groupStore) GroupsService {
 		logger: logger,
 		post:   rep,
 		tx:     newGroupTransactionRunner(rep),
+		access: newGroupAccessStore(rep),
+		reads:  newGroupManagementReadStore(rep),
 	}
 }
 
@@ -862,16 +866,10 @@ func (s *groupService) WatchRecentActions(userID uint, groupID uint, limit int) 
 		limit = 100
 	}
 
-	var actions []GroupAction
-	err = s.post.Model(&groups.GroupActionLog{}).
-		Where("group_id = ?", groupID).
-		Order("created_at DESC").
-		Limit(limit).
-		Find(&actions).Error
-
+	actions, err := s.reads.ListGroupActions(groupID, limit)
 	if err != nil {
 		s.logger.Error("Не удалось получить историю действий группы", "groupID", groupID, "error", err)
-		return nil, fmt.Errorf("ошибка получения истории действий: %w", err)
+		return nil, err
 	}
 
 	return actions, nil
@@ -881,29 +879,7 @@ func (s *groupService) WatchRecentActions(userID uint, groupID uint, limit int) 
 
 // checkGroupAccess проверяет, имеет ли пользователь доступ к группе с нужной ролью
 func (s *groupService) checkGroupAccess(userID uint, groupID uint, required groups.Capability) (bool, string, error) {
-	var groupUser groups.GroupUsers
-	err := s.post.
-		Preload("RoleInGroup").
-		Where("user_id = ? AND group_id = ?", userID, groupID).
-		First(&groupUser).Error
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, "", ErrNotInGroup
-		}
-		return false, "", fmt.Errorf("ошибка проверки доступа: %w", err)
-	}
-
-	var role groups.Role_in_group
-	if err := s.post.First(&role, groupUser.RoleInGroupID).Error; err != nil {
-		return false, "", fmt.Errorf("ошибка получения роли: %w", err)
-	}
-
-	if groups.HasCapability(role.Name, required) {
-		return true, groups.NormalizeRoleName(role.Name), nil
-	}
-
-	return false, groups.NormalizeRoleName(role.Name), nil
+	return s.access.FindActorRole(userID, groupID, required)
 }
 
 // GetGroupBlacklist получает черный список группы
@@ -924,36 +900,13 @@ func (s *groupService) GetGroupBlacklist(actorID uint, groupID uint, limit int) 
 		limit = 100
 	}
 
-	var blacklist []groups.GroupBlacklist
-	err = s.post.
-		Preload("User").
-		Preload("Banner").
-		Where("group_id = ?", groupID).
-		Order("created_at DESC").
-		Limit(limit).
-		Find(&blacklist).Error
-
+	blacklist, err := s.reads.ListGroupBlacklist(groupID, limit)
 	if err != nil {
 		s.logger.Error("Не удалось получить черный список", "groupID", groupID, "error", err)
-		return nil, fmt.Errorf("ошибка получения черного списка: %w", err)
+		return nil, err
 	}
 
-	result := make([]BlacklistUser, 0, len(blacklist))
-	for _, bl := range blacklist {
-		result = append(result, BlacklistUser{
-			ID:           bl.ID,
-			UserID:       bl.UserID,
-			Name:         bl.User.Name,
-			Us:           bl.User.Us,
-			Image:        bl.User.Image,
-			BannedBy:     bl.BannedBy,
-			BannedByName: bl.Banner.Name,
-			Reason:       bl.Reason,
-			CreatedAt:    bl.CreatedAt,
-		})
-	}
-
-	return result, nil
+	return blacklist, nil
 }
 
 // updateContactsInTx обновляет контакты в транзакции
