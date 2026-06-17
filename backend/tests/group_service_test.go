@@ -420,7 +420,7 @@ func TestGroupServiceCreateJoinInviteLoadsTargetUserAndRejectsMissingUser(t *tes
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  404,
 	})
@@ -446,7 +446,7 @@ func TestGroupServiceCreateJoinInviteUsesTransactionForActorRoleLookup(t *testin
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	seedGroupServiceMembership(t, db, groupID, 1, operatorRoleID)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -472,7 +472,7 @@ func TestGroupServiceCreateJoinInviteRejectsMemberActorWithoutSideEffects(t *tes
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	seedGroupServiceMembership(t, db, groupID, 1, memberRoleID)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -496,7 +496,7 @@ func TestGroupServiceCreateJoinInviteRejectsMissingActorMembershipWithoutSideEff
 	seedGroupServiceUser(t, db, 2)
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -524,7 +524,7 @@ func TestGroupServiceCreateJoinInviteRejectsExistingMemberWithoutSideEffects(t *
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -551,7 +551,7 @@ func TestGroupServiceCreateJoinInviteRejectsDuplicatePendingInviteWithoutSideEff
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
 
-	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -577,7 +577,7 @@ func TestGroupServiceCreateJoinInviteCreatesPendingInviteAndActionLog(t *testing
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -590,7 +590,8 @@ func TestGroupServiceCreateJoinInviteCreatesPendingInviteAndActionLog(t *testing
 	}
 	assertGroupJoinInviteCount(t, db, groupID, 2, "pending", 1)
 	assertGroupServiceActionLogCount(t, db, groupID, "send_invite", 1)
-	assertGroupServiceActionLogContains(t, db, groupID, "send_invite", "group-user-2")
+	assertGroupActionTargetUser(t, db, groupID, "send_invite", 2)
+	assertGroupActionRawDescriptionNotContains(t, db, groupID, "send_invite", "group-user-2")
 }
 
 func TestGroupServiceCreateJoinInviteKeepsInviteWhenActionLogFails(t *testing.T) {
@@ -604,7 +605,7 @@ func TestGroupServiceCreateJoinInviteKeepsInviteWhenActionLogFails(t *testing.T)
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.JoinInviteInput{
+	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -789,7 +790,7 @@ func TestGroupServiceAddPermissionsPromotesMemberAndWritesActionLog(t *testing.T
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
 
-	changed, err := service.AddPermissions(1, servicegroups.PermissionInput{GroupID: groupID, UserID: 2})
+	changed, err := service.AddPermissions(1, servicegroups.GroupUserInput{GroupID: groupID, UserID: 2})
 
 	if err != nil {
 		t.Fatalf("AddPermissions returned error: %v", err)
@@ -799,6 +800,19 @@ func TestGroupServiceAddPermissionsPromotesMemberAndWritesActionLog(t *testing.T
 	}
 	assertGroupMembershipRole(t, db, groupID, 2, "Модератор")
 	assertGroupServiceActionLogCount(t, db, groupID, "add_operator", 1)
+	assertGroupActionTargetUser(t, db, groupID, "add_operator", 2)
+	assertGroupActionRawDescriptionNotContains(t, db, groupID, "add_operator", "Group User")
+
+	renameGroupServiceUser(t, db, 1, "Renamed Admin", "renamed-admin")
+	renameGroupServiceUser(t, db, 2, "Renamed Member", "renamed-member")
+	actions, err := service.WatchRecentActions(1, groupID, servicegroups.GroupActionFilter{Limit: 10})
+	if err != nil {
+		t.Fatalf("WatchRecentActions returned error: %v", err)
+	}
+	if len(actions) != 1 {
+		t.Fatalf("actions len = %d, want 1", len(actions))
+	}
+	assertGroupActionDescription(t, actions[0], "'Renamed Admin' (@renamed-admin) назначил пользователя 'Renamed Member' (@renamed-member) оператором группы")
 }
 
 func TestGroupServiceAddPermissionsRejectsModeratorActorWithoutSideEffects(t *testing.T) {
@@ -814,7 +828,7 @@ func TestGroupServiceAddPermissionsRejectsModeratorActorWithoutSideEffects(t *te
 	seedGroupServiceMembership(t, db, groupID, 1, operatorRoleID)
 	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
 
-	changed, err := service.AddPermissions(1, servicegroups.PermissionInput{GroupID: groupID, UserID: 2})
+	changed, err := service.AddPermissions(1, servicegroups.GroupUserInput{GroupID: groupID, UserID: 2})
 
 	if changed {
 		t.Fatal("AddPermissions returned true")
@@ -840,7 +854,7 @@ func TestGroupServiceRemovePermissionsDemotesModeratorAndWritesActionLog(t *test
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	seedGroupServiceMembership(t, db, groupID, 2, operatorRoleID)
 
-	changed, err := service.RemovePermissions(1, servicegroups.PermissionInput{GroupID: groupID, UserID: 2})
+	changed, err := service.RemovePermissions(1, servicegroups.GroupUserInput{GroupID: groupID, UserID: 2})
 
 	if err != nil {
 		t.Fatalf("RemovePermissions returned error: %v", err)
@@ -850,6 +864,19 @@ func TestGroupServiceRemovePermissionsDemotesModeratorAndWritesActionLog(t *test
 	}
 	assertGroupMembershipRole(t, db, groupID, 2, "Участник")
 	assertGroupServiceActionLogCount(t, db, groupID, "remove_operator", 1)
+	assertGroupActionTargetUser(t, db, groupID, "remove_operator", 2)
+	assertGroupActionRawDescriptionNotContains(t, db, groupID, "remove_operator", "Group User")
+
+	renameGroupServiceUser(t, db, 1, "Renamed Admin", "renamed-admin")
+	renameGroupServiceUser(t, db, 2, "Renamed Moderator", "renamed-moderator")
+	actions, err := service.WatchRecentActions(1, groupID, servicegroups.GroupActionFilter{Limit: 10})
+	if err != nil {
+		t.Fatalf("WatchRecentActions returned error: %v", err)
+	}
+	if len(actions) != 1 {
+		t.Fatalf("actions len = %d, want 1", len(actions))
+	}
+	assertGroupActionDescription(t, actions[0], "'Renamed Admin' (@renamed-admin) снял с пользователя 'Renamed Moderator' (@renamed-moderator) права оператора")
 }
 
 func TestGroupServiceDeleteUserFromGroupMovesMemberToBlacklistAndWritesActionLog(t *testing.T) {
@@ -876,7 +903,8 @@ func TestGroupServiceDeleteUserFromGroupMovesMemberToBlacklistAndWritesActionLog
 	assertGroupMembershipExists(t, db, groupID, 2, false)
 	assertGroupBlacklistExists(t, db, groupID, 2, true)
 	assertGroupServiceActionLogCount(t, db, groupID, "ban_user", 1)
-	assertGroupServiceActionLogContains(t, db, groupID, "ban_user", "group-user-2")
+	assertGroupActionTargetUser(t, db, groupID, "ban_user", 2)
+	assertGroupActionRawDescriptionNotContains(t, db, groupID, "ban_user", "group-user-2")
 }
 
 func TestGroupServiceRemoveFromBlacklistDeletesEntryAndWritesActionLog(t *testing.T) {
@@ -901,7 +929,8 @@ func TestGroupServiceRemoveFromBlacklistDeletesEntryAndWritesActionLog(t *testin
 	}
 	assertGroupBlacklistExists(t, db, groupID, 2, false)
 	assertGroupServiceActionLogCount(t, db, groupID, "unban_user", 1)
-	assertGroupServiceActionLogContains(t, db, groupID, "unban_user", "group-user-2")
+	assertGroupActionTargetUser(t, db, groupID, "unban_user", 2)
+	assertGroupActionRawDescriptionNotContains(t, db, groupID, "unban_user", "group-user-2")
 }
 
 func TestGroupServiceAcceptJoinInviteAddsMembershipAndUpdatesStatus(t *testing.T) {
@@ -1265,10 +1294,13 @@ func newGroupServiceDB(t *testing.T) *gorm.DB {
 		&groupmodels.GroupJoinRequest{},
 		&groupmodels.GroupJoinInvite{},
 		&groupmodels.GroupBlacklist{},
+		&groupmodels.GroupActionType{},
 		&groupmodels.GroupActionLog{},
 	); err != nil {
 		t.Fatalf("auto migrate group service models: %v", err)
 	}
+
+	seedGroupActionTypes(t, db)
 
 	return db
 }
@@ -1288,11 +1320,34 @@ func seedGroupServiceUser(t *testing.T, db *gorm.DB, userID uint) {
 	}
 }
 
+func seedGroupActionTypes(t *testing.T, db *gorm.DB) {
+	t.Helper()
+
+	for _, actionType := range groupmodels.DefaultGroupActionTypes() {
+		if err := db.Where("code = ?", actionType.Code).FirstOrCreate(&groupmodels.GroupActionType{}, actionType).Error; err != nil {
+			t.Fatalf("seed group action type %q: %v", actionType.Code, err)
+		}
+	}
+}
+
 func setGroupServiceUserImage(t *testing.T, db *gorm.DB, userID uint, image string) {
 	t.Helper()
 
 	if err := db.Model(&models.User{}).Where("id = ?", userID).Update("image", image).Error; err != nil {
 		t.Fatalf("update user image for %d: %v", userID, err)
+	}
+}
+
+func renameGroupServiceUser(t *testing.T, db *gorm.DB, userID uint, name string, us string) {
+	t.Helper()
+
+	if err := db.Model(&models.User{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"name": name,
+			"us":   us,
+		}).Error; err != nil {
+		t.Fatalf("rename user %d: %v", userID, err)
 	}
 }
 
@@ -1706,7 +1761,8 @@ func assertGroupServiceActionLogCount(t *testing.T, db *gorm.DB, groupID uint, a
 
 	var count int64
 	if err := db.Model(&groupmodels.GroupActionLog{}).
-		Where("group_id = ? AND action = ?", groupID, action).
+		Joins("JOIN group_action_types ON group_action_types.id = group_action_logs.action_type_id").
+		Where("group_action_logs.group_id = ? AND group_action_types.code = ?", groupID, action).
 		Count(&count).Error; err != nil {
 		t.Fatalf("count group action logs: %v", err)
 	}
@@ -1727,15 +1783,42 @@ func assertGroupServiceActionLogTotal(t *testing.T, db *gorm.DB, want int64) {
 	}
 }
 
-func assertGroupServiceActionLogContains(t *testing.T, db *gorm.DB, groupID uint, action, wantSubstring string) {
+func assertGroupActionRawDescriptionNotContains(t *testing.T, db *gorm.DB, groupID uint, action, unwantedSubstring string) {
 	t.Helper()
 
 	var log groupmodels.GroupActionLog
-	if err := db.Where("group_id = ? AND action = ?", groupID, action).First(&log).Error; err != nil {
+	if err := db.Joins("JOIN group_action_types ON group_action_types.id = group_action_logs.action_type_id").
+		Where("group_action_logs.group_id = ? AND group_action_types.code = ?", groupID, action).
+		First(&log).Error; err != nil {
 		t.Fatalf("find group action log: %v", err)
 	}
-	if !strings.Contains(log.Description, wantSubstring) {
-		t.Fatalf("group action log description = %q, want substring %q", log.Description, wantSubstring)
+	if strings.Contains(log.Description, unwantedSubstring) {
+		t.Fatalf("group action log description = %q, must not contain %q", log.Description, unwantedSubstring)
+	}
+}
+
+func assertGroupActionTargetUser(t *testing.T, db *gorm.DB, groupID uint, action string, wantUserID uint) {
+	t.Helper()
+
+	var log groupmodels.GroupActionLog
+	if err := db.Joins("JOIN group_action_types ON group_action_types.id = group_action_logs.action_type_id").
+		Where("group_action_logs.group_id = ? AND group_action_types.code = ?", groupID, action).
+		First(&log).Error; err != nil {
+		t.Fatalf("find group action log: %v", err)
+	}
+	if log.TargetUserID == nil {
+		t.Fatalf("target user id is nil, want %d", wantUserID)
+	}
+	if *log.TargetUserID != wantUserID {
+		t.Fatalf("target user id = %d, want %d", *log.TargetUserID, wantUserID)
+	}
+}
+
+func assertGroupActionDescription(t *testing.T, action servicegroups.GroupAction, want string) {
+	t.Helper()
+
+	if action.Description != want {
+		t.Fatalf("action description = %q, want %q", action.Description, want)
 	}
 }
 
@@ -1743,7 +1826,9 @@ func assertGroupActionActorFields(t *testing.T, db *gorm.DB, groupID uint, actio
 	t.Helper()
 
 	var log groupmodels.GroupActionLog
-	if err := db.Where("group_id = ? AND action = ?", groupID, action).First(&log).Error; err != nil {
+	if err := db.Joins("JOIN group_action_types ON group_action_types.id = group_action_logs.action_type_id").
+		Where("group_action_logs.group_id = ? AND group_action_types.code = ?", groupID, action).
+		First(&log).Error; err != nil {
 		t.Fatalf("find group action log: %v", err)
 	}
 	if log.Username != wantName {

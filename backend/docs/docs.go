@@ -990,7 +990,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/group.JoinInviteInput"
+                            "$ref": "#/definitions/group.GroupUserInput"
                         }
                     }
                 ],
@@ -1177,7 +1177,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/group.PermissionInput"
+                            "$ref": "#/definitions/group.GroupUserInput"
                         }
                     }
                 ],
@@ -1241,7 +1241,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/group.PermissionInput"
+                            "$ref": "#/definitions/group.GroupUserInput"
                         }
                     }
                 ],
@@ -1540,6 +1540,24 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Количество записей (по умолчанию 50, максимум 100)",
                         "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Код действия из справочника groupActionTypes",
+                        "name": "action",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID действия из справочника groupActionTypes",
+                        "name": "actionTypeId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Порядок createdAt: desc по умолчанию, asc для старых к новым",
+                        "name": "order",
                         "in": "query"
                     }
                 ],
@@ -2369,6 +2387,20 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.ActionReferenceItemDto": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.AdminGroupResponse": {
             "type": "object",
             "properties": {
@@ -3023,6 +3055,12 @@ const docTemplate = `{
                         "$ref": "#/definitions/dto.ReferenceItemDto"
                     }
                 },
+                "groupActionTypes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ActionReferenceItemDto"
+                    }
+                },
                 "groupCategories": {
                     "type": "array",
                     "items": {
@@ -3218,10 +3256,22 @@ const docTemplate = `{
                 "action": {
                     "type": "string"
                 },
+                "actionName": {
+                    "type": "string"
+                },
+                "actionTypeId": {
+                    "type": "integer"
+                },
                 "createdAt": {
                     "type": "string"
                 },
                 "description": {
+                    "type": "string"
+                },
+                "entityId": {
+                    "type": "integer"
+                },
+                "entityName": {
                     "type": "string"
                 },
                 "groupId": {
@@ -3232,6 +3282,15 @@ const docTemplate = `{
                 },
                 "role": {
                     "type": "string"
+                },
+                "targetName": {
+                    "type": "string"
+                },
+                "targetUs": {
+                    "type": "string"
+                },
+                "targetUserId": {
+                    "type": "integer"
                 },
                 "us": {
                     "type": "string"
@@ -3255,7 +3314,7 @@ const docTemplate = `{
                 }
             }
         },
-        "group.JoinInviteInput": {
+        "group.GroupUserInput": {
             "type": "object",
             "required": [
                 "groupId",
@@ -3293,21 +3352,6 @@ const docTemplate = `{
                 },
                 "us": {
                     "type": "string"
-                },
-                "userId": {
-                    "type": "integer"
-                }
-            }
-        },
-        "group.PermissionInput": {
-            "type": "object",
-            "required": [
-                "groupId",
-                "userId"
-            ],
-            "properties": {
-                "groupId": {
-                    "type": "integer"
                 },
                 "userId": {
                     "type": "integer"

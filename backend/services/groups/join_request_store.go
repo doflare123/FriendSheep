@@ -16,7 +16,7 @@ type joinRequestReviewStore interface {
 	FindJoinRequest(requestID uint) (joinRequestReview, error)
 	CreateRequestUserMembership(groupID uint, userID uint) error
 	UpdateJoinRequestStatus(requestID uint, status string) error
-	CreateActionLog(groupID uint, actor joinRequestActor, role string, action string, description string) error
+	CreateTargetUserActionLog(groupID uint, actor joinRequestActor, role string, action string, targetUserID uint, description string) error
 }
 
 type joinRequestReview struct {
@@ -105,8 +105,8 @@ func (s gormJoinRequestReviewStore) UpdateJoinRequestStatus(requestID uint, stat
 	return nil
 }
 
-func (s gormJoinRequestReviewStore) CreateActionLog(groupID uint, actor joinRequestActor, role string, action string, description string) error {
-	return createGroupActionLog(s.tx, groupID, actor, role, action, description)
+func (s gormJoinRequestReviewStore) CreateTargetUserActionLog(groupID uint, actor joinRequestActor, role string, action string, targetUserID uint, description string) error {
+	return createGroupTargetUserActionLog(s.tx, groupID, actor, role, action, targetUserID, description)
 }
 
 type bulkJoinRequestStore interface {
@@ -183,13 +183,20 @@ func (s gormBulkJoinRequestStore) ApproveAllPending(groupID uint, actor joinRequ
 
 		result.Count++
 
-		action := fmt.Sprintf("Одобрил заявку пользователя '%s' (@%s)", req.User.Name, req.User.Us)
-		if err := createGroupActionLog(s.tx, groupID, actor, role, "approve_request", action); err != nil {
+		if err := createGroupTargetUserActionLog(s.tx, groupID, actor, role, groups.ActionApproveRequest, req.UserID, ""); err != nil {
 			result.Warnings = append(result.Warnings, bulkJoinRequestLogWarning{
 				Message: "Заявка обработана, но действие не записано в журнал группы",
 				Args:    []interface{}{"error", err},
 			})
 		}
+	}
+
+	action := fmt.Sprintf("Одобрил все ожидающие заявки (%d шт.)", result.Count)
+	if err := createGroupActionLog(s.tx, groupID, actor, role, groups.ActionApproveAllRequests, action); err != nil {
+		result.Warnings = append(result.Warnings, bulkJoinRequestLogWarning{
+			Message: "Заявки обработаны, но действие не записано в журнал группы",
+			Args:    []interface{}{"error", err},
+		})
 	}
 
 	return result, nil
@@ -205,7 +212,7 @@ func (s gormBulkJoinRequestStore) RejectAllPending(groupID uint, actor joinReque
 
 	result := bulkJoinRequestResult{Count: int(updateResult.RowsAffected)}
 	action := fmt.Sprintf("Отклонил все заявки на вступление (%d шт.)", result.Count)
-	if err := createGroupActionLog(s.tx, groupID, actor, role, "reject_all_requests", action); err != nil {
+	if err := createGroupActionLog(s.tx, groupID, actor, role, groups.ActionRejectAllRequests, action); err != nil {
 		result.Warnings = append(result.Warnings, bulkJoinRequestLogWarning{
 			Message: "Заявки отклонены, но действие не записано в журнал группы",
 			Args:    []interface{}{"error", err},

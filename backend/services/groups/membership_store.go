@@ -115,7 +115,7 @@ func (s gormJoinGroupStore) CreateGroupMember(groupID uint, userID uint) error {
 }
 
 type leaveGroupStore interface {
-	LeaveGroup(userID uint, groupID uint) error
+	LeaveGroup(userID uint, groupID uint) (string, error)
 }
 
 type gormLeaveGroupStore struct {
@@ -126,27 +126,29 @@ func newLeaveGroupStore(tx groupTx) leaveGroupStore {
 	return gormLeaveGroupStore{tx: tx}
 }
 
-func (s gormLeaveGroupStore) LeaveGroup(userID uint, groupID uint) error {
+func (s gormLeaveGroupStore) LeaveGroup(userID uint, groupID uint) (string, error) {
 	var groupUser groups.GroupUsers
 	err := s.tx.Where("user_id = ? AND group_id = ?", userID, groupID).
 		First(&groupUser).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrNotInGroup
+			return "", ErrNotInGroup
 		}
-		return fmt.Errorf("ошибка поиска участника: %w", err)
+		return "", fmt.Errorf("ошибка поиска участника: %w", err)
 	}
 
+	roleName := groups.RoleMember
 	var role groups.Role_in_group
 	if err := s.tx.First(&role, groupUser.RoleInGroupID).Error; err == nil {
+		roleName = groups.NormalizeRoleName(role.Name)
 		if groups.HasCapability(role.Name, groups.CapabilityAdmin) {
-			return fmt.Errorf("администратор не может покинуть группу. Передайте права другому участнику или удалите группу")
+			return "", fmt.Errorf("администратор не может покинуть группу. Передайте права другому участнику или удалите группу")
 		}
 	}
 
 	if err := s.tx.Delete(&groupUser).Error; err != nil {
-		return fmt.Errorf("ошибка удаления участника: %w", err)
+		return "", fmt.Errorf("ошибка удаления участника: %w", err)
 	}
 
-	return nil
+	return roleName, nil
 }

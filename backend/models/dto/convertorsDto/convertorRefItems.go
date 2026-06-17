@@ -4,6 +4,7 @@ import (
 	"friendship/models"
 	"friendship/models/dto"
 	"friendship/models/events"
+	"friendship/models/groups"
 )
 
 func ConvertToReferenceItems(categories []models.Category) []dto.ReferenceItemDto {
@@ -56,6 +57,18 @@ func ConvertGenresToReferenceItems(genres []events.Genre) []dto.ReferenceItemDto
 		result = append(result, dto.ReferenceItemDto{
 			ID:   genre.ID,
 			Name: genre.Name,
+		})
+	}
+	return result
+}
+
+func ConvertGroupActionTypesToReferenceItems(actionTypes []groups.GroupActionType) []dto.ActionReferenceItemDto {
+	result := make([]dto.ActionReferenceItemDto, 0, len(actionTypes))
+	for _, actionType := range actionTypes {
+		result = append(result, dto.ActionReferenceItemDto{
+			ID:   actionType.ID,
+			Code: actionType.Code,
+			Name: actionType.Name,
 		})
 	}
 	return result

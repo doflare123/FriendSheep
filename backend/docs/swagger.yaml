@@ -1,4 +1,13 @@
 definitions:
+  dto.ActionReferenceItemDto:
+    properties:
+      code:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   dto.AdminGroupResponse:
     properties:
       category:
@@ -434,6 +443,10 @@ definitions:
         items:
           $ref: '#/definitions/dto.ReferenceItemDto'
         type: array
+      groupActionTypes:
+        items:
+          $ref: '#/definitions/dto.ActionReferenceItemDto'
+        type: array
       groupCategories:
         items:
           $ref: '#/definitions/dto.ReferenceItemDto'
@@ -571,9 +584,17 @@ definitions:
     properties:
       action:
         type: string
+      actionName:
+        type: string
+      actionTypeId:
+        type: integer
       createdAt:
         type: string
       description:
+        type: string
+      entityId:
+        type: integer
+      entityName:
         type: string
       groupId:
         type: integer
@@ -581,6 +602,12 @@ definitions:
         type: integer
       role:
         type: string
+      targetName:
+        type: string
+      targetUs:
+        type: string
+      targetUserId:
+        type: integer
       us:
         type: string
       userId:
@@ -595,7 +622,7 @@ definitions:
       message:
         type: string
     type: object
-  group.JoinInviteInput:
+  group.GroupUserInput:
     properties:
       groupId:
         type: integer
@@ -623,16 +650,6 @@ definitions:
         type: string
       userId:
         type: integer
-    type: object
-  group.PermissionInput:
-    properties:
-      groupId:
-        type: integer
-      userId:
-        type: integer
-    required:
-    - groupId
-    - userId
     type: object
   handlers.CreateGroupRequest:
     properties:
@@ -1709,6 +1726,18 @@ paths:
         in: query
         name: limit
         type: integer
+      - description: Код действия из справочника groupActionTypes
+        in: query
+        name: action
+        type: string
+      - description: ID действия из справочника groupActionTypes
+        in: query
+        name: actionTypeId
+        type: integer
+      - description: 'Порядок createdAt: desc по умолчанию, asc для старых к новым'
+        in: query
+        name: order
+        type: string
       produces:
       - application/json
       responses:
@@ -2098,7 +2127,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/group.JoinInviteInput'
+          $ref: '#/definitions/group.GroupUserInput'
       produces:
       - application/json
       responses:
@@ -2218,7 +2247,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/group.PermissionInput'
+          $ref: '#/definitions/group.GroupUserInput'
       produces:
       - application/json
       responses:
@@ -2260,7 +2289,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/group.PermissionInput'
+          $ref: '#/definitions/group.GroupUserInput'
       produces:
       - application/json
       responses:

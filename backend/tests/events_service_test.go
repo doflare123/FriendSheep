@@ -809,7 +809,7 @@ func TestEventsServiceGetAllReferencesIncludesGenres(t *testing.T) {
 	if len(references.Genres) != 1 || references.Genres[0].Name != "Strategy" {
 		t.Fatalf("genres = %#v, want Strategy reference", references.Genres)
 	}
-	if len(references.EventTypes) == 0 || len(references.Locations) == 0 || len(references.AgeLimits) == 0 || len(references.Statuses) == 0 {
+	if len(references.EventTypes) == 0 || len(references.Locations) == 0 || len(references.AgeLimits) == 0 || len(references.Statuses) == 0 || len(references.GroupActionTypes) == 0 {
 		t.Fatalf("references missing required collections: %#v", references)
 	}
 }
@@ -834,6 +834,7 @@ func newEventsServiceDB(t *testing.T) *gorm.DB {
 		&groupmodels.Group{},
 		&groupmodels.Role_in_group{},
 		&groupmodels.GroupUsers{},
+		&groupmodels.GroupActionType{},
 		&groupmodels.GroupActionLog{},
 		&eventmodels.Event{},
 		&eventmodels.EventsUser{},
@@ -845,6 +846,8 @@ func newEventsServiceDB(t *testing.T) *gorm.DB {
 	); err != nil {
 		t.Fatalf("auto migrate event service models: %v", err)
 	}
+
+	seedGroupActionTypes(t, db)
 
 	return db
 }
@@ -1217,7 +1220,8 @@ func assertGroupActionLogCount(t *testing.T, db *gorm.DB, groupID uint, action s
 
 	var count int64
 	if err := db.Model(&groupmodels.GroupActionLog{}).
-		Where("group_id = ? AND action = ?", groupID, action).
+		Joins("JOIN group_action_types ON group_action_types.id = group_action_logs.action_type_id").
+		Where("group_action_logs.group_id = ? AND group_action_types.code = ?", groupID, action).
 		Count(&count).Error; err != nil {
 		t.Fatalf("count group action logs: %v", err)
 	}

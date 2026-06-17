@@ -141,10 +141,13 @@ func newPostgresGroupServiceDB(t *testing.T, dsn string) *gorm.DB {
 		&groupmodels.GroupJoinRequest{},
 		&groupmodels.GroupJoinInvite{},
 		&groupmodels.GroupBlacklist{},
+		&groupmodels.GroupActionType{},
 		&groupmodels.GroupActionLog{},
 	); err != nil {
 		t.Fatalf("auto migrate group models in postgres test schema: %v", err)
 	}
+
+	seedGroupActionTypes(t, db)
 
 	return db
 }

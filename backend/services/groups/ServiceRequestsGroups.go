@@ -1,9 +1,6 @@
 package group
 
-import (
-	"fmt"
-	"friendship/models/groups"
-)
+import "friendship/models/groups"
 
 // GetJoinRequests получает все заявки на вступление в группу
 func (s *groupService) GetJoinRequests(actorID uint, groupID uint, status string, limit int) ([]JoinRequestInfo, error) {
@@ -33,7 +30,7 @@ func (s *groupService) GetJoinRequests(actorID uint, groupID uint, status string
 }
 
 // CreateJoinInvite создает приглашение в группу
-func (s *groupService) CreateJoinInvite(actorID uint, input JoinInviteInput) (bool, error) {
+func (s *groupService) CreateJoinInvite(actorID uint, input GroupUserInput) (bool, error) {
 	err := s.runInTx(func(tx groupTx) error {
 		store := newJoinInviteCreationStore(tx)
 
@@ -76,8 +73,7 @@ func (s *groupService) CreateJoinInvite(actorID uint, input JoinInviteInput) (bo
 		}
 
 		// Логируем действие
-		action := fmt.Sprintf("Отправил приглашение пользователю '%s' (@%s)", targetUser.Name, targetUser.Us)
-		if err := store.CreateActionLog(input.GroupID, actor, role, "send_invite", action); err != nil {
+		if err := store.CreateTargetUserActionLog(input.GroupID, actor, role, groups.ActionSendInvite, targetUser.ID, ""); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -211,8 +207,7 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 		}
 
 		// Логируем действие
-		action := fmt.Sprintf("Одобрил заявку пользователя '%s' (@%s)", request.UserName, request.UserUs)
-		if err := store.CreateActionLog(request.GroupID, actor, role, "approve_request", action); err != nil {
+		if err := store.CreateTargetUserActionLog(request.GroupID, actor, role, groups.ActionApproveRequest, request.UserID, ""); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -260,8 +255,7 @@ func (s *groupService) RejectJoinRequest(actorID uint, requestID uint) (bool, er
 		}
 
 		// Логируем действие
-		action := fmt.Sprintf("Отклонил заявку пользователя '%s' (@%s)", request.UserName, request.UserUs)
-		if err := store.CreateActionLog(request.GroupID, actor, role, "reject_request", action); err != nil {
+		if err := store.CreateTargetUserActionLog(request.GroupID, actor, role, groups.ActionRejectRequest, request.UserID, ""); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 

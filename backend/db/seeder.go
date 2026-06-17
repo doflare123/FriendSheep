@@ -65,6 +65,10 @@ func Seeder(db repository.PostgresRepository) []error {
 			},
 		},
 		{
+			name: "типы действий группы",
+			data: groupActionTypeSeeds(),
+		},
+		{
 			name: "типы ограничений по возрасту",
 			data: []interface{}{
 				&events.AgeLimit{Name: "18+"},
@@ -92,6 +96,16 @@ func Seeder(db repository.PostgresRepository) []error {
 		return errs
 	}
 	return nil
+}
+
+func groupActionTypeSeeds() []interface{} {
+	actionTypes := groups.DefaultGroupActionTypes()
+	items := make([]interface{}, 0, len(actionTypes))
+	for i := range actionTypes {
+		items = append(items, &actionTypes[i])
+	}
+
+	return items
 }
 
 func genericSeed(db repository.PostgresRepository, items []interface{}) error {

@@ -29,6 +29,7 @@ func TestSeederFillsReferenceTables(t *testing.T) {
 		&events.Status{},
 		&events.AgeLimit{},
 		&groups.Role_in_group{},
+		&groups.GroupActionType{},
 		&statsusers.Genre{},
 	); err != nil {
 		t.Fatalf("auto migrate seeded models: %v", err)
@@ -45,6 +46,7 @@ func TestSeederFillsReferenceTables(t *testing.T) {
 	assertReferenceCount(t, gormDB, &events.Status{}, 3)
 	assertReferenceCount(t, gormDB, &events.AgeLimit{}, 5)
 	assertReferenceCount(t, gormDB, &groups.Role_in_group{}, 3)
+	assertReferenceCount(t, gormDB, &groups.GroupActionType{}, int64(len(groups.DefaultGroupActionTypes())))
 
 	var genresCount int64
 	if err := gormDB.Model(&statsusers.Genre{}).Count(&genresCount).Error; err != nil {

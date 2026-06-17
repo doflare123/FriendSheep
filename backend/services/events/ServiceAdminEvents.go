@@ -109,9 +109,7 @@ func (s *eventsService) KickUserFromEvent(actorID uint, eventID uint, targetUser
 			}
 		}
 
-		action := fmt.Sprintf("Исключил пользователя '%s' (@%s) из события '%s' (ID: %d)",
-			targetUser.Name, targetUser.Us, event.Title, event.ID)
-		if err := s.logGroupAction(tx, event.GroupID, actorID, actor.Name, actor.Us, role, "kick_from_event", action); err != nil {
+		if err := s.logGroupTargetUserEntityAction(tx, event.GroupID, actorID, actor.Name, actor.Us, role, groupmodels.ActionKickFromEvent, targetUserID, event.ID, event.Title, ""); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -214,8 +212,7 @@ func (s *eventsService) CreateEvent(actorID uint, input CreateEventInput) (*dto.
 			return fmt.Errorf("ошибка добавления создателя в участники: %w", err)
 		}
 
-		action := fmt.Sprintf("Создал событие '%s' (ID: %d)", event.Title, event.ID)
-		if err := s.logGroupAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, "create_event", action); err != nil {
+		if err := s.logGroupEntityAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, groupmodels.ActionCreateEvent, event.ID, event.Title, ""); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -373,8 +370,11 @@ func (s *eventsService) UpdateEvent(actorID uint, eventID uint, input UpdateEven
 			}
 		}
 
-		action := fmt.Sprintf("Обновил событие '%s' (ID: %d)", event.Title, event.ID)
-		if err := s.logGroupAction(tx, event.GroupID, actorID, actor.Name, actor.Us, role, "update_event", action); err != nil {
+		entityName := event.Title
+		if input.Title != nil {
+			entityName = *input.Title
+		}
+		if err := s.logGroupEntityAction(tx, event.GroupID, actorID, actor.Name, actor.Us, role, groupmodels.ActionUpdateEvent, event.ID, entityName, ""); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -441,8 +441,7 @@ func (s *eventsService) DeleteEvent(actorID uint, eventID uint) (bool, error) {
 			return fmt.Errorf("ошибка удаления события: %w", err)
 		}
 
-		action := fmt.Sprintf("Удалил событие '%s' (ID: %d)", event.Title, event.ID)
-		if err := s.logGroupAction(tx, event.GroupID, actorID, actor.Name, actor.Us, role, "delete_event", action); err != nil {
+		if err := s.logGroupEntityAction(tx, event.GroupID, actorID, actor.Name, actor.Us, role, groupmodels.ActionDeleteEvent, event.ID, event.Title, ""); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 

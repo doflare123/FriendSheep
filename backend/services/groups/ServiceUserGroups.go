@@ -50,10 +50,22 @@ func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error
 		}
 
 		if target.IsPrivate {
-			return store.CreatePendingJoinRequest(groupID, userID)
+			if err := store.CreatePendingJoinRequest(groupID, userID); err != nil {
+				return err
+			}
+			if err := s.logActionWithTargetUser(tx, groupID, userID, "", "", groups.RoleMember, groups.ActionCreateJoinRequest, "", userID); err != nil {
+				s.logger.Warn("Не удалось записать действие в журнал", "error", err)
+			}
+			return nil
 		}
 
-		return store.CreateGroupMember(groupID, userID)
+		if err := store.CreateGroupMember(groupID, userID); err != nil {
+			return err
+		}
+		if err := s.logActionWithTargetUser(tx, groupID, userID, "", "", groups.RoleMember, groups.ActionJoinGroup, "", userID); err != nil {
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
+		}
+		return nil
 	})
 
 	if err != nil {
@@ -102,7 +114,14 @@ func isGroupMembershipUniqueViolation(err error) bool {
 // LeaveGroup выход из группы
 func (s *groupService) LeaveGroup(userID uint, groupID uint) (bool, error) {
 	err := s.runInTx(func(tx groupTx) error {
-		return newLeaveGroupStore(tx).LeaveGroup(userID, groupID)
+		role, err := newLeaveGroupStore(tx).LeaveGroup(userID, groupID)
+		if err != nil {
+			return err
+		}
+		if err := s.logActionWithTargetUser(tx, groupID, userID, "", "", role, groups.ActionLeaveGroup, "", userID); err != nil {
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
+		}
+		return nil
 	})
 
 	if err != nil {
@@ -158,7 +177,14 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 			return err
 		}
 
-		return store.UpdateInviteStatus(invite.ID, groups.JoinStatusAccepted)
+		if err := store.UpdateInviteStatus(invite.ID, groups.JoinStatusAccepted); err != nil {
+			return err
+		}
+
+		if err := s.logActionWithTargetUser(tx, invite.GroupID, userID, "", "", groups.RoleMember, groups.ActionAcceptInvite, "", userID); err != nil {
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
+		}
+		return nil
 	})
 
 	if err != nil {
@@ -191,7 +217,14 @@ func (s *groupService) RejectJoinInvite(userID uint, inviteID uint) (bool, error
 			return ErrInviteAlreadyHandled
 		}
 
-		return store.UpdateInviteStatus(invite.ID, groups.JoinStatusRejected)
+		if err := store.UpdateInviteStatus(invite.ID, groups.JoinStatusRejected); err != nil {
+			return err
+		}
+
+		if err := s.logActionWithTargetUser(tx, invite.GroupID, userID, "", "", groups.RoleMember, groups.ActionRejectInvite, "", userID); err != nil {
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
+		}
+		return nil
 	})
 
 	if err != nil {

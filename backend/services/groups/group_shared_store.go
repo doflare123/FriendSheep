@@ -145,15 +145,39 @@ func (s txGroupRelationStore) IsGroupMember(groupID uint, userID uint) (bool, er
 }
 
 func createGroupActionLog(tx groupTx, groupID uint, actor joinRequestActor, role string, action string, description string) error {
+	return createGroupActionLogRecord(tx, groupID, actor, role, action, description, nil, nil, "")
+}
+
+func createGroupTargetUserActionLog(tx groupTx, groupID uint, actor joinRequestActor, role string, action string, targetUserID uint, description string) error {
+	return createGroupActionLogRecord(tx, groupID, actor, role, action, description, &targetUserID, nil, "")
+}
+
+func createGroupEntityActionLog(tx groupTx, groupID uint, actor joinRequestActor, role string, action string, entityID uint, entityName string, description string) error {
+	return createGroupActionLogRecord(tx, groupID, actor, role, action, description, nil, &entityID, entityName)
+}
+
+func createGroupTargetUserEntityActionLog(tx groupTx, groupID uint, actor joinRequestActor, role string, action string, targetUserID uint, entityID uint, entityName string, description string) error {
+	return createGroupActionLogRecord(tx, groupID, actor, role, action, description, &targetUserID, &entityID, entityName)
+}
+
+func createGroupActionLogRecord(tx groupTx, groupID uint, actor joinRequestActor, role string, action string, description string, targetUserID *uint, entityID *uint, entityName string) error {
+	actionTypeID, err := groups.FindGroupActionTypeID(tx, action)
+	if err != nil {
+		return fmt.Errorf("тип действия группы %q не найден: %w", action, err)
+	}
+
 	actionLog := groups.GroupActionLog{
-		GroupID:     groupID,
-		UserID:      actor.ID,
-		Username:    actor.Name,
-		Us:          actor.Us,
-		Role:        role,
-		Action:      action,
-		Description: description,
-		CreatedAt:   time.Now(),
+		GroupID:      groupID,
+		UserID:       actor.ID,
+		Username:     actor.Name,
+		Us:           actor.Us,
+		Role:         role,
+		ActionTypeID: actionTypeID,
+		Description:  description,
+		TargetUserID: targetUserID,
+		EntityID:     entityID,
+		EntityName:   entityName,
+		CreatedAt:    time.Now(),
 	}
 
 	return tx.Create(&actionLog).Error

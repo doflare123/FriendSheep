@@ -61,6 +61,7 @@ func bootstrapRegistrationModels() []interface{} {
 		&groups.GroupJoinRequest{},
 		&groups.GroupJoinInvite{},
 		&groups.GroupBlacklist{},
+		&groups.GroupActionType{},
 		&groups.GroupActionLog{},
 		&statsusers.Genre{},
 		&statsusers.SettingTile{},

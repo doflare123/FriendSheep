@@ -63,12 +63,7 @@ type GroupUpdateInput struct {
 	Contacts         *string
 }
 
-type PermissionInput struct {
-	GroupID uint `json:"groupId" binding:"required"`
-	UserID  uint `json:"userId" binding:"required"`
-}
-
-type JoinInviteInput struct {
+type GroupUserInput struct {
 	GroupID uint `json:"groupId" binding:"required"`
 	UserID  uint `json:"userId" binding:"required"`
 }
@@ -79,15 +74,29 @@ type GroupResult struct {
 }
 
 type GroupAction struct {
-	ID          uint      `json:"id"`
-	GroupID     uint      `json:"groupId"`
-	UserID      uint      `json:"userId"`
-	Username    string    `json:"username"`
-	Us          string    `json:"us"`
-	Role        string    `json:"role"`
-	Action      string    `json:"action"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID           uint      `json:"id"`
+	GroupID      uint      `json:"groupId"`
+	UserID       uint      `json:"userId"`
+	Username     string    `json:"username"`
+	Us           string    `json:"us"`
+	Role         string    `json:"role"`
+	ActionTypeID uint      `json:"actionTypeId"`
+	Action       string    `json:"action"`
+	ActionName   string    `json:"actionName"`
+	Description  string    `json:"description"`
+	TargetUserID *uint     `json:"targetUserId,omitempty"`
+	TargetName   string    `json:"targetName,omitempty"`
+	TargetUs     string    `json:"targetUs,omitempty"`
+	EntityID     *uint     `json:"entityId,omitempty"`
+	EntityName   string    `json:"entityName,omitempty"`
+	CreatedAt    time.Time `json:"createdAt"`
+}
+
+type GroupActionFilter struct {
+	Limit        int
+	Action       string
+	ActionTypeID uint
+	Order        string
 }
 
 type BlacklistUser struct {
@@ -132,8 +141,8 @@ type GroupsService interface {
 	LeaveGroup(userID uint, groupID uint) (bool, error)
 
 	// Управление правами
-	AddPermissions(actorID uint, input PermissionInput) (bool, error)
-	RemovePermissions(actorID uint, input PermissionInput) (bool, error)
+	AddPermissions(actorID uint, input GroupUserInput) (bool, error)
+	RemovePermissions(actorID uint, input GroupUserInput) (bool, error)
 
 	// Управление участниками
 	DeleteUserFromGroup(actorID uint, groupID uint, targetUserID uint) (bool, error)
@@ -141,12 +150,12 @@ type GroupsService interface {
 	GetGroupBlacklist(actorID uint, groupID uint, limit int) ([]BlacklistUser, error)
 
 	// Приглашения
-	CreateJoinInvite(actorID uint, input JoinInviteInput) (bool, error)
+	CreateJoinInvite(actorID uint, input GroupUserInput) (bool, error)
 	AcceptJoinInvite(userID uint, inviteID uint) (*GroupResult, error)
 	RejectJoinInvite(userID uint, inviteID uint) (bool, error)
 
 	// История действий
-	WatchRecentActions(userID uint, groupID uint, limit int) ([]GroupAction, error)
+	WatchRecentActions(userID uint, groupID uint, filter GroupActionFilter) ([]GroupAction, error)
 }
 
 type groupService struct {
@@ -393,8 +402,7 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 		}
 
 		// Логируем действие
-		action := fmt.Sprintf("Создал группу '%s'", newGroup.Name)
-		if err := s.logAction(tx, newGroup.ID, id, creator.Name, creator.Us, groups.RoleAdmin, "create_group", action); err != nil {
+		if err := s.logAction(tx, newGroup.ID, id, creator.Name, creator.Us, groups.RoleAdmin, groups.ActionCreateGroup, ""); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -506,8 +514,7 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 		}
 
 		// Логируем действие
-		action := fmt.Sprintf("Обновил информацию группы '%s'", group.Name)
-		if err := s.logAction(tx, group.ID, actorID, actor.Name, actor.Us, role, "update_group", action); err != nil {
+		if err := s.logAction(tx, group.ID, actorID, actor.Name, actor.Us, role, groups.ActionUpdateGroup, ""); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -548,27 +555,13 @@ func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
 		return false, ErrPermissionDenied
 	}
 
-	var actor models.User
-	var group groups.Group
-
 	err = s.runInTx(func(tx groupTx) error {
-		if err := tx.First(&group, groupID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrGroupNotFound
-			}
-			return fmt.Errorf("ошибка поиска группы: %w", err)
+		store := newGroupAdminStore(tx)
+		if _, err := store.FindActor(actorID); err != nil {
+			return err
 		}
 
-		if err := tx.First(&actor, actorID).Error; err != nil {
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
-		}
-
-		// Удаляем группу (каскадно удалятся связи)
-		if err := tx.Delete(&group).Error; err != nil {
-			return fmt.Errorf("ошибка удаления группы: %w", err)
-		}
-
-		return nil
+		return store.DeleteGroup(groupID)
 	})
 
 	if err != nil {
@@ -581,7 +574,7 @@ func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
 }
 
 // AddPermissions добавляет права оператора (только админ)
-func (s *groupService) AddPermissions(actorID uint, input PermissionInput) (bool, error) {
+func (s *groupService) AddPermissions(actorID uint, input GroupUserInput) (bool, error) {
 	if actorID == input.UserID {
 		return false, ErrCannotChangeOwnRole
 	}
@@ -594,47 +587,18 @@ func (s *groupService) AddPermissions(actorID uint, input PermissionInput) (bool
 		return false, ErrPermissionDenied
 	}
 
-	var targetUser models.User
-	var actor models.User
-	var groupUser groups.GroupUsers
+	var result groupAdminResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		if err := tx.First(&actor, actorID).Error; err != nil {
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
-		}
-
-		if err := tx.First(&targetUser, input.UserID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrUserNotFound
-			}
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
-		}
-
-		err := tx.Where("user_id = ? AND group_id = ?", input.UserID, input.GroupID).
-			First(&groupUser).Error
+		store := newGroupAdminStore(tx)
+		actor, err := store.FindActor(actorID)
 		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrNotInGroup
-			}
-			return fmt.Errorf("ошибка поиска участника: %w", err)
+			return err
 		}
 
-		operatorRoleID, err := findGroupRoleID(tx, groups.RoleModerator)
-		if err != nil {
-			return ErrRoleModeratorNotFound
-		}
-
-		if err := tx.Model(&groupUser).Update("role_in_group_id", operatorRoleID).Error; err != nil {
-			return fmt.Errorf("ошибка обновления роли: %w", err)
-		}
-
-		// Логируем действие
-		action := fmt.Sprintf("Назначил пользователя '%s' (@%s) оператором группы", targetUser.Name, targetUser.Us)
-		if err := s.logAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, "add_operator", action); err != nil {
-			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
-		}
-
-		return nil
+		var changeErr error
+		result, changeErr = store.ChangeMemberRole(input, groups.RoleModerator, actor, role)
+		return changeErr
 	})
 
 	if err != nil {
@@ -642,12 +606,16 @@ func (s *groupService) AddPermissions(actorID uint, input PermissionInput) (bool
 		return false, err
 	}
 
+	for _, warning := range result.Warnings {
+		s.logger.Warn(warning.Message, warning.Args...)
+	}
+
 	s.logger.Info("Права модератора выданы", "actorID", actorID, "targetUserID", input.UserID, "groupID", input.GroupID)
 	return true, nil
 }
 
 // RemovePermissions убирает права оператора (только админ)
-func (s *groupService) RemovePermissions(actorID uint, input PermissionInput) (bool, error) {
+func (s *groupService) RemovePermissions(actorID uint, input GroupUserInput) (bool, error) {
 	if actorID == input.UserID {
 		return false, ErrCannotChangeOwnRole
 	}
@@ -660,52 +628,27 @@ func (s *groupService) RemovePermissions(actorID uint, input PermissionInput) (b
 		return false, ErrPermissionDenied
 	}
 
-	var targetUser models.User
-	var actor models.User
-	var groupUser groups.GroupUsers
+	var result groupAdminResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		if err := tx.First(&actor, actorID).Error; err != nil {
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
-		}
-
-		if err := tx.First(&targetUser, input.UserID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrUserNotFound
-			}
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
-		}
-
-		err := tx.Where("user_id = ? AND group_id = ?", input.UserID, input.GroupID).
-			First(&groupUser).Error
+		store := newGroupAdminStore(tx)
+		actor, err := store.FindActor(actorID)
 		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrNotInGroup
-			}
-			return fmt.Errorf("ошибка поиска участника: %w", err)
+			return err
 		}
 
-		memberRoleID, err := findGroupRoleID(tx, groups.RoleMember)
-		if err != nil {
-			return ErrRoleMemberNotFound
-		}
-
-		if err := tx.Model(&groupUser).Update("role_in_group_id", memberRoleID).Error; err != nil {
-			return fmt.Errorf("ошибка обновления роли: %w", err)
-		}
-
-		// Логируем действие
-		action := fmt.Sprintf("Снял с пользователя '%s' (@%s) права оператора", targetUser.Name, targetUser.Us)
-		if err := s.logAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, "remove_operator", action); err != nil {
-			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
-		}
-
-		return nil
+		var changeErr error
+		result, changeErr = store.ChangeMemberRole(input, groups.RoleMember, actor, role)
+		return changeErr
 	})
 
 	if err != nil {
 		s.logger.Error("Не удалось снять права", "actorID", actorID, "targetUserID", input.UserID, "error", err)
 		return false, err
+	}
+
+	for _, warning := range result.Warnings {
+		s.logger.Warn(warning.Message, warning.Args...)
 	}
 
 	s.logger.Info("Права модератора сняты", "actorID", actorID, "targetUserID", input.UserID, "groupID", input.GroupID)
@@ -777,8 +720,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 		}
 
 		// Логируем действие
-		action := fmt.Sprintf("Удалил пользователя '%s' (@%s) из группы и добавил в черный список", targetUser.Name, targetUser.Us)
-		if err := s.logAction(tx, groupID, actorID, actor.Name, actor.Us, role, "ban_user", action); err != nil {
+		if err := s.logActionWithTargetUser(tx, groupID, actorID, actor.Name, actor.Us, role, groups.ActionBanUser, "", targetUserID); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -831,8 +773,7 @@ func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUse
 		}
 
 		// Логируем действие
-		action := fmt.Sprintf("Убрал пользователя '%s' (@%s) из черного списка", targetUser.Name, targetUser.Us)
-		if err := s.logAction(tx, groupID, actorID, actor.Name, actor.Us, role, "unban_user", action); err != nil {
+		if err := s.logActionWithTargetUser(tx, groupID, actorID, actor.Name, actor.Us, role, groups.ActionUnbanUser, "", targetUserID); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -849,7 +790,7 @@ func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUse
 }
 
 // WatchRecentActions получает историю действий в группе
-func (s *groupService) WatchRecentActions(userID uint, groupID uint, limit int) ([]GroupAction, error) {
+func (s *groupService) WatchRecentActions(userID uint, groupID uint, filter GroupActionFilter) ([]GroupAction, error) {
 	// Проверяем, что пользователь в группе
 	hasAccess, _, err := s.checkGroupAccess(userID, groupID, groups.CapabilityMember)
 	if err != nil {
@@ -859,14 +800,17 @@ func (s *groupService) WatchRecentActions(userID uint, groupID uint, limit int) 
 		return nil, ErrPermissionDenied
 	}
 
-	if limit <= 0 {
-		limit = 50
+	if filter.Limit <= 0 {
+		filter.Limit = 50
 	}
-	if limit > 100 {
-		limit = 100
+	if filter.Limit > 100 {
+		filter.Limit = 100
+	}
+	if filter.Order != "asc" {
+		filter.Order = "desc"
 	}
 
-	actions, err := s.reads.ListGroupActions(groupID, limit)
+	actions, err := s.reads.ListGroupActions(groupID, filter)
 	if err != nil {
 		s.logger.Error("Не удалось получить историю действий группы", "groupID", groupID, "error", err)
 		return nil, err
@@ -958,6 +902,19 @@ func updateContactsInTx(tx groupTx, groupID *uint, newContacts map[string]string
 
 // logAction записывает действие в лог
 func (s *groupService) logAction(tx groupTx, groupID uint, userID uint, username, us, role, actionType, description string) error {
+	return s.logActionRecord(tx, groupID, userID, username, us, role, actionType, description, nil)
+}
+
+func (s *groupService) logActionWithTargetUser(tx groupTx, groupID uint, userID uint, username, us, role, actionType, description string, targetUserID uint) error {
+	return s.logActionRecord(tx, groupID, userID, username, us, role, actionType, description, &targetUserID)
+}
+
+func (s *groupService) logActionRecord(tx groupTx, groupID uint, userID uint, username, us, role, actionType, description string, targetUserID *uint) error {
+	actionTypeID, err := groups.FindGroupActionTypeID(tx, actionType)
+	if err != nil {
+		return fmt.Errorf("тип действия группы %q не найден: %w", actionType, err)
+	}
+
 	if strings.TrimSpace(username) == "" || strings.TrimSpace(us) == "" {
 		var actor models.User
 		if err := tx.Select("id", "name", "us").First(&actor, userID).Error; err == nil {
@@ -971,14 +928,15 @@ func (s *groupService) logAction(tx groupTx, groupID uint, userID uint, username
 	}
 
 	action := groups.GroupActionLog{
-		GroupID:     groupID,
-		UserID:      userID,
-		Username:    username,
-		Us:          us,
-		Role:        role,
-		Action:      actionType,
-		Description: description,
-		CreatedAt:   time.Now(),
+		GroupID:      groupID,
+		UserID:       userID,
+		Username:     username,
+		Us:           us,
+		Role:         role,
+		ActionTypeID: actionTypeID,
+		Description:  description,
+		TargetUserID: targetUserID,
+		CreatedAt:    time.Now(),
 	}
 
 	return tx.Create(&action).Error

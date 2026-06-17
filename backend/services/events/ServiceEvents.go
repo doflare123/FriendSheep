@@ -271,6 +271,14 @@ func (s *eventsService) JoinEvent(userID uint, eventID uint) (bool, error) {
 			return ErrEventFull
 		}
 
+		actor, role, err := findEventGroupActor(tx, userID, event.GroupID)
+		if err != nil {
+			return err
+		}
+		if err := s.logGroupTargetUserEntityAction(tx, event.GroupID, userID, actor.Name, actor.Us, role, groups.ActionJoinEvent, userID, event.ID, event.Title, ""); err != nil {
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
+		}
+
 		return nil
 	})
 
@@ -316,6 +324,13 @@ func (s *eventsService) LeaveEvent(userID uint, eventID uint) (bool, error) {
 			if err := tx.Model(&event).Update("current_users", event.CurrentUsers-1).Error; err != nil {
 				return fmt.Errorf("ошибка обновления счетчика: %w", err)
 			}
+		}
+
+		actor, role, err := findEventGroupActor(tx, userID, event.GroupID)
+		if err != nil {
+			s.logger.Warn("Не удалось подготовить данные для журнала группы", "error", err)
+		} else if err := s.logGroupTargetUserEntityAction(tx, event.GroupID, userID, actor.Name, actor.Us, role, groups.ActionLeaveEvent, userID, event.ID, event.Title, ""); err != nil {
+			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
 		return nil
@@ -391,14 +406,21 @@ func (s *eventsService) GetAllReferences() (*dto.ReferencesDto, error) {
 		return nil, fmt.Errorf("ошибка получения категорий групп: %w", err)
 	}
 
+	var groupActionTypes []groups.GroupActionType
+	if err := s.repo.Order("id ASC").Find(&groupActionTypes).Error; err != nil {
+		s.logger.Error("Не удалось получить типы действий группы", "error", err)
+		return nil, fmt.Errorf("ошибка получения типов действий группы: %w", err)
+	}
+
 	// Конвертируем в DTO
 	references := &dto.ReferencesDto{
-		EventTypes:      convertorsdto.ConvertToReferenceItems(eventTypes),
-		Locations:       convertorsdto.ConvertLocationsToReferenceItems(locations),
-		AgeLimits:       convertorsdto.ConvertAgeLimitsToReferenceItems(ageLimits),
-		Statuses:        convertorsdto.ConvertStatusesToReferenceItems(statuses),
-		Genres:          convertorsdto.ConvertGenresToReferenceItems(genres),
-		GroupCategories: convertorsdto.ConvertToReferenceItems(groupCategories),
+		EventTypes:       convertorsdto.ConvertToReferenceItems(eventTypes),
+		Locations:        convertorsdto.ConvertLocationsToReferenceItems(locations),
+		AgeLimits:        convertorsdto.ConvertAgeLimitsToReferenceItems(ageLimits),
+		Statuses:         convertorsdto.ConvertStatusesToReferenceItems(statuses),
+		Genres:           convertorsdto.ConvertGenresToReferenceItems(genres),
+		GroupCategories:  convertorsdto.ConvertToReferenceItems(groupCategories),
+		GroupActionTypes: convertorsdto.ConvertGroupActionTypesToReferenceItems(groupActionTypes),
 	}
 
 	return references, nil
@@ -620,16 +642,55 @@ func (s *eventsService) isGroupMember(userID uint, groupID uint) (bool, error) {
 
 // Записывает действие в журнал группы
 func (s *eventsService) logGroupAction(tx eventsTxPort, groupID uint, userID uint, username, us, role, actionType, description string) error {
+	return s.logGroupActionRecord(tx, groupID, userID, username, us, role, actionType, description, nil, nil, "")
+}
+
+func (s *eventsService) logGroupEntityAction(tx eventsTxPort, groupID uint, userID uint, username, us, role, actionType string, entityID uint, entityName string, description string) error {
+	return s.logGroupActionRecord(tx, groupID, userID, username, us, role, actionType, description, nil, &entityID, entityName)
+}
+
+func (s *eventsService) logGroupTargetUserEntityAction(tx eventsTxPort, groupID uint, userID uint, username, us, role, actionType string, targetUserID uint, entityID uint, entityName string, description string) error {
+	return s.logGroupActionRecord(tx, groupID, userID, username, us, role, actionType, description, &targetUserID, &entityID, entityName)
+}
+
+func (s *eventsService) logGroupActionRecord(tx eventsTxPort, groupID uint, userID uint, username, us, role, actionType, description string, targetUserID *uint, entityID *uint, entityName string) error {
+	actionTypeID, err := groups.FindGroupActionTypeID(tx, actionType)
+	if err != nil {
+		return fmt.Errorf("тип действия группы %q не найден: %w", actionType, err)
+	}
+
 	action := groups.GroupActionLog{
-		GroupID:     groupID,
-		UserID:      userID,
-		Username:    username,
-		Us:          us,
-		Role:        role,
-		Action:      actionType,
-		Description: description,
-		CreatedAt:   time.Now(),
+		GroupID:      groupID,
+		UserID:       userID,
+		Username:     username,
+		Us:           us,
+		Role:         role,
+		ActionTypeID: actionTypeID,
+		Description:  description,
+		TargetUserID: targetUserID,
+		EntityID:     entityID,
+		EntityName:   entityName,
+		CreatedAt:    time.Now(),
 	}
 
 	return tx.Create(&action).Error
+}
+
+func findEventGroupActor(tx eventsTxPort, userID uint, groupID uint) (models.User, string, error) {
+	var actor models.User
+	if err := tx.First(&actor, userID).Error; err != nil {
+		return models.User{}, "", fmt.Errorf("ошибка поиска пользователя: %w", err)
+	}
+
+	var membership groups.GroupUsers
+	if err := tx.Where("user_id = ? AND group_id = ?", userID, groupID).First(&membership).Error; err != nil {
+		return models.User{}, "", fmt.Errorf("ошибка поиска членства в группе: %w", err)
+	}
+
+	var role groups.Role_in_group
+	if err := tx.First(&role, membership.RoleInGroupID).Error; err != nil {
+		return models.User{}, "", fmt.Errorf("ошибка получения роли: %w", err)
+	}
+
+	return actor, groups.NormalizeRoleName(role.Name), nil
 }

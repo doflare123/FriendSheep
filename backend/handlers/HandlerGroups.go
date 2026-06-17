@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	group "friendship/services/groups"
 	"friendship/utils"
@@ -548,7 +549,7 @@ func (h *groupHandler) RejectJoinRequest(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        request body group.PermissionInput true "ID группы и пользователя"
+// @Param        request body group.GroupUserInput true "ID группы и пользователя"
 // @Success      200 {object} map[string]interface{} "Права успешно назначены"
 // @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
 // @Failure      401 {object} dto.ErrorResponse "Не авторизован"
@@ -558,7 +559,7 @@ func (h *groupHandler) RejectJoinRequest(c *gin.Context) {
 func (h *groupHandler) AddPermissions(c *gin.Context) {
 	actorID := c.GetUint("userID")
 
-	var input group.PermissionInput
+	var input group.GroupUserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utils.ValidationError(c, err)
 		return
@@ -594,7 +595,7 @@ func (h *groupHandler) AddPermissions(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        request body group.PermissionInput true "ID группы и пользователя"
+// @Param        request body group.GroupUserInput true "ID группы и пользователя"
 // @Success      200 {object} map[string]interface{} "Права успешно сняты"
 // @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
 // @Failure      401 {object} dto.ErrorResponse "Не авторизован"
@@ -604,7 +605,7 @@ func (h *groupHandler) AddPermissions(c *gin.Context) {
 func (h *groupHandler) RemovePermissions(c *gin.Context) {
 	actorID := c.GetUint("userID")
 
-	var input group.PermissionInput
+	var input group.GroupUserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utils.ValidationError(c, err)
 		return
@@ -744,7 +745,7 @@ func (h *groupHandler) RemoveFromBlacklist(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        request body group.JoinInviteInput true "ID группы и пользователя"
+// @Param        request body group.GroupUserInput true "ID группы и пользователя"
 // @Success      200 {object} map[string]interface{} "Приглашение отправлено"
 // @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
 // @Failure      401 {object} dto.ErrorResponse "Не авторизован"
@@ -755,7 +756,7 @@ func (h *groupHandler) RemoveFromBlacklist(c *gin.Context) {
 func (h *groupHandler) CreateJoinInvite(c *gin.Context) {
 	actorID := c.GetUint("userID")
 
-	var input group.JoinInviteInput
+	var input group.GroupUserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utils.ValidationError(c, err)
 		return
@@ -879,6 +880,9 @@ func (h *groupHandler) RejectJoinInvite(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        groupId path int true "ID группы"
 // @Param        limit query int false "Количество записей (по умолчанию 50, максимум 100)"
+// @Param        action query string false "Код действия из справочника groupActionTypes"
+// @Param        actionTypeId query int false "ID действия из справочника groupActionTypes"
+// @Param        order query string false "Порядок createdAt: desc по умолчанию, asc для старых к новым"
 // @Success      200 {array} group.GroupAction "История действий"
 // @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
 // @Failure      401 {object} dto.ErrorResponse "Не авторизован"
@@ -900,7 +904,23 @@ func (h *groupHandler) WatchRecentActions(c *gin.Context) {
 		limit = 50
 	}
 
-	actions, err := h.srv.WatchRecentActions(userID, uint(groupID), limit)
+	var actionTypeID uint
+	actionTypeIDStr := c.Query("actionTypeId")
+	if actionTypeIDStr != "" {
+		parsedActionTypeID, err := strconv.ParseUint(actionTypeIDStr, 10, 32)
+		if err != nil {
+			utils.BadRequest(c, "Некорректный ID типа действия")
+			return
+		}
+		actionTypeID = uint(parsedActionTypeID)
+	}
+
+	actions, err := h.srv.WatchRecentActions(userID, uint(groupID), group.GroupActionFilter{
+		Limit:        limit,
+		Action:       strings.TrimSpace(c.Query("action")),
+		ActionTypeID: actionTypeID,
+		Order:        strings.ToLower(strings.TrimSpace(c.DefaultQuery("order", "desc"))),
+	})
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
