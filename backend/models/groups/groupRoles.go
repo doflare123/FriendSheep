@@ -27,6 +27,27 @@ const (
 	CapabilityAdmin
 )
 
+var roleCapabilities = map[string]map[Capability]struct{}{
+	RoleAdmin: {
+		CapabilityAdmin:    {},
+		CapabilityModerate: {},
+		CapabilityMember:   {},
+	},
+	RoleModerator: {
+		CapabilityModerate: {},
+		CapabilityMember:   {},
+	},
+	RoleMember: {
+		CapabilityMember: {},
+	},
+}
+
+var rolesByAccessLevel = []string{
+	RoleAdmin,
+	RoleModerator,
+	RoleMember,
+}
+
 type RolePredicate func(roleName string) bool
 
 func NormalizeRoleName(roleName string) string {
@@ -45,34 +66,38 @@ func NormalizeRoleName(roleName string) string {
 }
 
 func CapabilityOf(roleName string) (Capability, bool) {
-	switch NormalizeRoleName(roleName) {
-	case RoleMember:
-		return CapabilityMember, true
-	case RoleModerator:
-		return CapabilityModerate, true
-	case RoleAdmin:
-		return CapabilityAdmin, true
-	default:
+	capabilities, ok := roleCapabilities[NormalizeRoleName(roleName)]
+	if !ok {
 		return 0, false
 	}
+
+	for _, capability := range []Capability{CapabilityAdmin, CapabilityModerate, CapabilityMember} {
+		if _, ok := capabilities[capability]; ok {
+			return capability, true
+		}
+	}
+
+	return 0, false
 }
 
 func HasCapability(roleName string, required Capability) bool {
-	capability, ok := CapabilityOf(roleName)
-	return ok && capability >= required
+	capabilities, ok := roleCapabilities[NormalizeRoleName(roleName)]
+	if !ok {
+		return false
+	}
+
+	_, ok = capabilities[required]
+	return ok
 }
 
 func RolesWithCapability(required Capability) []string {
-	switch required {
-	case CapabilityAdmin:
-		return []string{RoleAdmin}
-	case CapabilityModerate:
-		return []string{RoleAdmin, RoleModerator}
-	case CapabilityMember:
-		return []string{RoleAdmin, RoleModerator, RoleMember}
-	default:
-		return nil
+	roles := make([]string, 0, len(rolesByAccessLevel))
+	for _, roleName := range rolesByAccessLevel {
+		if HasCapability(roleName, required) {
+			roles = append(roles, roleName)
+		}
 	}
+	return roles
 }
 
 func HasAnyRole(roleName string, allowedRoles ...string) bool {

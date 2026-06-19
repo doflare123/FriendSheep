@@ -18,11 +18,21 @@ type GroupRoleMiddleware struct {
 	reader groupRoleReader
 }
 
+type groupRoleRequirement struct {
+	allows        groupmodels.RolePredicate
+	requiredRoles []string
+}
+
 func NewGroupRoleMiddleware(repo repository.PostgresRepository) *GroupRoleMiddleware {
 	return &GroupRoleMiddleware{reader: newRepositoryGroupRoleReader(repo)}
 }
 
+// Deprecated: use RequireGroupCapability or one of the capability-specific wrappers.
 func (m *GroupRoleMiddleware) RequireGroupRole(allowedRoles ...string) gin.HandlerFunc {
+	return m.requireGroupAccess(groupRoleRequirementForRoles(allowedRoles...))
+}
+
+func (m *GroupRoleMiddleware) requireGroupAccess(requirement groupRoleRequirement) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, ok := contextUserID(c)
 		if !ok {
@@ -66,8 +76,8 @@ func (m *GroupRoleMiddleware) RequireGroupRole(allowedRoles ...string) gin.Handl
 			return
 		}
 
-		if !groupmodels.HasAnyRole(roleName, allowedRoles...) {
-			abortForbiddenRole(c, roleName, allowedRoles)
+		if !requirement.allows(roleName) {
+			abortForbiddenRole(c, roleName, requirement.requiredRoles)
 			return
 		}
 
@@ -78,7 +88,12 @@ func (m *GroupRoleMiddleware) RequireGroupRole(allowedRoles ...string) gin.Handl
 	}
 }
 
+// Deprecated: use RequireEventGroupCapability or one of the capability-specific wrappers.
 func (m *GroupRoleMiddleware) RequireEventGroupRole(allowedRoles ...string) gin.HandlerFunc {
+	return m.requireEventGroupAccess(groupRoleRequirementForRoles(allowedRoles...))
+}
+
+func (m *GroupRoleMiddleware) requireEventGroupAccess(requirement groupRoleRequirement) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, ok := contextUserID(c)
 		if !ok {
@@ -104,8 +119,8 @@ func (m *GroupRoleMiddleware) RequireEventGroupRole(allowedRoles ...string) gin.
 			return
 		}
 
-		if !groupmodels.HasAnyRole(roleName, allowedRoles...) {
-			abortForbiddenRole(c, roleName, allowedRoles)
+		if !requirement.allows(roleName) {
+			abortForbiddenRole(c, roleName, requirement.requiredRoles)
 			return
 		}
 
@@ -117,7 +132,12 @@ func (m *GroupRoleMiddleware) RequireEventGroupRole(allowedRoles ...string) gin.
 	}
 }
 
+// Deprecated: use RequireJoinRequestGroupCapability or one of the capability-specific wrappers.
 func (m *GroupRoleMiddleware) RequireJoinRequestGroupRole(allowedRoles ...string) gin.HandlerFunc {
+	return m.requireJoinRequestGroupAccess(groupRoleRequirementForRoles(allowedRoles...))
+}
+
+func (m *GroupRoleMiddleware) requireJoinRequestGroupAccess(requirement groupRoleRequirement) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, ok := contextUserID(c)
 		if !ok {
@@ -143,8 +163,8 @@ func (m *GroupRoleMiddleware) RequireJoinRequestGroupRole(allowedRoles ...string
 			return
 		}
 
-		if !groupmodels.HasAnyRole(roleName, allowedRoles...) {
-			abortForbiddenRole(c, roleName, allowedRoles)
+		if !requirement.allows(roleName) {
+			abortForbiddenRole(c, roleName, requirement.requiredRoles)
 			return
 		}
 
@@ -157,15 +177,15 @@ func (m *GroupRoleMiddleware) RequireJoinRequestGroupRole(allowedRoles ...string
 }
 
 func (m *GroupRoleMiddleware) RequireGroupCapability(required groupmodels.Capability) gin.HandlerFunc {
-	return m.RequireGroupRole(groupmodels.RolesWithCapability(required)...)
+	return m.requireGroupAccess(groupRoleRequirementForCapability(required))
 }
 
 func (m *GroupRoleMiddleware) RequireEventGroupCapability(required groupmodels.Capability) gin.HandlerFunc {
-	return m.RequireEventGroupRole(groupmodels.RolesWithCapability(required)...)
+	return m.requireEventGroupAccess(groupRoleRequirementForCapability(required))
 }
 
 func (m *GroupRoleMiddleware) RequireJoinRequestGroupCapability(required groupmodels.Capability) gin.HandlerFunc {
-	return m.RequireJoinRequestGroupRole(groupmodels.RolesWithCapability(required)...)
+	return m.requireJoinRequestGroupAccess(groupRoleRequirementForCapability(required))
 }
 
 func (m *GroupRoleMiddleware) RequireAdmin() gin.HandlerFunc {
@@ -186,6 +206,24 @@ func (m *GroupRoleMiddleware) RequireJoinRequestOperatorOrAdmin() gin.HandlerFun
 
 func (m *GroupRoleMiddleware) RequireMember() gin.HandlerFunc {
 	return m.RequireGroupCapability(groupmodels.CapabilityMember)
+}
+
+func groupRoleRequirementForRoles(allowedRoles ...string) groupRoleRequirement {
+	requiredRoles := append([]string(nil), allowedRoles...)
+	return groupRoleRequirement{
+		allows: func(roleName string) bool {
+			return groupmodels.HasAnyRole(roleName, requiredRoles...)
+		},
+		requiredRoles: requiredRoles,
+	}
+}
+
+func groupRoleRequirementForCapability(required groupmodels.Capability) groupRoleRequirement {
+	requiredRoles := groupmodels.RolesWithCapability(required)
+	return groupRoleRequirement{
+		allows:        groupmodels.PredicateForCapability(required),
+		requiredRoles: requiredRoles,
+	}
 }
 
 func contextUserID(c *gin.Context) (uint, bool) {

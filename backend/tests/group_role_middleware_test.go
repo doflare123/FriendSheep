@@ -9,6 +9,7 @@ import (
 
 	"friendship/middlewares"
 	"friendship/models"
+	eventmodels "friendship/models/events"
 	groupmodels "friendship/models/groups"
 
 	"github.com/gin-gonic/gin"
@@ -51,6 +52,19 @@ func TestGroupRoleCapabilitySourcePreservesAccessMatrix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.role, func(t *testing.T) {
+			capability, knownRole := groupmodels.CapabilityOf(tt.role)
+			if knownRole != (tt.role != "unknown") {
+				t.Fatalf("known role = %v, want %v", knownRole, tt.role != "unknown")
+			}
+			if tt.adminAccess && capability != groupmodels.CapabilityAdmin {
+				t.Fatalf("capability = %v, want admin", capability)
+			}
+			if !tt.adminAccess && tt.operateAccess && capability != groupmodels.CapabilityModerate {
+				t.Fatalf("capability = %v, want moderate", capability)
+			}
+			if !tt.operateAccess && tt.memberAccess && capability != groupmodels.CapabilityMember {
+				t.Fatalf("capability = %v, want member", capability)
+			}
 			if got := groupmodels.HasCapability(tt.role, groupmodels.CapabilityAdmin); got != tt.adminAccess {
 				t.Fatalf("admin capability = %v, want %v", got, tt.adminAccess)
 			}
@@ -66,6 +80,7 @@ func TestGroupRoleCapabilitySourcePreservesAccessMatrix(t *testing.T) {
 	assertSameStringSlice(t, groupmodels.RolesWithCapability(groupmodels.CapabilityAdmin), []string{groupmodels.RoleAdmin})
 	assertSameStringSlice(t, groupmodels.RolesWithCapability(groupmodels.CapabilityModerate), []string{groupmodels.RoleAdmin, groupmodels.RoleModerator})
 	assertSameStringSlice(t, groupmodels.RolesWithCapability(groupmodels.CapabilityMember), []string{groupmodels.RoleAdmin, groupmodels.RoleModerator, groupmodels.RoleMember})
+	assertSameStringSlice(t, groupmodels.RolesWithCapability(groupmodels.Capability(99)), nil)
 }
 
 func TestGroupRoleMiddlewareCapabilityWrappersPreserveRouteAccess(t *testing.T) {
@@ -108,6 +123,69 @@ func TestGroupRoleMiddlewareCapabilityWrappersPreserveRouteAccess(t *testing.T) 
 				assertCommonErrorShape(t, rec)
 			}
 		})
+	}
+}
+
+func TestGroupRoleMiddlewareEventCapabilityWrapperUsesEventGroup(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := newGroupRoleRepo(t)
+	seedGroupRoleMembership(t, repo.db, 72, 89, groupmodels.RoleModerator)
+	seedGroupRoleEvent(t, repo.db, 93, 89, 72)
+
+	router := gin.New()
+	router.GET("/events/:eventId", withUserID(72), middlewares.NewGroupRoleMiddleware(repo).RequireEventOperatorOrAdmin(), func(c *gin.Context) {
+		if got := c.GetUint("eventID"); got != 93 {
+			t.Fatalf("eventID = %d, want 93", got)
+		}
+		if got := c.GetUint("groupID"); got != 89 {
+			t.Fatalf("groupID = %d, want 89", got)
+		}
+		if got := c.GetString("groupRole"); got != groupmodels.RoleModerator {
+			t.Fatalf("groupRole = %q, want %q", got, groupmodels.RoleModerator)
+		}
+		c.Status(http.StatusNoContent)
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/events/93", nil)
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusNoContent, rec.Body.String())
+	}
+}
+
+func TestGroupRoleMiddlewareJoinRequestCapabilityWrapperUsesRequestGroup(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := newGroupRoleRepo(t)
+	seedGroupRoleMembership(t, repo.db, 73, 90, groupmodels.RoleMember)
+	seedGroupRoleJoinRequest(t, repo.db, 94, 90, 101)
+
+	router := gin.New()
+	router.POST("/requests/:requestId", withUserID(73), middlewares.NewGroupRoleMiddleware(repo).RequireJoinRequestOperatorOrAdmin(), func(c *gin.Context) {
+		t.Fatal("handler should not be reached")
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/requests/94", nil)
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusForbidden, rec.Body.String())
+	}
+
+	payload := assertCommonErrorShape(t, rec)
+	requiredRoles, ok := payload["required_role"].([]any)
+	if !ok {
+		t.Fatalf("required_role = %#v, want list", payload["required_role"])
+	}
+	if len(requiredRoles) != 2 || requiredRoles[0] != groupmodels.RoleAdmin || requiredRoles[1] != groupmodels.RoleModerator {
+		t.Fatalf("required_role = %#v, want admin and moderator roles", requiredRoles)
+	}
+	if got := payload["your_role"]; got != groupmodels.RoleMember {
+		t.Fatalf("your_role = %v, want %q", got, groupmodels.RoleMember)
 	}
 }
 
@@ -398,6 +476,8 @@ func newGroupRoleRepo(t *testing.T) *testPostgresRepository {
 		&groupmodels.Group{},
 		&groupmodels.Role_in_group{},
 		&groupmodels.GroupUsers{},
+		&eventmodels.Event{},
+		&groupmodels.GroupJoinRequest{},
 	); err != nil {
 		t.Fatalf("auto migrate group role models: %v", err)
 	}
@@ -425,6 +505,47 @@ func seedGroupRoleMembership(t *testing.T, db *gorm.DB, userID, groupID uint, ro
 	}
 
 	return role.Id
+}
+
+func seedGroupRoleEvent(t *testing.T, db *gorm.DB, eventID, groupID, creatorID uint) {
+	t.Helper()
+
+	event := eventmodels.Event{
+		ID:          eventID,
+		Title:       "Test Event",
+		GroupID:     groupID,
+		CreatorID:   creatorID,
+		EventTypeID: 1,
+		MaxUsers:    10,
+	}
+	if err := db.Create(&event).Error; err != nil {
+		t.Fatalf("create event: %v", err)
+	}
+}
+
+func seedGroupRoleJoinRequest(t *testing.T, db *gorm.DB, requestID, groupID, userID uint) {
+	t.Helper()
+
+	user := models.User{
+		ID:       userID,
+		Name:     "Join Request User",
+		Password: "Password123!",
+		Us:       "join-request-user",
+		Email:    "join-request-user@example.com",
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("create join request user: %v", err)
+	}
+
+	request := groupmodels.GroupJoinRequest{
+		ID:      requestID,
+		UserID:  userID,
+		GroupID: groupID,
+		Status:  groupmodels.JoinStatusPending,
+	}
+	if err := db.Create(&request).Error; err != nil {
+		t.Fatalf("create join request: %v", err)
+	}
 }
 
 func seedGroupRoleUserAndGroup(t *testing.T, db *gorm.DB, userID, groupID uint) {
