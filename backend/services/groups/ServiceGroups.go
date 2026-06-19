@@ -669,67 +669,27 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 		return false, ErrPermissionDenied
 	}
 
-	var targetUser models.User
-	var actor models.User
-	var groupUser groups.GroupUsers
+	var result groupAdminResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		if err := tx.First(&actor, actorID).Error; err != nil {
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
-		}
-
-		if err := tx.First(&targetUser, targetUserID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrUserNotFound
-			}
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
-		}
-
-		err := tx.Where("user_id = ? AND group_id = ?", targetUserID, groupID).
-			First(&groupUser).Error
+		store := newGroupAdminStore(tx)
+		actor, err := store.FindActor(actorID)
 		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrNotInGroup
-			}
-			return fmt.Errorf("ошибка поиска участника: %w", err)
+			return err
 		}
 
-		// Проверяем, что целевой пользователь не админ
-		var targetRole groups.Role_in_group
-		if err := tx.First(&targetRole, groupUser.RoleInGroupID).Error; err == nil {
-			if groups.HasCapability(targetRole.Name, groups.CapabilityAdmin) {
-				return fmt.Errorf("нельзя удалить администратора группы")
-			}
-		}
-
-		// Удаляем из группы
-		if err := tx.Delete(&groupUser).Error; err != nil {
-			return fmt.Errorf("ошибка удаления участника: %w", err)
-		}
-
-		// Добавляем в черный список
-		blacklist := groups.GroupBlacklist{
-			GroupID:   groupID,
-			UserID:    targetUserID,
-			BannedBy:  actorID,
-			Reason:    "Удален из группы",
-			CreatedAt: time.Now(),
-		}
-		if err := tx.Create(&blacklist).Error; err != nil {
-			return fmt.Errorf("ошибка добавления в черный список: %w", err)
-		}
-
-		// Логируем действие
-		if err := s.logActionWithTargetUser(tx, groupID, actorID, actor.Name, actor.Us, role, groups.ActionBanUser, "", targetUserID); err != nil {
-			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
-		}
-
-		return nil
+		var banErr error
+		result, banErr = store.BanMember(groupID, targetUserID, actor, role)
+		return banErr
 	})
 
 	if err != nil {
 		s.logger.Error("Не удалось удалить пользователя из группы", "actorID", actorID, "targetUserID", targetUserID, "error", err)
 		return false, err
+	}
+
+	for _, warning := range result.Warnings {
+		s.logger.Warn(warning.Message, warning.Args...)
 	}
 
 	s.logger.Info("Пользователь удален из группы и добавлен в черный список", "actorID", actorID, "targetUserID", targetUserID, "groupID", groupID)
@@ -746,43 +706,27 @@ func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUse
 		return false, ErrPermissionDenied
 	}
 
-	var targetUser models.User
-	var actor models.User
+	var result groupAdminResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		if err := tx.First(&actor, actorID).Error; err != nil {
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
+		store := newGroupAdminStore(tx)
+		actor, err := store.FindActor(actorID)
+		if err != nil {
+			return err
 		}
 
-		if err := tx.First(&targetUser, targetUserID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrUserNotFound
-			}
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
-		}
-
-		result := tx.Where("group_id = ? AND user_id = ?", groupID, targetUserID).
-			Delete(&groups.GroupBlacklist{})
-
-		if result.Error != nil {
-			return fmt.Errorf("ошибка удаления из черного списка: %w", result.Error)
-		}
-
-		if result.RowsAffected == 0 {
-			return fmt.Errorf("пользователь не найден в черном списке")
-		}
-
-		// Логируем действие
-		if err := s.logActionWithTargetUser(tx, groupID, actorID, actor.Name, actor.Us, role, groups.ActionUnbanUser, "", targetUserID); err != nil {
-			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
-		}
-
-		return nil
+		var removeErr error
+		result, removeErr = store.RemoveFromBlacklist(groupID, targetUserID, actor, role)
+		return removeErr
 	})
 
 	if err != nil {
 		s.logger.Error("Не удалось убрать пользователя из черного списка", "actorID", actorID, "targetUserID", targetUserID, "error", err)
 		return false, err
+	}
+
+	for _, warning := range result.Warnings {
+		s.logger.Warn(warning.Message, warning.Args...)
 	}
 
 	s.logger.Info("Пользователь убран из черного списка", "actorID", actorID, "targetUserID", targetUserID, "groupID", groupID)

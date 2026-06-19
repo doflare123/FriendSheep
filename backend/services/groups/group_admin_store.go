@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"friendship/models"
 	"friendship/models/groups"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -14,6 +15,8 @@ type groupAdminStore interface {
 
 	DeleteGroup(groupID uint) error
 	ChangeMemberRole(input GroupUserInput, roleName string, actor joinRequestActor, actorRole string) (groupAdminResult, error)
+	BanMember(groupID uint, targetUserID uint, actor joinRequestActor, actorRole string) (groupAdminResult, error)
+	RemoveFromBlacklist(groupID uint, targetUserID uint, actor joinRequestActor, actorRole string) (groupAdminResult, error)
 }
 
 type groupAdminResult struct {
@@ -90,6 +93,86 @@ func (s gormGroupAdminStore) ChangeMemberRole(input GroupUserInput, roleName str
 	}
 
 	return result, nil
+}
+
+func (s gormGroupAdminStore) BanMember(groupID uint, targetUserID uint, actor joinRequestActor, actorRole string) (groupAdminResult, error) {
+	if _, err := s.findTargetUser(targetUserID); err != nil {
+		return groupAdminResult{}, err
+	}
+
+	groupUser, err := s.findGroupMember(groupID, targetUserID)
+	if err != nil {
+		return groupAdminResult{}, err
+	}
+
+	var targetRole groups.Role_in_group
+	if err := s.tx.First(&targetRole, groupUser.RoleInGroupID).Error; err == nil {
+		if groups.HasCapability(targetRole.Name, groups.CapabilityAdmin) {
+			return groupAdminResult{}, fmt.Errorf("нельзя удалить администратора группы")
+		}
+	}
+
+	if err := s.tx.Delete(&groupUser).Error; err != nil {
+		return groupAdminResult{}, fmt.Errorf("ошибка удаления участника: %w", err)
+	}
+
+	blacklist := groups.GroupBlacklist{
+		GroupID:   groupID,
+		UserID:    targetUserID,
+		BannedBy:  actor.ID,
+		Reason:    "Удален из группы",
+		CreatedAt: time.Now(),
+	}
+	if err := s.tx.Create(&blacklist).Error; err != nil {
+		return groupAdminResult{}, fmt.Errorf("ошибка добавления в черный список: %w", err)
+	}
+
+	result := groupAdminResult{}
+	if err := createGroupActionLog(s.tx, groupActionLogInput{
+		GroupID:      groupID,
+		Actor:        actor,
+		Role:         actorRole,
+		Action:       groups.ActionBanUser,
+		TargetUserID: &targetUserID,
+	}); err != nil {
+		result.Warnings = append(result.Warnings, groupAdminLogWarning{
+			Message: "Пользователь удален из группы и добавлен в черный список, но действие не записано в журнал группы",
+			Args:    []interface{}{"error", err},
+		})
+	}
+
+	return result, nil
+}
+
+func (s gormGroupAdminStore) RemoveFromBlacklist(groupID uint, targetUserID uint, actor joinRequestActor, actorRole string) (groupAdminResult, error) {
+	if _, err := s.findTargetUser(targetUserID); err != nil {
+		return groupAdminResult{}, err
+	}
+
+	result := s.tx.Where("group_id = ? AND user_id = ?", groupID, targetUserID).
+		Delete(&groups.GroupBlacklist{})
+	if result.Error != nil {
+		return groupAdminResult{}, fmt.Errorf("ошибка удаления из черного списка: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return groupAdminResult{}, fmt.Errorf("пользователь не найден в черном списке")
+	}
+
+	adminResult := groupAdminResult{}
+	if err := createGroupActionLog(s.tx, groupActionLogInput{
+		GroupID:      groupID,
+		Actor:        actor,
+		Role:         actorRole,
+		Action:       groups.ActionUnbanUser,
+		TargetUserID: &targetUserID,
+	}); err != nil {
+		adminResult.Warnings = append(adminResult.Warnings, groupAdminLogWarning{
+			Message: "Пользователь убран из черного списка, но действие не записано в журнал группы",
+			Args:    []interface{}{"error", err},
+		})
+	}
+
+	return adminResult, nil
 }
 
 func (s gormGroupAdminStore) findTargetUser(userID uint) (models.User, error) {
