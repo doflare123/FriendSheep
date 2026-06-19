@@ -19,7 +19,7 @@ type joinInviteCreationStore interface {
 	FindInviteUser(userID uint) (joinInviteUser, error)
 	HasPendingInvite(groupID uint, userID uint) (bool, error)
 	CreatePendingInvite(groupID uint, userID uint) error
-	CreateTargetUserActionLog(groupID uint, actor joinRequestActor, role string, action string, targetUserID uint, description string) error
+	CreateActionLog(input groupActionLogInput) error
 }
 
 type joinInviteUser struct {
@@ -88,8 +88,8 @@ func (s gormJoinInviteCreationStore) CreatePendingInvite(groupID uint, userID ui
 	return nil
 }
 
-func (s gormJoinInviteCreationStore) CreateTargetUserActionLog(groupID uint, actor joinRequestActor, role string, action string, targetUserID uint, description string) error {
-	return createGroupTargetUserActionLog(s.tx, groupID, actor, role, action, targetUserID, description)
+func (s gormJoinInviteCreationStore) CreateActionLog(input groupActionLogInput) error {
+	return createGroupActionLog(s.tx, input)
 }
 
 type joinInviteResponseStore interface {

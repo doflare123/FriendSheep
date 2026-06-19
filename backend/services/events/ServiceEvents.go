@@ -275,7 +275,19 @@ func (s *eventsService) JoinEvent(userID uint, eventID uint) (bool, error) {
 		if err != nil {
 			return err
 		}
-		if err := s.logGroupTargetUserEntityAction(tx, event.GroupID, userID, actor.Name, actor.Us, role, groups.ActionJoinEvent, userID, event.ID, event.Title, ""); err != nil {
+		targetUserID := userID
+		entityID := event.ID
+		if err := s.logGroupAction(tx, eventGroupActionLogInput{
+			GroupID:      event.GroupID,
+			UserID:       userID,
+			Username:     actor.Name,
+			Us:           actor.Us,
+			Role:         role,
+			Action:       groups.ActionJoinEvent,
+			TargetUserID: &targetUserID,
+			EntityID:     &entityID,
+			EntityName:   event.Title,
+		}); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -329,8 +341,22 @@ func (s *eventsService) LeaveEvent(userID uint, eventID uint) (bool, error) {
 		actor, role, err := findEventGroupActor(tx, userID, event.GroupID)
 		if err != nil {
 			s.logger.Warn("Не удалось подготовить данные для журнала группы", "error", err)
-		} else if err := s.logGroupTargetUserEntityAction(tx, event.GroupID, userID, actor.Name, actor.Us, role, groups.ActionLeaveEvent, userID, event.ID, event.Title, ""); err != nil {
-			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
+		} else {
+			targetUserID := userID
+			entityID := event.ID
+			if err := s.logGroupAction(tx, eventGroupActionLogInput{
+				GroupID:      event.GroupID,
+				UserID:       userID,
+				Username:     actor.Name,
+				Us:           actor.Us,
+				Role:         role,
+				Action:       groups.ActionLeaveEvent,
+				TargetUserID: &targetUserID,
+				EntityID:     &entityID,
+				EntityName:   event.Title,
+			}); err != nil {
+				s.logger.Warn("Не удалось записать действие в журнал", "error", err)
+			}
 		}
 
 		return nil
@@ -640,36 +666,37 @@ func (s *eventsService) isGroupMember(userID uint, groupID uint) (bool, error) {
 	return count > 0, nil
 }
 
+type eventGroupActionLogInput struct {
+	GroupID      uint
+	UserID       uint
+	Username     string
+	Us           string
+	Role         string
+	Action       string
+	Description  string
+	TargetUserID *uint
+	EntityID     *uint
+	EntityName   string
+}
+
 // Записывает действие в журнал группы
-func (s *eventsService) logGroupAction(tx eventsTxPort, groupID uint, userID uint, username, us, role, actionType, description string) error {
-	return s.logGroupActionRecord(tx, groupID, userID, username, us, role, actionType, description, nil, nil, "")
-}
-
-func (s *eventsService) logGroupEntityAction(tx eventsTxPort, groupID uint, userID uint, username, us, role, actionType string, entityID uint, entityName string, description string) error {
-	return s.logGroupActionRecord(tx, groupID, userID, username, us, role, actionType, description, nil, &entityID, entityName)
-}
-
-func (s *eventsService) logGroupTargetUserEntityAction(tx eventsTxPort, groupID uint, userID uint, username, us, role, actionType string, targetUserID uint, entityID uint, entityName string, description string) error {
-	return s.logGroupActionRecord(tx, groupID, userID, username, us, role, actionType, description, &targetUserID, &entityID, entityName)
-}
-
-func (s *eventsService) logGroupActionRecord(tx eventsTxPort, groupID uint, userID uint, username, us, role, actionType, description string, targetUserID *uint, entityID *uint, entityName string) error {
-	actionTypeID, err := groups.FindGroupActionTypeID(tx, actionType)
+func (s *eventsService) logGroupAction(tx eventsTxPort, input eventGroupActionLogInput) error {
+	actionTypeID, err := groups.FindGroupActionTypeID(tx, input.Action)
 	if err != nil {
-		return fmt.Errorf("тип действия группы %q не найден: %w", actionType, err)
+		return fmt.Errorf("тип действия группы %q не найден: %w", input.Action, err)
 	}
 
 	action := groups.GroupActionLog{
-		GroupID:      groupID,
-		UserID:       userID,
-		Username:     username,
-		Us:           us,
-		Role:         role,
+		GroupID:      input.GroupID,
+		UserID:       input.UserID,
+		Username:     input.Username,
+		Us:           input.Us,
+		Role:         input.Role,
 		ActionTypeID: actionTypeID,
-		Description:  description,
-		TargetUserID: targetUserID,
-		EntityID:     entityID,
-		EntityName:   entityName,
+		Description:  input.Description,
+		TargetUserID: input.TargetUserID,
+		EntityID:     input.EntityID,
+		EntityName:   input.EntityName,
 		CreatedAt:    time.Now(),
 	}
 

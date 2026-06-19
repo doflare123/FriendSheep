@@ -73,7 +73,14 @@ func (s *groupService) CreateJoinInvite(actorID uint, input GroupUserInput) (boo
 		}
 
 		// Логируем действие
-		if err := store.CreateTargetUserActionLog(input.GroupID, actor, role, groups.ActionSendInvite, targetUser.ID, ""); err != nil {
+		targetUserID := targetUser.ID
+		if err := store.CreateActionLog(groupActionLogInput{
+			GroupID:      input.GroupID,
+			Actor:        actor,
+			Role:         role,
+			Action:       groups.ActionSendInvite,
+			TargetUserID: &targetUserID,
+		}); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -207,7 +214,14 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 		}
 
 		// Логируем действие
-		if err := store.CreateTargetUserActionLog(request.GroupID, actor, role, groups.ActionApproveRequest, request.UserID, ""); err != nil {
+		targetUserID := request.UserID
+		if err := store.CreateActionLog(groupActionLogInput{
+			GroupID:      request.GroupID,
+			Actor:        actor,
+			Role:         role,
+			Action:       groups.ActionApproveRequest,
+			TargetUserID: &targetUserID,
+		}); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -255,7 +269,14 @@ func (s *groupService) RejectJoinRequest(actorID uint, requestID uint) (bool, er
 		}
 
 		// Логируем действие
-		if err := store.CreateTargetUserActionLog(request.GroupID, actor, role, groups.ActionRejectRequest, request.UserID, ""); err != nil {
+		targetUserID := request.UserID
+		if err := store.CreateActionLog(groupActionLogInput{
+			GroupID:      request.GroupID,
+			Actor:        actor,
+			Role:         role,
+			Action:       groups.ActionRejectRequest,
+			TargetUserID: &targetUserID,
+		}); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 

@@ -144,39 +144,34 @@ func (s txGroupRelationStore) IsGroupMember(groupID uint, userID uint) (bool, er
 	return count > 0, nil
 }
 
-func createGroupActionLog(tx groupTx, groupID uint, actor joinRequestActor, role string, action string, description string) error {
-	return createGroupActionLogRecord(tx, groupID, actor, role, action, description, nil, nil, "")
+type groupActionLogInput struct {
+	GroupID      uint
+	Actor        joinRequestActor
+	Role         string
+	Action       string
+	Description  string
+	TargetUserID *uint
+	EntityID     *uint
+	EntityName   string
 }
 
-func createGroupTargetUserActionLog(tx groupTx, groupID uint, actor joinRequestActor, role string, action string, targetUserID uint, description string) error {
-	return createGroupActionLogRecord(tx, groupID, actor, role, action, description, &targetUserID, nil, "")
-}
-
-func createGroupEntityActionLog(tx groupTx, groupID uint, actor joinRequestActor, role string, action string, entityID uint, entityName string, description string) error {
-	return createGroupActionLogRecord(tx, groupID, actor, role, action, description, nil, &entityID, entityName)
-}
-
-func createGroupTargetUserEntityActionLog(tx groupTx, groupID uint, actor joinRequestActor, role string, action string, targetUserID uint, entityID uint, entityName string, description string) error {
-	return createGroupActionLogRecord(tx, groupID, actor, role, action, description, &targetUserID, &entityID, entityName)
-}
-
-func createGroupActionLogRecord(tx groupTx, groupID uint, actor joinRequestActor, role string, action string, description string, targetUserID *uint, entityID *uint, entityName string) error {
-	actionTypeID, err := groups.FindGroupActionTypeID(tx, action)
+func createGroupActionLog(tx groupTx, input groupActionLogInput) error {
+	actionTypeID, err := groups.FindGroupActionTypeID(tx, input.Action)
 	if err != nil {
-		return fmt.Errorf("тип действия группы %q не найден: %w", action, err)
+		return fmt.Errorf("тип действия группы %q не найден: %w", input.Action, err)
 	}
 
 	actionLog := groups.GroupActionLog{
-		GroupID:      groupID,
-		UserID:       actor.ID,
-		Username:     actor.Name,
-		Us:           actor.Us,
-		Role:         role,
+		GroupID:      input.GroupID,
+		UserID:       input.Actor.ID,
+		Username:     input.Actor.Name,
+		Us:           input.Actor.Us,
+		Role:         input.Role,
 		ActionTypeID: actionTypeID,
-		Description:  description,
-		TargetUserID: targetUserID,
-		EntityID:     entityID,
-		EntityName:   entityName,
+		Description:  input.Description,
+		TargetUserID: input.TargetUserID,
+		EntityID:     input.EntityID,
+		EntityName:   input.EntityName,
 		CreatedAt:    time.Now(),
 	}
 

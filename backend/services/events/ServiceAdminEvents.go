@@ -109,7 +109,19 @@ func (s *eventsService) KickUserFromEvent(actorID uint, eventID uint, targetUser
 			}
 		}
 
-		if err := s.logGroupTargetUserEntityAction(tx, event.GroupID, actorID, actor.Name, actor.Us, role, groupmodels.ActionKickFromEvent, targetUserID, event.ID, event.Title, ""); err != nil {
+		targetUserIDForLog := targetUserID
+		entityID := event.ID
+		if err := s.logGroupAction(tx, eventGroupActionLogInput{
+			GroupID:      event.GroupID,
+			UserID:       actorID,
+			Username:     actor.Name,
+			Us:           actor.Us,
+			Role:         role,
+			Action:       groupmodels.ActionKickFromEvent,
+			TargetUserID: &targetUserIDForLog,
+			EntityID:     &entityID,
+			EntityName:   event.Title,
+		}); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -212,7 +224,17 @@ func (s *eventsService) CreateEvent(actorID uint, input CreateEventInput) (*dto.
 			return fmt.Errorf("ошибка добавления создателя в участники: %w", err)
 		}
 
-		if err := s.logGroupEntityAction(tx, input.GroupID, actorID, actor.Name, actor.Us, role, groupmodels.ActionCreateEvent, event.ID, event.Title, ""); err != nil {
+		entityID := event.ID
+		if err := s.logGroupAction(tx, eventGroupActionLogInput{
+			GroupID:    input.GroupID,
+			UserID:     actorID,
+			Username:   actor.Name,
+			Us:         actor.Us,
+			Role:       role,
+			Action:     groupmodels.ActionCreateEvent,
+			EntityID:   &entityID,
+			EntityName: event.Title,
+		}); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -374,7 +396,17 @@ func (s *eventsService) UpdateEvent(actorID uint, eventID uint, input UpdateEven
 		if input.Title != nil {
 			entityName = *input.Title
 		}
-		if err := s.logGroupEntityAction(tx, event.GroupID, actorID, actor.Name, actor.Us, role, groupmodels.ActionUpdateEvent, event.ID, entityName, ""); err != nil {
+		entityID := event.ID
+		if err := s.logGroupAction(tx, eventGroupActionLogInput{
+			GroupID:    event.GroupID,
+			UserID:     actorID,
+			Username:   actor.Name,
+			Us:         actor.Us,
+			Role:       role,
+			Action:     groupmodels.ActionUpdateEvent,
+			EntityID:   &entityID,
+			EntityName: entityName,
+		}); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 
@@ -441,7 +473,17 @@ func (s *eventsService) DeleteEvent(actorID uint, eventID uint) (bool, error) {
 			return fmt.Errorf("ошибка удаления события: %w", err)
 		}
 
-		if err := s.logGroupEntityAction(tx, event.GroupID, actorID, actor.Name, actor.Us, role, groupmodels.ActionDeleteEvent, event.ID, event.Title, ""); err != nil {
+		entityID := event.ID
+		if err := s.logGroupAction(tx, eventGroupActionLogInput{
+			GroupID:    event.GroupID,
+			UserID:     actorID,
+			Username:   actor.Name,
+			Us:         actor.Us,
+			Role:       role,
+			Action:     groupmodels.ActionDeleteEvent,
+			EntityID:   &entityID,
+			EntityName: event.Title,
+		}); err != nil {
 			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 		}
 

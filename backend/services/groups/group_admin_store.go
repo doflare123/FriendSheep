@@ -75,7 +75,14 @@ func (s gormGroupAdminStore) ChangeMemberRole(input GroupUserInput, roleName str
 
 	result := groupAdminResult{}
 	actionType := roleChangeAction(roleName)
-	if err := createGroupTargetUserActionLog(s.tx, input.GroupID, actor, actorRole, actionType, targetUser.ID, ""); err != nil {
+	targetUserID := targetUser.ID
+	if err := createGroupActionLog(s.tx, groupActionLogInput{
+		GroupID:      input.GroupID,
+		Actor:        actor,
+		Role:         actorRole,
+		Action:       actionType,
+		TargetUserID: &targetUserID,
+	}); err != nil {
 		result.Warnings = append(result.Warnings, groupAdminLogWarning{
 			Message: "Роль участника изменена, но действие не записано в журнал группы",
 			Args:    []interface{}{"error", err},
