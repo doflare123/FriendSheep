@@ -17,6 +17,42 @@ func TestGroupAdminStoreUpdateGroupRejectsRoleWithoutModerateCapability(t *testi
 	}
 }
 
+func TestGroupAdminStoreDeleteGroupRejectsRoleWithoutAdminCapability(t *testing.T) {
+	store := gormGroupAdminStore{}
+
+	err := store.DeleteGroup(1, groups.RoleModerator)
+	if !errors.Is(err, ErrPermissionDenied) {
+		t.Fatalf("err = %v, want ErrPermissionDenied", err)
+	}
+}
+
+func TestGroupAdminStoreChangeMemberRoleRejectsRoleWithoutAdminCapability(t *testing.T) {
+	store := gormGroupAdminStore{}
+
+	_, err := store.ChangeMemberRole(GroupUserInput{GroupID: 1, UserID: 2}, groups.RoleModerator, joinRequestActor{ID: 1}, groups.RoleModerator)
+	if !errors.Is(err, ErrPermissionDenied) {
+		t.Fatalf("err = %v, want ErrPermissionDenied", err)
+	}
+}
+
+func TestGroupAdminStoreBanMemberRejectsRoleWithoutModerateCapability(t *testing.T) {
+	store := gormGroupAdminStore{}
+
+	_, err := store.BanMember(1, 2, joinRequestActor{ID: 1}, groups.RoleMember)
+	if !errors.Is(err, ErrPermissionDenied) {
+		t.Fatalf("err = %v, want ErrPermissionDenied", err)
+	}
+}
+
+func TestGroupAdminStoreRemoveFromBlacklistRejectsRoleWithoutModerateCapability(t *testing.T) {
+	store := gormGroupAdminStore{}
+
+	_, err := store.RemoveFromBlacklist(1, 2, joinRequestActor{ID: 1}, groups.RoleMember)
+	if !errors.Is(err, ErrPermissionDenied) {
+		t.Fatalf("err = %v, want ErrPermissionDenied", err)
+	}
+}
+
 func TestIsPendingJoinRequestUniqueViolationMatchesPostgresConstraint(t *testing.T) {
 	if !isPendingJoinRequestUniqueViolation(&pgconn.PgError{
 		Code:           "23505",

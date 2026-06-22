@@ -423,7 +423,7 @@ func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
 			return err
 		}
 
-		return store.DeleteGroup(groupID)
+		return store.DeleteGroup(groupID, role)
 	})
 
 	if err != nil {

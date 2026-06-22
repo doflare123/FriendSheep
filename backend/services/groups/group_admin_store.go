@@ -14,7 +14,7 @@ type groupAdminStore interface {
 	groupActorFinder
 
 	CreateGroup(creatorID uint, input CreateGroupInput, contacts map[string]string) (groupCreateResult, error)
-	DeleteGroup(groupID uint) error
+	DeleteGroup(groupID uint, actorRole string) error
 	UpdateGroup(input GroupUpdateInput, actor joinRequestActor, actorRole string) (groupAdminResult, error)
 	ChangeMemberRole(input GroupUserInput, roleName string, actor joinRequestActor, actorRole string) (groupAdminResult, error)
 	BanMember(groupID uint, targetUserID uint, actor joinRequestActor, actorRole string) (groupAdminResult, error)
@@ -122,7 +122,11 @@ func (s gormGroupAdminStore) CreateGroup(creatorID uint, input CreateGroupInput,
 	return result, nil
 }
 
-func (s gormGroupAdminStore) DeleteGroup(groupID uint) error {
+func (s gormGroupAdminStore) DeleteGroup(groupID uint, actorRole string) error {
+	if !groups.HasCapability(actorRole, groups.CapabilityAdmin) {
+		return ErrPermissionDenied
+	}
+
 	var group groups.Group
 	if err := s.tx.First(&group, groupID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -217,6 +221,10 @@ func (s gormGroupAdminStore) UpdateGroup(input GroupUpdateInput, actor joinReque
 }
 
 func (s gormGroupAdminStore) ChangeMemberRole(input GroupUserInput, roleName string, actor joinRequestActor, actorRole string) (groupAdminResult, error) {
+	if !groups.HasCapability(actorRole, groups.CapabilityAdmin) {
+		return groupAdminResult{}, ErrPermissionDenied
+	}
+
 	targetUser, err := s.findTargetUser(input.UserID)
 	if err != nil {
 		return groupAdminResult{}, err
@@ -256,6 +264,10 @@ func (s gormGroupAdminStore) ChangeMemberRole(input GroupUserInput, roleName str
 }
 
 func (s gormGroupAdminStore) BanMember(groupID uint, targetUserID uint, actor joinRequestActor, actorRole string) (groupAdminResult, error) {
+	if !groups.HasCapability(actorRole, groups.CapabilityModerate) {
+		return groupAdminResult{}, ErrPermissionDenied
+	}
+
 	if _, err := s.findTargetUser(targetUserID); err != nil {
 		return groupAdminResult{}, err
 	}
@@ -305,6 +317,10 @@ func (s gormGroupAdminStore) BanMember(groupID uint, targetUserID uint, actor jo
 }
 
 func (s gormGroupAdminStore) RemoveFromBlacklist(groupID uint, targetUserID uint, actor joinRequestActor, actorRole string) (groupAdminResult, error) {
+	if !groups.HasCapability(actorRole, groups.CapabilityModerate) {
+		return groupAdminResult{}, ErrPermissionDenied
+	}
+
 	if _, err := s.findTargetUser(targetUserID); err != nil {
 		return groupAdminResult{}, err
 	}
