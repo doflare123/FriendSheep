@@ -2,10 +2,20 @@ package group
 
 import (
 	"errors"
+	"friendship/models/groups"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
+
+func TestGroupAdminStoreUpdateGroupRejectsRoleWithoutModerateCapability(t *testing.T) {
+	store := gormGroupAdminStore{}
+
+	_, err := store.UpdateGroup(GroupUpdateInput{GroupID: 1}, joinRequestActor{ID: 2}, groups.RoleMember)
+	if !errors.Is(err, ErrPermissionDenied) {
+		t.Fatalf("err = %v, want ErrPermissionDenied", err)
+	}
+}
 
 func TestIsPendingJoinRequestUniqueViolationMatchesPostgresConstraint(t *testing.T) {
 	if !isPendingJoinRequestUniqueViolation(&pgconn.PgError{

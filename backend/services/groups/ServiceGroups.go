@@ -435,7 +435,6 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 
 // UpdateGroup обновляет группу
 func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.GroupFullDto, error) {
-	// Проверяем права доступа
 	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.CapabilityModerate)
 	if err != nil {
 		return nil, err
@@ -444,81 +443,18 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 		return nil, ErrPermissionDenied
 	}
 
-	var group groups.Group
-	var actor models.User
+	var result groupAdminResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		if err := tx.First(&group, input.GroupID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrGroupNotFound
-			}
-			return fmt.Errorf("ошибка поиска группы: %w", err)
+		store := newGroupAdminStore(tx)
+		actor, err := store.FindActor(actorID)
+		if err != nil {
+			return err
 		}
 
-		if err := tx.First(&actor, actorID).Error; err != nil {
-			return fmt.Errorf("ошибка поиска пользователя: %w", err)
-		}
-
-		// Обновляем только переданные поля
-		updates := make(map[string]interface{})
-		if input.Name != nil {
-			updates["name"] = *input.Name
-		}
-		if input.Description != nil {
-			updates["description"] = *input.Description
-		}
-		if input.SmallDescription != nil {
-			updates["small_description"] = *input.SmallDescription
-		}
-		if input.Image != nil {
-			updates["image"] = *input.Image
-		}
-		if input.IsPrivate != nil {
-			updates["is_private"] = *input.IsPrivate
-		}
-		if input.City != nil {
-			updates["city"] = *input.City
-		}
-
-		if len(updates) > 0 {
-			if err := tx.Model(&group).Updates(updates).Error; err != nil {
-				return fmt.Errorf("не удалось сохранить изменения группы: %w", err)
-			}
-		}
-
-		// Обновляем категории только если они переданы
-		if input.Categories != nil {
-			// Очищаем старые категории
-			if err := tx.Model(&group).Association("Categories").Clear(); err != nil {
-				return fmt.Errorf("не удалось очистить старые категории: %w", err)
-			}
-
-			// Добавляем новые категории (если массив не пустой)
-			if len(input.Categories) > 0 {
-				var newCategories []models.Category
-				if err := tx.Where("id IN ?", input.Categories).Find(&newCategories).Error; err != nil {
-					return fmt.Errorf("не удалось найти переданные категории: %w", err)
-				}
-				if err := tx.Model(&group).Association("Categories").Replace(&newCategories); err != nil {
-					return fmt.Errorf("не удалось назначить новые категории: %w", err)
-				}
-			}
-		}
-
-		// Обновляем контакты только если они переданы
-		if input.Contacts != nil {
-			newContacts := parseContacts(*input.Contacts)
-			if err := updateContactsInTx(tx, &group.ID, newContacts); err != nil {
-				return fmt.Errorf("ошибка обновления контактов: %w", err)
-			}
-		}
-
-		// Логируем действие
-		if err := s.logAction(tx, group.ID, actorID, actor.Name, actor.Us, role, groups.ActionUpdateGroup, ""); err != nil {
-			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
-		}
-
-		return nil
+		var updateErr error
+		result, updateErr = store.UpdateGroup(input, actor, role)
+		return updateErr
 	})
 
 	if err != nil {
@@ -526,19 +462,15 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 		return nil, err
 	}
 
-	if err := s.post.
-		Preload("Categories").
-		Preload("Contacts").
-		Preload("Creater").
-		First(&group, group.ID).Error; err != nil {
-		s.logger.Warn("Не удалось перезагрузить группу с ассоциациями", "groupID", group.ID, "error", err)
+	for _, warning := range result.Warnings {
+		s.logger.Warn(warning.Message, warning.Args...)
 	}
 
-	s.logger.Info("Группа успешно обновлена", "groupID", group.ID, "actorID", actorID)
+	s.logger.Info("Группа успешно обновлена", "groupID", input.GroupID, "actorID", actorID)
 
-	groupDto, err := s.GetGroupDetails(actorID, group.ID)
+	groupDto, err := s.GetGroupDetails(actorID, input.GroupID)
 	if err != nil {
-		s.logger.Error("Не удалось сформировать полный DTO группы после обновления", "groupID", group.ID, "error", err)
+		s.logger.Error("Не удалось сформировать полный DTO группы после обновления", "groupID", input.GroupID, "error", err)
 		return nil, fmt.Errorf("ошибка формирования данных группы: %w", err)
 	}
 
@@ -795,53 +727,6 @@ func (s *groupService) GetGroupBlacklist(actorID uint, groupID uint, limit int) 
 	}
 
 	return blacklist, nil
-}
-
-// updateContactsInTx обновляет контакты в транзакции
-func updateContactsInTx(tx groupTx, groupID *uint, newContacts map[string]string) error {
-	var existingContacts []groups.GroupContact
-	if err := tx.Where("group_id = ?", groupID).Find(&existingContacts).Error; err != nil {
-		return fmt.Errorf("ошибка получения существующих контактов: %w", err)
-	}
-
-	existingMap := make(map[string]groups.GroupContact)
-	for _, c := range existingContacts {
-		if c.Name != "" {
-			existingMap[c.Name] = c
-		}
-	}
-
-	for name, link := range newContacts {
-		if existingContact, ok := existingMap[name]; ok {
-			if existingContact.Link != "" && existingContact.Link != link {
-				if err := tx.Model(&existingContact).Update("link", link).Error; err != nil {
-					return fmt.Errorf("ошибка обновления контакта '%s': %w", name, err)
-				}
-			}
-			delete(existingMap, name)
-		} else {
-			newContact := groups.GroupContact{
-				GroupID: *groupID,
-				Name:    name,
-				Link:    link,
-			}
-			if err := tx.Create(&newContact).Error; err != nil {
-				return fmt.Errorf("ошибка добавления контакта '%s': %w", name, err)
-			}
-		}
-	}
-
-	for _, contactToDelete := range existingMap {
-		if err := tx.Delete(&contactToDelete).Error; err != nil {
-			contactName := "unknown"
-			if contactToDelete.Name != "" {
-				contactName = contactToDelete.Name
-			}
-			return fmt.Errorf("ошибка удаления старого контакта '%s': %w", contactName, err)
-		}
-	}
-
-	return nil
 }
 
 // logAction записывает действие в лог

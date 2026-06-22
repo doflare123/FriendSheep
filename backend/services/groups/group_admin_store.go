@@ -14,6 +14,7 @@ type groupAdminStore interface {
 	groupActorFinder
 
 	DeleteGroup(groupID uint) error
+	UpdateGroup(input GroupUpdateInput, actor joinRequestActor, actorRole string) (groupAdminResult, error)
 	ChangeMemberRole(input GroupUserInput, roleName string, actor joinRequestActor, actorRole string) (groupAdminResult, error)
 	BanMember(groupID uint, targetUserID uint, actor joinRequestActor, actorRole string) (groupAdminResult, error)
 	RemoveFromBlacklist(groupID uint, targetUserID uint, actor joinRequestActor, actorRole string) (groupAdminResult, error)
@@ -54,6 +55,84 @@ func (s gormGroupAdminStore) DeleteGroup(groupID uint) error {
 	}
 
 	return nil
+}
+
+func (s gormGroupAdminStore) UpdateGroup(input GroupUpdateInput, actor joinRequestActor, actorRole string) (groupAdminResult, error) {
+	if !groups.HasCapability(actorRole, groups.CapabilityModerate) {
+		return groupAdminResult{}, ErrPermissionDenied
+	}
+
+	var group groups.Group
+	if err := s.tx.First(&group, input.GroupID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return groupAdminResult{}, ErrGroupNotFound
+		}
+		return groupAdminResult{}, fmt.Errorf("ошибка поиска группы: %w", err)
+	}
+
+	updates := make(map[string]interface{})
+	if input.Name != nil {
+		updates["name"] = *input.Name
+	}
+	if input.Description != nil {
+		updates["description"] = *input.Description
+	}
+	if input.SmallDescription != nil {
+		updates["small_description"] = *input.SmallDescription
+	}
+	if input.Image != nil {
+		updates["image"] = *input.Image
+	}
+	if input.IsPrivate != nil {
+		updates["is_private"] = *input.IsPrivate
+	}
+	if input.City != nil {
+		updates["city"] = *input.City
+	}
+
+	if len(updates) > 0 {
+		if err := s.tx.Model(&group).Updates(updates).Error; err != nil {
+			return groupAdminResult{}, fmt.Errorf("не удалось сохранить изменения группы: %w", err)
+		}
+	}
+
+	if input.Categories != nil {
+		if err := s.tx.Model(&group).Association("Categories").Clear(); err != nil {
+			return groupAdminResult{}, fmt.Errorf("не удалось очистить старые категории: %w", err)
+		}
+
+		if len(input.Categories) > 0 {
+			var newCategories []models.Category
+			if err := s.tx.Where("id IN ?", input.Categories).Find(&newCategories).Error; err != nil {
+				return groupAdminResult{}, fmt.Errorf("не удалось найти переданные категории: %w", err)
+			}
+			if err := s.tx.Model(&group).Association("Categories").Replace(&newCategories); err != nil {
+				return groupAdminResult{}, fmt.Errorf("не удалось назначить новые категории: %w", err)
+			}
+		}
+	}
+
+	if input.Contacts != nil {
+		newContacts := parseContacts(*input.Contacts)
+		if err := updateContactsInTx(s.tx, group.ID, newContacts); err != nil {
+			return groupAdminResult{}, fmt.Errorf("ошибка обновления контактов: %w", err)
+		}
+	}
+
+	result := groupAdminResult{}
+	if err := createGroupActionLog(s.tx, groupActionLogInput{
+		GroupID: group.ID,
+		Actor:   actor,
+		Role:    actorRole,
+		Action:  groups.ActionUpdateGroup,
+	}); err != nil {
+		result.Warnings = append(result.Warnings, groupAdminLogWarning{
+			Message: "Группа обновлена, но действие не записано в журнал группы",
+			Args:    []interface{}{"error", err},
+		})
+	}
+
+	return result, nil
 }
 
 func (s gormGroupAdminStore) ChangeMemberRole(input GroupUserInput, roleName string, actor joinRequestActor, actorRole string) (groupAdminResult, error) {
@@ -199,6 +278,52 @@ func (s gormGroupAdminStore) findGroupMember(groupID uint, userID uint) (groups.
 	}
 
 	return groupUser, nil
+}
+
+func updateContactsInTx(tx groupTx, groupID uint, newContacts map[string]string) error {
+	var existingContacts []groups.GroupContact
+	if err := tx.Where("group_id = ?", groupID).Find(&existingContacts).Error; err != nil {
+		return fmt.Errorf("ошибка получения существующих контактов: %w", err)
+	}
+
+	existingMap := make(map[string]groups.GroupContact)
+	for _, c := range existingContacts {
+		if c.Name != "" {
+			existingMap[c.Name] = c
+		}
+	}
+
+	for name, link := range newContacts {
+		if existingContact, ok := existingMap[name]; ok {
+			if existingContact.Link != "" && existingContact.Link != link {
+				if err := tx.Model(&existingContact).Update("link", link).Error; err != nil {
+					return fmt.Errorf("ошибка обновления контакта '%s': %w", name, err)
+				}
+			}
+			delete(existingMap, name)
+		} else {
+			newContact := groups.GroupContact{
+				GroupID: groupID,
+				Name:    name,
+				Link:    link,
+			}
+			if err := tx.Create(&newContact).Error; err != nil {
+				return fmt.Errorf("ошибка добавления контакта '%s': %w", name, err)
+			}
+		}
+	}
+
+	for _, contactToDelete := range existingMap {
+		if err := tx.Delete(&contactToDelete).Error; err != nil {
+			contactName := "unknown"
+			if contactToDelete.Name != "" {
+				contactName = contactToDelete.Name
+			}
+			return fmt.Errorf("ошибка удаления старого контакта '%s': %w", contactName, err)
+		}
+	}
+
+	return nil
 }
 
 func roleNotFoundError(roleName string) error {
