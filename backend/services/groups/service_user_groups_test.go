@@ -53,6 +53,30 @@ func TestGroupAdminStoreRemoveFromBlacklistRejectsRoleWithoutModerateCapability(
 	}
 }
 
+func TestGroupServiceGetGroupDetailsRejectsZeroUserID(t *testing.T) {
+	service := groupService{}
+
+	result, err := service.GetGroupDetails(0, 1)
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("err = %v, want ErrInvalidInput", err)
+	}
+}
+
+func TestGroupServiceGetGroupDetailsRejectsZeroGroupID(t *testing.T) {
+	service := groupService{}
+
+	result, err := service.GetGroupDetails(1, 0)
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("err = %v, want ErrInvalidInput", err)
+	}
+}
+
 func TestIsPendingJoinRequestUniqueViolationMatchesPostgresConstraint(t *testing.T) {
 	if !isPendingJoinRequestUniqueViolation(&pgconn.PgError{
 		Code:           "23505",

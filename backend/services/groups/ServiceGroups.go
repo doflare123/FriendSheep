@@ -6,14 +6,10 @@ import (
 	"friendship/logger"
 	"friendship/models"
 	"friendship/models/dto"
-	convertorsdto "friendship/models/dto/convertorsDto"
-	"friendship/models/events"
 	"friendship/models/groups"
 	"friendship/services"
 	"strings"
 	"time"
-
-	"gorm.io/gorm"
 )
 
 var (
@@ -178,142 +174,11 @@ func NewGroupService(logger logger.Logger, rep groupStore) GroupsService {
 
 // GetGroupDetails получает полную информацию о группе
 func (s *groupService) GetGroupDetails(userID uint, groupID uint) (*dto.GroupFullDto, error) {
-	var group groups.Group
-
-	err := s.post.
-		Preload("Categories").
-		Preload("Contacts").
-		Preload("Creater").
-		First(&group, groupID).Error
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrGroupNotFound
-		}
-		return nil, fmt.Errorf("ошибка получения группы: %w", err)
+	if userID == 0 || groupID == 0 {
+		return nil, ErrInvalidInput
 	}
 
-	if group.IsPrivate {
-		var memberCount int64
-		s.post.Model(&groups.GroupUsers{}).
-			Where("group_id = ? AND user_id = ?", groupID, userID).
-			Count(&memberCount)
-
-		if memberCount == 0 {
-			return nil, ErrPermissionDenied
-		}
-	}
-
-	var totalMembers int64
-	s.post.Model(&groups.GroupUsers{}).
-		Where("group_id = ?", groupID).
-		Count(&totalMembers)
-
-	var groupUsers []groups.GroupUsers
-	err = s.post.
-		Preload("User").
-		Preload("RoleInGroup").
-		Where("group_id = ?", groupID).
-		Limit(10).
-		Find(&groupUsers).Error
-
-	if err != nil {
-		s.logger.Error("Не удалось получить участников группы", "groupID", groupID, "error", err)
-		return nil, fmt.Errorf("ошибка получения участников: %w", err)
-	}
-
-	members := make([]dto.GroupMemberDto, 0, len(groupUsers))
-	for _, gu := range groupUsers {
-		members = append(members, dto.GroupMemberDto{
-			ID:       gu.User.ID,
-			Name:     gu.User.Name,
-			Username: gu.User.Us,
-			Image:    gu.User.Image,
-			Role:     gu.RoleInGroup.Name,
-		})
-	}
-
-	var activeEvents []events.Event
-	err = s.post.
-		Preload("EventType").
-		Preload("EventLocation").
-		Preload("Status").
-		Preload("AgeLimit").
-		Preload("Genres.Genre").
-		Where("group_id = ? AND status_id IN (?)", groupID, []uint{1, 2}).
-		Where("start_time > ?", time.Now()).
-		Order("start_time ASC").
-		Find(&activeEvents).Error
-
-	if err != nil {
-		s.logger.Error("Не удалось получить события группы", "groupID", groupID, "error", err)
-		activeEvents = []events.Event{}
-	}
-
-	groupEvents := convertorsdto.ConvertManyToShortDto(activeEvents)
-
-	var userGroupMembership groups.GroupUsers
-	isSubscribed := false
-	userRole := ""
-
-	err = s.post.
-		Preload("RoleInGroup").
-		Where("group_id = ? AND user_id = ?", groupID, userID).
-		First(&userGroupMembership).Error
-
-	if err == nil {
-		isSubscribed = true
-		userRole = userGroupMembership.RoleInGroup.Name
-	}
-
-	// Формируем категории
-	categories := make([]string, 0, len(group.Categories))
-	for _, cat := range group.Categories {
-		categories = append(categories, cat.Name)
-	}
-
-	// Формируем контакты
-	contacts := make([]dto.ContactDto, 0, len(group.Contacts))
-	for _, contact := range group.Contacts {
-		contacts = append(contacts, dto.ContactDto{
-			Name: contact.Name,
-			Link: contact.Link,
-		})
-	}
-
-	// Формируем итоговую DTO
-	groupDto := &dto.GroupFullDto{
-		ID:               group.ID,
-		Name:             group.Name,
-		Description:      group.Description,
-		SmallDescription: group.SmallDescription,
-		Image:            group.Image,
-		IsPrivate:        group.IsPrivate,
-		Enterprise:       group.Enterprise,
-		City:             group.City,
-		Categories:       categories,
-		Contacts:         contacts,
-		MemberCount:      int(totalMembers),
-
-		Creator: dto.GroupCreatorDto{
-			ID:       group.Creater.ID,
-			Name:     group.Creater.Name,
-			Username: group.Creater.Us,
-			Image:    group.Creater.Image,
-			Verified: group.Creater.VerifiedUser,
-		},
-
-		Members:      members,
-		ActiveEvents: groupEvents,
-
-		IsSubscribed: isSubscribed,
-		UserRole:     userRole,
-
-		CreatedAt: group.CreatedAt,
-		UpdatedAt: group.UpdatedAt,
-	}
-
-	return groupDto, nil
+	return s.reads.GetGroupDetails(userID, groupID)
 }
 
 // CreateGroup создает новую группу

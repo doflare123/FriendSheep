@@ -2814,6 +2814,9 @@ const docTemplate = `{
                 "startDate": {
                     "type": "string"
                 },
+                "subscribed": {
+                    "type": "boolean"
+                },
                 "title": {
                     "type": "string"
                 }
@@ -2898,6 +2901,9 @@ const docTemplate = `{
                 "status": {
                     "description": "Статус события",
                     "type": "string"
+                },
+                "subscribed": {
+                    "type": "boolean"
                 },
                 "title": {
                     "type": "string"

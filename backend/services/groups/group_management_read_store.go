@@ -1,11 +1,19 @@
 package group
 
 import (
+	"errors"
 	"fmt"
+	"friendship/models/dto"
+	convertorsdto "friendship/models/dto/convertorsDto"
+	"friendship/models/events"
 	"friendship/models/groups"
+	"time"
+
+	"gorm.io/gorm"
 )
 
 type groupManagementReadStore interface {
+	GetGroupDetails(userID uint, groupID uint) (*dto.GroupFullDto, error)
 	ListJoinRequests(groupID uint, status string, limit int) ([]JoinRequestInfo, error)
 	ListGroupBlacklist(groupID uint, limit int) ([]BlacklistUser, error)
 	ListGroupActions(groupID uint, filter GroupActionFilter) ([]GroupAction, error)
@@ -17,6 +25,46 @@ type gormGroupManagementReadStore struct {
 
 func newGroupManagementReadStore(store groupStore) groupManagementReadStore {
 	return gormGroupManagementReadStore{store: store}
+}
+
+func (s gormGroupManagementReadStore) GetGroupDetails(userID uint, groupID uint) (*dto.GroupFullDto, error) {
+	var group groups.Group
+	err := s.store.
+		Preload("Categories").
+		Preload("Contacts").
+		Preload("Creater").
+		First(&group, groupID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrGroupNotFound
+		}
+		return nil, fmt.Errorf("ошибка получения группы: %w", err)
+	}
+
+	if group.IsPrivate {
+		isMember, err := s.isGroupMember(groupID, userID)
+		if err != nil {
+			return nil, err
+		}
+		if !isMember {
+			return nil, ErrPermissionDenied
+		}
+	}
+
+	totalMembers, err := s.countGroupMembers(groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	members, err := s.listGroupMembers(groupID, 10)
+	if err != nil {
+		return nil, err
+	}
+
+	activeEvents := s.listActiveGroupEvents(groupID, userID)
+	isSubscribed, userRole := s.findUserGroupSubscription(groupID, userID)
+
+	return convertorsdto.ConvertToGroupFullDto(group, totalMembers, members, activeEvents, isSubscribed, userRole), nil
 }
 
 func (s gormGroupManagementReadStore) ListJoinRequests(groupID uint, status string, limit int) ([]JoinRequestInfo, error) {
@@ -83,6 +131,89 @@ func (s gormGroupManagementReadStore) ListGroupBlacklist(groupID uint, limit int
 	}
 
 	return result, nil
+}
+
+func (s gormGroupManagementReadStore) isGroupMember(groupID uint, userID uint) (bool, error) {
+	var memberCount int64
+	result := s.store.Model(&groups.GroupUsers{}).
+		Where("group_id = ? AND user_id = ?", groupID, userID).
+		Count(&memberCount)
+	if result.Error != nil {
+		return false, fmt.Errorf("ошибка проверки доступа к группе: %w", result.Error)
+	}
+
+	return memberCount > 0, nil
+}
+
+func (s gormGroupManagementReadStore) countGroupMembers(groupID uint) (int64, error) {
+	var totalMembers int64
+	result := s.store.Model(&groups.GroupUsers{}).
+		Where("group_id = ?", groupID).
+		Count(&totalMembers)
+	if result.Error != nil {
+		return 0, fmt.Errorf("ошибка подсчета участников группы: %w", result.Error)
+	}
+
+	return totalMembers, nil
+}
+
+func (s gormGroupManagementReadStore) listGroupMembers(groupID uint, limit int) ([]dto.GroupMemberDto, error) {
+	var groupUsers []groups.GroupUsers
+	err := s.store.
+		Preload("User").
+		Preload("RoleInGroup").
+		Where("group_id = ?", groupID).
+		Limit(limit).
+		Find(&groupUsers).Error
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения участников: %w", err)
+	}
+
+	members := make([]dto.GroupMemberDto, 0, len(groupUsers))
+	for _, gu := range groupUsers {
+		members = append(members, dto.GroupMemberDto{
+			ID:       gu.User.ID,
+			Name:     gu.User.Name,
+			Username: gu.User.Us,
+			Image:    gu.User.Image,
+			Role:     gu.RoleInGroup.Name,
+		})
+	}
+
+	return members, nil
+}
+
+func (s gormGroupManagementReadStore) listActiveGroupEvents(groupID uint, userID uint) []dto.EventShortDto {
+	var activeEvents []events.Event
+	err := s.store.
+		Preload("EventType").
+		Preload("EventLocation").
+		Preload("Status").
+		Preload("AgeLimit").
+		Preload("Genres.Genre").
+		Preload("Users", "user_id = ?", userID).
+		Where("group_id = ? AND status_id IN (?)", groupID, []uint{1, 2}).
+		Where("start_time > ?", time.Now()).
+		Order("start_time ASC").
+		Find(&activeEvents).Error
+	if err != nil {
+		activeEvents = []events.Event{}
+	}
+
+	return convertorsdto.ConvertManyToShortDtoForUser(activeEvents, userID)
+}
+
+func (s gormGroupManagementReadStore) findUserGroupSubscription(groupID uint, userID uint) (bool, string) {
+	var userGroupMembership groups.GroupUsers
+	err := s.store.
+		Preload("RoleInGroup").
+		Where("group_id = ? AND user_id = ?", groupID, userID).
+		First(&userGroupMembership).Error
+	if err != nil {
+		return false, ""
+	}
+
+	return true, userGroupMembership.RoleInGroup.Name
 }
 
 func (s gormGroupManagementReadStore) ListGroupActions(groupID uint, filter GroupActionFilter) ([]GroupAction, error) {

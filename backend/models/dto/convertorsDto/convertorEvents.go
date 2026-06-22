@@ -6,6 +6,10 @@ import (
 )
 
 func ConvertToShortDto(event *events.Event) *dto.EventShortDto {
+	return ConvertToShortDtoForUser(event, 0)
+}
+
+func ConvertToShortDtoForUser(event *events.Event, userID uint) *dto.EventShortDto {
 	if event == nil {
 		return nil
 	}
@@ -30,6 +34,7 @@ func ConvertToShortDto(event *events.Event) *dto.EventShortDto {
 		EventID:      event.ID,
 		GroupID:      event.GroupID,
 		Status:       event.Status.Name,
+		Subscribed:   eventSubscribedByUser(event, userID),
 	}
 }
 
@@ -44,14 +49,6 @@ func ConvertToFullDto(event *events.Event, userID uint, includeParticipants bool
 	}
 
 	isCreator := event.CreatorID == userID
-
-	subscribed := false
-	for _, u := range event.Users {
-		if u.UserID == userID {
-			subscribed = true
-			break
-		}
-	}
 
 	fullDto := &dto.EventFullDto{
 		ID:           event.ID,
@@ -90,7 +87,7 @@ func ConvertToFullDto(event *events.Event, userID uint, includeParticipants bool
 		Notes:        event.Notes,
 		CustomFields: event.CustomFields,
 
-		Subscribed: subscribed,
+		Subscribed: eventSubscribedByUser(event, userID),
 		IsCreator:  isCreator,
 
 		CreatedAt: event.CreatedAt,
@@ -101,9 +98,13 @@ func ConvertToFullDto(event *events.Event, userID uint, includeParticipants bool
 }
 
 func ConvertManyToShortDto(events []events.Event) []dto.EventShortDto {
+	return ConvertManyToShortDtoForUser(events, 0)
+}
+
+func ConvertManyToShortDtoForUser(events []events.Event, userID uint) []dto.EventShortDto {
 	result := make([]dto.EventShortDto, 0, len(events))
 	for i := range events {
-		if shortDto := ConvertToShortDto(&events[i]); shortDto != nil {
+		if shortDto := ConvertToShortDtoForUser(&events[i], userID); shortDto != nil {
 			result = append(result, *shortDto)
 		}
 	}
@@ -111,6 +112,10 @@ func ConvertManyToShortDto(events []events.Event) []dto.EventShortDto {
 }
 
 func ConvertToSearchItemDto(event *events.Event) *dto.EventSearchItemDto {
+	return ConvertToSearchItemDtoForUser(event, 0)
+}
+
+func ConvertToSearchItemDtoForUser(event *events.Event, userID uint) *dto.EventSearchItemDto {
 	if event == nil {
 		return nil
 	}
@@ -136,15 +141,34 @@ func ConvertToSearchItemDto(event *events.Event) *dto.EventSearchItemDto {
 		LocationType:      event.EventLocation.Name,
 		City:              event.Group.City,
 		Genres:            genres,
+		Subscribed:        eventSubscribedByUser(event, userID),
 	}
 }
 
 func ConvertManyToSearchItemDto(events []events.Event) []dto.EventSearchItemDto {
+	return ConvertManyToSearchItemDtoForUser(events, 0)
+}
+
+func ConvertManyToSearchItemDtoForUser(events []events.Event, userID uint) []dto.EventSearchItemDto {
 	result := make([]dto.EventSearchItemDto, 0, len(events))
 	for i := range events {
-		if searchDto := ConvertToSearchItemDto(&events[i]); searchDto != nil {
+		if searchDto := ConvertToSearchItemDtoForUser(&events[i], userID); searchDto != nil {
 			result = append(result, *searchDto)
 		}
 	}
 	return result
+}
+
+func eventSubscribedByUser(event *events.Event, userID uint) bool {
+	if event == nil || userID == 0 {
+		return false
+	}
+
+	for _, u := range event.Users {
+		if u.UserID == userID {
+			return true
+		}
+	}
+
+	return false
 }

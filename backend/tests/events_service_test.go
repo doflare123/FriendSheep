@@ -613,6 +613,7 @@ func TestEventsServiceGetGroupEventsAllowsPlainMember(t *testing.T) {
 	eventID := seedEvent(t, db, groupID, 1, 1, 5)
 	genreID := seedEventGenre(t, db, "Strategy")
 	seedEventGenreRelation(t, db, eventID, genreID)
+	seedEventParticipant(t, db, eventID, 2)
 
 	eventsList, err := service.GetGroupEvents(2, groupID)
 
@@ -624,6 +625,9 @@ func TestEventsServiceGetGroupEventsAllowsPlainMember(t *testing.T) {
 	}
 	if eventsList[0].ID != eventID {
 		t.Fatalf("event ID = %d, want %d", eventsList[0].ID, eventID)
+	}
+	if !eventsList[0].Subscribed {
+		t.Fatal("event subscribed = false, want true")
 	}
 }
 
@@ -636,6 +640,7 @@ func TestEventsServiceGetGroupEventsAllowsNonMemberInPublicGroup(t *testing.T) {
 	seedEventUser(t, db, 2)
 	groupID := seedEventGroup(t, db, 1, false)
 	eventID := seedEvent(t, db, groupID, 1, 1, 5)
+	seedEventParticipant(t, db, eventID, 1)
 
 	eventsList, err := service.GetGroupEvents(2, groupID)
 
@@ -647,6 +652,9 @@ func TestEventsServiceGetGroupEventsAllowsNonMemberInPublicGroup(t *testing.T) {
 	}
 	if eventsList[0].ID != eventID {
 		t.Fatalf("event ID = %d, want %d", eventsList[0].ID, eventID)
+	}
+	if eventsList[0].Subscribed {
+		t.Fatal("event subscribed = true, want false for different participant")
 	}
 }
 
@@ -682,6 +690,8 @@ func TestEventsServiceSearchEventsHidesPrivateGroupsFromAnonymousAndAllowsMember
 	seedEventGroupMembership(t, db, 2, privateGroupID)
 	publicEventID := seedEvent(t, db, publicGroupID, 1, 1, 5)
 	privateEventID := seedEvent(t, db, privateGroupID, 1, 1, 5)
+	seedEventParticipant(t, db, publicEventID, 2)
+	seedEventParticipant(t, db, privateEventID, 1)
 
 	anonymousResult, err := service.SearchEvents(0, servicesevents.EventSearchInput{Page: 1, Limit: 20})
 	if err != nil {
@@ -689,6 +699,9 @@ func TestEventsServiceSearchEventsHidesPrivateGroupsFromAnonymousAndAllowsMember
 	}
 	if anonymousResult.Total != 1 || len(anonymousResult.Items) != 1 || anonymousResult.Items[0].ID != publicEventID {
 		t.Fatalf("anonymous result = %#v, want only public event %d", anonymousResult, publicEventID)
+	}
+	if anonymousResult.Items[0].Subscribed {
+		t.Fatal("anonymous subscribed = true, want false")
 	}
 
 	memberResult, err := service.SearchEvents(2, servicesevents.EventSearchInput{Page: 1, Limit: 20})
@@ -700,6 +713,12 @@ func TestEventsServiceSearchEventsHidesPrivateGroupsFromAnonymousAndAllowsMember
 	}
 	assertSearchResultHasEvent(t, memberResult, publicEventID)
 	assertSearchResultHasEvent(t, memberResult, privateEventID)
+	if !findSearchResultEvent(t, memberResult, publicEventID).Subscribed {
+		t.Fatal("public search event subscribed = false, want true")
+	}
+	if findSearchResultEvent(t, memberResult, privateEventID).Subscribed {
+		t.Fatal("private search event subscribed = true, want false for different participant")
+	}
 }
 
 func TestEventsServiceSearchEventsAppliesFiltersExclusionsAndPagination(t *testing.T) {
@@ -1249,6 +1268,18 @@ func assertSearchResultMissingEvent(t *testing.T, result *dto.EventSearchRespons
 			t.Fatalf("search result contains event %d: %#v", eventID, result)
 		}
 	}
+}
+
+func findSearchResultEvent(t *testing.T, result *dto.EventSearchResponse, eventID uint) dto.EventSearchItemDto {
+	t.Helper()
+
+	for _, item := range result.Items {
+		if item.ID == eventID {
+			return item
+		}
+	}
+	t.Fatalf("search result missing event %d: %#v", eventID, result)
+	return dto.EventSearchItemDto{}
 }
 
 func testUintString(value uint) string {

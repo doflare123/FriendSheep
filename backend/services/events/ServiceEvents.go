@@ -121,11 +121,16 @@ func (s *eventsService) SearchEvents(userID uint, input EventSearchInput) (*dto.
 	offset := int(offset64)
 
 	var found []events.Event
-	err := query.
+	eventQuery := query.
 		Preload("Group").
 		Preload("EventType").
 		Preload("EventLocation").
-		Preload("Genres.Genre").
+		Preload("Genres.Genre")
+	if userID != 0 {
+		eventQuery = eventQuery.Preload("Users", "user_id = ?", userID)
+	}
+
+	err := eventQuery.
 		Order(eventSearchOrder(input)).
 		Limit(input.Limit).
 		Offset(offset).
@@ -136,7 +141,7 @@ func (s *eventsService) SearchEvents(userID uint, input EventSearchInput) (*dto.
 	}
 
 	return &dto.EventSearchResponse{
-		Items:       convertorsdto.ConvertManyToSearchItemDto(found),
+		Items:       convertorsdto.ConvertManyToSearchItemDtoForUser(found, userID),
 		Total:       total,
 		Limit:       input.Limit,
 		CurrentPage: input.Page,
@@ -165,8 +170,10 @@ func (s *eventsService) GetGroupEvents(actorID uint, groupID uint) ([]dto.EventS
 	err = s.repo.
 		Preload("EventType").
 		Preload("EventLocation").
+		Preload("AgeLimit").
 		Preload("Status").
 		Preload("Genres.Genre").
+		Preload("Users", "user_id = ?", actorID).
 		Where("group_id = ?", groupID).
 		Order("start_time DESC").
 		Find(&events).Error
@@ -176,7 +183,7 @@ func (s *eventsService) GetGroupEvents(actorID uint, groupID uint) ([]dto.EventS
 		return nil, fmt.Errorf("ошибка получения событий: %w", err)
 	}
 
-	return convertorsdto.ConvertManyToShortDto(events), nil
+	return convertorsdto.ConvertManyToShortDtoForUser(events, actorID), nil
 }
 
 // Получает полную информацию о событии

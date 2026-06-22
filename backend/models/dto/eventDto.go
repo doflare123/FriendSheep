@@ -18,6 +18,7 @@ type EventShortDto struct {
 	EventID      uint      `json:"eventId"`   // ID события (дублирует ID для удобства)
 	GroupID      uint      `json:"groupId"`   // ID группы
 	Status       string    `json:"status"`    // Статус события
+	Subscribed   bool      `json:"subscribed"`
 }
 
 type EventFullDto struct {
@@ -100,6 +101,7 @@ type EventSearchItemDto struct {
 	LocationType      string              `json:"locationType"`
 	City              string              `json:"city,omitempty"`
 	Genres            []string            `json:"genres"`
+	Subscribed        bool                `json:"subscribed"`
 }
 
 type EventSearchResponse struct {

@@ -123,6 +123,8 @@ func (h *groupHandler) GetGroupDetails(c *gin.Context) {
 	groupDto, err := h.srv.GetGroupDetails(userID, uint(groupID))
 	if err != nil {
 		switch {
+		case errors.Is(err, group.ErrInvalidInput):
+			utils.BadRequest(c, "Некорректные данные")
 		case errors.Is(err, group.ErrGroupNotFound):
 			utils.NotFound(c, "Группа не найдена")
 		case errors.Is(err, group.ErrPermissionDenied):

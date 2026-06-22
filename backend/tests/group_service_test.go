@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"friendship/models"
+	eventmodels "friendship/models/events"
 	groupmodels "friendship/models/groups"
 	"friendship/repository"
 	"friendship/services"
@@ -776,6 +777,46 @@ func TestGroupServiceUpdateGroupReturnsFullDetailsForActor(t *testing.T) {
 	}
 }
 
+func TestGroupServiceGetGroupDetailsMarksActiveEventSubscription(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, repo)
+
+	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
+	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	seedGroupServiceUser(t, db, 3)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
+	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
+	seedGroupServiceMembership(t, db, groupID, 3, memberRoleID)
+	eventID := seedEvent(t, db, groupID, 1, 1, 5)
+	seedEventParticipant(t, db, eventID, 2)
+
+	subscribedDetails, err := service.GetGroupDetails(2, groupID)
+	if err != nil {
+		t.Fatalf("GetGroupDetails for subscribed user returned error: %v", err)
+	}
+	if len(subscribedDetails.ActiveEvents) != 1 {
+		t.Fatalf("active events len = %d, want 1", len(subscribedDetails.ActiveEvents))
+	}
+	if !subscribedDetails.ActiveEvents[0].Subscribed {
+		t.Fatal("active event subscribed = false, want true")
+	}
+
+	unsubscribedDetails, err := service.GetGroupDetails(3, groupID)
+	if err != nil {
+		t.Fatalf("GetGroupDetails for unsubscribed user returned error: %v", err)
+	}
+	if len(unsubscribedDetails.ActiveEvents) != 1 {
+		t.Fatalf("active events len = %d, want 1", len(unsubscribedDetails.ActiveEvents))
+	}
+	if unsubscribedDetails.ActiveEvents[0].Subscribed {
+		t.Fatal("active event subscribed = true, want false")
+	}
+}
+
 func TestGroupServiceAddPermissionsPromotesMemberAndWritesActionLog(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
@@ -1296,6 +1337,13 @@ func newGroupServiceDB(t *testing.T) *gorm.DB {
 		&groupmodels.GroupBlacklist{},
 		&groupmodels.GroupActionType{},
 		&groupmodels.GroupActionLog{},
+		&eventmodels.EventLocation{},
+		&eventmodels.Status{},
+		&eventmodels.AgeLimit{},
+		&eventmodels.Genre{},
+		&eventmodels.Event{},
+		&eventmodels.EventGenre{},
+		&eventmodels.EventsUser{},
 	); err != nil {
 		t.Fatalf("auto migrate group service models: %v", err)
 	}
