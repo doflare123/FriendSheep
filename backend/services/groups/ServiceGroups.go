@@ -327,106 +327,36 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 		contacts = parseContacts(input.Contacts)
 	}
 
-	var creator models.User
-	if err := s.post.First(&creator, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			s.logger.Error("Создатель группы не найден", "Id", id)
-			return nil, fmt.Errorf("%w: %d", ErrUserNotFound, id)
-		}
-		s.logger.Error("Ошибка БД при поиске создателя", "Id", id, "error", err)
-		return nil, fmt.Errorf("ошибка поиска пользователя: %w", err)
-	}
-
-	var categories []models.Category
-	if len(input.Categories) > 0 {
-		if err := s.post.Where("id IN ?", input.Categories).Find(&categories).Error; err != nil {
-			s.logger.Error("Ошибка загрузки категорий", "categoryIDs", input.Categories, "error", err)
-			return nil, fmt.Errorf("%w: %v", ErrCategoriesNotFound, err)
-		}
-
-		if len(categories) != len(input.Categories) {
-			s.logger.Warn("Найдены не все запрошенные категории", "requested", len(input.Categories), "found", len(categories))
-			return nil, ErrCategoriesNotFound
-		}
-	}
-
-	var newGroup *groups.Group
+	var result groupCreateResult
 	err := s.runInTx(func(tx groupTx) error {
-		newGroup = &groups.Group{
-			Name:             input.Name,
-			Description:      input.Description,
-			SmallDescription: input.SmallDescription,
-			Image:            input.Image,
-			CreaterID:        id,
-			IsPrivate:        *input.IsPrivate,
-			City:             input.City,
-			Categories:       categories,
-		}
-
-		if err := tx.Create(newGroup).Error; err != nil {
-			return fmt.Errorf("ошибка создания группы: %w", err)
-		}
-
-		roleID, err := findGroupRoleID(tx, groups.RoleAdmin)
-		if err != nil {
-			return ErrRoleAdminNotFound
-		}
-
-		groupUser := groups.GroupUsers{
-			UserID:        id,
-			GroupID:       newGroup.ID,
-			RoleInGroupID: roleID,
-		}
-
-		if err := tx.Create(&groupUser).Error; err != nil {
-			return fmt.Errorf("ошибка добавления пользователя в группу: %w", err)
-		}
-
-		if len(contacts) > 0 {
-			groupContacts := make([]groups.GroupContact, 0, len(contacts))
-			for name, link := range contacts {
-				if name != "" && link != "" {
-					groupContacts = append(groupContacts, groups.GroupContact{
-						GroupID: newGroup.ID,
-						Name:    name,
-						Link:    link,
-					})
-				}
-			}
-
-			if len(groupContacts) > 0 {
-				if err := tx.Create(&groupContacts).Error; err != nil {
-					return fmt.Errorf("ошибка сохранения контактов группы: %w", err)
-				}
-			}
-		}
-
-		// Логируем действие
-		if err := s.logAction(tx, newGroup.ID, id, creator.Name, creator.Us, groups.RoleAdmin, groups.ActionCreateGroup, ""); err != nil {
-			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
-		}
-
-		return nil
+		store := newGroupAdminStore(tx)
+		var createErr error
+		result, createErr = store.CreateGroup(id, input, contacts)
+		return createErr
 	})
 
 	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			s.logger.Error("Создатель группы не найден", "Id", id)
+			return nil, err
+		}
+		if errors.Is(err, ErrCategoriesNotFound) {
+			s.logger.Error("Ошибка загрузки категорий", "categoryIDs", input.Categories, "error", err)
+			return nil, err
+		}
 		s.logger.Error("Транзакция создания группы завершилась с ошибкой", "error", err)
 		return nil, fmt.Errorf("%w: %v", ErrGroupCreation, err)
 	}
 
-	if err := s.post.
-		Preload("Categories").
-		Preload("Contacts").
-		Preload("Creater").
-		First(newGroup, newGroup.ID).Error; err != nil {
-		s.logger.Warn("Не удалось перезагрузить группу с ассоциациями", "groupID", newGroup.ID, "error", err)
+	for _, warning := range result.Warnings {
+		s.logger.Warn(warning.Message, warning.Args...)
 	}
 
-	s.logger.Info("Группа успешно создана", "groupID", newGroup.ID, "name", newGroup.Name, "creatorID", creator.ID)
+	s.logger.Info("Группа успешно создана", "groupID", result.GroupID, "name", result.GroupName, "creatorID", result.CreatorID)
 
-	groupDto, err := s.GetGroupDetails(id, newGroup.ID)
+	groupDto, err := s.GetGroupDetails(id, result.GroupID)
 	if err != nil {
-		s.logger.Error("Не удалось сформировать полный DTO группы после создания", "groupID", newGroup.ID, "error", err)
+		s.logger.Error("Не удалось сформировать полный DTO группы после создания", "groupID", result.GroupID, "error", err)
 		return nil, fmt.Errorf("ошибка формирования данных группы: %w", err)
 	}
 

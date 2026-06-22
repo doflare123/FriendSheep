@@ -13,6 +13,7 @@ import (
 type groupAdminStore interface {
 	groupActorFinder
 
+	CreateGroup(creatorID uint, input CreateGroupInput, contacts map[string]string) (groupCreateResult, error)
 	DeleteGroup(groupID uint) error
 	UpdateGroup(input GroupUpdateInput, actor joinRequestActor, actorRole string) (groupAdminResult, error)
 	ChangeMemberRole(input GroupUserInput, roleName string, actor joinRequestActor, actorRole string) (groupAdminResult, error)
@@ -29,6 +30,13 @@ type groupAdminLogWarning struct {
 	Args    []interface{}
 }
 
+type groupCreateResult struct {
+	GroupID   uint
+	GroupName string
+	CreatorID uint
+	Warnings  []groupAdminLogWarning
+}
+
 type gormGroupAdminStore struct {
 	tx groupTx
 	txGroupActorStore
@@ -39,6 +47,79 @@ func newGroupAdminStore(tx groupTx) groupAdminStore {
 		tx:                tx,
 		txGroupActorStore: newTxGroupActorStore(tx),
 	}
+}
+
+func (s gormGroupAdminStore) CreateGroup(creatorID uint, input CreateGroupInput, contacts map[string]string) (groupCreateResult, error) {
+	creator, err := s.FindActor(creatorID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return groupCreateResult{}, fmt.Errorf("%w: %d", ErrUserNotFound, creatorID)
+		}
+		return groupCreateResult{}, err
+	}
+
+	var categories []models.Category
+	if len(input.Categories) > 0 {
+		if err := s.tx.Where("id IN ?", input.Categories).Find(&categories).Error; err != nil {
+			return groupCreateResult{}, fmt.Errorf("%w: %v", ErrCategoriesNotFound, err)
+		}
+
+		if len(categories) != len(input.Categories) {
+			return groupCreateResult{}, ErrCategoriesNotFound
+		}
+	}
+
+	newGroup := groups.Group{
+		Name:             input.Name,
+		Description:      input.Description,
+		SmallDescription: input.SmallDescription,
+		Image:            input.Image,
+		CreaterID:        creatorID,
+		IsPrivate:        *input.IsPrivate,
+		City:             input.City,
+		Categories:       categories,
+	}
+
+	if err := s.tx.Create(&newGroup).Error; err != nil {
+		return groupCreateResult{}, fmt.Errorf("ошибка создания группы: %w", err)
+	}
+
+	roleID, err := findGroupRoleID(s.tx, groups.RoleAdmin)
+	if err != nil {
+		return groupCreateResult{}, ErrRoleAdminNotFound
+	}
+
+	groupUser := groups.GroupUsers{
+		UserID:        creatorID,
+		GroupID:       newGroup.ID,
+		RoleInGroupID: roleID,
+	}
+	if err := s.tx.Create(&groupUser).Error; err != nil {
+		return groupCreateResult{}, fmt.Errorf("ошибка добавления пользователя в группу: %w", err)
+	}
+
+	if err := createGroupContacts(s.tx, newGroup.ID, contacts); err != nil {
+		return groupCreateResult{}, err
+	}
+
+	result := groupCreateResult{
+		GroupID:   newGroup.ID,
+		GroupName: newGroup.Name,
+		CreatorID: creator.ID,
+	}
+	if err := createGroupActionLog(s.tx, groupActionLogInput{
+		GroupID: newGroup.ID,
+		Actor:   creator,
+		Role:    groups.RoleAdmin,
+		Action:  groups.ActionCreateGroup,
+	}); err != nil {
+		result.Warnings = append(result.Warnings, groupAdminLogWarning{
+			Message: "Группа создана, но действие не записано в журнал группы",
+			Args:    []interface{}{"error", err},
+		})
+	}
+
+	return result, nil
 }
 
 func (s gormGroupAdminStore) DeleteGroup(groupID uint) error {
@@ -278,6 +359,33 @@ func (s gormGroupAdminStore) findGroupMember(groupID uint, userID uint) (groups.
 	}
 
 	return groupUser, nil
+}
+
+func createGroupContacts(tx groupTx, groupID uint, contacts map[string]string) error {
+	if len(contacts) == 0 {
+		return nil
+	}
+
+	groupContacts := make([]groups.GroupContact, 0, len(contacts))
+	for name, link := range contacts {
+		if name != "" && link != "" {
+			groupContacts = append(groupContacts, groups.GroupContact{
+				GroupID: groupID,
+				Name:    name,
+				Link:    link,
+			})
+		}
+	}
+
+	if len(groupContacts) == 0 {
+		return nil
+	}
+
+	if err := tx.Create(&groupContacts).Error; err != nil {
+		return fmt.Errorf("ошибка сохранения контактов группы: %w", err)
+	}
+
+	return nil
 }
 
 func updateContactsInTx(tx groupTx, groupID uint, newContacts map[string]string) error {
