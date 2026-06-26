@@ -32,7 +32,7 @@ func (s *groupService) GetJoinRequests(actorID uint, groupID uint, status string
 // CreateJoinInvite создает приглашение в группу
 func (s *groupService) CreateJoinInvite(actorID uint, input GroupUserInput) (bool, error) {
 	err := s.runInTx(func(tx groupTx) error {
-		store := newJoinInviteCreationStore(tx)
+		store := tx.JoinInviteCreation()
 
 		hasAccess, role, err := store.FindActorRole(actorID, input.GroupID, groups.CapabilityModerate)
 		if err != nil {
@@ -109,7 +109,7 @@ func (s *groupService) ApproveAllJoinRequests(actorID uint, groupID uint) (int, 
 	var result bulkJoinRequestResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		store := newBulkJoinRequestStore(tx)
+		store := tx.BulkJoinRequest()
 		actor, err := store.FindActor(actorID)
 		if err != nil {
 			return err
@@ -146,7 +146,7 @@ func (s *groupService) RejectAllJoinRequests(actorID uint, groupID uint) (int, e
 	var result bulkJoinRequestResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		store := newBulkJoinRequestStore(tx)
+		store := tx.BulkJoinRequest()
 		actor, err := store.FindActor(actorID)
 		if err != nil {
 			return err
@@ -173,7 +173,7 @@ func (s *groupService) RejectAllJoinRequests(actorID uint, groupID uint) (int, e
 // ApproveJoinRequest одобряет конкретную заявку
 func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, error) {
 	err := s.runInTx(func(tx groupTx) error {
-		store := newJoinRequestReviewStore(tx)
+		store := tx.JoinRequestReview()
 
 		request, err := store.FindJoinRequest(requestID)
 		if err != nil {
@@ -240,7 +240,7 @@ func (s *groupService) ApproveJoinRequest(actorID uint, requestID uint) (bool, e
 // RejectJoinRequest отклоняет конкретную заявку
 func (s *groupService) RejectJoinRequest(actorID uint, requestID uint) (bool, error) {
 	err := s.runInTx(func(tx groupTx) error {
-		store := newJoinRequestReviewStore(tx)
+		store := tx.JoinRequestReview()
 
 		request, err := store.FindJoinRequest(requestID)
 		if err != nil {

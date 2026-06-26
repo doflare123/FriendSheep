@@ -30,7 +30,7 @@ func TestGroupServiceJoinGroupConcurrentPrivateRequestsPostgres(t *testing.T) {
 
 	db := newPostgresGroupServiceDB(t, dsn)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)

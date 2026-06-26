@@ -1,8 +1,10 @@
 package tests
 
 import (
-	"database/sql"
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	groupmodels "friendship/models/groups"
@@ -10,26 +12,7 @@ import (
 	servicegroups "friendship/services/groups"
 
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
-
-// groupServiceLocalPort mirrors the local groups storage contract expected by service constructors.
-type groupServiceLocalPort interface {
-	Model(value interface{}) *gorm.DB
-	Select(query interface{}, args ...interface{}) *gorm.DB
-	Find(out interface{}, where ...interface{}) *gorm.DB
-	First(out interface{}, where ...interface{}) *gorm.DB
-	Create(value interface{}) *gorm.DB
-	Updates(value interface{}) *gorm.DB
-	Delete(value interface{}) *gorm.DB
-	Where(query interface{}, args ...interface{}) *gorm.DB
-	Preload(column string, conditions ...interface{}) *gorm.DB
-	Clauses(conds ...clause.Expression) *gorm.DB
-	Order(value interface{}) *gorm.DB
-	Limit(limit int) *gorm.DB
-	Count(count *int64) *gorm.DB
-	ScanRows(rows *sql.Rows, result interface{}) error
-}
 
 // eventsServiceLocalPort mirrors the local events storage contract expected by service constructors.
 type eventsServiceLocalPort interface {
@@ -45,16 +28,19 @@ type eventsServiceLocalPort interface {
 	Count(count *int64) *gorm.DB
 }
 
-var _ groupServiceLocalPort = (*testPostgresRepository)(nil)
 var _ eventsServiceLocalPort = (*testPostgresRepository)(nil)
 
-func TestNewGroupServiceAcceptsLocalPortAndPreservesBehavior(t *testing.T) {
+func TestNewGroupServiceUsesGORMAdapterAndPreservesBehavior(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	var localPort groupServiceLocalPort = repo
 
-	assertConstructorAcceptsRepo(t, servicegroups.NewGroupService, repo)
-	service := invokeGroupServiceConstructor(t, &testLogger{}, localPort)
+	if constructorAcceptsRepo(servicegroups.NewGroupService, repo) {
+		t.Fatal("NewGroupService accepts raw GORM-shaped repository; want only group adapter")
+	}
+
+	adapter := servicegroups.NewGORMGroupRepository(repo)
+	assertConstructorAcceptsRepo(t, servicegroups.NewGroupService, adapter)
+	service := invokeGroupServiceConstructor(t, &testLogger{}, adapter)
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -69,6 +55,35 @@ func TestNewGroupServiceAcceptsLocalPortAndPreservesBehavior(t *testing.T) {
 		t.Fatalf("result = %#v, want joined result", result)
 	}
 	assertGroupMembershipExists(t, db, groupID, 2, true)
+}
+
+func TestGroupStoresDoNotImportSharedPostgresRepository(t *testing.T) {
+	groupsDir := filepath.Join("..", "services", "groups")
+	allowedFile := filepath.Join(groupsDir, "gorm_repository.go")
+
+	err := filepath.WalkDir(groupsDir, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || filepath.Ext(path) != ".go" || path == allowedFile {
+			return nil
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		text := string(content)
+		if strings.Contains(text, `"friendship/repository"`) || strings.Contains(text, "repository.PostgresRepository") {
+			t.Fatalf("%s imports or references shared Postgres repository; keep it isolated in %s", path, allowedFile)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walk group services: %v", err)
+	}
 }
 
 func TestNewEventsServiceAcceptsLocalPortAndPreservesBehavior(t *testing.T) {
@@ -99,12 +114,18 @@ func TestNewEventsServiceAcceptsLocalPortAndPreservesBehavior(t *testing.T) {
 func assertConstructorAcceptsRepo(t *testing.T, constructor interface{}, repo interface{}) {
 	t.Helper()
 
+	if !constructorAcceptsRepo(constructor, repo) {
+		t.Fatalf("constructor repo arg does not accept %T", repo)
+	}
+}
+
+func constructorAcceptsRepo(constructor interface{}, repo interface{}) bool {
 	ctorType := reflect.TypeOf(constructor)
 	if ctorType.Kind() != reflect.Func {
-		t.Fatalf("constructor kind = %v, want func", ctorType.Kind())
+		return false
 	}
 	if ctorType.NumIn() != 2 {
-		t.Fatalf("constructor args = %d, want 2", ctorType.NumIn())
+		return false
 	}
 
 	repoType := reflect.TypeOf(repo)
@@ -113,12 +134,10 @@ func assertConstructorAcceptsRepo(t *testing.T, constructor interface{}, repo in
 	if !accepts && ctorRepoArg.Kind() == reflect.Interface {
 		accepts = repoType.Implements(ctorRepoArg)
 	}
-	if !accepts {
-		t.Fatalf("constructor repo arg type %v does not accept %v", ctorRepoArg, repoType)
-	}
+	return accepts
 }
 
-func invokeGroupServiceConstructor(t *testing.T, l *testLogger, repo groupServiceLocalPort) servicegroups.GroupsService {
+func invokeGroupServiceConstructor(t *testing.T, l *testLogger, repo interface{}) servicegroups.GroupsService {
 	t.Helper()
 
 	out := reflect.ValueOf(servicegroups.NewGroupService).Call([]reflect.Value{

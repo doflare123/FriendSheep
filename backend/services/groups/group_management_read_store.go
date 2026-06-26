@@ -20,10 +20,10 @@ type groupManagementReadStore interface {
 }
 
 type gormGroupManagementReadStore struct {
-	store groupStore
+	store groupPersistence
 }
 
-func newGroupManagementReadStore(store groupStore) groupManagementReadStore {
+func newGroupManagementReadStore(store groupPersistence) groupManagementReadStore {
 	return gormGroupManagementReadStore{store: store}
 }
 

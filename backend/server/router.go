@@ -36,7 +36,7 @@ func (s *Server) initRouters() {
 	routes.RegisterSubRoutes(s.engine, subH, jwtMiddleware)
 
 	//регистрация групп
-	groupsrv := group.NewGroupService(s.logger, s.postgres)
+	groupsrv := group.NewGroupService(s.logger, group.NewGORMGroupRepository(s.postgres))
 	groupH := handlers.NewGroupHandler(groupsrv)
 	routes.RegisterGroupsRoutes(s.engine, groupH, jwtMiddleware, groupRoleMiddleware)
 

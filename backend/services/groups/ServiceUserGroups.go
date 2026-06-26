@@ -13,7 +13,7 @@ func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error
 	var target joinGroupTarget
 
 	err := s.runInTx(func(tx groupTx) error {
-		store := newJoinGroupStore(tx)
+		store := tx.JoinGroup()
 
 		if err := store.EnsureUserExists(userID); err != nil {
 			return err
@@ -114,7 +114,7 @@ func isGroupMembershipUniqueViolation(err error) bool {
 // LeaveGroup выход из группы
 func (s *groupService) LeaveGroup(userID uint, groupID uint) (bool, error) {
 	err := s.runInTx(func(tx groupTx) error {
-		role, err := newLeaveGroupStore(tx).LeaveGroup(userID, groupID)
+		role, err := tx.LeaveGroup().LeaveGroup(userID, groupID)
 		if err != nil {
 			return err
 		}
@@ -138,7 +138,7 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 	var invite joinInviteResponse
 
 	err := s.runInTx(func(tx groupTx) error {
-		store := newJoinInviteResponseStore(tx)
+		store := tx.JoinInviteResponse()
 
 		foundInvite, err := store.FindJoinInvite(inviteID)
 		if err != nil {
@@ -202,7 +202,7 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 // RejectJoinInvite отклоняет приглашение в группу
 func (s *groupService) RejectJoinInvite(userID uint, inviteID uint) (bool, error) {
 	err := s.runInTx(func(tx groupTx) error {
-		store := newJoinInviteResponseStore(tx)
+		store := tx.JoinInviteResponse()
 
 		invite, err := store.FindJoinInvite(inviteID)
 		if err != nil {

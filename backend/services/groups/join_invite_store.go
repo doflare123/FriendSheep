@@ -29,13 +29,13 @@ type joinInviteUser struct {
 }
 
 type gormJoinInviteCreationStore struct {
-	tx groupTx
+	tx groupPersistence
 	txGroupAccessStore
 	txGroupActorStore
 	txGroupRelationStore
 }
 
-func newJoinInviteCreationStore(tx groupTx) joinInviteCreationStore {
+func newJoinInviteCreationStore(tx groupPersistence) joinInviteCreationStore {
 	return gormJoinInviteCreationStore{
 		tx:                   tx,
 		txGroupAccessStore:   newTxGroupAccessStore(tx),
@@ -108,11 +108,11 @@ type joinInviteResponse struct {
 }
 
 type gormJoinInviteResponseStore struct {
-	tx groupTx
+	tx groupPersistence
 	txGroupRelationStore
 }
 
-func newJoinInviteResponseStore(tx groupTx) joinInviteResponseStore {
+func newJoinInviteResponseStore(tx groupPersistence) joinInviteResponseStore {
 	return gormJoinInviteResponseStore{
 		tx:                   tx,
 		txGroupRelationStore: newTxGroupRelationStore(tx),

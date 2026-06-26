@@ -23,7 +23,7 @@ import (
 func TestGroupServiceJoinGroupAddsMemberForPublicGroup(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -45,7 +45,7 @@ func TestGroupServiceJoinGroupAddsMemberForPublicGroup(t *testing.T) {
 func TestGroupServiceJoinGroupRejectsDuplicatePublicMembership(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -67,7 +67,7 @@ func TestGroupServiceJoinGroupRejectsDuplicatePublicMembership(t *testing.T) {
 func TestGroupServiceJoinGroupCreatesRequestForPrivateGroup(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -89,7 +89,7 @@ func TestGroupServiceJoinGroupCreatesRequestForPrivateGroup(t *testing.T) {
 func TestGroupServiceJoinGroupRejectsBlacklistedUserWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, "Участник")
 	seedGroupServiceUser(t, db, 1)
@@ -112,7 +112,7 @@ func TestGroupServiceJoinGroupRejectsBlacklistedUserWithoutSideEffects(t *testin
 func TestGroupServiceJoinGroupRejectsDuplicatePendingRequest(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, "Участник")
 	seedGroupServiceUser(t, db, 1)
@@ -135,7 +135,7 @@ func TestGroupServiceJoinGroupRejectsDuplicatePendingRequest(t *testing.T) {
 func TestGroupServiceJoinGroupAllowsNewPendingAfterRejectedRequest(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -159,7 +159,7 @@ func TestGroupServiceJoinGroupAllowsNewPendingAfterRejectedRequest(t *testing.T)
 func TestGroupServiceJoinGroupMapsPendingUniqueViolationToDuplicateRequest(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &duplicatePendingRequestRepository{testPostgresRepository: &testPostgresRepository{db: db}}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -184,7 +184,7 @@ func TestGroupServiceJoinGroupMapsPendingUniqueViolationToDuplicateRequest(t *te
 func TestGroupServiceJoinGroupMapsMembershipUniqueViolationToAlreadyInGroup(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &duplicateMembershipRepository{testPostgresRepository: &testPostgresRepository{db: db}}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -208,7 +208,7 @@ func TestGroupServiceJoinGroupMapsMembershipUniqueViolationToAlreadyInGroup(t *t
 func TestGroupServiceApproveJoinRequestAddsMembershipAndWritesActionLog(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, "Админ")
 	seedGroupServiceRole(t, db, "Участник")
@@ -234,7 +234,7 @@ func TestGroupServiceApproveJoinRequestAddsMembershipAndWritesActionLog(t *testi
 func TestGroupServiceApproveJoinRequestUsesTransactionForActorRoleLookup(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &rootGroupAccessPoisonRepository{testPostgresRepository: &testPostgresRepository{db: db}}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
@@ -259,7 +259,7 @@ func TestGroupServiceApproveJoinRequestUsesTransactionForActorRoleLookup(t *test
 func TestGroupServiceApproveJoinRequestRejectsMemberActorWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	memberRoleID := seedGroupServiceRole(t, db, "Участник")
 	seedGroupServiceUser(t, db, 1)
@@ -284,7 +284,7 @@ func TestGroupServiceApproveJoinRequestRejectsMemberActorWithoutSideEffects(t *t
 func TestGroupServiceApproveJoinRequestMapsMembershipUniqueViolationToAlreadyInGroup(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &duplicateMembershipRepository{testPostgresRepository: &testPostgresRepository{db: db}}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
@@ -313,7 +313,7 @@ func TestGroupServiceApproveJoinRequestMapsMembershipUniqueViolationToAlreadyInG
 func TestGroupServiceApproveJoinRequestRejectsBlacklistedUserWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, "Админ")
 	seedGroupServiceRole(t, db, "Участник")
@@ -340,7 +340,7 @@ func TestGroupServiceApproveJoinRequestRejectsBlacklistedUserWithoutSideEffects(
 func TestGroupServiceRejectJoinRequestUpdatesStatusAndWritesActionLog(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	operatorRoleID := seedGroupServiceRole(t, db, "Модератор")
 	seedGroupServiceUser(t, db, 1)
@@ -365,7 +365,7 @@ func TestGroupServiceRejectJoinRequestUpdatesStatusAndWritesActionLog(t *testing
 func TestGroupServiceRejectJoinRequestRejectsMemberActorWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -390,7 +390,7 @@ func TestGroupServiceRejectJoinRequestRejectsMemberActorWithoutSideEffects(t *te
 func TestGroupServiceRejectJoinRequestUsesTransactionForActorRoleLookup(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &rootGroupAccessPoisonRepository{testPostgresRepository: &testPostgresRepository{db: db}}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	operatorRoleID := seedGroupServiceRole(t, db, groupmodels.RoleModerator)
 	seedGroupServiceUser(t, db, 1)
@@ -414,7 +414,7 @@ func TestGroupServiceRejectJoinRequestUsesTransactionForActorRoleLookup(t *testi
 func TestGroupServiceCreateJoinInviteLoadsTargetUserAndRejectsMissingUser(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, "Админ")
 	seedGroupServiceUser(t, db, 1)
@@ -439,7 +439,7 @@ func TestGroupServiceCreateJoinInviteLoadsTargetUserAndRejectsMissingUser(t *tes
 func TestGroupServiceCreateJoinInviteUsesTransactionForActorRoleLookup(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &rootGroupAccessPoisonRepository{testPostgresRepository: &testPostgresRepository{db: db}}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	operatorRoleID := seedGroupServiceRole(t, db, groupmodels.RoleModerator)
 	seedGroupServiceUser(t, db, 1)
@@ -465,7 +465,7 @@ func TestGroupServiceCreateJoinInviteUsesTransactionForActorRoleLookup(t *testin
 func TestGroupServiceCreateJoinInviteRejectsMemberActorWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -491,7 +491,7 @@ func TestGroupServiceCreateJoinInviteRejectsMemberActorWithoutSideEffects(t *tes
 func TestGroupServiceCreateJoinInviteRejectsMissingActorMembershipWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceUser(t, db, 1)
 	seedGroupServiceUser(t, db, 2)
@@ -515,7 +515,7 @@ func TestGroupServiceCreateJoinInviteRejectsMissingActorMembershipWithoutSideEff
 func TestGroupServiceCreateJoinInviteRejectsExistingMemberWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
 	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
@@ -543,7 +543,7 @@ func TestGroupServiceCreateJoinInviteRejectsExistingMemberWithoutSideEffects(t *
 func TestGroupServiceCreateJoinInviteRejectsDuplicatePendingInviteWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
 	seedGroupServiceUser(t, db, 1)
@@ -570,7 +570,7 @@ func TestGroupServiceCreateJoinInviteRejectsDuplicatePendingInviteWithoutSideEff
 func TestGroupServiceCreateJoinInviteCreatesPendingInviteAndActionLog(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, "Админ")
 	seedGroupServiceUser(t, db, 1)
@@ -598,7 +598,7 @@ func TestGroupServiceCreateJoinInviteCreatesPendingInviteAndActionLog(t *testing
 func TestGroupServiceCreateJoinInviteKeepsInviteWhenActionLogFails(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &actionLogFailureRepository{testPostgresRepository: &testPostgresRepository{db: db}}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
 	seedGroupServiceUser(t, db, 1)
@@ -624,7 +624,7 @@ func TestGroupServiceCreateJoinInviteKeepsInviteWhenActionLogFails(t *testing.T)
 func TestGroupServiceCreateGroupRejectsMissingCategoriesWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 	services.InitValidator(validator.New())
 
 	seedGroupServiceRole(t, db, "Админ")
@@ -659,7 +659,7 @@ func TestGroupServiceCreateGroupRejectsMissingCategoriesWithoutSideEffects(t *te
 func TestGroupServiceCreateGroupReturnsFullDetailsForCreator(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 	services.InitValidator(validator.New())
 
 	seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
@@ -713,7 +713,7 @@ func TestGroupServiceCreateGroupReturnsFullDetailsForCreator(t *testing.T) {
 func TestGroupServiceUpdateGroupReturnsFullDetailsForActor(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 	services.InitValidator(validator.New())
 
 	seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
@@ -780,7 +780,7 @@ func TestGroupServiceUpdateGroupReturnsFullDetailsForActor(t *testing.T) {
 func TestGroupServiceGetGroupDetailsMarksActiveEventSubscription(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
 	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
@@ -820,7 +820,7 @@ func TestGroupServiceGetGroupDetailsMarksActiveEventSubscription(t *testing.T) {
 func TestGroupServiceAddPermissionsPromotesMemberAndWritesActionLog(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, "Админ")
 	memberRoleID := seedGroupServiceRole(t, db, "Участник")
@@ -859,7 +859,7 @@ func TestGroupServiceAddPermissionsPromotesMemberAndWritesActionLog(t *testing.T
 func TestGroupServiceAddPermissionsRejectsModeratorActorWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	operatorRoleID := seedGroupServiceRole(t, db, "Модератор")
 	memberRoleID := seedGroupServiceRole(t, db, "Участник")
@@ -884,7 +884,7 @@ func TestGroupServiceAddPermissionsRejectsModeratorActorWithoutSideEffects(t *te
 func TestGroupServiceRemovePermissionsDemotesModeratorAndWritesActionLog(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, "Админ")
 	operatorRoleID := seedGroupServiceRole(t, db, "Модератор")
@@ -923,7 +923,7 @@ func TestGroupServiceRemovePermissionsDemotesModeratorAndWritesActionLog(t *test
 func TestGroupServiceDeleteUserFromGroupMovesMemberToBlacklistAndWritesActionLog(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, "Админ")
 	memberRoleID := seedGroupServiceRole(t, db, "Участник")
@@ -951,7 +951,7 @@ func TestGroupServiceDeleteUserFromGroupMovesMemberToBlacklistAndWritesActionLog
 func TestGroupServiceRemoveFromBlacklistDeletesEntryAndWritesActionLog(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	adminRoleID := seedGroupServiceRole(t, db, "Админ")
 	seedGroupServiceUser(t, db, 1)
@@ -977,7 +977,7 @@ func TestGroupServiceRemoveFromBlacklistDeletesEntryAndWritesActionLog(t *testin
 func TestGroupServiceAcceptJoinInviteAddsMembershipAndUpdatesStatus(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, "Участник")
 	seedGroupServiceUser(t, db, 1)
@@ -1000,7 +1000,7 @@ func TestGroupServiceAcceptJoinInviteAddsMembershipAndUpdatesStatus(t *testing.T
 func TestGroupServiceAcceptJoinInviteIdempotentForExistingMembershipAndPendingInvite(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -1026,7 +1026,7 @@ func TestGroupServiceAcceptJoinInviteIdempotentForExistingMembershipAndPendingIn
 func TestGroupServiceAcceptJoinInviteIdempotentForAcceptedInvite(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	memberRoleID := seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -1050,7 +1050,7 @@ func TestGroupServiceAcceptJoinInviteIdempotentForAcceptedInvite(t *testing.T) {
 func TestGroupServiceAcceptJoinInviteRejectsMissingInvite(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	result, err := service.AcceptJoinInvite(2, 404)
 
@@ -1065,7 +1065,7 @@ func TestGroupServiceAcceptJoinInviteRejectsMissingInvite(t *testing.T) {
 func TestGroupServiceAcceptJoinInviteRejectsInviteOwnedByAnotherUser(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -1089,7 +1089,7 @@ func TestGroupServiceAcceptJoinInviteRejectsInviteOwnedByAnotherUser(t *testing.
 func TestGroupServiceAcceptJoinInviteRejectsAcceptedInviteWithoutMembership(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -1112,7 +1112,7 @@ func TestGroupServiceAcceptJoinInviteRejectsAcceptedInviteWithoutMembership(t *t
 func TestGroupServiceAcceptJoinInviteRejectsRejectedInvite(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -1135,7 +1135,7 @@ func TestGroupServiceAcceptJoinInviteRejectsRejectedInvite(t *testing.T) {
 func TestGroupServiceAcceptJoinInviteRejectsBlacklistedUserWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -1159,7 +1159,7 @@ func TestGroupServiceAcceptJoinInviteRejectsBlacklistedUserWithoutSideEffects(t 
 func TestGroupServiceAcceptJoinInviteRejectsMissingMemberRoleWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceUser(t, db, 1)
 	seedGroupServiceUser(t, db, 2)
@@ -1181,7 +1181,7 @@ func TestGroupServiceAcceptJoinInviteRejectsMissingMemberRoleWithoutSideEffects(
 func TestGroupServiceAcceptJoinInviteHandlesStatusRaceWithoutSideEffects(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &inviteStatusRaceRepository{testPostgresRepository: &testPostgresRepository{db: db}}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -1207,7 +1207,7 @@ func TestGroupServiceAcceptJoinInviteHandlesStatusRaceWithoutSideEffects(t *test
 func TestGroupServiceAcceptJoinInviteRollsBackMembershipWhenStatusUpdateFails(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &inviteStatusUpdateFailureRepository{testPostgresRepository: &testPostgresRepository{db: db}}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceRole(t, db, groupmodels.RoleMember)
 	seedGroupServiceUser(t, db, 1)
@@ -1233,7 +1233,7 @@ func TestGroupServiceAcceptJoinInviteRollsBackMembershipWhenStatusUpdateFails(t 
 func TestGroupServiceRejectJoinInviteUpdatesStatusWithoutMembership(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceUser(t, db, 1)
 	seedGroupServiceUser(t, db, 2)
@@ -1255,7 +1255,7 @@ func TestGroupServiceRejectJoinInviteUpdatesStatusWithoutMembership(t *testing.T
 func TestGroupServiceRejectJoinInviteRejectsMissingInvite(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	rejected, err := service.RejectJoinInvite(2, 404)
 
@@ -1270,7 +1270,7 @@ func TestGroupServiceRejectJoinInviteRejectsMissingInvite(t *testing.T) {
 func TestGroupServiceRejectJoinInviteRejectsInviteOwnedByAnotherUser(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceUser(t, db, 1)
 	seedGroupServiceUser(t, db, 2)
@@ -1292,7 +1292,7 @@ func TestGroupServiceRejectJoinInviteRejectsInviteOwnedByAnotherUser(t *testing.
 func TestGroupServiceRejectJoinInviteRejectsHandledInvite(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicegroups.NewGroupService(&testLogger{}, repo)
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
 	seedGroupServiceUser(t, db, 1)
 	seedGroupServiceUser(t, db, 2)

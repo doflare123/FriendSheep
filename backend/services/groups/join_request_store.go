@@ -35,13 +35,13 @@ type joinRequestActor struct {
 }
 
 type gormJoinRequestReviewStore struct {
-	tx groupTx
+	tx groupPersistence
 	txGroupAccessStore
 	txGroupActorStore
 	txGroupRelationStore
 }
 
-func newJoinRequestReviewStore(tx groupTx) joinRequestReviewStore {
+func newJoinRequestReviewStore(tx groupPersistence) joinRequestReviewStore {
 	return gormJoinRequestReviewStore{
 		tx:                   tx,
 		txGroupAccessStore:   newTxGroupAccessStore(tx),
@@ -127,11 +127,11 @@ type bulkJoinRequestLogWarning struct {
 }
 
 type gormBulkJoinRequestStore struct {
-	tx groupTx
+	tx groupPersistence
 	txGroupActorStore
 }
 
-func newBulkJoinRequestStore(tx groupTx) bulkJoinRequestStore {
+func newBulkJoinRequestStore(tx groupPersistence) bulkJoinRequestStore {
 	return gormBulkJoinRequestStore{
 		tx:                tx,
 		txGroupActorStore: newTxGroupActorStore(tx),

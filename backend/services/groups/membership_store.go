@@ -25,11 +25,11 @@ type joinGroupTarget struct {
 }
 
 type gormJoinGroupStore struct {
-	tx groupTx
+	tx groupPersistence
 	txGroupRelationStore
 }
 
-func newJoinGroupStore(tx groupTx) joinGroupStore {
+func newJoinGroupStore(tx groupPersistence) joinGroupStore {
 	return gormJoinGroupStore{
 		tx:                   tx,
 		txGroupRelationStore: newTxGroupRelationStore(tx),
@@ -119,10 +119,10 @@ type leaveGroupStore interface {
 }
 
 type gormLeaveGroupStore struct {
-	tx groupTx
+	tx groupPersistence
 }
 
-func newLeaveGroupStore(tx groupTx) leaveGroupStore {
+func newLeaveGroupStore(tx groupPersistence) leaveGroupStore {
 	return gormLeaveGroupStore{tx: tx}
 }
 

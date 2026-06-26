@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"friendship/logger"
-	"friendship/models"
 	"friendship/models/dto"
 	"friendship/models/groups"
 	"friendship/services"
@@ -156,19 +155,17 @@ type GroupsService interface {
 
 type groupService struct {
 	logger logger.Logger
-	post   groupStore
-	tx     groupTransactionRunner
+	uow    groupUnitOfWork
 	access groupActorRoleFinder
 	reads  groupManagementReadStore
 }
 
-func NewGroupService(logger logger.Logger, rep groupStore) GroupsService {
+func NewGroupService(logger logger.Logger, uow groupUnitOfWork) GroupsService {
 	return &groupService{
 		logger: logger,
-		post:   rep,
-		tx:     newGroupTransactionRunner(rep),
-		access: newGroupAccessStore(rep),
-		reads:  newGroupManagementReadStore(rep),
+		uow:    uow,
+		access: uow.Access(),
+		reads:  uow.Reads(),
 	}
 }
 
@@ -194,7 +191,7 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 
 	var result groupCreateResult
 	err := s.runInTx(func(tx groupTx) error {
-		store := newGroupAdminStore(tx)
+		store := tx.Admin()
 		var createErr error
 		result, createErr = store.CreateGroup(id, input, contacts)
 		return createErr
@@ -241,7 +238,7 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 	var result groupAdminResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		store := newGroupAdminStore(tx)
+		store := tx.Admin()
 		actor, err := store.FindActor(actorID)
 		if err != nil {
 			return err
@@ -283,7 +280,7 @@ func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
 	}
 
 	err = s.runInTx(func(tx groupTx) error {
-		store := newGroupAdminStore(tx)
+		store := tx.Admin()
 		if _, err := store.FindActor(actorID); err != nil {
 			return err
 		}
@@ -317,7 +314,7 @@ func (s *groupService) AddPermissions(actorID uint, input GroupUserInput) (bool,
 	var result groupAdminResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		store := newGroupAdminStore(tx)
+		store := tx.Admin()
 		actor, err := store.FindActor(actorID)
 		if err != nil {
 			return err
@@ -358,7 +355,7 @@ func (s *groupService) RemovePermissions(actorID uint, input GroupUserInput) (bo
 	var result groupAdminResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		store := newGroupAdminStore(tx)
+		store := tx.Admin()
 		actor, err := store.FindActor(actorID)
 		if err != nil {
 			return err
@@ -399,7 +396,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 	var result groupAdminResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		store := newGroupAdminStore(tx)
+		store := tx.Admin()
 		actor, err := store.FindActor(actorID)
 		if err != nil {
 			return err
@@ -436,7 +433,7 @@ func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUse
 	var result groupAdminResult
 
 	err = s.runInTx(func(tx groupTx) error {
-		store := newGroupAdminStore(tx)
+		store := tx.Admin()
 		actor, err := store.FindActor(actorID)
 		if err != nil {
 			return err
@@ -524,46 +521,17 @@ func (s *groupService) GetGroupBlacklist(actorID uint, groupID uint, limit int) 
 	return blacklist, nil
 }
 
-// logAction записывает действие в лог
-func (s *groupService) logAction(tx groupTx, groupID uint, userID uint, username, us, role, actionType, description string) error {
-	return s.logActionRecord(tx, groupID, userID, username, us, role, actionType, description, nil)
-}
-
 func (s *groupService) logActionWithTargetUser(tx groupTx, groupID uint, userID uint, username, us, role, actionType, description string, targetUserID uint) error {
-	return s.logActionRecord(tx, groupID, userID, username, us, role, actionType, description, &targetUserID)
-}
-
-func (s *groupService) logActionRecord(tx groupTx, groupID uint, userID uint, username, us, role, actionType, description string, targetUserID *uint) error {
-	actionTypeID, err := groups.FindGroupActionTypeID(tx, actionType)
-	if err != nil {
-		return fmt.Errorf("тип действия группы %q не найден: %w", actionType, err)
-	}
-
-	if strings.TrimSpace(username) == "" || strings.TrimSpace(us) == "" {
-		var actor models.User
-		if err := tx.Select("id", "name", "us").First(&actor, userID).Error; err == nil {
-			if strings.TrimSpace(username) == "" {
-				username = actor.Name
-			}
-			if strings.TrimSpace(us) == "" {
-				us = actor.Us
-			}
-		}
-	}
-
-	action := groups.GroupActionLog{
+	return tx.LogActorAction(groupActorActionLogInput{
 		GroupID:      groupID,
 		UserID:       userID,
 		Username:     username,
 		Us:           us,
 		Role:         role,
-		ActionTypeID: actionTypeID,
+		Action:       actionType,
 		Description:  description,
-		TargetUserID: targetUserID,
-		CreatedAt:    time.Now(),
-	}
-
-	return tx.Create(&action).Error
+		TargetUserID: &targetUserID,
+	})
 }
 
 // parseContacts парсит строку контактов

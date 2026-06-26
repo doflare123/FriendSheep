@@ -38,11 +38,11 @@ type groupCreateResult struct {
 }
 
 type gormGroupAdminStore struct {
-	tx groupTx
+	tx groupPersistence
 	txGroupActorStore
 }
 
-func newGroupAdminStore(tx groupTx) groupAdminStore {
+func newGroupAdminStore(tx groupPersistence) groupAdminStore {
 	return gormGroupAdminStore{
 		tx:                tx,
 		txGroupActorStore: newTxGroupActorStore(tx),
@@ -377,7 +377,7 @@ func (s gormGroupAdminStore) findGroupMember(groupID uint, userID uint) (groups.
 	return groupUser, nil
 }
 
-func createGroupContacts(tx groupTx, groupID uint, contacts map[string]string) error {
+func createGroupContacts(tx groupPersistence, groupID uint, contacts map[string]string) error {
 	if len(contacts) == 0 {
 		return nil
 	}
@@ -404,7 +404,7 @@ func createGroupContacts(tx groupTx, groupID uint, contacts map[string]string) e
 	return nil
 }
 
-func updateContactsInTx(tx groupTx, groupID uint, newContacts map[string]string) error {
+func updateContactsInTx(tx groupPersistence, groupID uint, newContacts map[string]string) error {
 	var existingContacts []groups.GroupContact
 	if err := tx.Where("group_id = ?", groupID).Find(&existingContacts).Error; err != nil {
 		return fmt.Errorf("ошибка получения существующих контактов: %w", err)

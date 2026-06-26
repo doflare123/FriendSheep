@@ -1,13 +1,10 @@
 package group
 
 import (
-	"errors"
 	"fmt"
 	"friendship/models"
 	"friendship/models/groups"
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type txGroupAccessStore struct {
@@ -32,7 +29,7 @@ type groupActorFinder interface {
 }
 
 type txGroupActorStore struct {
-	tx groupTx
+	tx groupPersistence
 }
 
 type groupRelationChecks interface {
@@ -41,10 +38,10 @@ type groupRelationChecks interface {
 }
 
 type txGroupRelationStore struct {
-	tx groupTx
+	tx groupPersistence
 }
 
-func newTxGroupAccessStore(tx groupTx) txGroupAccessStore {
+func newTxGroupAccessStore(tx groupPersistence) txGroupAccessStore {
 	return newGroupAccessStore(tx)
 }
 
@@ -52,11 +49,11 @@ func newGroupAccessStore(store groupRoleStore) txGroupAccessStore {
 	return txGroupAccessStore{lookup: gormGroupRoleLookup{store: store}}
 }
 
-func newTxGroupActorStore(tx groupTx) txGroupActorStore {
+func newTxGroupActorStore(tx groupPersistence) txGroupActorStore {
 	return txGroupActorStore{tx: tx}
 }
 
-func newTxGroupRelationStore(tx groupTx) txGroupRelationStore {
+func newTxGroupRelationStore(tx groupPersistence) txGroupRelationStore {
 	return txGroupRelationStore{tx: tx}
 }
 
@@ -91,7 +88,7 @@ func (s gormGroupRoleLookup) FindMembershipRoleID(actorID uint, groupID uint) (u
 	}).Take(&groupUser).Error
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if isGroupRecordNotFound(err) {
 			return 0, ErrNotInGroup
 		}
 		return 0, fmt.Errorf("ошибка проверки доступа: %w", err)
@@ -155,7 +152,7 @@ type groupActionLogInput struct {
 	EntityName   string
 }
 
-func createGroupActionLog(tx groupTx, input groupActionLogInput) error {
+func createGroupActionLog(tx groupPersistence, input groupActionLogInput) error {
 	actionTypeID, err := groups.FindGroupActionTypeID(tx, input.Action)
 	if err != nil {
 		return fmt.Errorf("тип действия группы %q не найден: %w", input.Action, err)
