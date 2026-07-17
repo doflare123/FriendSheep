@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"friendship/config"
@@ -28,6 +29,7 @@ type PostgresRepository interface {
 	Scopes(funcs ...func(*gorm.DB) *gorm.DB) *gorm.DB
 	ScanRows(rows *sql.Rows, result interface{}) error
 	Transaction(fc func(tx PostgresRepository) error) (err error)
+	TransactionWithContext(ctx context.Context, fc func(tx PostgresRepository) error) error
 	Close() error
 	DropTableIfExists(value interface{}) error
 	GetSQLDB() (*sql.DB, error)
@@ -181,4 +183,10 @@ func (rep *postRepository) Transaction(fc func(tx PostgresRepository) error) (er
 
 	panicked = false
 	return
+}
+
+func (rep *postRepository) TransactionWithContext(ctx context.Context, fc func(tx PostgresRepository) error) error {
+	return rep.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fc(&postRepository{db: tx})
+	})
 }

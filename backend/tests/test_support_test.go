@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"database/sql"
 
 	"friendship/logger"
@@ -75,6 +76,12 @@ func (r *testPostgresRepository) ScanRows(rows *sql.Rows, result interface{}) er
 
 func (r *testPostgresRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		return fc(&testPostgresRepository{db: tx})
+	})
+}
+
+func (r *testPostgresRepository) TransactionWithContext(ctx context.Context, fc func(tx repository.PostgresRepository) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return fc(&testPostgresRepository{db: tx})
 	})
 }

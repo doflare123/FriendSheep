@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -29,6 +30,20 @@ type fakeRegistrationEmailSender struct {
 	welcomeCalls      []welcomeEmailCall
 	verificationErr   error
 	welcomeErr        error
+}
+
+type fakeRegistrationStore struct {
+	createCalls         []register.UserBootstrap
+	createResult        register.RegisteredUser
+	createErr           error
+	changePasswordCalls []changePasswordCall
+	changePasswordID    uint
+	changePasswordErr   error
+}
+
+type changePasswordCall struct {
+	email          string
+	hashedPassword string
 }
 
 type verificationEmailCall struct {
@@ -64,6 +79,19 @@ func (f *fakeRegistrationEmailSender) SendWelcomeEmail(userEmail, userName strin
 		name:  userName,
 	})
 	return f.welcomeErr
+}
+
+func (f *fakeRegistrationStore) CreateUser(_ context.Context, bootstrap register.UserBootstrap) (register.RegisteredUser, error) {
+	f.createCalls = append(f.createCalls, bootstrap)
+	return f.createResult, f.createErr
+}
+
+func (f *fakeRegistrationStore) ChangePasswordByEmail(_ context.Context, email, hashedPassword string) (uint, error) {
+	f.changePasswordCalls = append(f.changePasswordCalls, changePasswordCall{
+		email:          email,
+		hashedPassword: hashedPassword,
+	})
+	return f.changePasswordID, f.changePasswordErr
 }
 
 func (s *fakeSessionStore) CreateSession(ctx context.Context, sessionID, code string, sessionType models.SessionTypeReg, expiration time.Duration, extra map[string]string) error {
@@ -249,7 +277,7 @@ func TestRegisterServiceCreateUserCreatesDefaultsAndDeletesSession(t *testing.T)
 		},
 	}
 
-	service := newRegisterServiceForTest(t, store, repo, notifier)
+	service := newRegisterServiceForTest(t, store, register.NewGORMRegistrationStore(repo), notifier)
 	authResponse, err := service.CreateUser(context.Background(), register.CreateUserInput{
 		Name:      "Valid User",
 		Password:  "Password123!",
@@ -283,6 +311,191 @@ func TestRegisterServiceCreateUserCreatesDefaultsAndDeletesSession(t *testing.T)
 	}
 }
 
+func TestRegisterServiceCreateUserDelegatesAtomicBootstrapToStore(t *testing.T) {
+	sessions := newFakeSessionStore()
+	sessions.sessions["verified-session"] = &session.Session{
+		Code:       "123456",
+		IsVerified: true,
+		Type:       models.SessionTypeRegister,
+		Extra: map[string]string{
+			"email": "user@example.com",
+		},
+	}
+	registrationStore := &fakeRegistrationStore{
+		createResult: register.RegisteredUser{
+			ID:       42,
+			Name:     "Valid User",
+			Email:    "user@example.com",
+			Username: "generated-user",
+		},
+	}
+	notifier := &fakeRegistrationEmailSender{}
+	service := newRegisterServiceForTest(t, sessions, registrationStore, notifier)
+
+	authResponse, err := service.CreateUser(context.Background(), register.CreateUserInput{
+		Name:      "Valid User",
+		Password:  "Password123!",
+		Email:     "USER@example.com",
+		SessionID: "verified-session",
+	})
+	if err != nil {
+		t.Fatalf("CreateUser returned error: %v", err)
+	}
+	if authResponse == nil || authResponse.AccessToken == "" || authResponse.RefreshToken == "" {
+		t.Fatalf("authResponse = %#v, want generated token pair", authResponse)
+	}
+	if len(registrationStore.createCalls) != 1 {
+		t.Fatalf("CreateUser store calls = %d, want 1", len(registrationStore.createCalls))
+	}
+
+	bootstrap := registrationStore.createCalls[0]
+	if bootstrap.Name != "Valid User" || bootstrap.Email != "user@example.com" {
+		t.Fatalf("bootstrap identity = %#v, want normalized verified identity", bootstrap)
+	}
+	if bootstrap.Username == "" {
+		t.Fatal("bootstrap username is empty")
+	}
+	if !utils.VerifyPassword(bootstrap.HashedPassword, "Password123!") {
+		t.Fatal("bootstrap password is not a hash of the submitted password")
+	}
+	if sessions.deleted["verified-session"] != true {
+		t.Fatal("verified registration session was not deleted after store success")
+	}
+	if len(notifier.welcomeCalls) != 1 || notifier.welcomeCalls[0].email != "user@example.com" {
+		t.Fatalf("welcome calls = %#v, want normalized registered user email", notifier.welcomeCalls)
+	}
+}
+
+func TestRegisterServiceCreateUserPreservesSessionWhenStoreRejectsDuplicate(t *testing.T) {
+	sessions := newFakeSessionStore()
+	sessions.sessions["verified-session"] = &session.Session{
+		IsVerified: true,
+		Type:       models.SessionTypeRegister,
+		Extra: map[string]string{
+			"email": "duplicate@example.com",
+		},
+	}
+	registrationStore := &fakeRegistrationStore{createErr: register.ErrUserAlreadyExists}
+	notifier := &fakeRegistrationEmailSender{}
+	service := newRegisterServiceForTest(t, sessions, registrationStore, notifier)
+
+	authResponse, err := service.CreateUser(context.Background(), register.CreateUserInput{
+		Name:      "Valid User",
+		Password:  "Password123!",
+		Email:     "duplicate@example.com",
+		SessionID: "verified-session",
+	})
+
+	if authResponse != nil {
+		t.Fatalf("authResponse = %#v, want nil", authResponse)
+	}
+	if !errors.Is(err, register.ErrUserAlreadyExists) {
+		t.Fatalf("err = %v, want ErrUserAlreadyExists", err)
+	}
+	if len(registrationStore.createCalls) != 1 {
+		t.Fatalf("CreateUser store calls = %d, want 1", len(registrationStore.createCalls))
+	}
+	if sessions.deleted["verified-session"] {
+		t.Fatal("verified registration session was deleted after rejected bootstrap")
+	}
+	if len(notifier.welcomeCalls) != 0 {
+		t.Fatalf("welcome emails = %d, want 0", len(notifier.welcomeCalls))
+	}
+}
+
+func TestGORMRegistrationStoreMapsDuplicateAndKeepsBootstrapAtomic(t *testing.T) {
+	db := newRegisterDB(t)
+	registrationStore := register.NewGORMRegistrationStore(&testPostgresRepository{db: db})
+	first := register.UserBootstrap{
+		Name:           "First User",
+		HashedPassword: mustHashPassword(t, "Password123!"),
+		Email:          "duplicate@example.com",
+		Username:       "first-user",
+	}
+	if _, err := registrationStore.CreateUser(context.Background(), first); err != nil {
+		t.Fatalf("first CreateUser returned error: %v", err)
+	}
+
+	duplicate := first
+	duplicate.Name = "Duplicate User"
+	duplicate.Username = "second-user"
+	if _, err := registrationStore.CreateUser(context.Background(), duplicate); !errors.Is(err, register.ErrUserAlreadyExists) {
+		t.Fatalf("duplicate CreateUser err = %v, want ErrUserAlreadyExists", err)
+	}
+
+	assertCount(t, db, &models.User{}, 1)
+	assertCount(t, db, &statsusers.SettingTile{}, 1)
+	assertCount(t, db, &statsusers.SessionStats_users{}, 1)
+	assertCount(t, db, &statsusers.SideStats_users{}, 1)
+}
+
+func TestGORMRegistrationStoreRollsBackWhenDefaultCreationFails(t *testing.T) {
+	db := newRegisterDB(t)
+	injectedErr := errors.New("injected session stats failure")
+	const callbackName = "test:fail_registration_session_stats"
+
+	if err := db.Callback().Create().Before("gorm:create").Register(callbackName, func(tx *gorm.DB) {
+		if _, ok := tx.Statement.Dest.(*statsusers.SessionStats_users); ok {
+			tx.AddError(injectedErr)
+		}
+	}); err != nil {
+		t.Fatalf("register failure callback: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = db.Callback().Create().Remove(callbackName)
+	})
+
+	registrationStore := register.NewGORMRegistrationStore(&testPostgresRepository{db: db})
+	_, err := registrationStore.CreateUser(context.Background(), register.UserBootstrap{
+		Name:           "Rollback User",
+		HashedPassword: mustHashPassword(t, "Password123!"),
+		Email:          "rollback@example.com",
+		Username:       "rollback-user",
+	})
+	if !errors.Is(err, injectedErr) {
+		t.Fatalf("CreateUser err = %v, want injected failure", err)
+	}
+
+	assertCount(t, db, &models.User{}, 0)
+	assertCount(t, db, &statsusers.SettingTile{}, 0)
+	assertCount(t, db, &statsusers.SessionStats_users{}, 0)
+	assertCount(t, db, &statsusers.SideStats_users{}, 0)
+}
+
+func TestGORMRegistrationStoreRollsBackWhenContextIsCanceledAfterLastInsert(t *testing.T) {
+	db := newRegisterDB(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	const callbackName = "test:cancel_registration_after_side_stats"
+	if err := db.Callback().Create().After("gorm:create").Register(callbackName, func(tx *gorm.DB) {
+		if _, ok := tx.Statement.Dest.(*statsusers.SideStats_users); ok && tx.Error == nil {
+			cancel()
+		}
+	}); err != nil {
+		t.Fatalf("register cancellation callback: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = db.Callback().Create().Remove(callbackName)
+	})
+
+	registrationStore := register.NewGORMRegistrationStore(&testPostgresRepository{db: db})
+	_, err := registrationStore.CreateUser(ctx, register.UserBootstrap{
+		Name:           "Canceled User",
+		HashedPassword: mustHashPassword(t, "Password123!"),
+		Email:          "canceled@example.com",
+		Username:       "canceled-user",
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("CreateUser err = %v, want context.Canceled", err)
+	}
+
+	assertCount(t, db, &models.User{}, 0)
+	assertCount(t, db, &statsusers.SettingTile{}, 0)
+	assertCount(t, db, &statsusers.SessionStats_users{}, 0)
+	assertCount(t, db, &statsusers.SideStats_users{}, 0)
+}
+
 func TestRegisterServiceCreateUserRejectsResetPasswordSessionWithoutSideEffects(t *testing.T) {
 	db := newRegisterDB(t)
 	repo := &testPostgresRepository{db: db}
@@ -297,7 +510,7 @@ func TestRegisterServiceCreateUserRejectsResetPasswordSessionWithoutSideEffects(
 		},
 	}
 
-	service := newRegisterServiceForTest(t, store, repo, notifier)
+	service := newRegisterServiceForTest(t, store, register.NewGORMRegistrationStore(repo), notifier)
 	authResponse, err := service.CreateUser(context.Background(), register.CreateUserInput{
 		Name:      "Valid User",
 		Password:  "Password123!",
@@ -338,7 +551,7 @@ func TestRegisterServiceCreateUserRejectsEmailMismatchWithoutSideEffects(t *test
 		},
 	}
 
-	service := newRegisterServiceForTest(t, store, repo, notifier)
+	service := newRegisterServiceForTest(t, store, register.NewGORMRegistrationStore(repo), notifier)
 	authResponse, err := service.CreateUser(context.Background(), register.CreateUserInput{
 		Name:      "Valid User",
 		Password:  "Password123!",
@@ -391,7 +604,7 @@ func TestRegisterServiceChangePasswordRejectsWrongSessionTypeAndPreservesPasswor
 		t.Fatalf("create user: %v", err)
 	}
 
-	service := newRegisterServiceForTest(t, store, repo, nil)
+	service := newRegisterServiceForTest(t, store, register.NewGORMRegistrationStore(repo), nil)
 	err := service.ChangePassword(context.Background(), register.ChangePasswordInput{
 		NewPassword: "NewPassword123!",
 		Email:       "user@example.com",
@@ -432,7 +645,7 @@ func TestRegisterServiceChangePasswordRejectsEmailMismatchAndPreservesPassword(t
 		t.Fatalf("create user: %v", err)
 	}
 
-	service := newRegisterServiceForTest(t, store, repo, nil)
+	service := newRegisterServiceForTest(t, store, register.NewGORMRegistrationStore(repo), nil)
 	err := service.ChangePassword(context.Background(), register.ChangePasswordInput{
 		NewPassword: "NewPassword123!",
 		Email:       "other@example.com",
@@ -451,11 +664,109 @@ func TestRegisterServiceChangePasswordRejectsEmailMismatchAndPreservesPassword(t
 	assertUserPasswordHash(t, db, "bound@example.com", originalPassword)
 }
 
-func newRegisterServiceForTest(t *testing.T, store *fakeSessionStore, repo *testPostgresRepository, notifier *fakeRegistrationEmailSender) register.RegService {
+func TestRegisterServiceChangePasswordDelegatesToStoreAndDeletesSession(t *testing.T) {
+	sessions := newFakeSessionStore()
+	sessions.sessions["verified-reset-session"] = &session.Session{
+		IsVerified: true,
+		Type:       models.SessionTypeResetPassword,
+		Extra: map[string]string{
+			"email": "user@example.com",
+		},
+	}
+	registrationStore := &fakeRegistrationStore{changePasswordID: 51}
+	service := newRegisterServiceForTest(t, sessions, registrationStore, nil)
+
+	err := service.ChangePassword(context.Background(), register.ChangePasswordInput{
+		NewPassword: "NewPassword123!",
+		Email:       "USER@example.com",
+		SessionID:   "verified-reset-session",
+	})
+	if err != nil {
+		t.Fatalf("ChangePassword returned error: %v", err)
+	}
+	if len(registrationStore.changePasswordCalls) != 1 {
+		t.Fatalf("ChangePasswordByEmail calls = %d, want 1", len(registrationStore.changePasswordCalls))
+	}
+	call := registrationStore.changePasswordCalls[0]
+	if call.email != "user@example.com" {
+		t.Fatalf("ChangePasswordByEmail email = %q, want normalized bound email", call.email)
+	}
+	if !utils.VerifyPassword(call.hashedPassword, "NewPassword123!") {
+		t.Fatal("ChangePasswordByEmail received an invalid password hash")
+	}
+	if !sessions.deleted["verified-reset-session"] {
+		t.Fatal("reset-password session was not deleted after store success")
+	}
+}
+
+func TestRegisterServiceChangePasswordPreservesSessionWhenUserIsMissing(t *testing.T) {
+	sessions := newFakeSessionStore()
+	sessions.sessions["verified-reset-session"] = &session.Session{
+		IsVerified: true,
+		Type:       models.SessionTypeResetPassword,
+		Extra: map[string]string{
+			"email": "missing@example.com",
+		},
+	}
+	registrationStore := &fakeRegistrationStore{changePasswordErr: register.ErrUserNotFound}
+	service := newRegisterServiceForTest(t, sessions, registrationStore, nil)
+
+	err := service.ChangePassword(context.Background(), register.ChangePasswordInput{
+		NewPassword: "NewPassword123!",
+		Email:       "missing@example.com",
+		SessionID:   "verified-reset-session",
+	})
+	if !errors.Is(err, register.ErrUserNotFound) {
+		t.Fatalf("err = %v, want ErrUserNotFound", err)
+	}
+	if len(registrationStore.changePasswordCalls) != 1 {
+		t.Fatalf("ChangePasswordByEmail calls = %d, want 1", len(registrationStore.changePasswordCalls))
+	}
+	if sessions.deleted["verified-reset-session"] {
+		t.Fatal("reset-password session was deleted after store failure")
+	}
+}
+
+func TestGORMRegistrationStoreChangePasswordMapsMissingUser(t *testing.T) {
+	db := newRegisterDB(t)
+	registrationStore := register.NewGORMRegistrationStore(&testPostgresRepository{db: db})
+
+	_, err := registrationStore.ChangePasswordByEmail(context.Background(), "missing@example.com", mustHashPassword(t, "NewPassword123!"))
+	if !errors.Is(err, register.ErrUserNotFound) {
+		t.Fatalf("ChangePasswordByEmail err = %v, want ErrUserNotFound", err)
+	}
+}
+
+func TestGORMRegistrationStoreChangesPasswordAndReturnsUserID(t *testing.T) {
+	db := newRegisterDB(t)
+	oldHash := mustHashPassword(t, "OldPassword123!")
+	user := models.User{
+		Name:     "Existing User",
+		Password: oldHash,
+		Us:       "password-user",
+		Email:    "password@example.com",
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	newHash := mustHashPassword(t, "NewPassword123!")
+	registrationStore := register.NewGORMRegistrationStore(&testPostgresRepository{db: db})
+	userID, err := registrationStore.ChangePasswordByEmail(context.Background(), user.Email, newHash)
+	if err != nil {
+		t.Fatalf("ChangePasswordByEmail returned error: %v", err)
+	}
+	if userID != user.ID {
+		t.Fatalf("ChangePasswordByEmail userID = %d, want %d", userID, user.ID)
+	}
+	assertUserPasswordHash(t, db, user.Email, newHash)
+}
+
+func newRegisterServiceForTest(t *testing.T, store *fakeSessionStore, registrationStore register.RegistrationStore, notifier *fakeRegistrationEmailSender) register.RegService {
 	t.Helper()
 
-	if repo == nil {
-		repo = &testPostgresRepository{db: newRegisterDB(t)}
+	if registrationStore == nil {
+		registrationStore = &fakeRegistrationStore{}
 	}
 	if notifier == nil {
 		notifier = &fakeRegistrationEmailSender{}
@@ -464,7 +775,7 @@ func newRegisterServiceForTest(t *testing.T, store *fakeSessionStore, repo *test
 	service := register.NewRegisterSrvWithEmailSender(
 		&testLogger{},
 		store,
-		repo,
+		registrationStore,
 		&config.Config{},
 		utils.NewJWTUtils("test-secret"),
 		notifier,
@@ -475,9 +786,14 @@ func newRegisterServiceForTest(t *testing.T, store *fakeSessionStore, repo *test
 func newRegisterDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	dsn := "file:" + strings.NewReplacer("/", "_", " ", "_").Replace(t.Name()) + "-" +
+		strconv.FormatInt(time.Now().UnixNano(), 10) + "?mode=memory&cache=shared"
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{TranslateError: true})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
+	}
+	if err := db.Exec("PRAGMA foreign_keys = ON").Error; err != nil {
+		t.Fatalf("enable foreign keys: %v", err)
 	}
 
 	if err := db.AutoMigrate(
@@ -488,6 +804,9 @@ func newRegisterDB(t *testing.T) *gorm.DB {
 		&statsusers.SideStats_users{},
 	); err != nil {
 		t.Fatalf("auto migrate register models: %v", err)
+	}
+	if err := db.FirstOrCreate(&models.DaysWeek{ID: 1, Name: "Monday"}).Error; err != nil {
+		t.Fatalf("seed default day: %v", err)
 	}
 
 	return db

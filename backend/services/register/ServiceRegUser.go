@@ -9,15 +9,10 @@ import (
 	"friendship/logger"
 	"friendship/models"
 	"friendship/models/dto"
-	statsusers "friendship/models/stats_users"
-	"friendship/repository"
 	session "friendship/sessions"
 	"friendship/utils"
 	"math/rand"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgconn"
-	"gorm.io/gorm"
 )
 
 type CreateUserInput struct {
@@ -66,7 +61,7 @@ type regService struct {
 	logger     logger.Logger
 	redis      session.SessionStore
 	cfg        *config.Config
-	postgres   repository.PostgresRepository
+	store      RegistrationStore
 	jwtService *utils.JWTUtils
 	notifier   registrationEmailSender
 }
@@ -74,7 +69,7 @@ type regService struct {
 func NewRegisterSrv(
 	logger logger.Logger,
 	redis session.SessionStore,
-	postgres repository.PostgresRepository,
+	store RegistrationStore,
 	cfg *config.Config,
 	jwtService *utils.JWTUtils,
 ) (RegService, error) {
@@ -86,7 +81,7 @@ func NewRegisterSrv(
 	return NewRegisterSrvWithEmailSender(
 		logger,
 		redis,
-		postgres,
+		store,
 		cfg,
 		jwtService,
 		&templateRegistrationEmailSender{
@@ -100,7 +95,7 @@ func NewRegisterSrv(
 func NewRegisterSrvWithEmailSender(
 	logger logger.Logger,
 	redis session.SessionStore,
-	postgres repository.PostgresRepository,
+	store RegistrationStore,
 	cfg *config.Config,
 	jwtService *utils.JWTUtils,
 	notifier registrationEmailSender,
@@ -109,7 +104,7 @@ func NewRegisterSrvWithEmailSender(
 		logger:     logger,
 		redis:      redis,
 		cfg:        cfg,
-		postgres:   postgres,
+		store:      store,
 		jwtService: jwtService,
 		notifier:   notifier,
 	}
@@ -136,55 +131,11 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 		return nil, fmt.Errorf("ошибка хэширования пароля: %w", err)
 	}
 
-	user := models.User{
-		Name:     input.Name,
-		Password: hashPass,
-		Email:    boundEmail,
-		Us:       us,
-	}
-
-	err = s.postgres.Transaction(func(tx repository.PostgresRepository) error {
-		if err := tx.Create(&user).Error; err != nil {
-			var pgErr *pgconn.PgError
-			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-				return ErrUserAlreadyExists
-			}
-			return fmt.Errorf("ошибка создания пользователя: %w", err)
-		}
-
-		defaultTiles := statsusers.SettingTile{
-			UserID:      user.ID,
-			Count_films: true,
-			Count_games: true,
-			Count_table: true,
-			Count_other: false,
-			Count_all:   true,
-			Spent_time:  false,
-		}
-
-		if err := tx.Create(&defaultTiles).Error; err != nil {
-			return fmt.Errorf("не удалось создать настройки тайлов: %w", err)
-		}
-
-		statsUser := statsusers.SessionStats_users{
-			UserID: user.ID,
-		}
-
-		if err := tx.Create(&statsUser).Error; err != nil {
-			return fmt.Errorf("не удалось создать статистику пользователя: %w", err)
-		}
-
-		defaultDay := uint16(1)
-		sideInf := statsusers.SideStats_users{
-			UserID:     &user.ID,
-			MostPopDay: &defaultDay,
-		}
-
-		if err := tx.Create(&sideInf).Error; err != nil {
-			return fmt.Errorf("не удалось создать статистику сессии: %w", err)
-		}
-
-		return nil
+	user, err := s.store.CreateUser(ctx, UserBootstrap{
+		Name:           input.Name,
+		HashedPassword: hashPass,
+		Email:          boundEmail,
+		Username:       us,
 	})
 
 	if err != nil {
@@ -201,7 +152,7 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 
 	s.logger.Info("Пользователь успешно создан", "userID", user.ID, "email", user.Email)
 
-	tokenPair, err := s.jwtService.GenerateTokenPair(user.ID, user.Name, user.Us, user.Image)
+	tokenPair, err := s.jwtService.GenerateTokenPair(user.ID, user.Name, user.Username, user.Image)
 	if err != nil {
 		s.logger.Error("Не удалось сгенерировать токены после регистрации", "userID", user.ID, "error", err)
 		return nil, fmt.Errorf("пользователь создан, но не удалось сгенерировать токены: %w", err)
@@ -405,24 +356,19 @@ func (s *regService) ChangePassword(ctx context.Context, input ChangePasswordInp
 		return err
 	}
 
-	var user models.User
-	if err := s.postgres.Where("email = ?", boundEmail).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			s.logger.Warn("Пользователь для смены пароля не найден", "email", boundEmail)
-			return ErrUserNotFound
-		}
-		s.logger.Error("Не удалось найти пользователя", "email", boundEmail, "error", err)
-		return err
-	}
-
 	hashPass, err := utils.HashPassword(input.NewPassword)
 	if err != nil {
 		s.logger.Error("Не удалось захешировать новый пароль", "error", err)
 		return fmt.Errorf("ошибка хэширования пароля: %w", err)
 	}
 
-	if err := s.postgres.Model(&user).Update("password", hashPass).Error; err != nil {
-		s.logger.Error("Не удалось обновить пароль пользователя", "userID", user.ID, "error", err)
+	userID, err := s.store.ChangePasswordByEmail(ctx, boundEmail, hashPass)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			s.logger.Warn("Пользователь для смены пароля не найден", "email", boundEmail)
+			return ErrUserNotFound
+		}
+		s.logger.Error("Не удалось обновить пароль пользователя", "email", boundEmail, "error", err)
 		return err
 	}
 
@@ -430,7 +376,7 @@ func (s *regService) ChangePassword(ctx context.Context, input ChangePasswordInp
 		s.logger.Warn("Не удалось удалить сессию после смены пароля", "sessionID", input.SessionID, "error", err)
 	}
 
-	s.logger.Info("Пароль успешно изменен", "userID", user.ID, "email", boundEmail)
+	s.logger.Info("Пароль успешно изменен", "userID", userID, "email", boundEmail)
 	return nil
 }
 

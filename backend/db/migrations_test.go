@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"path/filepath"
@@ -64,6 +65,9 @@ func (r *recordingRepository) ScanRows(rows *sql.Rows, result interface{}) error
 }
 func (r *recordingRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
 	panic("unexpected call to Transaction")
+}
+func (r *recordingRepository) TransactionWithContext(ctx context.Context, fc func(tx repository.PostgresRepository) error) error {
+	panic("unexpected call to TransactionWithContext")
 }
 func (r *recordingRepository) Close() error { panic("unexpected call to Close") }
 func (r *recordingRepository) DropTableIfExists(value interface{}) error {
@@ -134,6 +138,11 @@ func (r *gormRepository) ScanRows(rows *sql.Rows, result interface{}) error {
 }
 func (r *gormRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		return fc(&gormRepository{db: tx})
+	})
+}
+func (r *gormRepository) TransactionWithContext(ctx context.Context, fc func(tx repository.PostgresRepository) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return fc(&gormRepository{db: tx})
 	})
 }

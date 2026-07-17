@@ -86,6 +86,43 @@ func TestGroupStoresDoNotImportSharedPostgresRepository(t *testing.T) {
 	}
 }
 
+func TestRegistrationServiceDoesNotImportStorageLibraries(t *testing.T) {
+	registerDir := filepath.Join("..", "services", "register")
+	allowedAdapter := filepath.Join(registerDir, "gorm_registration_store.go")
+
+	err := filepath.WalkDir(registerDir, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || filepath.Ext(path) != ".go" || path == allowedAdapter {
+			return nil
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		text := string(content)
+		for _, forbidden := range []string{
+			`"friendship/repository"`,
+			`"gorm.io/`,
+			`"github.com/jackc/pgx/`,
+			"repository.PostgresRepository",
+			"gorm.DB",
+			"pgconn.PgError",
+		} {
+			if strings.Contains(text, forbidden) {
+				t.Fatalf("%s references storage implementation %q; keep it isolated in %s", path, forbidden, allowedAdapter)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walk registration services: %v", err)
+	}
+}
+
 func TestNewEventsServiceAcceptsLocalPortAndPreservesBehavior(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}

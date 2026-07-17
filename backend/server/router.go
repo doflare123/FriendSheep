@@ -23,7 +23,8 @@ func (s *Server) initRouters() {
 	authsrv := services.NewAuthService(s.logger, jwtService, s.postgres)
 	authH := handlers.NewAuthHandler(authsrv)
 	routes.RegisterAuthRoutes(s.engine, authH)
-	regsrv, err := register.NewRegisterSrv(s.logger, s.sessionStore, s.postgres, &s.cfg, jwtService)
+	registrationStore := register.NewGORMRegistrationStore(s.postgres)
+	regsrv, err := register.NewRegisterSrv(s.logger, s.sessionStore, registrationStore, &s.cfg, jwtService)
 	if err != nil {
 		s.logger.Fatal("Failed to create register service", "error", err)
 	}
