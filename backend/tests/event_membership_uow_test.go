@@ -259,3 +259,92 @@ func TestGORMEventAuditSavepointKeepsJoinAndLeaveCommittedAfterInsertFailure(t *
 	assertEventCurrentUsers(t, db, eventID, 1)
 	assertGroupActionLogCount(t, db, groupID, groupmodels.ActionLeaveEvent, 0)
 }
+
+func TestGORMEventAuditSavepointKeepsCreateCommandCommittedAfterInsertFailure(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventCommandService(
+		&testLogger{},
+		servicesevents.NewGORMEventUnitOfWork(repo),
+	)
+
+	seedEventReferences(t, db)
+	seedEventUser(t, db, 1)
+	groupID := seedEventGroup(t, db, 1, false)
+	seedEventGroupMembershipWithRole(t, db, 1, groupID, groupmodels.RoleAdmin)
+	genreID := seedEventGenre(t, db, "Savepoint genre")
+
+	if err := db.Exec(`
+		CREATE TRIGGER fail_event_command_audit_insert
+		BEFORE INSERT ON group_action_logs
+		BEGIN
+			SELECT RAISE(ABORT, 'injected event command audit failure');
+		END
+	`).Error; err != nil {
+		t.Fatalf("create command audit failure trigger: %v", err)
+	}
+
+	input := validCreateEventCommandInput()
+	input.GroupID = groupID
+	input.EventTypeID = 1
+	input.LocationID = 1
+	input.AgeLimitID = 1
+	input.Genres = []uint{genreID}
+
+	result, err := service.CreateEvent(context.Background(), 1, input)
+
+	if err != nil {
+		t.Fatalf("CreateEvent returned audit error: %v", err)
+	}
+	if result == nil || result.ID == 0 {
+		t.Fatalf("result = %#v, want created event", result)
+	}
+	assertEventExists(t, db, result.ID, true)
+	assertEventCurrentUsers(t, db, result.ID, 1)
+	assertEventParticipantExists(t, db, result.ID, 1, true)
+	assertEventGenreLinked(t, db, result.ID, genreID, true)
+	assertGroupActionLogCount(t, db, groupID, groupmodels.ActionCreateEvent, 0)
+}
+
+func TestGORMEventCommandDeleteRollsBackAggregateWhenEventDeleteFails(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventCommandService(
+		&testLogger{},
+		servicesevents.NewGORMEventUnitOfWork(repo),
+	)
+
+	seedEventUser(t, db, 1)
+	seedEventUser(t, db, 2)
+	groupID := seedEventGroup(t, db, 1, false)
+	seedEventGroupMembershipWithRole(t, db, 1, groupID, groupmodels.RoleAdmin)
+	eventID := seedEvent(t, db, groupID, 1, 2, 5)
+	genreID := seedEventGenre(t, db, "Rollback genre")
+	seedEventGenreRelation(t, db, eventID, genreID)
+	seedEventParticipant(t, db, eventID, 1)
+	seedEventParticipant(t, db, eventID, 2)
+
+	if err := db.Exec(`
+		CREATE TRIGGER fail_event_aggregate_delete
+		BEFORE DELETE ON events
+		BEGIN
+			SELECT RAISE(ABORT, 'injected event aggregate delete failure');
+		END
+	`).Error; err != nil {
+		t.Fatalf("create aggregate delete failure trigger: %v", err)
+	}
+
+	deleted, err := service.DeleteEvent(context.Background(), 1, eventID)
+
+	if deleted {
+		t.Fatal("DeleteEvent returned true")
+	}
+	if err == nil || !strings.Contains(err.Error(), "injected event aggregate delete failure") {
+		t.Fatalf("DeleteEvent err = %v, want injected aggregate delete failure", err)
+	}
+	assertEventExists(t, db, eventID, true)
+	assertEventParticipantExists(t, db, eventID, 1, true)
+	assertEventParticipantExists(t, db, eventID, 2, true)
+	assertEventGenreLinked(t, db, eventID, genreID, true)
+	assertGroupActionLogCount(t, db, groupID, groupmodels.ActionDeleteEvent, 0)
+}

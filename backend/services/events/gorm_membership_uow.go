@@ -43,7 +43,7 @@ func NewGORMEventUnitOfWork(transactor eventRepositoryTransactor) EventUnitOfWor
 
 func (uow *gormEventUnitOfWork) WithinTransaction(ctx context.Context, fn func(EventTransaction) error) error {
 	if ctx == nil {
-		return errors.New("контекст транзакции участия в событии не задан")
+		return errors.New("контекст транзакции события не задан")
 	}
 	if fn == nil {
 		return errEventTransactionCallbackMissing
@@ -52,6 +52,7 @@ func (uow *gormEventUnitOfWork) WithinTransaction(ctx context.Context, fn func(E
 	return uow.transactor.TransactionWithContext(ctx, func(tx repository.PostgresRepository) error {
 		return fn(NewEventTransaction(EventTransactionStores{
 			MembershipStore: &gormEventMembershipStore{repo: tx},
+			CommandStore:    &gormEventCommandStore{repo: tx},
 			AuditStore:      &gormEventAuditStore{repo: tx, ctx: ctx},
 		}))
 	})

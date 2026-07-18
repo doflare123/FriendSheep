@@ -31,17 +31,20 @@ type EventsHandler interface {
 type eventsHandler struct {
 	srv        events.EventsService
 	membership events.EventMembershipService
+	commands   events.EventCommandService
 }
 
 type EventsHandlerDependencies struct {
 	Events     events.EventsService
 	Membership events.EventMembershipService
+	Commands   events.EventCommandService
 }
 
 func NewEventsHandler(dependencies EventsHandlerDependencies) EventsHandler {
 	return &eventsHandler{
 		srv:        dependencies.Events,
 		membership: dependencies.Membership,
+		commands:   dependencies.Commands,
 	}
 }
 
@@ -68,7 +71,7 @@ func (h *eventsHandler) CreateEvent(c *gin.Context) {
 		return
 	}
 
-	eventDto, err := h.srv.CreateEvent(actorID, input)
+	eventDto, err := h.commands.CreateEvent(c.Request.Context(), actorID, input)
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrPermissionDenied):
@@ -119,19 +122,23 @@ func (h *eventsHandler) UpdateEvent(c *gin.Context) {
 		return
 	}
 
-	eventDto, err := h.srv.UpdateEvent(actorID, uint(eventID), input)
+	eventDto, err := h.commands.UpdateEvent(c.Request.Context(), actorID, uint(eventID), input)
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):
 			utils.NotFound(c, "Событие не найдено")
 		case errors.Is(err, events.ErrPermissionDenied):
 			utils.Forbidden(c, "Недостаточно прав")
+		case errors.Is(err, events.ErrNotGroupMember):
+			utils.Forbidden(c, "Вы не состоите в группе")
 		case errors.Is(err, events.ErrEventAlreadyStarted):
 			utils.BadRequest(c, "Событие уже началось, изменение невозможно")
 		case errors.Is(err, events.ErrInvalidGenres):
 			utils.BadRequest(c, err.Error())
 		case errors.Is(err, events.ErrAgeLimitNotFound):
 			utils.BadRequest(c, "Возрастное ограничение не найдено")
+		case errors.Is(err, events.ErrMaxUsersBelowCurrent):
+			utils.BadRequest(c, err.Error())
 		default:
 			utils.InternalError(c, err.Error())
 		}
@@ -163,13 +170,15 @@ func (h *eventsHandler) DeleteEvent(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.DeleteEvent(actorID, uint(eventID))
+	success, err := h.commands.DeleteEvent(c.Request.Context(), actorID, uint(eventID))
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):
 			utils.NotFound(c, "Событие не найдено")
 		case errors.Is(err, events.ErrPermissionDenied):
 			utils.Forbidden(c, "Недостаточно прав")
+		case errors.Is(err, events.ErrNotGroupMember):
+			utils.Forbidden(c, "Вы не состоите в группе")
 		default:
 			utils.InternalError(c, err.Error())
 		}

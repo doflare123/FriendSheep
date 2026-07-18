@@ -84,15 +84,20 @@ func (s *eventMembershipStoreStub) DecrementParticipants(eventID uint) error {
 type eventAuditStoreStub struct {
 	recordErr error
 	entries   []servicesevents.EventAuditInput
+	record    func(servicesevents.EventAuditInput)
 }
 
 func (s *eventAuditStoreStub) RecordBestEffort(entry servicesevents.EventAuditInput) error {
 	s.entries = append(s.entries, entry)
+	if s.record != nil {
+		s.record(entry)
+	}
 	return s.recordErr
 }
 
 type eventUnitOfWorkStub struct {
 	membership *eventMembershipStoreStub
+	commands   servicesevents.EventCommandStore
 	audit      *eventAuditStoreStub
 	err        error
 	ctx        context.Context
@@ -107,6 +112,7 @@ func (u *eventUnitOfWorkStub) WithinTransaction(ctx context.Context, fn func(ser
 	}
 	return fn(servicesevents.NewEventTransaction(servicesevents.EventTransactionStores{
 		MembershipStore: u.membership,
+		CommandStore:    u.commands,
 		AuditStore:      u.audit,
 	}))
 }

@@ -30,11 +30,6 @@ var (
 )
 
 type EventsService interface {
-	// Управление событиями
-	CreateEvent(actorID uint, input CreateEventInput) (*dto.EventFullDto, error)
-	UpdateEvent(actorID uint, eventID uint, input UpdateEventInput) (*dto.EventFullDto, error)
-	DeleteEvent(actorID uint, eventID uint) (bool, error)
-
 	// Получение информации
 	SearchEvents(userID uint, input EventSearchInput) (*dto.EventSearchResponse, error)
 	GetGroupEvents(actorID uint, groupID uint) ([]dto.EventShortDto, error)

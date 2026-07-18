@@ -124,9 +124,10 @@ func TestRegistrationServiceDoesNotImportStorageLibraries(t *testing.T) {
 	}
 }
 
-func TestEventMembershipApplicationDoesNotImportStorageLibraries(t *testing.T) {
+func TestEventApplicationServicesDoNotImportStorageLibraries(t *testing.T) {
 	eventsDir := filepath.Join("..", "services", "events")
 	applicationFiles := []string{
+		filepath.Join(eventsDir, "command_service.go"),
 		filepath.Join(eventsDir, "membership_uow.go"),
 		filepath.Join(eventsDir, "membership_service.go"),
 	}
@@ -140,16 +141,49 @@ func TestEventMembershipApplicationDoesNotImportStorageLibraries(t *testing.T) {
 		text := string(content)
 		for _, forbidden := range []string{
 			`"friendship/repository"`,
+			`"friendship/models/events"`,
 			`"gorm.io/`,
 			`"github.com/jackc/pgx/`,
 			"repository.PostgresRepository",
+			"eventmodels.",
 			"gorm.DB",
 			"pgconn.PgError",
 		} {
 			if strings.Contains(text, forbidden) {
-				t.Fatalf("%s references storage implementation %q; keep it isolated in gorm_membership_uow.go", path, forbidden)
+				t.Fatalf("%s references storage implementation %q; keep it isolated in GORM adapter files", path, forbidden)
 			}
 		}
+	}
+}
+
+func TestNewEventCommandServiceAcceptsOnlyLoggerAndUnitOfWork(t *testing.T) {
+	constructorType := reflect.TypeOf(servicesevents.NewEventCommandService)
+	if constructorType.NumIn() != 2 {
+		t.Fatalf("NewEventCommandService has %d arguments, want 2", constructorType.NumIn())
+	}
+
+	loggerType := reflect.TypeOf((*applicationlogger.Logger)(nil)).Elem()
+	if constructorType.In(0) != loggerType {
+		t.Fatalf("NewEventCommandService first argument = %v, want %v", constructorType.In(0), loggerType)
+	}
+	uowType := reflect.TypeOf((*servicesevents.EventUnitOfWork)(nil)).Elem()
+	if constructorType.In(1) != uowType {
+		t.Fatalf("NewEventCommandService second argument = %v, want %v", constructorType.In(1), uowType)
+	}
+
+	uow := &eventUnitOfWorkStub{}
+	out := reflect.ValueOf(servicesevents.NewEventCommandService).Call([]reflect.Value{
+		reflect.ValueOf(&testLogger{}),
+		reflect.ValueOf(uow),
+	})
+	service, ok := out[0].Interface().(servicesevents.EventCommandService)
+	if !ok || service == nil {
+		t.Fatalf("NewEventCommandService returned %T, want EventCommandService", out[0].Interface())
+	}
+
+	repo := &testPostgresRepository{}
+	if constructorAcceptsRepo(servicesevents.NewEventCommandService, repo) {
+		t.Fatal("NewEventCommandService accepts broad GORM-shaped repository; want EventUnitOfWork")
 	}
 }
 
@@ -196,11 +230,11 @@ func TestNewEventMembershipServiceAcceptsOnlyLoggerAndUnitOfWork(t *testing.T) {
 	}
 }
 
-func TestEventsServiceDoesNotExposeMembershipOrStoreUnitOfWork(t *testing.T) {
+func TestEventsServiceDoesNotExposeCommandsMembershipOrStoreUnitOfWork(t *testing.T) {
 	serviceInterface := reflect.TypeOf((*servicesevents.EventsService)(nil)).Elem()
-	for _, methodName := range []string{"JoinEvent", "LeaveEvent"} {
+	for _, methodName := range []string{"CreateEvent", "UpdateEvent", "DeleteEvent", "JoinEvent", "LeaveEvent"} {
 		if _, exists := serviceInterface.MethodByName(methodName); exists {
-			t.Fatalf("EventsService still exposes %s; keep membership in EventMembershipService", methodName)
+			t.Fatalf("EventsService still exposes %s; keep writes in focused command or membership services", methodName)
 		}
 	}
 

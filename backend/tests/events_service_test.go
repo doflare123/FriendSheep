@@ -210,10 +210,10 @@ func TestEventMembershipServiceLeaveEventReturnsEventNotFound(t *testing.T) {
 	}
 }
 
-func TestEventsServiceCreateEventCreatesEventRelationsAndActionLog(t *testing.T) {
+func TestEventCommandServiceCreateEventCreatesEventRelationsAndActionLog(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventCommandService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventReferences(t, db)
 	seedEventUser(t, db, 1)
@@ -221,7 +221,7 @@ func TestEventsServiceCreateEventCreatesEventRelationsAndActionLog(t *testing.T)
 	seedEventGroupMembershipWithRole(t, db, 1, groupID, "Админ")
 	genreID := seedEventGenre(t, db, "Strategy")
 
-	eventDTO, err := service.CreateEvent(1, servicesevents.CreateEventInput{
+	eventDTO, err := service.CreateEvent(context.Background(), 1, servicesevents.CreateEventInput{
 		Title:       "Board Game Night",
 		Description: "Long enough event description",
 		GroupID:     groupID,
@@ -247,17 +247,17 @@ func TestEventsServiceCreateEventCreatesEventRelationsAndActionLog(t *testing.T)
 	assertGroupActionLogCount(t, db, groupID, "create_event", 1)
 }
 
-func TestEventsServiceCreateEventRollsBackWhenGenreMissing(t *testing.T) {
+func TestEventCommandServiceCreateEventRollsBackWhenGenreMissing(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventCommandService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventReferences(t, db)
 	seedEventUser(t, db, 1)
 	groupID := seedEventGroup(t, db, 1, false)
 	seedEventGroupMembershipWithRole(t, db, 1, groupID, "Админ")
 
-	eventDTO, err := service.CreateEvent(1, servicesevents.CreateEventInput{
+	eventDTO, err := service.CreateEvent(context.Background(), 1, servicesevents.CreateEventInput{
 		Title:       "Board Game Night",
 		Description: "Long enough event description",
 		GroupID:     groupID,
@@ -283,10 +283,10 @@ func TestEventsServiceCreateEventRollsBackWhenGenreMissing(t *testing.T) {
 	assertGroupActionLogCount(t, db, groupID, "create_event", 0)
 }
 
-func TestEventsServiceCreateEventRollsBackWhenAgeLimitMissing(t *testing.T) {
+func TestEventCommandServiceCreateEventRollsBackWhenAgeLimitMissing(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventCommandService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventReferences(t, db)
 	seedEventUser(t, db, 1)
@@ -294,7 +294,7 @@ func TestEventsServiceCreateEventRollsBackWhenAgeLimitMissing(t *testing.T) {
 	seedEventGroupMembershipWithRole(t, db, 1, groupID, "Админ")
 	genreID := seedEventGenre(t, db, "Strategy")
 
-	eventDTO, err := service.CreateEvent(1, servicesevents.CreateEventInput{
+	eventDTO, err := service.CreateEvent(context.Background(), 1, servicesevents.CreateEventInput{
 		Title:       "Board Game Night",
 		Description: "Long enough event description",
 		GroupID:     groupID,
@@ -320,10 +320,10 @@ func TestEventsServiceCreateEventRollsBackWhenAgeLimitMissing(t *testing.T) {
 	assertGroupActionLogCount(t, db, groupID, "create_event", 0)
 }
 
-func TestEventsServiceDeleteEventRemovesEventRelationsAndWritesActionLog(t *testing.T) {
+func TestEventCommandServiceDeleteEventRemovesEventRelationsAndWritesActionLog(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventCommandService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -335,7 +335,7 @@ func TestEventsServiceDeleteEventRemovesEventRelationsAndWritesActionLog(t *test
 	seedEventParticipant(t, db, eventID, 1)
 	seedEventParticipant(t, db, eventID, 2)
 
-	deleted, err := service.DeleteEvent(1, eventID)
+	deleted, err := service.DeleteEvent(context.Background(), 1, eventID)
 
 	if err != nil {
 		t.Fatalf("DeleteEvent returned error: %v", err)
@@ -406,10 +406,10 @@ func TestEventsServiceKickUserFromEventRejectsCreatorWithoutSideEffects(t *testi
 	assertGroupActionLogCount(t, db, groupID, "kick_from_event", 0)
 }
 
-func TestEventsServiceUpdateEventRecomputesEndTimeReplacesGenresAndWritesActionLog(t *testing.T) {
+func TestEventCommandServiceUpdateEventRecomputesEndTimeReplacesGenresAndWritesActionLog(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventCommandService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventUser(t, db, 1)
 	groupID := seedEventGroup(t, db, 1, false)
@@ -423,7 +423,7 @@ func TestEventsServiceUpdateEventRecomputesEndTimeReplacesGenresAndWritesActionL
 	newDuration := uint16(180)
 	newTitle := "Updated Event Title"
 
-	eventDTO, err := service.UpdateEvent(1, eventID, servicesevents.UpdateEventInput{
+	eventDTO, err := service.UpdateEvent(context.Background(), 1, eventID, servicesevents.UpdateEventInput{
 		Title:      &newTitle,
 		LocationID: &newLocationID,
 		StartTime:  &newStart,
@@ -444,10 +444,10 @@ func TestEventsServiceUpdateEventRecomputesEndTimeReplacesGenresAndWritesActionL
 	assertGroupActionLogCount(t, db, groupID, "update_event", 1)
 }
 
-func TestEventsServiceUpdateEventRejectsStartedEventWithoutSideEffects(t *testing.T) {
+func TestEventCommandServiceUpdateEventRejectsStartedEventWithoutSideEffects(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventCommandService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventUser(t, db, 1)
 	groupID := seedEventGroup(t, db, 1, false)
@@ -459,7 +459,7 @@ func TestEventsServiceUpdateEventRejectsStartedEventWithoutSideEffects(t *testin
 	}
 	newTitle := "Should Not Be Saved"
 
-	eventDTO, err := service.UpdateEvent(1, eventID, servicesevents.UpdateEventInput{Title: &newTitle})
+	eventDTO, err := service.UpdateEvent(context.Background(), 1, eventID, servicesevents.UpdateEventInput{Title: &newTitle})
 
 	if eventDTO != nil {
 		t.Fatalf("eventDTO = %#v, want nil", eventDTO)
@@ -471,10 +471,10 @@ func TestEventsServiceUpdateEventRejectsStartedEventWithoutSideEffects(t *testin
 	assertGroupActionLogCount(t, db, groupID, "update_event", 0)
 }
 
-func TestEventsServiceUpdateEventRollsBackInvalidGenreReplacement(t *testing.T) {
+func TestEventCommandServiceUpdateEventRollsBackInvalidGenreReplacement(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventCommandService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventUser(t, db, 1)
 	groupID := seedEventGroup(t, db, 1, false)
@@ -484,7 +484,7 @@ func TestEventsServiceUpdateEventRollsBackInvalidGenreReplacement(t *testing.T) 
 	seedEventGenreRelation(t, db, eventID, oldGenreID)
 	newTitle := "Should Roll Back"
 
-	eventDTO, err := service.UpdateEvent(1, eventID, servicesevents.UpdateEventInput{
+	eventDTO, err := service.UpdateEvent(context.Background(), 1, eventID, servicesevents.UpdateEventInput{
 		Title:  &newTitle,
 		Genres: []uint{999},
 	})
@@ -501,10 +501,10 @@ func TestEventsServiceUpdateEventRollsBackInvalidGenreReplacement(t *testing.T) 
 	assertGroupActionLogCount(t, db, groupID, "update_event", 0)
 }
 
-func TestEventsServiceUpdateEventRejectsMissingAgeLimitWithoutSideEffects(t *testing.T) {
+func TestEventCommandServiceUpdateEventRejectsMissingAgeLimitWithoutSideEffects(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventCommandService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventUser(t, db, 1)
 	groupID := seedEventGroup(t, db, 1, false)
@@ -515,7 +515,7 @@ func TestEventsServiceUpdateEventRejectsMissingAgeLimitWithoutSideEffects(t *tes
 	missingAgeLimitID := uint(999)
 	newTitle := "Should Roll Back"
 
-	eventDTO, err := service.UpdateEvent(1, eventID, servicesevents.UpdateEventInput{
+	eventDTO, err := service.UpdateEvent(context.Background(), 1, eventID, servicesevents.UpdateEventInput{
 		Title:    &newTitle,
 		AgeLimit: &missingAgeLimitID,
 		Genres:   []uint{oldGenreID},

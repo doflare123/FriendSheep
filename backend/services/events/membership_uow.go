@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	errEventUnitOfWorkUnavailable      = errors.New("хранилище событий не поддерживает транзакции участия")
-	errEventTransactionCallbackMissing = errors.New("обработчик транзакции участия в событии не задан")
+	errEventUnitOfWorkUnavailable      = errors.New("хранилище событий не поддерживает транзакции")
+	errEventTransactionCallbackMissing = errors.New("обработчик транзакции события не задан")
+	errEventCommandStoreUnavailable    = errors.New("хранилище команд событий не настроено")
 )
 
 type EventMembershipSnapshot struct {
@@ -39,29 +40,36 @@ type EventMembershipStore interface {
 }
 
 type EventAuditStore interface {
-	// RecordBestEffort обязана изолировать свою ошибку от основной транзакции участия.
+	// RecordBestEffort обязана изолировать свою ошибку от основной транзакции события.
 	RecordBestEffort(input EventAuditInput) error
 }
 
 type EventTransaction struct {
 	membership EventMembershipStore
+	commands   EventCommandStore
 	audit      EventAuditStore
 }
 
 type EventTransactionStores struct {
 	MembershipStore EventMembershipStore
+	CommandStore    EventCommandStore
 	AuditStore      EventAuditStore
 }
 
 func NewEventTransaction(stores EventTransactionStores) EventTransaction {
 	return EventTransaction{
 		membership: stores.MembershipStore,
+		commands:   stores.CommandStore,
 		audit:      stores.AuditStore,
 	}
 }
 
 func (tx EventTransaction) Membership() EventMembershipStore {
 	return tx.membership
+}
+
+func (tx EventTransaction) Commands() EventCommandStore {
+	return tx.commands
 }
 
 func (tx EventTransaction) Audit() EventAuditStore {
