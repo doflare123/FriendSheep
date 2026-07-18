@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -18,10 +19,10 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
-func TestEventsServiceJoinEventAddsParticipantAndIncrementsCount(t *testing.T) {
+func TestEventMembershipServiceJoinEventAddsParticipantAndIncrementsCount(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventMembershipService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -29,7 +30,7 @@ func TestEventsServiceJoinEventAddsParticipantAndIncrementsCount(t *testing.T) {
 	seedEventGroupMembership(t, db, 2, groupID)
 	eventID := seedEvent(t, db, groupID, 1, 1, 2)
 
-	joined, err := service.JoinEvent(2, eventID)
+	joined, err := service.JoinEvent(context.Background(), 2, eventID)
 
 	if err != nil {
 		t.Fatalf("JoinEvent returned error: %v", err)
@@ -41,17 +42,17 @@ func TestEventsServiceJoinEventAddsParticipantAndIncrementsCount(t *testing.T) {
 	assertEventCurrentUsers(t, db, eventID, 2)
 }
 
-func TestEventsServiceJoinEventRejectsNonGroupMemberWithoutSideEffects(t *testing.T) {
+func TestEventMembershipServiceJoinEventRejectsNonGroupMemberWithoutSideEffects(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventMembershipService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
 	groupID := seedEventGroup(t, db, 1, false)
 	eventID := seedEvent(t, db, groupID, 1, 1, 3)
 
-	joined, err := service.JoinEvent(2, eventID)
+	joined, err := service.JoinEvent(context.Background(), 2, eventID)
 
 	if joined {
 		t.Fatal("JoinEvent returned true")
@@ -63,10 +64,10 @@ func TestEventsServiceJoinEventRejectsNonGroupMemberWithoutSideEffects(t *testin
 	assertEventCurrentUsers(t, db, eventID, 1)
 }
 
-func TestEventsServiceJoinEventRejectsFullEventWithoutSideEffects(t *testing.T) {
+func TestEventMembershipServiceJoinEventRejectsFullEventWithoutSideEffects(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventMembershipService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -74,7 +75,7 @@ func TestEventsServiceJoinEventRejectsFullEventWithoutSideEffects(t *testing.T) 
 	seedEventGroupMembership(t, db, 2, groupID)
 	eventID := seedEvent(t, db, groupID, 1, 1, 1)
 
-	joined, err := service.JoinEvent(2, eventID)
+	joined, err := service.JoinEvent(context.Background(), 2, eventID)
 
 	if joined {
 		t.Fatal("JoinEvent returned true")
@@ -86,10 +87,10 @@ func TestEventsServiceJoinEventRejectsFullEventWithoutSideEffects(t *testing.T) 
 	assertEventCurrentUsers(t, db, eventID, 1)
 }
 
-func TestEventsServiceJoinEventRejectsDuplicateParticipant(t *testing.T) {
+func TestEventMembershipServiceJoinEventRejectsDuplicateParticipant(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventMembershipService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -98,7 +99,7 @@ func TestEventsServiceJoinEventRejectsDuplicateParticipant(t *testing.T) {
 	eventID := seedEvent(t, db, groupID, 1, 2, 3)
 	seedEventParticipant(t, db, eventID, 2)
 
-	joined, err := service.JoinEvent(2, eventID)
+	joined, err := service.JoinEvent(context.Background(), 2, eventID)
 
 	if joined {
 		t.Fatal("JoinEvent returned true")
@@ -110,10 +111,25 @@ func TestEventsServiceJoinEventRejectsDuplicateParticipant(t *testing.T) {
 	assertEventCurrentUsers(t, db, eventID, 2)
 }
 
-func TestEventsServiceLeaveEventRemovesParticipantAndDecrementsCount(t *testing.T) {
+func TestEventMembershipServiceJoinEventReturnsEventNotFound(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventMembershipService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
+
+	joined, err := service.JoinEvent(context.Background(), 2, 999)
+
+	if joined {
+		t.Fatal("JoinEvent returned true")
+	}
+	if !errors.Is(err, servicesevents.ErrEventNotFound) {
+		t.Fatalf("err = %v, want ErrEventNotFound", err)
+	}
+}
+
+func TestEventMembershipServiceLeaveEventRemovesParticipantAndDecrementsCount(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventMembershipService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -122,7 +138,7 @@ func TestEventsServiceLeaveEventRemovesParticipantAndDecrementsCount(t *testing.
 	seedEventParticipant(t, db, eventID, 1)
 	seedEventParticipant(t, db, eventID, 2)
 
-	left, err := service.LeaveEvent(2, eventID)
+	left, err := service.LeaveEvent(context.Background(), 2, eventID)
 
 	if err != nil {
 		t.Fatalf("LeaveEvent returned error: %v", err)
@@ -134,17 +150,17 @@ func TestEventsServiceLeaveEventRemovesParticipantAndDecrementsCount(t *testing.
 	assertEventCurrentUsers(t, db, eventID, 1)
 }
 
-func TestEventsServiceLeaveEventRejectsCreatorWithoutSideEffects(t *testing.T) {
+func TestEventMembershipServiceLeaveEventRejectsCreatorWithoutSideEffects(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventMembershipService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
 
 	seedEventUser(t, db, 1)
 	groupID := seedEventGroup(t, db, 1, false)
 	eventID := seedEvent(t, db, groupID, 1, 1, 3)
 	seedEventParticipant(t, db, eventID, 1)
 
-	left, err := service.LeaveEvent(1, eventID)
+	left, err := service.LeaveEvent(context.Background(), 1, eventID)
 
 	if left {
 		t.Fatal("LeaveEvent returned true")
@@ -154,6 +170,44 @@ func TestEventsServiceLeaveEventRejectsCreatorWithoutSideEffects(t *testing.T) {
 	}
 	assertEventParticipantExists(t, db, eventID, 1, true)
 	assertEventCurrentUsers(t, db, eventID, 1)
+}
+
+func TestEventMembershipServiceLeaveEventRejectsMissingParticipantWithoutSideEffects(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventMembershipService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
+
+	seedEventUser(t, db, 1)
+	seedEventUser(t, db, 2)
+	groupID := seedEventGroup(t, db, 1, false)
+	eventID := seedEvent(t, db, groupID, 1, 1, 3)
+	seedEventParticipant(t, db, eventID, 1)
+
+	left, err := service.LeaveEvent(context.Background(), 2, eventID)
+
+	if left {
+		t.Fatal("LeaveEvent returned true")
+	}
+	if !errors.Is(err, servicesevents.ErrNotJoined) {
+		t.Fatalf("err = %v, want ErrNotJoined", err)
+	}
+	assertEventParticipantExists(t, db, eventID, 2, false)
+	assertEventCurrentUsers(t, db, eventID, 1)
+}
+
+func TestEventMembershipServiceLeaveEventReturnsEventNotFound(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventMembershipService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
+
+	left, err := service.LeaveEvent(context.Background(), 2, 999)
+
+	if left {
+		t.Fatal("LeaveEvent returned true")
+	}
+	if !errors.Is(err, servicesevents.ErrEventNotFound) {
+		t.Fatalf("err = %v, want ErrEventNotFound", err)
+	}
 }
 
 func TestEventsServiceCreateEventCreatesEventRelationsAndActionLog(t *testing.T) {

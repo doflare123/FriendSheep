@@ -29,12 +29,19 @@ type EventsHandler interface {
 }
 
 type eventsHandler struct {
-	srv events.EventsService
+	srv        events.EventsService
+	membership events.EventMembershipService
 }
 
-func NewEventsHandler(srv events.EventsService) EventsHandler {
+type EventsHandlerDependencies struct {
+	Events     events.EventsService
+	Membership events.EventMembershipService
+}
+
+func NewEventsHandler(dependencies EventsHandlerDependencies) EventsHandler {
 	return &eventsHandler{
-		srv: srv,
+		srv:        dependencies.Events,
+		membership: dependencies.Membership,
 	}
 }
 
@@ -414,7 +421,7 @@ func (h *eventsHandler) JoinEvent(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.JoinEvent(userID, uint(eventID))
+	success, err := h.membership.JoinEvent(c.Request.Context(), userID, uint(eventID))
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):
@@ -459,7 +466,7 @@ func (h *eventsHandler) LeaveEvent(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.LeaveEvent(userID, uint(eventID))
+	success, err := h.membership.LeaveEvent(c.Request.Context(), userID, uint(eventID))
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):

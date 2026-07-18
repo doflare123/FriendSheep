@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -42,9 +41,6 @@ type EventsService interface {
 	GetEventDetails(userID uint, eventID uint) (*dto.EventFullDto, error)
 	GetEventDetailsForAdmin(actorID uint, eventID uint) (*dto.EventAdminDto, error)
 
-	// Управление участием
-	JoinEvent(userID uint, eventID uint) (bool, error)
-	LeaveEvent(userID uint, eventID uint) (bool, error)
 	KickUserFromEvent(actorID uint, eventID uint, targetUserID uint) (bool, error)
 
 	// Справочники
@@ -218,164 +214,6 @@ func (s *eventsService) GetEventDetails(userID uint, eventID uint) (*dto.EventFu
 	}
 
 	return convertorsdto.ConvertToFullDto(&event, userID, true), nil
-}
-
-// Присоединение к событию
-func (s *eventsService) JoinEvent(userID uint, eventID uint) (bool, error) {
-	var event events.Event
-
-	err := s.runInTx(func(tx eventsTxPort) error {
-		if err := tx.Model(&events.Event{}).Where("id = ?", eventID).First(&event).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrEventNotFound
-			}
-			return fmt.Errorf("ошибка поиска события: %w", err)
-		}
-
-		var groupUserCount int64
-		if err := tx.Model(&groups.GroupUsers{}).
-			Where("user_id = ? AND group_id = ?", userID, event.GroupID).
-			Count(&groupUserCount).Error; err != nil {
-			return fmt.Errorf("ошибка проверки членства в группе: %w", err)
-		}
-
-		if groupUserCount == 0 {
-			return ErrNotGroupMember
-		}
-
-		var existingCount int64
-		if err := tx.Model(&events.EventsUser{}).
-			Where("event_id = ? AND user_id = ?", eventID, userID).
-			Count(&existingCount).Error; err != nil {
-			return fmt.Errorf("ошибка проверки участия: %w", err)
-		}
-
-		if existingCount > 0 {
-			return ErrAlreadyJoined
-		}
-
-		eventUser := events.EventsUser{
-			EventID:  eventID,
-			UserID:   userID,
-			JoinedAt: time.Now(),
-		}
-
-		if err := tx.Create(&eventUser).Error; err != nil {
-			var pgErr *pgconn.PgError
-			if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "idx_event_user_membership" {
-				return ErrAlreadyJoined
-			}
-			return fmt.Errorf("ошибка добавления к событию: %w", err)
-		}
-
-		result := tx.Model(&events.Event{}).
-			Where("id = ? AND current_users < max_users", eventID).
-			UpdateColumn("current_users", gorm.Expr("current_users + ?", 1))
-		if result.Error != nil {
-			return fmt.Errorf("ошибка обновления счетчика: %w", result.Error)
-		}
-		if result.RowsAffected == 0 {
-			return ErrEventFull
-		}
-
-		actor, role, err := findEventGroupActor(tx, userID, event.GroupID)
-		if err != nil {
-			return err
-		}
-		targetUserID := userID
-		entityID := event.ID
-		if err := s.logGroupAction(tx, eventGroupActionLogInput{
-			GroupID:      event.GroupID,
-			UserID:       userID,
-			Username:     actor.Name,
-			Us:           actor.Us,
-			Role:         role,
-			Action:       groups.ActionJoinEvent,
-			TargetUserID: &targetUserID,
-			EntityID:     &entityID,
-			EntityName:   event.Title,
-		}); err != nil {
-			s.logger.Warn("Не удалось записать действие в журнал", "error", err)
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		s.logger.Error("Не удалось вступить в событие", "eventID", eventID, "userID", userID, "error", err)
-		return false, err
-	}
-
-	s.logger.Info("Пользователь вступил в событие", "eventID", eventID, "userID", userID)
-	return true, nil
-}
-
-// Покинуть событие
-func (s *eventsService) LeaveEvent(userID uint, eventID uint) (bool, error) {
-	var event events.Event
-	var eventUser events.EventsUser
-
-	err := s.runInTx(func(tx eventsTxPort) error {
-		if err := tx.First(&event, eventID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrEventNotFound
-			}
-			return fmt.Errorf("ошибка поиска события: %w", err)
-		}
-
-		if event.CreatorID == userID {
-			return ErrCreatorCantLeave
-		}
-
-		if err := tx.Where("event_id = ? AND user_id = ?", eventID, userID).
-			First(&eventUser).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrNotJoined
-			}
-			return fmt.Errorf("ошибка поиска участия: %w", err)
-		}
-
-		if err := tx.Delete(&eventUser).Error; err != nil {
-			return fmt.Errorf("ошибка удаления из события: %w", err)
-		}
-
-		if event.CurrentUsers > 0 {
-			if err := tx.Model(&event).Update("current_users", event.CurrentUsers-1).Error; err != nil {
-				return fmt.Errorf("ошибка обновления счетчика: %w", err)
-			}
-		}
-
-		actor, role, err := findEventGroupActor(tx, userID, event.GroupID)
-		if err != nil {
-			s.logger.Warn("Не удалось подготовить данные для журнала группы", "error", err)
-		} else {
-			targetUserID := userID
-			entityID := event.ID
-			if err := s.logGroupAction(tx, eventGroupActionLogInput{
-				GroupID:      event.GroupID,
-				UserID:       userID,
-				Username:     actor.Name,
-				Us:           actor.Us,
-				Role:         role,
-				Action:       groups.ActionLeaveEvent,
-				TargetUserID: &targetUserID,
-				EntityID:     &entityID,
-				EntityName:   event.Title,
-			}); err != nil {
-				s.logger.Warn("Не удалось записать действие в журнал", "error", err)
-			}
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		s.logger.Error("Не удалось покинуть событие", "eventID", eventID, "userID", userID, "error", err)
-		return false, err
-	}
-
-	s.logger.Info("Пользователь покинул событие", "eventID", eventID, "userID", userID)
-	return true, nil
 }
 
 // Получает все доступные жанры
@@ -708,23 +546,4 @@ func (s *eventsService) logGroupAction(tx eventsTxPort, input eventGroupActionLo
 	}
 
 	return tx.Create(&action).Error
-}
-
-func findEventGroupActor(tx eventsTxPort, userID uint, groupID uint) (models.User, string, error) {
-	var actor models.User
-	if err := tx.First(&actor, userID).Error; err != nil {
-		return models.User{}, "", fmt.Errorf("ошибка поиска пользователя: %w", err)
-	}
-
-	var membership groups.GroupUsers
-	if err := tx.Where("user_id = ? AND group_id = ?", userID, groupID).First(&membership).Error; err != nil {
-		return models.User{}, "", fmt.Errorf("ошибка поиска членства в группе: %w", err)
-	}
-
-	var role groups.Role_in_group
-	if err := tx.First(&role, membership.RoleInGroupID).Error; err != nil {
-		return models.User{}, "", fmt.Errorf("ошибка получения роли: %w", err)
-	}
-
-	return actor, groups.NormalizeRoleName(role.Name), nil
 }

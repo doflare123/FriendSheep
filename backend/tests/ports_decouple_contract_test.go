@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	applicationlogger "friendship/logger"
 	groupmodels "friendship/models/groups"
 	servicesevents "friendship/services/events"
 	servicegroups "friendship/services/groups"
@@ -123,29 +124,108 @@ func TestRegistrationServiceDoesNotImportStorageLibraries(t *testing.T) {
 	}
 }
 
-func TestNewEventsServiceAcceptsLocalPortAndPreservesBehavior(t *testing.T) {
+func TestEventMembershipApplicationDoesNotImportStorageLibraries(t *testing.T) {
+	eventsDir := filepath.Join("..", "services", "events")
+	applicationFiles := []string{
+		filepath.Join(eventsDir, "membership_uow.go"),
+		filepath.Join(eventsDir, "membership_service.go"),
+	}
+
+	for _, path := range applicationFiles {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read event membership application file %s: %v", path, err)
+		}
+
+		text := string(content)
+		for _, forbidden := range []string{
+			`"friendship/repository"`,
+			`"gorm.io/`,
+			`"github.com/jackc/pgx/`,
+			"repository.PostgresRepository",
+			"gorm.DB",
+			"pgconn.PgError",
+		} {
+			if strings.Contains(text, forbidden) {
+				t.Fatalf("%s references storage implementation %q; keep it isolated in gorm_membership_uow.go", path, forbidden)
+			}
+		}
+	}
+}
+
+func TestNewEventsServiceAcceptsLocalPort(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
 	var localPort eventsServiceLocalPort = repo
 
 	assertConstructorAcceptsRepo(t, servicesevents.NewEventsService, repo)
 	service := invokeEventsServiceConstructor(t, &testLogger{}, localPort)
+	if service == nil {
+		t.Fatal("NewEventsService returned nil")
+	}
+}
 
-	seedEventUser(t, db, 1)
-	seedEventUser(t, db, 2)
-	groupID := seedEventGroup(t, db, 1, false)
-	seedEventGroupMembership(t, db, 2, groupID)
-	eventID := seedEvent(t, db, groupID, 1, 1, 2)
+func TestNewEventMembershipServiceAcceptsOnlyLoggerAndUnitOfWork(t *testing.T) {
+	constructorType := reflect.TypeOf(servicesevents.NewEventMembershipService)
+	if constructorType.NumIn() != 2 {
+		t.Fatalf("NewEventMembershipService has %d arguments, want 2", constructorType.NumIn())
+	}
 
-	joined, err := service.JoinEvent(2, eventID)
+	loggerType := reflect.TypeOf((*applicationlogger.Logger)(nil)).Elem()
+	if constructorType.In(0) != loggerType {
+		t.Fatalf("NewEventMembershipService first argument = %v, want %v", constructorType.In(0), loggerType)
+	}
+	uowType := reflect.TypeOf((*servicesevents.EventUnitOfWork)(nil)).Elem()
+	if constructorType.In(1) != uowType {
+		t.Fatalf("NewEventMembershipService second argument = %v, want %v", constructorType.In(1), uowType)
+	}
+
+	uow := &eventUnitOfWorkStub{}
+	out := reflect.ValueOf(servicesevents.NewEventMembershipService).Call([]reflect.Value{
+		reflect.ValueOf(&testLogger{}),
+		reflect.ValueOf(uow),
+	})
+	service, ok := out[0].Interface().(servicesevents.EventMembershipService)
+	if !ok || service == nil {
+		t.Fatalf("NewEventMembershipService returned %T, want EventMembershipService", out[0].Interface())
+	}
+
+	repo := &testPostgresRepository{}
+	if constructorAcceptsRepo(servicesevents.NewEventMembershipService, repo) {
+		t.Fatal("NewEventMembershipService accepts broad GORM-shaped repository; want EventUnitOfWork")
+	}
+}
+
+func TestEventsServiceDoesNotExposeMembershipOrStoreUnitOfWork(t *testing.T) {
+	serviceInterface := reflect.TypeOf((*servicesevents.EventsService)(nil)).Elem()
+	for _, methodName := range []string{"JoinEvent", "LeaveEvent"} {
+		if _, exists := serviceInterface.MethodByName(methodName); exists {
+			t.Fatalf("EventsService still exposes %s; keep membership in EventMembershipService", methodName)
+		}
+	}
+
+	db := newEventsServiceDB(t)
+	service := servicesevents.NewEventsService(&testLogger{}, &testPostgresRepository{db: db})
+	implementationType := reflect.TypeOf(service)
+	if implementationType.Kind() == reflect.Pointer {
+		implementationType = implementationType.Elem()
+	}
+	uowType := reflect.TypeOf((*servicesevents.EventUnitOfWork)(nil)).Elem()
+	for i := 0; i < implementationType.NumField(); i++ {
+		field := implementationType.Field(i)
+		if field.Type.Implements(uowType) || strings.Contains(strings.ToLower(field.Name), "unitofwork") {
+			t.Fatalf("EventsService implementation still stores membership unit of work in field %s", field.Name)
+		}
+	}
+
+	serviceSourcePath := filepath.Join("..", "services", "events", "ServiceEvents.go")
+	content, err := os.ReadFile(serviceSourcePath)
 	if err != nil {
-		t.Fatalf("JoinEvent returned error: %v", err)
+		t.Fatalf("read events service source: %v", err)
 	}
-	if !joined {
-		t.Fatal("JoinEvent returned false")
+	if strings.Contains(string(content), "NewEventsServiceWithUnitOfWork") {
+		t.Fatal("EventsService still exposes a membership-aware constructor")
 	}
-	assertEventParticipantExists(t, db, eventID, 2, true)
-	assertEventCurrentUsers(t, db, eventID, 2)
 }
 
 func assertConstructorAcceptsRepo(t *testing.T, constructor interface{}, repo interface{}) {
