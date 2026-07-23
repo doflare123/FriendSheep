@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -30,6 +31,22 @@ type eventsServiceLocalPort interface {
 }
 
 var _ eventsServiceLocalPort = (*testPostgresRepository)(nil)
+
+type eventReadStoreContractStub struct{}
+
+func (eventReadStoreContractStub) SearchEvents(context.Context, servicesevents.EventSearchQuery) (servicesevents.EventSearchPageView, error) {
+	return servicesevents.EventSearchPageView{}, nil
+}
+
+func (eventReadStoreContractStub) GetGroupEvents(context.Context, servicesevents.EventGroupEventsQuery) (servicesevents.EventGroupEventsView, error) {
+	return servicesevents.EventGroupEventsView{}, nil
+}
+
+func (eventReadStoreContractStub) GetEventDetails(context.Context, servicesevents.EventDetailsQuery) (servicesevents.EventDetailsView, error) {
+	return servicesevents.EventDetailsView{}, nil
+}
+
+var _ servicesevents.EventReadStore = eventReadStoreContractStub{}
 
 func TestNewGroupServiceUsesGORMAdapterAndPreservesBehavior(t *testing.T) {
 	db := newGroupServiceDB(t)
@@ -199,6 +216,98 @@ func TestNewEventsServiceAcceptsLocalPort(t *testing.T) {
 	}
 }
 
+func TestNewEventReadServiceAcceptsOnlyCleanReadStore(t *testing.T) {
+	constructorType := reflect.TypeOf(servicesevents.NewEventReadService)
+	if constructorType.NumIn() != 2 {
+		t.Fatalf("NewEventReadService has %d arguments, want 2", constructorType.NumIn())
+	}
+
+	loggerType := reflect.TypeOf((*applicationlogger.Logger)(nil)).Elem()
+	if constructorType.In(0) != loggerType {
+		t.Fatalf("NewEventReadService first argument = %v, want %v", constructorType.In(0), loggerType)
+	}
+	storeType := reflect.TypeOf((*servicesevents.EventReadStore)(nil)).Elem()
+	if constructorType.In(1) != storeType {
+		t.Fatalf("NewEventReadService second argument = %v, want %v", constructorType.In(1), storeType)
+	}
+	serviceType := reflect.TypeOf((*servicesevents.EventReadService)(nil)).Elem()
+	if constructorType.NumOut() != 1 || constructorType.Out(0) != serviceType {
+		t.Fatalf("NewEventReadService result = %v, want %v", constructorType.Out(0), serviceType)
+	}
+
+	if constructorAcceptsRepo(servicesevents.NewEventReadService, &testPostgresRepository{}) {
+		t.Fatal("NewEventReadService accepts broad GORM-shaped repository; want EventReadStore")
+	}
+
+	service := servicesevents.NewEventReadService(&testLogger{}, eventReadStoreContractStub{})
+	if service == nil {
+		t.Fatal("NewEventReadService returned nil")
+	}
+}
+
+func TestNewGORMEventReadStoreAdaptsSharedRepositoryAtBoundary(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+
+	var store servicesevents.EventReadStore = servicesevents.NewGORMEventReadStore(repo)
+	if store == nil {
+		t.Fatal("NewGORMEventReadStore returned nil")
+	}
+}
+
+func TestEventReadContractsDoNotLeakStorageTypes(t *testing.T) {
+	checked := make(map[reflect.Type]bool)
+	for _, contract := range []reflect.Type{
+		reflect.TypeOf((*servicesevents.EventReadStore)(nil)).Elem(),
+		reflect.TypeOf((*servicesevents.EventReadService)(nil)).Elem(),
+	} {
+		for i := 0; i < contract.NumMethod(); i++ {
+			method := contract.Method(i)
+			for argument := 0; argument < method.Type.NumIn(); argument++ {
+				assertEventReadTypeDoesNotLeakStorage(t, method.Type.In(argument), checked)
+			}
+			for result := 0; result < method.Type.NumOut(); result++ {
+				assertEventReadTypeDoesNotLeakStorage(t, method.Type.Out(result), checked)
+			}
+		}
+	}
+}
+
+func TestEventReadCleanSourceDoesNotImportStorageLibraries(t *testing.T) {
+	for _, sourcePath := range []string{
+		filepath.Join("..", "services", "events", "read_service.go"),
+		filepath.Join("..", "services", "events", "read_types.go"),
+	} {
+		content, err := os.ReadFile(sourcePath)
+		if err != nil {
+			t.Fatalf("read event read source %s: %v", sourcePath, err)
+		}
+
+		text := string(content)
+		for _, forbidden := range []string{
+			`"gorm.io/gorm"`,
+			`"friendship/repository"`,
+			`"friendship/models/events"`,
+			`"friendship/models/groups"`,
+			"gorm.DB",
+			"repository.PostgresRepository",
+		} {
+			if strings.Contains(text, forbidden) {
+				t.Fatalf("%s contains storage dependency %q", sourcePath, forbidden)
+			}
+		}
+	}
+}
+
+func TestLegacyEventsServiceDoesNotExposeUserReadMethods(t *testing.T) {
+	serviceInterface := reflect.TypeOf((*servicesevents.EventsService)(nil)).Elem()
+	for _, methodName := range []string{"SearchEvents", "GetGroupEvents", "GetEventDetails"} {
+		if _, exists := serviceInterface.MethodByName(methodName); exists {
+			t.Fatalf("EventsService still exposes %s; keep user reads in EventReadService", methodName)
+		}
+	}
+}
+
 func TestNewEventMembershipServiceAcceptsOnlyLoggerAndUnitOfWork(t *testing.T) {
 	constructorType := reflect.TypeOf(servicesevents.NewEventMembershipService)
 	if constructorType.NumIn() != 2 {
@@ -232,9 +341,18 @@ func TestNewEventMembershipServiceAcceptsOnlyLoggerAndUnitOfWork(t *testing.T) {
 
 func TestEventsServiceDoesNotExposeCommandsMembershipOrStoreUnitOfWork(t *testing.T) {
 	serviceInterface := reflect.TypeOf((*servicesevents.EventsService)(nil)).Elem()
-	for _, methodName := range []string{"CreateEvent", "UpdateEvent", "DeleteEvent", "JoinEvent", "LeaveEvent"} {
+	for _, methodName := range []string{
+		"CreateEvent",
+		"UpdateEvent",
+		"DeleteEvent",
+		"JoinEvent",
+		"LeaveEvent",
+		"SearchEvents",
+		"GetGroupEvents",
+		"GetEventDetails",
+	} {
 		if _, exists := serviceInterface.MethodByName(methodName); exists {
-			t.Fatalf("EventsService still exposes %s; keep writes in focused command or membership services", methodName)
+			t.Fatalf("EventsService still exposes %s; keep commands, membership and reads in focused services", methodName)
 		}
 	}
 
@@ -259,6 +377,38 @@ func TestEventsServiceDoesNotExposeCommandsMembershipOrStoreUnitOfWork(t *testin
 	}
 	if strings.Contains(string(content), "NewEventsServiceWithUnitOfWork") {
 		t.Fatal("EventsService still exposes a membership-aware constructor")
+	}
+}
+
+func assertEventReadTypeDoesNotLeakStorage(t *testing.T, typ reflect.Type, checked map[reflect.Type]bool) {
+	t.Helper()
+
+	if typ == nil || checked[typ] {
+		return
+	}
+	checked[typ] = true
+
+	packagePath := typ.PkgPath()
+	if strings.HasPrefix(packagePath, "gorm.io/gorm") ||
+		packagePath == "friendship/repository" ||
+		packagePath == "friendship/models/events" ||
+		packagePath == "friendship/models/groups" {
+		t.Fatalf("event read contract leaks storage type %v from %s", typ, packagePath)
+	}
+
+	switch typ.Kind() {
+	case reflect.Pointer, reflect.Slice, reflect.Array:
+		assertEventReadTypeDoesNotLeakStorage(t, typ.Elem(), checked)
+	case reflect.Map:
+		assertEventReadTypeDoesNotLeakStorage(t, typ.Key(), checked)
+		assertEventReadTypeDoesNotLeakStorage(t, typ.Elem(), checked)
+	case reflect.Struct:
+		if packagePath != "friendship/services/events" {
+			return
+		}
+		for i := 0; i < typ.NumField(); i++ {
+			assertEventReadTypeDoesNotLeakStorage(t, typ.Field(i).Type, checked)
+		}
 	}
 }
 

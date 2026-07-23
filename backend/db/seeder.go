@@ -116,7 +116,7 @@ func genericSeed(db repository.PostgresRepository, items []interface{}) error {
 			if err == nil {
 				continue
 			}
-			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				return err
 			}
 		}

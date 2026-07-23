@@ -32,12 +32,14 @@ type eventsHandler struct {
 	srv        events.EventsService
 	membership events.EventMembershipService
 	commands   events.EventCommandService
+	reads      events.EventReadService
 }
 
 type EventsHandlerDependencies struct {
 	Events     events.EventsService
 	Membership events.EventMembershipService
 	Commands   events.EventCommandService
+	Reads      events.EventReadService
 }
 
 func NewEventsHandler(dependencies EventsHandlerDependencies) EventsHandler {
@@ -45,6 +47,7 @@ func NewEventsHandler(dependencies EventsHandlerDependencies) EventsHandler {
 		srv:        dependencies.Events,
 		membership: dependencies.Membership,
 		commands:   dependencies.Commands,
+		reads:      dependencies.Reads,
 	}
 }
 
@@ -308,7 +311,7 @@ func (h *eventsHandler) GetGroupEvents(c *gin.Context) {
 		return
 	}
 
-	event, err := h.srv.GetGroupEvents(actorID, uint(groupID))
+	event, err := h.reads.GetGroupEvents(c.Request.Context(), actorID, uint(groupID))
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrPermissionDenied):
@@ -360,7 +363,7 @@ func (h *eventsHandler) SearchEvents(c *gin.Context) {
 		return
 	}
 
-	result, err := h.srv.SearchEvents(userID, input)
+	result, err := h.reads.SearchEvents(c.Request.Context(), userID, input)
 	if err != nil {
 		utils.InternalError(c, err.Error())
 		return
@@ -391,7 +394,7 @@ func (h *eventsHandler) GetEventDetails(c *gin.Context) {
 		return
 	}
 
-	eventDto, err := h.srv.GetEventDetails(userID, uint(eventID))
+	eventDto, err := h.reads.GetEventDetails(c.Request.Context(), userID, uint(eventID))
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):

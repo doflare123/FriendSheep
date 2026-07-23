@@ -533,10 +533,10 @@ func TestEventCommandServiceUpdateEventRejectsMissingAgeLimitWithoutSideEffects(
 	assertGroupActionLogCount(t, db, groupID, "update_event", 0)
 }
 
-func TestEventsServiceGetEventDetailsReturnsSubscribedStateForGroupMember(t *testing.T) {
+func TestEventReadServiceGetEventDetailsReturnsSubscribedStateForGroupMember(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -547,7 +547,7 @@ func TestEventsServiceGetEventDetailsReturnsSubscribedStateForGroupMember(t *tes
 	seedEventGenreRelation(t, db, eventID, genreID)
 	seedEventParticipant(t, db, eventID, 2)
 
-	eventDTO, err := service.GetEventDetails(2, eventID)
+	eventDTO, err := service.GetEventDetails(context.Background(), 2, eventID)
 
 	if err != nil {
 		t.Fatalf("GetEventDetails returned error: %v", err)
@@ -561,19 +561,22 @@ func TestEventsServiceGetEventDetailsReturnsSubscribedStateForGroupMember(t *tes
 	if eventDTO.IsCreator {
 		t.Fatal("IsCreator = true, want false")
 	}
+	if eventDTO.AgeLimit != "18+" {
+		t.Fatalf("AgeLimit = %q, want 18+", eventDTO.AgeLimit)
+	}
 }
 
-func TestEventsServiceGetEventDetailsAllowsNonGroupMemberInPublicGroup(t *testing.T) {
+func TestEventReadServiceGetEventDetailsAllowsNonGroupMemberInPublicGroup(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
 	groupID := seedEventGroup(t, db, 1, false)
 	eventID := seedEvent(t, db, groupID, 1, 1, 5)
 
-	eventDTO, err := service.GetEventDetails(2, eventID)
+	eventDTO, err := service.GetEventDetails(context.Background(), 2, eventID)
 
 	if err != nil {
 		t.Fatalf("GetEventDetails returned error: %v", err)
@@ -586,23 +589,60 @@ func TestEventsServiceGetEventDetailsAllowsNonGroupMemberInPublicGroup(t *testin
 	}
 }
 
-func TestEventsServiceGetEventDetailsRejectsNonGroupMemberInPrivateGroup(t *testing.T) {
+func TestEventReadServiceGetEventDetailsRejectsNonGroupMemberInPrivateGroup(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
 	groupID := seedEventGroup(t, db, 1, true)
 	eventID := seedEvent(t, db, groupID, 1, 1, 5)
 
-	eventDTO, err := service.GetEventDetails(2, eventID)
+	eventDTO, err := service.GetEventDetails(context.Background(), 2, eventID)
 
 	if eventDTO != nil {
 		t.Fatalf("eventDTO = %#v, want nil", eventDTO)
 	}
 	if !errors.Is(err, servicesevents.ErrNotGroupMember) {
 		t.Fatalf("err = %v, want ErrNotGroupMember", err)
+	}
+}
+
+func TestEventReadServiceGetEventDetailsReturnsNotFound(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
+
+	eventDTO, err := service.GetEventDetails(context.Background(), 1, 999)
+
+	if eventDTO != nil {
+		t.Fatalf("eventDTO = %#v, want nil", eventDTO)
+	}
+	if !errors.Is(err, servicesevents.ErrEventNotFound) {
+		t.Fatalf("err = %v, want ErrEventNotFound", err)
+	}
+}
+
+func TestEventReadServiceGetEventDetailsMarksCreator(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
+
+	seedEventUser(t, db, 1)
+	groupID := seedEventGroup(t, db, 1, false)
+	eventID := seedEvent(t, db, groupID, 1, 1, 5)
+
+	eventDTO, err := service.GetEventDetails(context.Background(), 1, eventID)
+
+	if err != nil {
+		t.Fatalf("GetEventDetails returned error: %v", err)
+	}
+	if eventDTO == nil || !eventDTO.IsCreator {
+		t.Fatalf("eventDTO = %#v, want creator details", eventDTO)
+	}
+	if eventDTO.Subscribed {
+		t.Fatal("Subscribed = true, want false without event membership")
 	}
 }
 
@@ -655,10 +695,10 @@ func TestEventsServiceGetEventDetailsForAdminRejectsPlainMember(t *testing.T) {
 	}
 }
 
-func TestEventsServiceGetGroupEventsAllowsPlainMember(t *testing.T) {
+func TestEventReadServiceGetGroupEventsAllowsPlainMember(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -669,7 +709,7 @@ func TestEventsServiceGetGroupEventsAllowsPlainMember(t *testing.T) {
 	seedEventGenreRelation(t, db, eventID, genreID)
 	seedEventParticipant(t, db, eventID, 2)
 
-	eventsList, err := service.GetGroupEvents(2, groupID)
+	eventsList, err := service.GetGroupEvents(context.Background(), 2, groupID)
 
 	if err != nil {
 		t.Fatalf("GetGroupEvents returned error: %v", err)
@@ -685,10 +725,10 @@ func TestEventsServiceGetGroupEventsAllowsPlainMember(t *testing.T) {
 	}
 }
 
-func TestEventsServiceGetGroupEventsAllowsNonMemberInPublicGroup(t *testing.T) {
+func TestEventReadServiceGetGroupEventsAllowsNonMemberInPublicGroup(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -696,7 +736,7 @@ func TestEventsServiceGetGroupEventsAllowsNonMemberInPublicGroup(t *testing.T) {
 	eventID := seedEvent(t, db, groupID, 1, 1, 5)
 	seedEventParticipant(t, db, eventID, 1)
 
-	eventsList, err := service.GetGroupEvents(2, groupID)
+	eventsList, err := service.GetGroupEvents(context.Background(), 2, groupID)
 
 	if err != nil {
 		t.Fatalf("GetGroupEvents returned error: %v", err)
@@ -712,17 +752,17 @@ func TestEventsServiceGetGroupEventsAllowsNonMemberInPublicGroup(t *testing.T) {
 	}
 }
 
-func TestEventsServiceGetGroupEventsRejectsNonMemberInPrivateGroup(t *testing.T) {
+func TestEventReadServiceGetGroupEventsRejectsNonMemberInPrivateGroup(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
 	groupID := seedEventGroup(t, db, 1, true)
 	seedEvent(t, db, groupID, 1, 1, 5)
 
-	eventsList, err := service.GetGroupEvents(2, groupID)
+	eventsList, err := service.GetGroupEvents(context.Background(), 2, groupID)
 
 	if eventsList != nil {
 		t.Fatalf("eventsList = %#v, want nil", eventsList)
@@ -732,10 +772,52 @@ func TestEventsServiceGetGroupEventsRejectsNonMemberInPrivateGroup(t *testing.T)
 	}
 }
 
-func TestEventsServiceSearchEventsHidesPrivateGroupsFromAnonymousAndAllowsMember(t *testing.T) {
+func TestEventReadServiceGetGroupEventsReturnsEmptyForMissingGroup(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
+
+	eventsList, err := service.GetGroupEvents(context.Background(), 2, 999)
+
+	if err != nil {
+		t.Fatalf("GetGroupEvents returned error: %v", err)
+	}
+	if eventsList == nil {
+		t.Fatal("eventsList = nil, want non-nil empty slice")
+	}
+	if len(eventsList) != 0 {
+		t.Fatalf("eventsList = %#v, want empty slice", eventsList)
+	}
+}
+
+func TestEventReadServiceGetGroupEventsOrdersByStartTimeDescending(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
+
+	seedEventUser(t, db, 1)
+	seedEventReferences(t, db)
+	groupID := seedEventGroup(t, db, 1, false)
+	firstID := seedEvent(t, db, groupID, 1, 1, 5)
+	secondID := seedEvent(t, db, groupID, 1, 1, 5)
+	start := time.Date(2027, 3, 10, 12, 0, 0, 0, time.UTC)
+	setEventSearchFields(t, db, firstID, "Earlier", start, 1, 1)
+	setEventSearchFields(t, db, secondID, "Later", start.Add(time.Hour), 1, 1)
+
+	eventsList, err := service.GetGroupEvents(context.Background(), 1, groupID)
+
+	if err != nil {
+		t.Fatalf("GetGroupEvents returned error: %v", err)
+	}
+	if len(eventsList) != 2 || eventsList[0].ID != secondID || eventsList[1].ID != firstID {
+		t.Fatalf("event order = %#v, want [%d %d]", eventsList, secondID, firstID)
+	}
+}
+
+func TestEventReadServiceSearchEventsHidesPrivateGroupsFromAnonymousAndAllowsMember(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -747,7 +829,7 @@ func TestEventsServiceSearchEventsHidesPrivateGroupsFromAnonymousAndAllowsMember
 	seedEventParticipant(t, db, publicEventID, 2)
 	seedEventParticipant(t, db, privateEventID, 1)
 
-	anonymousResult, err := service.SearchEvents(0, servicesevents.EventSearchInput{Page: 1, Limit: 20})
+	anonymousResult, err := service.SearchEvents(context.Background(), 0, servicesevents.EventSearchInput{Page: 1, Limit: 20})
 	if err != nil {
 		t.Fatalf("SearchEvents anonymous returned error: %v", err)
 	}
@@ -758,7 +840,7 @@ func TestEventsServiceSearchEventsHidesPrivateGroupsFromAnonymousAndAllowsMember
 		t.Fatal("anonymous subscribed = true, want false")
 	}
 
-	memberResult, err := service.SearchEvents(2, servicesevents.EventSearchInput{Page: 1, Limit: 20})
+	memberResult, err := service.SearchEvents(context.Background(), 2, servicesevents.EventSearchInput{Page: 1, Limit: 20})
 	if err != nil {
 		t.Fatalf("SearchEvents member returned error: %v", err)
 	}
@@ -775,10 +857,10 @@ func TestEventsServiceSearchEventsHidesPrivateGroupsFromAnonymousAndAllowsMember
 	}
 }
 
-func TestEventsServiceSearchEventsAppliesFiltersExclusionsAndPagination(t *testing.T) {
+func TestEventReadServiceSearchEventsAppliesFiltersExclusionsAndPagination(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventReferences(t, db)
@@ -813,7 +895,7 @@ func TestEventsServiceSearchEventsAppliesFiltersExclusionsAndPagination(t *testi
 
 	dateFrom := start.Add(-time.Hour)
 	dateTo := start.Add(25 * time.Hour)
-	result, err := service.SearchEvents(0, servicesevents.EventSearchInput{
+	result, err := service.SearchEvents(context.Background(), 0, servicesevents.EventSearchInput{
 		CategoryIDs:     []uint{1},
 		ExcludeGenreIDs: []uint{horrorGenreID},
 		LocationTypes:   []string{"offline"},
@@ -835,10 +917,144 @@ func TestEventsServiceSearchEventsAppliesFiltersExclusionsAndPagination(t *testi
 	}
 }
 
-func TestEventsServiceSearchEventsSubscriptionNewsReturnsUnjoinedGroupEvents(t *testing.T) {
+func TestEventReadServiceSearchEventsAppliesEachFilter(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
+
+	seedEventUser(t, db, 1)
+	seedEventReferences(t, db)
+	seedEventCategory(t, db, 2, "Movie")
+	onlineLocationID := seedEventLocation(t, db, "Online")
+	strategyGenreID := seedEventGenre(t, db, "Strategy")
+	horrorGenreID := seedEventGenre(t, db, "Horror")
+
+	moscowGroupID := seedEventGroup(t, db, 1, false)
+	setEventGroupCity(t, db, moscowGroupID, "Moscow")
+	seedEventGroupCategory(t, db, moscowGroupID, 1)
+
+	kazanGroupID := seedEventGroup(t, db, 1, false)
+	setEventGroupCity(t, db, kazanGroupID, "Kazan")
+	seedEventGroupCategory(t, db, kazanGroupID, 2)
+
+	start := time.Date(2027, 2, 10, 12, 0, 0, 0, time.UTC)
+	alphaID := seedEvent(t, db, moscowGroupID, 1, 1, 5)
+	setEventSearchFields(t, db, alphaID, "Alpha Strategy", start, 1, 1)
+	seedEventGenreRelation(t, db, alphaID, strategyGenreID)
+
+	betaID := seedEvent(t, db, moscowGroupID, 1, 5, 5)
+	setEventSearchFields(t, db, betaID, "Beta Horror", start.Add(time.Hour), 2, onlineLocationID)
+	seedEventGenreRelation(t, db, betaID, horrorGenreID)
+
+	gammaID := seedEvent(t, db, kazanGroupID, 1, 2, 5)
+	setEventSearchFields(t, db, gammaID, "Gamma Strategy", start.Add(2*time.Hour), 1, 1)
+	seedEventGenreRelation(t, db, gammaID, strategyGenreID)
+
+	dateFrom := start.Add(time.Hour)
+	dateTo := start.Add(time.Hour)
+	freeSlots := true
+	full := false
+	tests := []struct {
+		name    string
+		input   servicesevents.EventSearchInput
+		wantIDs []uint
+	}{
+		{
+			name:    "поисковая строка",
+			input:   servicesevents.EventSearchInput{Query: "  beta  "},
+			wantIDs: []uint{betaID},
+		},
+		{
+			name:    "группа",
+			input:   servicesevents.EventSearchInput{GroupID: &moscowGroupID},
+			wantIDs: []uint{alphaID, betaID},
+		},
+		{
+			name:    "категория включения",
+			input:   servicesevents.EventSearchInput{CategoryIDs: []uint{1}},
+			wantIDs: []uint{alphaID, betaID},
+		},
+		{
+			name:    "категория исключения",
+			input:   servicesevents.EventSearchInput{ExcludeCategoryIDs: []uint{1}},
+			wantIDs: []uint{gammaID},
+		},
+		{
+			name:    "жанр включения",
+			input:   servicesevents.EventSearchInput{GenreIDs: []uint{horrorGenreID}},
+			wantIDs: []uint{betaID},
+		},
+		{
+			name:    "жанр исключения",
+			input:   servicesevents.EventSearchInput{ExcludeGenreIDs: []uint{strategyGenreID}},
+			wantIDs: []uint{betaID},
+		},
+		{
+			name:    "тип события включения",
+			input:   servicesevents.EventSearchInput{EventTypeIDs: []uint{2}},
+			wantIDs: []uint{betaID},
+		},
+		{
+			name:    "тип события исключения",
+			input:   servicesevents.EventSearchInput{ExcludeEventTypeIDs: []uint{1}},
+			wantIDs: []uint{betaID},
+		},
+		{
+			name:    "тип локации включения",
+			input:   servicesevents.EventSearchInput{LocationTypes: []string{"online"}},
+			wantIDs: []uint{betaID},
+		},
+		{
+			name:    "тип локации исключения",
+			input:   servicesevents.EventSearchInput{ExcludeLocationTypes: []string{"online"}},
+			wantIDs: []uint{alphaID, gammaID},
+		},
+		{
+			name:    "город",
+			input:   servicesevents.EventSearchInput{City: "  MOS  "},
+			wantIDs: []uint{alphaID, betaID},
+		},
+		{
+			name:    "нижняя граница даты включительна",
+			input:   servicesevents.EventSearchInput{DateFrom: &dateFrom},
+			wantIDs: []uint{betaID, gammaID},
+		},
+		{
+			name:    "верхняя граница даты включительна",
+			input:   servicesevents.EventSearchInput{DateTo: &dateTo},
+			wantIDs: []uint{alphaID, betaID},
+		},
+		{
+			name:    "есть свободные места",
+			input:   servicesevents.EventSearchInput{HasFreeSlots: &freeSlots},
+			wantIDs: []uint{alphaID, gammaID},
+		},
+		{
+			name:    "мест нет",
+			input:   servicesevents.EventSearchInput{HasFreeSlots: &full},
+			wantIDs: []uint{betaID},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.input.Page = 1
+			tt.input.Limit = 20
+
+			result, err := service.SearchEvents(context.Background(), 0, tt.input)
+
+			if err != nil {
+				t.Fatalf("SearchEvents returned error: %v", err)
+			}
+			assertSearchResultIDs(t, result, tt.wantIDs)
+		})
+	}
+}
+
+func TestEventReadServiceSearchEventsSubscriptionNewsReturnsUnjoinedGroupEvents(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -848,7 +1064,7 @@ func TestEventsServiceSearchEventsSubscriptionNewsReturnsUnjoinedGroupEvents(t *
 	freshEventID := seedEvent(t, db, privateGroupID, 1, 1, 5)
 	seedEventParticipant(t, db, joinedEventID, 2)
 
-	result, err := service.SearchEvents(2, servicesevents.EventSearchInput{
+	result, err := service.SearchEvents(context.Background(), 2, servicesevents.EventSearchInput{
 		OnlySubscriptionNews: true,
 		Page:                 1,
 		Limit:                20,
@@ -861,6 +1077,75 @@ func TestEventsServiceSearchEventsSubscriptionNewsReturnsUnjoinedGroupEvents(t *
 		t.Fatalf("subscription news result = %#v, want only fresh event %d", result, freshEventID)
 	}
 	assertSearchResultMissingEvent(t, result, joinedEventID)
+}
+
+func TestEventReadServiceSearchEventsOrdersSubscriptionNewsByCreationTime(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
+
+	seedEventUser(t, db, 1)
+	seedEventUser(t, db, 2)
+	groupID := seedEventGroup(t, db, 1, true)
+	seedEventGroupMembership(t, db, 2, groupID)
+	olderID := seedEvent(t, db, groupID, 1, 1, 5)
+	newerFirstID := seedEvent(t, db, groupID, 1, 1, 5)
+	newerSecondID := seedEvent(t, db, groupID, 1, 1, 5)
+	createdAt := time.Date(2027, 5, 10, 12, 0, 0, 0, time.UTC)
+	setEventCreatedAt(t, db, olderID, createdAt)
+	setEventCreatedAt(t, db, newerFirstID, createdAt.Add(time.Hour))
+	setEventCreatedAt(t, db, newerSecondID, createdAt.Add(time.Hour))
+
+	result, err := service.SearchEvents(context.Background(), 2, servicesevents.EventSearchInput{
+		OnlySubscriptionNews: true,
+		Page:                 1,
+		Limit:                20,
+	})
+
+	if err != nil {
+		t.Fatalf("SearchEvents returned error: %v", err)
+	}
+	if len(result.Items) != 3 {
+		t.Fatalf("items = %#v, want three events", result.Items)
+	}
+	wantIDs := []uint{newerSecondID, newerFirstID, olderID}
+	for i, wantID := range wantIDs {
+		if result.Items[i].ID != wantID {
+			t.Fatalf("item %d ID = %d, want %d; result = %#v", i, result.Items[i].ID, wantID, result.Items)
+		}
+	}
+}
+
+func TestEventReadServiceSearchEventsUsesStableDefaultOrder(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventReadService(&testLogger{}, servicesevents.NewGORMEventReadStore(repo))
+
+	seedEventUser(t, db, 1)
+	seedEventReferences(t, db)
+	groupID := seedEventGroup(t, db, 1, false)
+	earlierID := seedEvent(t, db, groupID, 1, 1, 5)
+	tiedFirstID := seedEvent(t, db, groupID, 1, 1, 5)
+	tiedSecondID := seedEvent(t, db, groupID, 1, 1, 5)
+	start := time.Date(2027, 4, 10, 12, 0, 0, 0, time.UTC)
+	setEventSearchFields(t, db, earlierID, "Earlier", start, 1, 1)
+	setEventSearchFields(t, db, tiedFirstID, "First tied", start.Add(time.Hour), 1, 1)
+	setEventSearchFields(t, db, tiedSecondID, "Second tied", start.Add(time.Hour), 1, 1)
+
+	result, err := service.SearchEvents(context.Background(), 0, servicesevents.EventSearchInput{Page: 1, Limit: 20})
+
+	if err != nil {
+		t.Fatalf("SearchEvents returned error: %v", err)
+	}
+	if len(result.Items) != 3 {
+		t.Fatalf("items = %#v, want three events", result.Items)
+	}
+	wantIDs := []uint{earlierID, tiedSecondID, tiedFirstID}
+	for i, wantID := range wantIDs {
+		if result.Items[i].ID != wantID {
+			t.Fatalf("item %d ID = %d, want %d; result = %#v", i, result.Items[i].ID, wantID, result.Items)
+		}
+	}
 }
 
 func TestEventsServiceGetAllReferencesIncludesGenres(t *testing.T) {
@@ -1115,6 +1400,16 @@ func setEventSearchFields(t *testing.T, db *gorm.DB, eventID uint, title string,
 	}
 }
 
+func setEventCreatedAt(t *testing.T, db *gorm.DB, eventID uint, createdAt time.Time) {
+	t.Helper()
+
+	if err := db.Model(&eventmodels.Event{}).
+		Where("id = ?", eventID).
+		Update("created_at", createdAt).Error; err != nil {
+		t.Fatalf("update event created_at: %v", err)
+	}
+}
+
 func seedEventParticipant(t *testing.T, db *gorm.DB, eventID, userID uint) {
 	t.Helper()
 
@@ -1334,6 +1629,31 @@ func findSearchResultEvent(t *testing.T, result *dto.EventSearchResponse, eventI
 	}
 	t.Fatalf("search result missing event %d: %#v", eventID, result)
 	return dto.EventSearchItemDto{}
+}
+
+func assertSearchResultIDs(t *testing.T, result *dto.EventSearchResponse, wantIDs []uint) {
+	t.Helper()
+
+	if result == nil {
+		t.Fatal("result = nil")
+	}
+	if int(result.Total) != len(wantIDs) || len(result.Items) != len(wantIDs) {
+		t.Fatalf("result = %#v, want %d items", result, len(wantIDs))
+	}
+
+	want := make(map[uint]struct{}, len(wantIDs))
+	for _, eventID := range wantIDs {
+		want[eventID] = struct{}{}
+	}
+	for _, item := range result.Items {
+		if _, ok := want[item.ID]; !ok {
+			t.Fatalf("unexpected event %d in result %#v; want IDs %#v", item.ID, result, wantIDs)
+		}
+		delete(want, item.ID)
+	}
+	if len(want) != 0 {
+		t.Fatalf("result %#v is missing IDs %#v", result, want)
+	}
 }
 
 func testUintString(value uint) string {
