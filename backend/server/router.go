@@ -48,12 +48,15 @@ func (s *Server) initRouters() {
 	eventCommandService := events.NewEventCommandService(s.logger, eventUnitOfWork)
 	eventReadStore := events.NewGORMEventReadStore(s.postgres)
 	eventReadService := events.NewEventReadService(s.logger, eventReadStore)
+	eventAdminReader := events.NewGORMEventAdminReader(s.postgres)
+	eventAdminService := events.NewEventAdminService(s.logger, eventAdminReader, eventUnitOfWork)
 	popularEventsH := handlers.NewPopularEventsHandler(s.popularEventsService)
 	eventsH := handlers.NewEventsHandler(handlers.EventsHandlerDependencies{
 		Events:     eventsrv,
 		Membership: eventMembershipService,
 		Commands:   eventCommandService,
 		Reads:      eventReadService,
+		Admin:      eventAdminService,
 	})
 	routes.RegisterEventsRoutes(s.engine, eventsH, popularEventsH, jwtMiddleware, groupRoleMiddleware)
 }

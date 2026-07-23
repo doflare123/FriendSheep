@@ -53,6 +53,7 @@ func (uow *gormEventUnitOfWork) WithinTransaction(ctx context.Context, fn func(E
 		return fn(NewEventTransaction(EventTransactionStores{
 			MembershipStore: &gormEventMembershipStore{repo: tx},
 			CommandStore:    &gormEventCommandStore{repo: tx},
+			AdminStore:      &gormEventAdminStore{repo: tx},
 			AuditStore:      &gormEventAuditStore{repo: tx, ctx: ctx},
 		}))
 	})

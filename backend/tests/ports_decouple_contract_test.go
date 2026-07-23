@@ -308,6 +308,151 @@ func TestLegacyEventsServiceDoesNotExposeUserReadMethods(t *testing.T) {
 	}
 }
 
+func TestLegacyEventsServiceDoesNotExposeAdminMethods(t *testing.T) {
+	serviceInterface := reflect.TypeOf((*servicesevents.EventsService)(nil)).Elem()
+	for _, methodName := range []string{"GetEventDetailsForAdmin", "KickUserFromEvent"} {
+		if _, exists := serviceInterface.MethodByName(methodName); exists {
+			t.Fatalf("EventsService still exposes %s; keep admin behavior in EventAdminService", methodName)
+		}
+	}
+}
+
+func TestNewEventAdminServiceAcceptsOnlyCleanAdminDependencies(t *testing.T) {
+	constructorType := reflect.TypeOf(servicesevents.NewEventAdminService)
+	if constructorType.NumIn() != 3 {
+		t.Fatalf("NewEventAdminService has %d arguments, want 3", constructorType.NumIn())
+	}
+
+	loggerType := reflect.TypeOf((*applicationlogger.Logger)(nil)).Elem()
+	readerType := reflect.TypeOf((*servicesevents.EventAdminReader)(nil)).Elem()
+	uowType := reflect.TypeOf((*servicesevents.EventUnitOfWork)(nil)).Elem()
+	serviceType := reflect.TypeOf((*servicesevents.EventAdminService)(nil)).Elem()
+	for index, wantType := range []reflect.Type{loggerType, readerType, uowType} {
+		if constructorType.In(index) != wantType {
+			t.Fatalf("NewEventAdminService argument %d = %v, want %v", index, constructorType.In(index), wantType)
+		}
+	}
+	if constructorType.NumOut() != 1 || constructorType.Out(0) != serviceType {
+		t.Fatalf("NewEventAdminService result = %v, want %v", constructorType.Out(0), serviceType)
+	}
+
+	repoType := reflect.TypeOf(&testPostgresRepository{})
+	for index := 0; index < constructorType.NumIn(); index++ {
+		argumentType := constructorType.In(index)
+		if repoType.AssignableTo(argumentType) ||
+			(argumentType.Kind() == reflect.Interface && repoType.Implements(argumentType)) {
+			t.Fatalf("NewEventAdminService argument %d accepts broad GORM-shaped repository", index)
+		}
+	}
+}
+
+func TestEventAdminContractsDoNotLeakStorageTypes(t *testing.T) {
+	checked := make(map[reflect.Type]bool)
+	for _, contract := range []reflect.Type{
+		reflect.TypeOf((*servicesevents.EventAdminService)(nil)).Elem(),
+		reflect.TypeOf((*servicesevents.EventAdminReader)(nil)).Elem(),
+		reflect.TypeOf((*servicesevents.EventAdminStore)(nil)).Elem(),
+	} {
+		for i := 0; i < contract.NumMethod(); i++ {
+			method := contract.Method(i)
+			for argument := 0; argument < method.Type.NumIn(); argument++ {
+				assertEventReadTypeDoesNotLeakStorage(t, method.Type.In(argument), checked)
+			}
+			for result := 0; result < method.Type.NumOut(); result++ {
+				assertEventReadTypeDoesNotLeakStorage(t, method.Type.Out(result), checked)
+			}
+		}
+	}
+}
+
+func TestEventAdminContractsAreDeclaredInSource(t *testing.T) {
+	eventsDir := filepath.Join("..", "services", "events")
+	combined := readCombinedGoSource(t, eventsDir)
+
+	for _, snippet := range []string{
+		"type EventAdminService interface",
+		"type EventAdminReader interface",
+		"type EventAdminStore interface",
+		"NewEventAdminService(",
+		"NewGORMEventAdminReader(",
+		"func (tx EventTransaction) Admin() EventAdminStore",
+		"AdminStore      EventAdminStore",
+	} {
+		if !strings.Contains(combined, snippet) {
+			t.Fatalf("event admin contract is missing source snippet %q", snippet)
+		}
+	}
+}
+
+func TestEventAdminCleanSourceDoesNotImportStorageLibraries(t *testing.T) {
+	eventsDir := filepath.Join("..", "services", "events")
+	matches, err := filepath.Glob(filepath.Join(eventsDir, "*admin*.go"))
+	if err != nil {
+		t.Fatalf("glob admin event sources: %v", err)
+	}
+	if len(matches) == 0 {
+		t.Fatal("no admin event source files found")
+	}
+
+	var checkedCleanFile bool
+	for _, path := range matches {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read admin event source %s: %v", path, err)
+		}
+
+		text := string(content)
+		fileName := strings.ToLower(filepath.Base(path))
+		if strings.Contains(fileName, "gorm") {
+			continue
+		}
+
+		checkedCleanFile = true
+		for _, forbidden := range []string{
+			`"friendship/repository"`,
+			`"gorm.io/`,
+			`"friendship/models/events"`,
+			"repository.PostgresRepository",
+			"gorm.DB",
+			"eventmodels.",
+		} {
+			if strings.Contains(text, forbidden) {
+				t.Fatalf("%s contains storage dependency %q; keep it isolated in GORM admin adapters", path, forbidden)
+			}
+		}
+	}
+	if !checkedCleanFile {
+		t.Fatal("no clean admin event service source file found outside GORM adapters")
+	}
+}
+
+func readCombinedGoSource(t *testing.T, dir string) string {
+	t.Helper()
+
+	var builder strings.Builder
+	err := filepath.WalkDir(dir, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || filepath.Ext(path) != ".go" {
+			return nil
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		builder.Write(content)
+		builder.WriteByte('\n')
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walk go source %s: %v", dir, err)
+	}
+
+	return builder.String()
+}
+
 func TestNewEventMembershipServiceAcceptsOnlyLoggerAndUnitOfWork(t *testing.T) {
 	constructorType := reflect.TypeOf(servicesevents.NewEventMembershipService)
 	if constructorType.NumIn() != 2 {

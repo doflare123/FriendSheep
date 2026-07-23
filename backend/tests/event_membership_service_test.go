@@ -98,6 +98,7 @@ func (s *eventAuditStoreStub) RecordBestEffort(entry servicesevents.EventAuditIn
 type eventUnitOfWorkStub struct {
 	membership *eventMembershipStoreStub
 	commands   servicesevents.EventCommandStore
+	admin      servicesevents.EventAdminStore
 	audit      *eventAuditStoreStub
 	err        error
 	ctx        context.Context
@@ -113,6 +114,7 @@ func (u *eventUnitOfWorkStub) WithinTransaction(ctx context.Context, fn func(ser
 	return fn(servicesevents.NewEventTransaction(servicesevents.EventTransactionStores{
 		MembershipStore: u.membership,
 		CommandStore:    u.commands,
+		AdminStore:      u.admin,
 		AuditStore:      u.audit,
 	}))
 }

@@ -3,7 +3,6 @@ package events
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"friendship/logger"
 	"friendship/models"
@@ -26,27 +25,27 @@ var (
 	ErrInvalidGenres       = errors.New("некорректные жанры")
 	ErrAgeLimitNotFound    = errors.New("возрастное ограничение не найдено")
 	ErrEventAlreadyStarted = errors.New("событие уже началось")
-	ErrNotInGroup          = errors.New("событие не принадлежит группе")
 )
 
 type EventsService interface {
-	GetEventDetailsForAdmin(actorID uint, eventID uint) (*dto.EventAdminDto, error)
-	KickUserFromEvent(actorID uint, eventID uint, targetUserID uint) (bool, error)
 	GetAllGenres() ([]dto.ReferenceItemDto, error)
 	GetAllReferences() (*dto.ReferencesDto, error)
+}
+
+type eventsRepoPort interface {
+	Model(value interface{}) *gorm.DB
+	Order(value interface{}) *gorm.DB
 }
 
 type eventsService struct {
 	logger logger.Logger
 	repo   eventsRepoPort
-	tx     eventsTransactionRunner
 }
 
 func NewEventsService(logger logger.Logger, repo eventsRepoPort) EventsService {
 	return &eventsService{
 		logger: logger,
 		repo:   repo,
-		tx:     newEventsTransactionRunner(repo),
 	}
 }
 
@@ -121,65 +120,4 @@ func (s *eventsService) GetAllReferences() (*dto.ReferencesDto, error) {
 	}
 
 	return references, nil
-}
-
-func (s *eventsService) checkGroupAccess(userID uint, groupID uint, required groups.Capability) (bool, string, error) {
-	var groupUser groups.GroupUsers
-	err := s.repo.
-		Where("user_id = ? AND group_id = ?", userID, groupID).
-		First(&groupUser).Error
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, "", ErrNotGroupMember
-		}
-		return false, "", fmt.Errorf("ошибка проверки доступа: %w", err)
-	}
-
-	var role groups.Role_in_group
-	if err := s.repo.First(&role, groupUser.RoleInGroupID).Error; err != nil {
-		return false, "", fmt.Errorf("ошибка получения роли: %w", err)
-	}
-
-	if groups.HasCapability(role.Name, required) {
-		return true, groups.NormalizeRoleName(role.Name), nil
-	}
-
-	return false, groups.NormalizeRoleName(role.Name), nil
-}
-
-type eventGroupActionLogInput struct {
-	GroupID      uint
-	UserID       uint
-	Username     string
-	Us           string
-	Role         string
-	Action       string
-	Description  string
-	TargetUserID *uint
-	EntityID     *uint
-	EntityName   string
-}
-
-func (s *eventsService) logGroupAction(tx eventsTxPort, input eventGroupActionLogInput) error {
-	actionTypeID, err := groups.FindGroupActionTypeID(tx, input.Action)
-	if err != nil {
-		return fmt.Errorf("тип действия группы %q не найден: %w", input.Action, err)
-	}
-
-	action := groups.GroupActionLog{
-		GroupID:      input.GroupID,
-		UserID:       input.UserID,
-		Username:     input.Username,
-		Us:           input.Us,
-		Role:         input.Role,
-		ActionTypeID: actionTypeID,
-		Description:  input.Description,
-		TargetUserID: input.TargetUserID,
-		EntityID:     input.EntityID,
-		EntityName:   input.EntityName,
-		CreatedAt:    time.Now(),
-	}
-
-	return tx.Create(&action).Error
 }

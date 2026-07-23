@@ -33,6 +33,7 @@ type eventsHandler struct {
 	membership events.EventMembershipService
 	commands   events.EventCommandService
 	reads      events.EventReadService
+	admin      events.EventAdminService
 }
 
 type EventsHandlerDependencies struct {
@@ -40,6 +41,7 @@ type EventsHandlerDependencies struct {
 	Membership events.EventMembershipService
 	Commands   events.EventCommandService
 	Reads      events.EventReadService
+	Admin      events.EventAdminService
 }
 
 func NewEventsHandler(dependencies EventsHandlerDependencies) EventsHandler {
@@ -48,6 +50,7 @@ func NewEventsHandler(dependencies EventsHandlerDependencies) EventsHandler {
 		membership: dependencies.Membership,
 		commands:   dependencies.Commands,
 		reads:      dependencies.Reads,
+		admin:      dependencies.Admin,
 	}
 }
 
@@ -216,14 +219,14 @@ func (h *eventsHandler) GetEventDetailsForAdmin(c *gin.Context) {
 		return
 	}
 
-	eventDto, err := h.srv.GetEventDetailsForAdmin(actorID, uint(eventID))
+	eventDto, err := h.admin.GetEventDetailsForAdmin(c.Request.Context(), actorID, uint(eventID))
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):
 			utils.NotFound(c, "Событие не найдено")
 		case errors.Is(err, events.ErrPermissionDenied):
 			utils.Forbidden(c, "Недостаточно прав")
-		case errors.Is(err, events.ErrNotInGroup):
+		case errors.Is(err, events.ErrNotGroupMember):
 			utils.Forbidden(c, "Вы не состоите в группе")
 		default:
 			utils.InternalError(c, err.Error())
@@ -265,7 +268,7 @@ func (h *eventsHandler) KickUserFromEvent(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.KickUserFromEvent(actorID, uint(eventID), uint(targetUserID))
+	success, err := h.admin.KickUserFromEvent(c.Request.Context(), actorID, uint(eventID), uint(targetUserID))
 	if err != nil {
 		switch {
 		case errors.Is(err, events.ErrEventNotFound):
@@ -274,8 +277,12 @@ func (h *eventsHandler) KickUserFromEvent(c *gin.Context) {
 			utils.NotFound(c, "Пользователь не найден")
 		case errors.Is(err, events.ErrPermissionDenied):
 			utils.Forbidden(c, "Недостаточно прав")
+		case errors.Is(err, events.ErrNotGroupMember):
+			utils.Forbidden(c, "Вы не состоите в группе")
 		case errors.Is(err, events.ErrCreatorCantLeave):
 			utils.BadRequest(c, "Нельзя исключить создателя события")
+		case errors.Is(err, events.ErrActorCantKickSelf):
+			utils.BadRequest(c, "Используйте выход из события")
 		case errors.Is(err, events.ErrNotJoined):
 			utils.NotFound(c, "Пользователь не участвует в событии")
 		default:

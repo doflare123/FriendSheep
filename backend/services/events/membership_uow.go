@@ -47,12 +47,14 @@ type EventAuditStore interface {
 type EventTransaction struct {
 	membership EventMembershipStore
 	commands   EventCommandStore
+	admin      EventAdminStore
 	audit      EventAuditStore
 }
 
 type EventTransactionStores struct {
 	MembershipStore EventMembershipStore
 	CommandStore    EventCommandStore
+	AdminStore      EventAdminStore
 	AuditStore      EventAuditStore
 }
 
@@ -60,6 +62,7 @@ func NewEventTransaction(stores EventTransactionStores) EventTransaction {
 	return EventTransaction{
 		membership: stores.MembershipStore,
 		commands:   stores.CommandStore,
+		admin:      stores.AdminStore,
 		audit:      stores.AuditStore,
 	}
 }
@@ -70,6 +73,10 @@ func (tx EventTransaction) Membership() EventMembershipStore {
 
 func (tx EventTransaction) Commands() EventCommandStore {
 	return tx.commands
+}
+
+func (tx EventTransaction) Admin() EventAdminStore {
+	return tx.admin
 }
 
 func (tx EventTransaction) Audit() EventAuditStore {

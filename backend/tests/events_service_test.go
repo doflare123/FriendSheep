@@ -349,10 +349,10 @@ func TestEventCommandServiceDeleteEventRemovesEventRelationsAndWritesActionLog(t
 	assertGroupActionLogCount(t, db, groupID, "delete_event", 1)
 }
 
-func TestEventsServiceKickUserFromEventRemovesTargetAndDecrementsCount(t *testing.T) {
+func TestGORMEventAdminServiceKickUserFromEventRemovesTargetAndDecrementsCount(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := newGORMEventAdminService(repo)
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -364,7 +364,7 @@ func TestEventsServiceKickUserFromEventRemovesTargetAndDecrementsCount(t *testin
 	seedEventParticipant(t, db, eventID, 2)
 	seedEventParticipant(t, db, eventID, 3)
 
-	kicked, err := service.KickUserFromEvent(1, eventID, 2)
+	kicked, err := service.KickUserFromEvent(context.Background(), 1, eventID, 2)
 
 	if err != nil {
 		t.Fatalf("KickUserFromEvent returned error: %v", err)
@@ -379,10 +379,10 @@ func TestEventsServiceKickUserFromEventRemovesTargetAndDecrementsCount(t *testin
 	assertGroupActionLogCount(t, db, groupID, "kick_from_event", 1)
 }
 
-func TestEventsServiceKickUserFromEventRejectsCreatorWithoutSideEffects(t *testing.T) {
+func TestGORMEventAdminServiceKickUserFromEventRejectsCreatorWithoutSideEffects(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := newGORMEventAdminService(repo)
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -392,7 +392,7 @@ func TestEventsServiceKickUserFromEventRejectsCreatorWithoutSideEffects(t *testi
 	seedEventParticipant(t, db, eventID, 1)
 	seedEventParticipant(t, db, eventID, 2)
 
-	kicked, err := service.KickUserFromEvent(2, eventID, 1)
+	kicked, err := service.KickUserFromEvent(context.Background(), 2, eventID, 1)
 
 	if kicked {
 		t.Fatal("KickUserFromEvent returned true")
@@ -646,10 +646,10 @@ func TestEventReadServiceGetEventDetailsMarksCreator(t *testing.T) {
 	}
 }
 
-func TestEventsServiceGetEventDetailsForAdminReturnsParticipants(t *testing.T) {
+func TestGORMEventAdminServiceGetEventDetailsForAdminReturnsParticipants(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := newGORMEventAdminService(repo)
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -661,7 +661,7 @@ func TestEventsServiceGetEventDetailsForAdminReturnsParticipants(t *testing.T) {
 	seedEventParticipant(t, db, eventID, 1)
 	seedEventParticipant(t, db, eventID, 2)
 
-	eventDTO, err := service.GetEventDetailsForAdmin(1, eventID)
+	eventDTO, err := service.GetEventDetailsForAdmin(context.Background(), 1, eventID)
 
 	if err != nil {
 		t.Fatalf("GetEventDetailsForAdmin returned error: %v", err)
@@ -674,10 +674,10 @@ func TestEventsServiceGetEventDetailsForAdminReturnsParticipants(t *testing.T) {
 	}
 }
 
-func TestEventsServiceGetEventDetailsForAdminRejectsPlainMember(t *testing.T) {
+func TestGORMEventAdminServiceGetEventDetailsForAdminRejectsPlainMember(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
+	service := newGORMEventAdminService(repo)
 
 	seedEventUser(t, db, 1)
 	seedEventUser(t, db, 2)
@@ -685,7 +685,7 @@ func TestEventsServiceGetEventDetailsForAdminRejectsPlainMember(t *testing.T) {
 	seedEventGroupMembershipWithRole(t, db, 2, groupID, "Участник")
 	eventID := seedEvent(t, db, groupID, 1, 1, 5)
 
-	eventDTO, err := service.GetEventDetailsForAdmin(2, eventID)
+	eventDTO, err := service.GetEventDetailsForAdmin(context.Background(), 2, eventID)
 
 	if eventDTO != nil {
 		t.Fatalf("eventDTO = %#v, want nil", eventDTO)
