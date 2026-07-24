@@ -126,6 +126,7 @@ func TestEventMembershipServiceJoinEventDelegatesToCleanUnitOfWork(t *testing.T)
 			GroupID:   42,
 			CreatorID: 1,
 			Title:     "Clean membership event",
+			StartTime: time.Now().Add(24 * time.Hour),
 		},
 		groupMember: true,
 		incremented: true,
@@ -160,6 +161,97 @@ func TestEventMembershipServiceJoinEventDelegatesToCleanUnitOfWork(t *testing.T)
 	entry := audit.entries[0]
 	if entry.Action != groupmodels.ActionJoinEvent || entry.GroupID != 42 || entry.ActorID != 2 || entry.EntityID == nil || *entry.EntityID != 77 {
 		t.Fatalf("audit entry = %#v", entry)
+	}
+}
+
+func TestEventMembershipServiceJoinEventRejectsStartedEventWithoutSideEffects(t *testing.T) {
+	membership := &eventMembershipStoreStub{
+		event: servicesevents.EventMembershipSnapshot{
+			ID:        77,
+			GroupID:   42,
+			CreatorID: 1,
+			Title:     "Already started event",
+			StartTime: time.Now().Add(-time.Hour),
+		},
+		groupMember: true,
+		incremented: true,
+	}
+	audit := &eventAuditStoreStub{}
+	uow := &eventUnitOfWorkStub{membership: membership, audit: audit}
+	service := servicesevents.NewEventMembershipService(&testLogger{}, uow)
+
+	joined, err := service.JoinEvent(context.Background(), 2, 77)
+
+	if joined {
+		t.Fatal("JoinEvent returned true")
+	}
+	if !errors.Is(err, servicesevents.ErrEventAlreadyStarted) {
+		t.Fatalf("JoinEvent err = %v, want ErrEventAlreadyStarted", err)
+	}
+	if wantCalls := []string{"find_event", "is_group_member", "is_participant"}; !reflect.DeepEqual(membership.calls, wantCalls) {
+		t.Fatalf("membership calls = %v, want %v", membership.calls, wantCalls)
+	}
+	if len(audit.entries) != 0 {
+		t.Fatalf("audit entries = %d, want 0", len(audit.entries))
+	}
+}
+
+func TestEventMembershipServiceJoinEventPreservesMembershipErrorPrecedenceForStartedEvent(t *testing.T) {
+	tests := []struct {
+		name       string
+		membership *eventMembershipStoreStub
+		wantErr    error
+		wantCalls  []string
+	}{
+		{
+			name: "non group member",
+			membership: &eventMembershipStoreStub{
+				event: servicesevents.EventMembershipSnapshot{
+					ID:        77,
+					GroupID:   42,
+					CreatorID: 1,
+					StartTime: time.Now().Add(-time.Hour),
+				},
+			},
+			wantErr:   servicesevents.ErrNotGroupMember,
+			wantCalls: []string{"find_event", "is_group_member"},
+		},
+		{
+			name: "existing participant",
+			membership: &eventMembershipStoreStub{
+				event: servicesevents.EventMembershipSnapshot{
+					ID:        77,
+					GroupID:   42,
+					CreatorID: 1,
+					StartTime: time.Now().Add(-time.Hour),
+				},
+				groupMember: true,
+				participant: true,
+			},
+			wantErr:   servicesevents.ErrAlreadyJoined,
+			wantCalls: []string{"find_event", "is_group_member", "is_participant"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			service := servicesevents.NewEventMembershipService(
+				&testLogger{},
+				&eventUnitOfWorkStub{membership: test.membership},
+			)
+
+			joined, err := service.JoinEvent(context.Background(), 2, 77)
+
+			if joined {
+				t.Fatal("JoinEvent returned true")
+			}
+			if !errors.Is(err, test.wantErr) {
+				t.Fatalf("JoinEvent err = %v, want %v", err, test.wantErr)
+			}
+			if !reflect.DeepEqual(test.membership.calls, test.wantCalls) {
+				t.Fatalf("membership calls = %v, want %v", test.membership.calls, test.wantCalls)
+			}
+		})
 	}
 }
 
@@ -220,6 +312,7 @@ func TestEventMembershipServiceIgnoresAuditFailures(t *testing.T) {
 					ID:        77,
 					GroupID:   42,
 					CreatorID: 1,
+					StartTime: time.Now().Add(24 * time.Hour),
 				},
 				groupMember: true,
 				incremented: true,
@@ -262,7 +355,12 @@ func TestEventMembershipServiceDomainErrors(t *testing.T) {
 		{
 			name: "join non group member",
 			membership: &eventMembershipStoreStub{
-				event:       servicesevents.EventMembershipSnapshot{ID: 77, GroupID: 42, CreatorID: 1},
+				event: servicesevents.EventMembershipSnapshot{
+					ID:        77,
+					GroupID:   42,
+					CreatorID: 1,
+					StartTime: time.Now().Add(24 * time.Hour),
+				},
 				groupMember: false,
 			},
 			join:    true,
@@ -272,7 +370,12 @@ func TestEventMembershipServiceDomainErrors(t *testing.T) {
 		{
 			name: "join existing participant",
 			membership: &eventMembershipStoreStub{
-				event:       servicesevents.EventMembershipSnapshot{ID: 77, GroupID: 42, CreatorID: 1},
+				event: servicesevents.EventMembershipSnapshot{
+					ID:        77,
+					GroupID:   42,
+					CreatorID: 1,
+					StartTime: time.Now().Add(24 * time.Hour),
+				},
 				groupMember: true,
 				participant: true,
 			},
@@ -283,7 +386,12 @@ func TestEventMembershipServiceDomainErrors(t *testing.T) {
 		{
 			name: "join full event",
 			membership: &eventMembershipStoreStub{
-				event:       servicesevents.EventMembershipSnapshot{ID: 77, GroupID: 42, CreatorID: 1},
+				event: servicesevents.EventMembershipSnapshot{
+					ID:        77,
+					GroupID:   42,
+					CreatorID: 1,
+					StartTime: time.Now().Add(24 * time.Hour),
+				},
 				groupMember: true,
 				incremented: false,
 			},

@@ -64,6 +64,36 @@ func TestEventMembershipServiceJoinEventRejectsNonGroupMemberWithoutSideEffects(
 	assertEventCurrentUsers(t, db, eventID, 1)
 }
 
+func TestGORMEventMembershipServiceJoinEventRejectsStartedEventWithoutSideEffects(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventMembershipService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
+
+	seedEventUser(t, db, 1)
+	seedEventUser(t, db, 2)
+	groupID := seedEventGroup(t, db, 1, false)
+	seedEventGroupMembership(t, db, 2, groupID)
+	eventID := seedEvent(t, db, groupID, 1, 1, 3)
+	seedEventParticipant(t, db, eventID, 1)
+	if err := db.Model(&eventmodels.Event{}).
+		Where("id = ?", eventID).
+		Update("start_time", time.Now().Add(-time.Hour)).Error; err != nil {
+		t.Fatalf("set event start time: %v", err)
+	}
+
+	joined, err := service.JoinEvent(context.Background(), 2, eventID)
+
+	if joined {
+		t.Fatal("JoinEvent returned true")
+	}
+	if !errors.Is(err, servicesevents.ErrEventAlreadyStarted) {
+		t.Fatalf("err = %v, want ErrEventAlreadyStarted", err)
+	}
+	assertEventParticipantExists(t, db, eventID, 2, false)
+	assertEventCurrentUsers(t, db, eventID, 1)
+	assertGroupActionLogCount(t, db, groupID, groupmodels.ActionJoinEvent, 0)
+}
+
 func TestEventMembershipServiceJoinEventRejectsFullEventWithoutSideEffects(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}

@@ -678,7 +678,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Событие заполнено или пользователь уже участвует",
+                        "description": "Событие уже началось, заполнено или пользователь уже участвует",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }

@@ -58,6 +58,9 @@ func (s *eventMembershipService) JoinEvent(ctx context.Context, userID uint, eve
 		if isParticipant {
 			return ErrAlreadyJoined
 		}
+		if !time.Now().Before(event.StartTime) {
+			return ErrEventAlreadyStarted
+		}
 
 		if err := membership.AddParticipant(userID, eventID, time.Now()); err != nil {
 			return err

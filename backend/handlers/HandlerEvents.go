@@ -420,7 +420,7 @@ func (h *eventsHandler) GetEventDetails(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        eventId  path      int               true  "ID события"
 // @Success      200      {object}  map[string]any    "Результат вступления"
-// @Failure      400      {object}  dto.ErrorResponse "Событие заполнено или пользователь уже участвует"
+// @Failure      400      {object}  dto.ErrorResponse "Событие уже началось, заполнено или пользователь уже участвует"
 // @Failure      401      {object}  dto.ErrorResponse "Требуется авторизация"
 // @Failure      403      {object}  dto.ErrorResponse "Требуется участие в группе"
 // @Failure      404      {object}  dto.ErrorResponse "Событие не найдено"
@@ -442,6 +442,8 @@ func (h *eventsHandler) JoinEvent(c *gin.Context) {
 			utils.NotFound(c, "Событие не найдено")
 		case errors.Is(err, events.ErrNotGroupMember):
 			utils.Forbidden(c, "Вы не состоите в группе")
+		case errors.Is(err, events.ErrEventAlreadyStarted):
+			utils.BadRequest(c, err.Error())
 		case errors.Is(err, events.ErrEventFull):
 			utils.BadRequest(c, "Событие заполнено")
 		case errors.Is(err, events.ErrAlreadyJoined):
