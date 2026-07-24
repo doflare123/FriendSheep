@@ -12,25 +12,7 @@ import (
 	groupmodels "friendship/models/groups"
 	servicesevents "friendship/services/events"
 	servicegroups "friendship/services/groups"
-
-	"gorm.io/gorm"
 )
-
-// eventsServiceLocalPort mirrors the local events storage contract expected by service constructors.
-type eventsServiceLocalPort interface {
-	Model(value interface{}) *gorm.DB
-	Select(query interface{}, args ...interface{}) *gorm.DB
-	Find(out interface{}, where ...interface{}) *gorm.DB
-	First(out interface{}, where ...interface{}) *gorm.DB
-	Create(value interface{}) *gorm.DB
-	Delete(value interface{}) *gorm.DB
-	Where(query interface{}, args ...interface{}) *gorm.DB
-	Preload(column string, conditions ...interface{}) *gorm.DB
-	Order(value interface{}) *gorm.DB
-	Count(count *int64) *gorm.DB
-}
-
-var _ eventsServiceLocalPort = (*testPostgresRepository)(nil)
 
 type eventReadStoreContractStub struct{}
 
@@ -204,18 +186,6 @@ func TestNewEventCommandServiceAcceptsOnlyLoggerAndUnitOfWork(t *testing.T) {
 	}
 }
 
-func TestNewEventsServiceAcceptsLocalPort(t *testing.T) {
-	db := newEventsServiceDB(t)
-	repo := &testPostgresRepository{db: db}
-	var localPort eventsServiceLocalPort = repo
-
-	assertConstructorAcceptsRepo(t, servicesevents.NewEventsService, repo)
-	service := invokeEventsServiceConstructor(t, &testLogger{}, localPort)
-	if service == nil {
-		t.Fatal("NewEventsService returned nil")
-	}
-}
-
 func TestNewEventReadServiceAcceptsOnlyCleanReadStore(t *testing.T) {
 	constructorType := reflect.TypeOf(servicesevents.NewEventReadService)
 	if constructorType.NumIn() != 2 {
@@ -295,24 +265,6 @@ func TestEventReadCleanSourceDoesNotImportStorageLibraries(t *testing.T) {
 			if strings.Contains(text, forbidden) {
 				t.Fatalf("%s contains storage dependency %q", sourcePath, forbidden)
 			}
-		}
-	}
-}
-
-func TestLegacyEventsServiceDoesNotExposeUserReadMethods(t *testing.T) {
-	serviceInterface := reflect.TypeOf((*servicesevents.EventsService)(nil)).Elem()
-	for _, methodName := range []string{"SearchEvents", "GetGroupEvents", "GetEventDetails"} {
-		if _, exists := serviceInterface.MethodByName(methodName); exists {
-			t.Fatalf("EventsService still exposes %s; keep user reads in EventReadService", methodName)
-		}
-	}
-}
-
-func TestLegacyEventsServiceDoesNotExposeAdminMethods(t *testing.T) {
-	serviceInterface := reflect.TypeOf((*servicesevents.EventsService)(nil)).Elem()
-	for _, methodName := range []string{"GetEventDetailsForAdmin", "KickUserFromEvent"} {
-		if _, exists := serviceInterface.MethodByName(methodName); exists {
-			t.Fatalf("EventsService still exposes %s; keep admin behavior in EventAdminService", methodName)
 		}
 	}
 }
@@ -484,47 +436,6 @@ func TestNewEventMembershipServiceAcceptsOnlyLoggerAndUnitOfWork(t *testing.T) {
 	}
 }
 
-func TestEventsServiceDoesNotExposeCommandsMembershipOrStoreUnitOfWork(t *testing.T) {
-	serviceInterface := reflect.TypeOf((*servicesevents.EventsService)(nil)).Elem()
-	for _, methodName := range []string{
-		"CreateEvent",
-		"UpdateEvent",
-		"DeleteEvent",
-		"JoinEvent",
-		"LeaveEvent",
-		"SearchEvents",
-		"GetGroupEvents",
-		"GetEventDetails",
-	} {
-		if _, exists := serviceInterface.MethodByName(methodName); exists {
-			t.Fatalf("EventsService still exposes %s; keep commands, membership and reads in focused services", methodName)
-		}
-	}
-
-	db := newEventsServiceDB(t)
-	service := servicesevents.NewEventsService(&testLogger{}, &testPostgresRepository{db: db})
-	implementationType := reflect.TypeOf(service)
-	if implementationType.Kind() == reflect.Pointer {
-		implementationType = implementationType.Elem()
-	}
-	uowType := reflect.TypeOf((*servicesevents.EventUnitOfWork)(nil)).Elem()
-	for i := 0; i < implementationType.NumField(); i++ {
-		field := implementationType.Field(i)
-		if field.Type.Implements(uowType) || strings.Contains(strings.ToLower(field.Name), "unitofwork") {
-			t.Fatalf("EventsService implementation still stores membership unit of work in field %s", field.Name)
-		}
-	}
-
-	serviceSourcePath := filepath.Join("..", "services", "events", "ServiceEvents.go")
-	content, err := os.ReadFile(serviceSourcePath)
-	if err != nil {
-		t.Fatalf("read events service source: %v", err)
-	}
-	if strings.Contains(string(content), "NewEventsServiceWithUnitOfWork") {
-		t.Fatal("EventsService still exposes a membership-aware constructor")
-	}
-}
-
 func assertEventReadTypeDoesNotLeakStorage(t *testing.T, typ reflect.Type, checked map[reflect.Type]bool) {
 	t.Helper()
 
@@ -593,20 +504,6 @@ func invokeGroupServiceConstructor(t *testing.T, l *testLogger, repo interface{}
 	svc, ok := out[0].Interface().(servicegroups.GroupsService)
 	if !ok || svc == nil {
 		t.Fatalf("NewGroupService returned %T, want GroupsService", out[0].Interface())
-	}
-	return svc
-}
-
-func invokeEventsServiceConstructor(t *testing.T, l *testLogger, repo eventsServiceLocalPort) servicesevents.EventsService {
-	t.Helper()
-
-	out := reflect.ValueOf(servicesevents.NewEventsService).Call([]reflect.Value{
-		reflect.ValueOf(l),
-		reflect.ValueOf(repo),
-	})
-	svc, ok := out[0].Interface().(servicesevents.EventsService)
-	if !ok || svc == nil {
-		t.Fatalf("NewEventsService returned %T, want EventsService", out[0].Interface())
 	}
 	return svc
 }

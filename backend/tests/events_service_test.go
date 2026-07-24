@@ -1148,30 +1148,6 @@ func TestEventReadServiceSearchEventsUsesStableDefaultOrder(t *testing.T) {
 	}
 }
 
-func TestEventsServiceGetAllReferencesIncludesGenres(t *testing.T) {
-	db := newEventsServiceDB(t)
-	repo := &testPostgresRepository{db: db}
-	service := servicesevents.NewEventsService(&testLogger{}, repo)
-
-	seedEventReferences(t, db)
-	seedEventGenre(t, db, "Strategy")
-
-	references, err := service.GetAllReferences()
-
-	if err != nil {
-		t.Fatalf("GetAllReferences returned error: %v", err)
-	}
-	if references == nil {
-		t.Fatal("references = nil")
-	}
-	if len(references.Genres) != 1 || references.Genres[0].Name != "Strategy" {
-		t.Fatalf("genres = %#v, want Strategy reference", references.Genres)
-	}
-	if len(references.EventTypes) == 0 || len(references.Locations) == 0 || len(references.AgeLimits) == 0 || len(references.Statuses) == 0 || len(references.GroupActionTypes) == 0 {
-		t.Fatalf("references missing required collections: %#v", references)
-	}
-}
-
 func newEventsServiceDB(t *testing.T) *gorm.DB {
 	t.Helper()
 

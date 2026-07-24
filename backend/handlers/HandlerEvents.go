@@ -24,12 +24,9 @@ type EventsHandler interface {
 	JoinEvent(c *gin.Context)
 	LeaveEvent(c *gin.Context)
 	KickUserFromEvent(c *gin.Context)
-	GetAllGenres(c *gin.Context)
-	GetAllReferences(c *gin.Context)
 }
 
 type eventsHandler struct {
-	srv        events.EventsService
 	membership events.EventMembershipService
 	commands   events.EventCommandService
 	reads      events.EventReadService
@@ -37,7 +34,6 @@ type eventsHandler struct {
 }
 
 type EventsHandlerDependencies struct {
-	Events     events.EventsService
 	Membership events.EventMembershipService
 	Commands   events.EventCommandService
 	Reads      events.EventReadService
@@ -46,7 +42,6 @@ type EventsHandlerDependencies struct {
 
 func NewEventsHandler(dependencies EventsHandlerDependencies) EventsHandler {
 	return &eventsHandler{
-		srv:        dependencies.Events,
 		membership: dependencies.Membership,
 		commands:   dependencies.Commands,
 		reads:      dependencies.Reads,
@@ -504,42 +499,6 @@ func (h *eventsHandler) LeaveEvent(c *gin.Context) {
 		"success": success,
 		"message": "Вы покинули событие",
 	})
-}
-
-// GetAllGenres godoc
-// @Summary      Получить жанры
-// @Description  Возвращает все жанры событий.
-// @Tags         events
-// @Produce      json
-// @Success      200 {array} dto.ReferenceItemDto "Список жанров"
-// @Failure      500 {object} dto.ErrorResponse    "Внутренняя ошибка сервера"
-// @Router       /api/v2/events/genres [get]
-func (h *eventsHandler) GetAllGenres(c *gin.Context) {
-	genres, err := h.srv.GetAllGenres()
-	if err != nil {
-		utils.InternalError(c, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, genres)
-}
-
-// GetAllReferences godoc
-// @Summary      Получить справочники
-// @Description  Возвращает все справочники, используемые группами и событиями.
-// @Tags         references
-// @Produce      json
-// @Success      200 {object} dto.ReferencesDto "Справочники"
-// @Failure      500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
-// @Router       /api/v2/references [get]
-func (h *eventsHandler) GetAllReferences(c *gin.Context) {
-	references, err := h.srv.GetAllReferences()
-	if err != nil {
-		utils.InternalError(c, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, references)
 }
 
 func bindEventSearchQuery(c *gin.Context) (events.EventSearchInput, error) {

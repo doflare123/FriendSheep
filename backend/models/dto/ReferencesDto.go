@@ -5,7 +5,6 @@ type ReferencesDto struct {
 	Locations        []ReferenceItemDto       `json:"locations"`
 	AgeLimits        []ReferenceItemDto       `json:"ageLimits"`
 	Statuses         []ReferenceItemDto       `json:"statuses"`
-	Genres           []ReferenceItemDto       `json:"genres"`
 	GroupCategories  []ReferenceItemDto       `json:"groupCategories"`
 	GroupActionTypes []ActionReferenceItemDto `json:"groupActionTypes"`
 }
@@ -19,4 +18,12 @@ type ActionReferenceItemDto struct {
 	ID   uint   `json:"id"`
 	Code string `json:"code"`
 	Name string `json:"name"`
+}
+
+type GenreSearchResponseDto struct {
+	Items   []ReferenceItemDto `json:"items"`
+	Total   int64              `json:"total"`
+	Page    int                `json:"page"`
+	Limit   int                `json:"limit"`
+	HasMore bool               `json:"hasMore"`
 }

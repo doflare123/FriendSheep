@@ -101,13 +101,17 @@ func (h *eventsRouteHandlerStub) KickUserFromEvent(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func (h *eventsRouteHandlerStub) GetAllGenres(c *gin.Context) {
-	h.called = "genres"
+type referencesRouteHandlerStub struct {
+	called string
+}
+
+func (h *referencesRouteHandlerStub) GetReferences(c *gin.Context) {
+	h.called = "references"
 	c.Status(http.StatusNoContent)
 }
 
-func (h *eventsRouteHandlerStub) GetAllReferences(c *gin.Context) {
-	h.called = "references"
+func (h *referencesRouteHandlerStub) SearchGenres(c *gin.Context) {
+	h.called = "genres"
 	c.Status(http.StatusNoContent)
 }
 
@@ -252,7 +256,6 @@ func TestRegisterEventsRoutesPublicEndpoints(t *testing.T) {
 		path       string
 		wantCalled func() bool
 	}{
-		{"references", "/api/v2/references", func() bool { return eventsHandler.called == "references" }},
 		{"popular", "/api/v2/events/popular", func() bool { return popularHandler.called }},
 		{"search", "/api/v2/events/search?q=test", func() bool { return eventsHandler.called == "search-events" }},
 	}
@@ -269,11 +272,43 @@ func TestRegisterEventsRoutesPublicEndpoints(t *testing.T) {
 		})
 	}
 
-	rec := performRouteRequest(router, http.MethodGet, "/api/v2/events/genres", "")
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("status for removed genres route = %d, want %d", rec.Code, http.StatusUnauthorized)
+	for _, route := range router.Routes() {
+		if route.Method == http.MethodGet && route.Path == "/api/v2/events/genres" {
+			t.Fatalf("legacy route is still registered: %#v", route)
+		}
 	}
-	assertCommonErrorShape(t, rec)
+}
+
+func TestRegisterReferencesRoutesExposePublicEndpoints(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &referencesRouteHandlerStub{}
+	router := gin.New()
+	routes.RegisterReferencesRoutes(router, handler)
+
+	tests := []struct {
+		name       string
+		path       string
+		wantCalled string
+	}{
+		{name: "all references", path: "/api/v2/references", wantCalled: "references"},
+		{name: "genre search", path: "/api/v2/references/genres?q=board&page=2&limit=10", wantCalled: "genres"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler.called = ""
+
+			rec := performRouteRequest(router, http.MethodGet, tt.path, "")
+
+			if rec.Code != http.StatusNoContent {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusNoContent)
+			}
+			if handler.called != tt.wantCalled {
+				t.Fatalf("called = %q, want %q", handler.called, tt.wantCalled)
+			}
+		})
+	}
 }
 
 func TestRegisterEventsRoutesProtectedEndpointRequiresAuth(t *testing.T) {

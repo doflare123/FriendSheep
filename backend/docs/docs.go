@@ -401,35 +401,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v2/events/genres": {
-            "get": {
-                "description": "Возвращает все жанры событий.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "events"
-                ],
-                "summary": "Получить жанры",
-                "responses": {
-                    "200": {
-                        "description": "Список жанров",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.ReferenceItemDto"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v2/events/popular": {
             "get": {
                 "description": "Возвращает топ-10 самых популярных событий",
@@ -2080,7 +2051,7 @@ const docTemplate = `{
         },
         "/api/v2/references": {
             "get": {
-                "description": "Возвращает все справочники, используемые группами и событиями.",
+                "description": "Возвращает общие справочники групп и событий. Жанры доступны отдельно через GET /api/v2/references/genres.",
                 "produces": [
                     "application/json"
                 ],
@@ -2093,6 +2064,63 @@ const docTemplate = `{
                         "description": "Справочники",
                         "schema": {
                             "$ref": "#/definitions/dto.ReferencesDto"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/references/genres": {
+            "get": {
+                "description": "Возвращает жанры с регистронезависимым поиском по подстроке и пагинацией.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "references"
+                ],
+                "summary": "Получить жанры",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Подстрока названия жанра",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Номер страницы",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Размер страницы",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Страница жанров",
+                        "schema": {
+                            "$ref": "#/definitions/dto.GenreSearchResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные параметры пагинации",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
@@ -2910,6 +2938,29 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.GenreSearchResponseDto": {
+            "type": "object",
+            "properties": {
+                "hasMore": {
+                    "type": "boolean"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReferenceItemDto"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.GroupCreatorDto": {
             "type": "object",
             "properties": {
@@ -3050,12 +3101,6 @@ const docTemplate = `{
                     }
                 },
                 "eventTypes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.ReferenceItemDto"
-                    }
-                },
-                "genres": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/dto.ReferenceItemDto"

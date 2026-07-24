@@ -348,6 +348,21 @@ definitions:
       title:
         type: string
     type: object
+  dto.GenreSearchResponseDto:
+    properties:
+      hasMore:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/dto.ReferenceItemDto'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
   dto.GroupCreatorDto:
     properties:
       id:
@@ -440,10 +455,6 @@ definitions:
           $ref: '#/definitions/dto.ReferenceItemDto'
         type: array
       eventTypes:
-        items:
-          $ref: '#/definitions/dto.ReferenceItemDto'
-        type: array
-      genres:
         items:
           $ref: '#/definitions/dto.ReferenceItemDto'
         type: array
@@ -1404,25 +1415,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Покинуть событие
-      tags:
-      - events
-  /api/v2/events/genres:
-    get:
-      description: Возвращает все жанры событий.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Список жанров
-          schema:
-            items:
-              $ref: '#/definitions/dto.ReferenceItemDto'
-            type: array
-        "500":
-          description: Внутренняя ошибка сервера
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: Получить жанры
       tags:
       - events
   /api/v2/events/popular:
@@ -2403,7 +2395,8 @@ paths:
       - groups_admin
   /api/v2/references:
     get:
-      description: Возвращает все справочники, используемые группами и событиями.
+      description: Возвращает общие справочники групп и событий. Жанры доступны отдельно
+        через GET /api/v2/references/genres.
       produces:
       - application/json
       responses:
@@ -2416,6 +2409,45 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Получить справочники
+      tags:
+      - references
+  /api/v2/references/genres:
+    get:
+      description: Возвращает жанры с регистронезависимым поиском по подстроке и пагинацией.
+      parameters:
+      - description: Подстрока названия жанра
+        in: query
+        name: q
+        type: string
+      - default: 1
+        description: Номер страницы
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 50
+        description: Размер страницы
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Страница жанров
+          schema:
+            $ref: '#/definitions/dto.GenreSearchResponseDto'
+        "400":
+          description: Некорректные параметры пагинации
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Получить жанры
       tags:
       - references
   /api/v2/register/:

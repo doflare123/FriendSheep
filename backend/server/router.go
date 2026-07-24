@@ -7,6 +7,7 @@ import (
 	"friendship/services"
 	events "friendship/services/events"
 	group "friendship/services/groups"
+	"friendship/services/references"
 	"friendship/services/register"
 	"friendship/services/sub"
 	"friendship/utils"
@@ -42,7 +43,6 @@ func (s *Server) initRouters() {
 	routes.RegisterGroupsRoutes(s.engine, groupH, jwtMiddleware, groupRoleMiddleware)
 
 	//регистрация событий
-	eventsrv := events.NewEventsService(s.logger, s.postgres)
 	eventUnitOfWork := events.NewGORMEventUnitOfWork(s.postgres)
 	eventMembershipService := events.NewEventMembershipService(s.logger, eventUnitOfWork)
 	eventCommandService := events.NewEventCommandService(s.logger, eventUnitOfWork)
@@ -52,11 +52,15 @@ func (s *Server) initRouters() {
 	eventAdminService := events.NewEventAdminService(s.logger, eventAdminReader, eventUnitOfWork)
 	popularEventsH := handlers.NewPopularEventsHandler(s.popularEventsService)
 	eventsH := handlers.NewEventsHandler(handlers.EventsHandlerDependencies{
-		Events:     eventsrv,
 		Membership: eventMembershipService,
 		Commands:   eventCommandService,
 		Reads:      eventReadService,
 		Admin:      eventAdminService,
 	})
 	routes.RegisterEventsRoutes(s.engine, eventsH, popularEventsH, jwtMiddleware, groupRoleMiddleware)
+
+	referenceStore := references.NewGORMReferenceStore(s.postgres)
+	referenceService := references.NewReferenceService(referenceStore)
+	referencesH := handlers.NewReferencesHandler(referenceService)
+	routes.RegisterReferencesRoutes(s.engine, referencesH)
 }
