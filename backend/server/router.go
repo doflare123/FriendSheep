@@ -17,6 +17,7 @@ func (s *Server) initRouters() {
 	// jwt
 	jwtService := utils.NewJWTUtils(s.cfg.JWTSecretKey)
 	jwtMiddleware := middlewares.NewAuthMiddleware(jwtService)
+	jwtMiddleware.SetRateLimiter(s.rateLimiter)
 
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(s.postgres)
 

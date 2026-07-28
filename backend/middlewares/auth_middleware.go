@@ -8,11 +8,19 @@ import (
 )
 
 type AuthMiddleware struct {
-	jwtUtils *utils.JWTUtils
+	jwtUtils    *utils.JWTUtils
+	rateLimiter *RateLimitMiddleware
 }
 
 func NewAuthMiddleware(jwtService *utils.JWTUtils) *AuthMiddleware {
 	return &AuthMiddleware{jwtUtils: jwtService}
+}
+
+func (m *AuthMiddleware) SetRateLimiter(rateLimiter *RateLimitMiddleware) {
+	if m == nil {
+		return
+	}
+	m.rateLimiter = rateLimiter
 }
 
 func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
@@ -42,6 +50,10 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 		c.Set("us", claims.Us)
 		c.Set("image", claims.Image)
 
+		if m.rateLimiter != nil && !m.rateLimiter.ApplyAuthenticatedLimit(c, claims.UserID) {
+			return
+		}
+
 		c.Next()
 	}
 }
@@ -67,6 +79,9 @@ func (m *AuthMiddleware) OptionalAuth() gin.HandlerFunc {
 			c.Set("username", claims.Username)
 			c.Set("us", claims.Us)
 			c.Set("image", claims.Image)
+			if m.rateLimiter != nil && !m.rateLimiter.ApplyAuthenticatedLimit(c, claims.UserID) {
+				return
+			}
 		}
 
 		c.Next()

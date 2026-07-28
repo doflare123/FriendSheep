@@ -8,6 +8,7 @@ import (
 	"friendship/db"
 	friendshipdocs "friendship/docs"
 	"friendship/logger"
+	"friendship/middlewares"
 	"friendship/repository"
 	event "friendship/services/events"
 	session "friendship/sessions"
@@ -33,6 +34,17 @@ type Server struct {
 	validators           *validator.Validator
 	cfg                  config.Config
 	popularEventsService event.PopularEventsService
+	rateLimiter          *middlewares.RateLimitMiddleware
+}
+
+func configureTrustedProxies(engine *gin.Engine, trustedProxies []string) error {
+	if engine == nil {
+		return errors.New("gin engine is nil")
+	}
+	if err := engine.SetTrustedProxies(trustedProxies); err != nil {
+		return fmt.Errorf("configure trusted proxies: %w", err)
+	}
+	return nil
 }
 
 func validateNonDevStartupWithSQLMigrations(startupMigrationsEnabled bool, hasCoreSchema bool, hasPendingJoinRequestIndexContract bool) error {
@@ -80,6 +92,12 @@ func InitServer() (*Server, error) {
 	mongo := repository.NewMongoRepository(logger, conf)
 	redis := repository.NewRedisRepository(logger, conf)
 	sessionStore := session.NewSessionStore(redis)
+	rateLimiter := middlewares.NewRateLimitMiddlewareWithConfig(
+		logger,
+		middlewares.NewRedisRateLimitStore(redis),
+		conf.JWTSecretKey,
+		conf.RateLimit,
+	)
 	hasSQLMigrations, err := discoverStartupMigrationAssets(conf.AppEnv, db.HasMigrationSource)
 	if err != nil {
 		logger.Error("Error checking migration source", "error", err)
@@ -146,6 +164,11 @@ func InitServer() (*Server, error) {
 	logger.Info("Popular events service initialized")
 
 	r := gin.Default()
+	if err := configureTrustedProxies(r, conf.HTTP.TrustedProxies); err != nil {
+		logger.Error("Error configuring trusted proxies", "error", err)
+		return nil, err
+	}
+	r.Use(rateLimiter.APIBaseLimit())
 	friendshipdocs.SwaggerInfo.Description = "Operational runbooks: /docs/runbooks"
 	// r.Use(cors.New(cors.Config{
 	// 	AllowOrigins:     []string{"http://localhost:3000"},
@@ -246,6 +269,7 @@ func InitServer() (*Server, error) {
 		cfg:                  *conf,
 		validators:           validator,
 		popularEventsService: popularEventsService,
+		rateLimiter:          rateLimiter,
 	}
 	s.initRouters()
 	logger.Info("Server init")
