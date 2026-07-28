@@ -130,23 +130,20 @@ func InitServer() (*Server, error) {
 	logger.Info("S3 initialized")
 	validator := validator.NewValidator(conf)
 
-	popularEventsService, err := event.NewPopularEventsService(
-		logger,
-		postgres,
-		redis,
-		conf,
-	)
+	popularEventsNotifier, err := event.NewEmailPopularEventsNotifier(logger, conf)
 	if err != nil {
 		logger.Error("Error initializing popular events service", "error", err)
 		return nil, err
 	}
+	popularEventsService := event.NewPopularEventsService(
+		logger,
+		event.NewGORMPopularEventsStore(postgres),
+		event.NewRedisPopularEventsCache(redis),
+		popularEventsNotifier,
+		event.NewCronPopularEventsScheduler(),
+		nil,
+	)
 	logger.Info("Popular events service initialized")
-
-	if err := popularEventsService.Start(); err != nil {
-		logger.Error("Error starting popular events cron", "error", err)
-		return nil, err
-	}
-	logger.Info("Popular events cron started")
 
 	r := gin.Default()
 	friendshipdocs.SwaggerInfo.Description = "Operational runbooks: /docs/runbooks"
@@ -233,6 +230,12 @@ func InitServer() (*Server, error) {
 		return nil, errors.Join(errs...)
 	}
 
+	if err := popularEventsService.Start(); err != nil {
+		logger.Error("Error starting popular events cron", "error", err)
+		return nil, err
+	}
+	logger.Info("Popular events cron started")
+
 	s := &Server{
 		engine:               r,
 		logger:               logger,
@@ -251,5 +254,6 @@ func InitServer() (*Server, error) {
 
 func (s *Server) Run(addr string) error {
 	s.logger.Info("Server running on " + addr)
+	defer s.popularEventsService.Stop()
 	return s.engine.Run(addr)
 }

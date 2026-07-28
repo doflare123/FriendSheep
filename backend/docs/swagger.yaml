@@ -1432,9 +1432,7 @@ paths:
         "500":
           description: Ошибка сервера
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       summary: Получить популярные события
       tags:
       - events

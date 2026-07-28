@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"friendship/models/dto"
 	"friendship/services/events"
 	"net/http"
@@ -12,11 +13,15 @@ type PopularEventsHandler interface {
 	GetPopularEvents(c *gin.Context)
 }
 
-type popularEventsHandler struct {
-	srv events.PopularEventsService
+type popularEventsReader interface {
+	GetPopularEvents(ctx context.Context) (*events.PopularEventsSnapshot, error)
 }
 
-func NewPopularEventsHandler(srv events.PopularEventsService) PopularEventsHandler {
+type popularEventsHandler struct {
+	srv popularEventsReader
+}
+
+func NewPopularEventsHandler(srv popularEventsReader) PopularEventsHandler {
 	return &popularEventsHandler{
 		srv: srv,
 	}
@@ -29,10 +34,10 @@ func NewPopularEventsHandler(srv events.PopularEventsService) PopularEventsHandl
 // @Accept       json
 // @Produce      json
 // @Success      200   {object}  dto.CachedPopularEvents  "Список популярных событий"
-// @Failure      500   {object}  map[string]string    "Ошибка сервера"
+// @Failure      500   {object}  dto.ErrorResponse    "Ошибка сервера"
 // @Router       /api/v2/events/popular [get]
 func (h *popularEventsHandler) GetPopularEvents(c *gin.Context) {
-	events, err := h.srv.GetPopularEvents()
+	snapshot, err := h.srv.GetPopularEvents(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Error:   "internal_error",
@@ -41,5 +46,42 @@ func (h *popularEventsHandler) GetPopularEvents(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, events)
+	c.JSON(http.StatusOK, popularEventsSnapshotToDTO(snapshot))
+}
+
+func popularEventsSnapshotToDTO(snapshot *events.PopularEventsSnapshot) dto.CachedPopularEvents {
+	if snapshot == nil {
+		return dto.CachedPopularEvents{}
+	}
+
+	result := dto.CachedPopularEvents{
+		UpdatedAt: snapshot.UpdatedAt,
+		Count:     snapshot.Count,
+	}
+	if len(snapshot.Events) == 0 {
+		return result
+	}
+
+	result.Events = make([]dto.EventShortDto, len(snapshot.Events))
+	for i, item := range snapshot.Events {
+		result.Events[i] = dto.EventShortDto{
+			ID:           item.ID,
+			Title:        item.Title,
+			ImageURL:     item.ImageURL,
+			MaxUsers:     item.MaxUsers,
+			CurrentUsers: item.CurrentUsers,
+			EventType:    item.EventType,
+			LocationType: item.LocationType,
+			AgeLimit:     item.AgeLimit,
+			Genres:       append([]string(nil), item.Genres...),
+			StartTime:    item.StartTime,
+			Duration:     item.Duration,
+			EventID:      item.EventID,
+			GroupID:      item.GroupID,
+			Status:       item.Status,
+			Subscribed:   item.Subscribed,
+		}
+	}
+
+	return result
 }
