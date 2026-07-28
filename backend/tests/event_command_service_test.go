@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,30 +13,36 @@ import (
 )
 
 type eventCommandStoreStub struct {
-	snapshot       servicesevents.EventCommandSnapshot
-	findEventErr   error
-	role           string
-	findRoleErr    error
-	ageLimitExists bool
-	ageLimitErr    error
-	genreCount     int
-	genreCountErr  error
-	createID       uint
-	createErr      error
-	updateErr      error
-	deleteErr      error
-	view           servicesevents.EventCommandView
-	loadErr        error
-	calls          []string
-	roleActorID    uint
-	roleGroupID    uint
-	ageLimitID     uint
-	genreIDs       []uint
-	createRecords  []servicesevents.EventCreateRecord
-	updateRecords  []servicesevents.EventUpdateRecord
-	deletedIDs     []uint
-	loadedEventID  uint
-	loadedActorID  uint
+	snapshot        servicesevents.EventCommandSnapshot
+	findEventErr    error
+	role            string
+	findRoleErr     error
+	eventTypeExists bool
+	eventTypeErr    error
+	locationExists  bool
+	locationErr     error
+	ageLimitExists  bool
+	ageLimitErr     error
+	genreCount      int
+	genreCountErr   error
+	createID        uint
+	createErr       error
+	updateErr       error
+	deleteErr       error
+	view            servicesevents.EventCommandView
+	loadErr         error
+	calls           []string
+	roleActorID     uint
+	roleGroupID     uint
+	eventTypeID     uint
+	locationID      uint
+	ageLimitID      uint
+	genreIDs        []uint
+	createRecords   []servicesevents.EventCreateRecord
+	updateRecords   []servicesevents.EventUpdateRecord
+	deletedIDs      []uint
+	loadedEventID   uint
+	loadedActorID   uint
 }
 
 func (s *eventCommandStoreStub) record(call string) {
@@ -55,6 +62,18 @@ func (s *eventCommandStoreStub) FindGroupRole(actorID uint, groupID uint) (strin
 	s.roleActorID = actorID
 	s.roleGroupID = groupID
 	return s.role, s.findRoleErr
+}
+
+func (s *eventCommandStoreStub) EventTypeExists(eventTypeID uint) (bool, error) {
+	s.record("event_type_exists")
+	s.eventTypeID = eventTypeID
+	return s.eventTypeExists, s.eventTypeErr
+}
+
+func (s *eventCommandStoreStub) EventLocationExists(locationID uint) (bool, error) {
+	s.record("event_location_exists")
+	s.locationID = locationID
+	return s.locationExists, s.locationErr
 }
 
 func (s *eventCommandStoreStub) AgeLimitExists(ageLimitID uint) (bool, error) {
@@ -104,10 +123,12 @@ func newEventCommandStoreStub() *eventCommandStoreStub {
 			Duration:     120,
 			CurrentUsers: 2,
 		},
-		role:           groupmodels.RoleAdmin,
-		ageLimitExists: true,
-		genreCount:     2,
-		createID:       77,
+		role:            groupmodels.RoleAdmin,
+		eventTypeExists: true,
+		locationExists:  true,
+		ageLimitExists:  true,
+		genreCount:      2,
+		createID:        77,
 		view: servicesevents.EventCommandView{
 			ID:           77,
 			Title:        "Command event",
@@ -139,6 +160,10 @@ func validCreateEventCommandInput() servicesevents.CreateEventInput {
 		Notes:        "Command notes",
 		CustomFields: map[string]interface{}{"mode": "table"},
 	}
+}
+
+func eventCommandPointer[T any](value T) *T {
+	return &value
 }
 
 func TestEventCommandServiceCreateEventPreservesContextAndDelegatesExactInput(t *testing.T) {
@@ -220,14 +245,18 @@ func TestEventCommandServiceUpdateEventPreservesContextAndDelegatesExactInput(t 
 	startTime := time.Now().Add(72 * time.Hour).Truncate(time.Second)
 	duration := uint16(180)
 	maxUsers := uint16(12)
+	eventTypeID := uint(3)
+	locationID := uint(4)
 	ageLimitID := uint(7)
 	input := servicesevents.UpdateEventInput{
-		Title:     &title,
-		StartTime: &startTime,
-		Duration:  &duration,
-		MaxUsers:  &maxUsers,
-		AgeLimit:  &ageLimitID,
-		Genres:    []uint{10, 11},
+		Title:       &title,
+		EventTypeID: &eventTypeID,
+		LocationID:  &locationID,
+		StartTime:   &startTime,
+		Duration:    &duration,
+		MaxUsers:    &maxUsers,
+		AgeLimit:    &ageLimitID,
+		Genres:      []uint{10, 11},
 	}
 
 	result, err := service.UpdateEvent(ctx, 5, 77, input)
@@ -241,16 +270,30 @@ func TestEventCommandServiceUpdateEventPreservesContextAndDelegatesExactInput(t 
 	if uow.calls != 1 || uow.ctx != ctx {
 		t.Fatalf("unit of work calls = %d, context preserved = %v", uow.calls, uow.ctx == ctx)
 	}
-	wantCalls := []string{"find_event", "find_group_role", "age_limit_exists", "count_genres", "update_event", "audit", "load_event"}
+	wantCalls := []string{
+		"find_event",
+		"find_group_role",
+		"event_type_exists",
+		"event_location_exists",
+		"age_limit_exists",
+		"count_genres",
+		"update_event",
+		"audit",
+		"load_event",
+	}
 	if !reflect.DeepEqual(store.calls, wantCalls) {
 		t.Fatalf("calls = %v, want %v", store.calls, wantCalls)
+	}
+	if store.eventTypeID != eventTypeID || store.locationID != locationID {
+		t.Fatalf("reference lookup IDs = event type:%d location:%d, want %d and %d", store.eventTypeID, store.locationID, eventTypeID, locationID)
 	}
 	if len(store.updateRecords) != 1 {
 		t.Fatalf("update records = %d, want 1", len(store.updateRecords))
 	}
 	record := store.updateRecords[0]
 	wantEndTime := startTime.Add(time.Duration(duration) * time.Minute)
-	if record.EventID != 77 || record.Title != input.Title || record.StartTime != input.StartTime ||
+	if record.EventID != 77 || record.Title != input.Title || record.EventTypeID != input.EventTypeID ||
+		record.LocationID != input.LocationID || record.StartTime != input.StartTime ||
 		record.Duration != input.Duration || record.MaxUsers != input.MaxUsers || record.AgeLimitID != input.AgeLimit ||
 		!record.ReplaceGenres || !reflect.DeepEqual(record.GenreIDs, input.Genres) ||
 		record.EndTime == nil || !record.EndTime.Equal(wantEndTime) {
@@ -264,6 +307,214 @@ func TestEventCommandServiceUpdateEventPreservesContextAndDelegatesExactInput(t 
 		entry.EntityID == nil || *entry.EntityID != 77 || entry.EntityName != title ||
 		entry.CreatedAt.IsZero() || entry.TargetUserID != nil {
 		t.Fatalf("audit entry = %#v", entry)
+	}
+}
+
+func TestEventCommandServiceUpdateEventRejectsInvalidFieldsWithoutSideEffects(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   servicesevents.UpdateEventInput
+		wantErr error
+	}{
+		{
+			name:  "empty update",
+			input: servicesevents.UpdateEventInput{},
+		},
+		{
+			name:  "title shorter than five trimmed runes",
+			input: servicesevents.UpdateEventInput{Title: eventCommandPointer("  four  ")},
+		},
+		{
+			name:  "title longer than two hundred runes",
+			input: servicesevents.UpdateEventInput{Title: eventCommandPointer(strings.Repeat("я", 201))},
+		},
+		{
+			name:  "description shorter than ten trimmed runes",
+			input: servicesevents.UpdateEventInput{Description: eventCommandPointer(" 123456789 ")},
+		},
+		{
+			name:  "description longer than two thousand runes",
+			input: servicesevents.UpdateEventInput{Description: eventCommandPointer(strings.Repeat("я", 2001))},
+		},
+		{
+			name:  "zero event type",
+			input: servicesevents.UpdateEventInput{EventTypeID: eventCommandPointer(uint(0))},
+		},
+		{
+			name:  "zero location",
+			input: servicesevents.UpdateEventInput{LocationID: eventCommandPointer(uint(0))},
+		},
+		{
+			name:  "relative image URL",
+			input: servicesevents.UpdateEventInput{ImageURL: eventCommandPointer("/events/image.png")},
+		},
+		{
+			name:  "image URL without host",
+			input: servicesevents.UpdateEventInput{ImageURL: eventCommandPointer("mailto:friend@example.com")},
+		},
+		{
+			name:  "zero start time",
+			input: servicesevents.UpdateEventInput{StartTime: eventCommandPointer(time.Time{})},
+		},
+		{
+			name:  "past start time",
+			input: servicesevents.UpdateEventInput{StartTime: eventCommandPointer(time.Now().Add(-time.Minute))},
+		},
+		{
+			name:  "duration below fifteen minutes",
+			input: servicesevents.UpdateEventInput{Duration: eventCommandPointer(uint16(14))},
+		},
+		{
+			name:  "duration above one day",
+			input: servicesevents.UpdateEventInput{Duration: eventCommandPointer(uint16(1441))},
+		},
+		{
+			name:  "max users below two",
+			input: servicesevents.UpdateEventInput{MaxUsers: eventCommandPointer(uint16(1))},
+		},
+		{
+			name:  "max users above one thousand",
+			input: servicesevents.UpdateEventInput{MaxUsers: eventCommandPointer(uint16(1001))},
+		},
+		{
+			name:    "empty genres",
+			input:   servicesevents.UpdateEventInput{Genres: []uint{}},
+			wantErr: servicesevents.ErrInvalidGenres,
+		},
+		{
+			name:    "more than nine genres",
+			input:   servicesevents.UpdateEventInput{Genres: []uint{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+			wantErr: servicesevents.ErrInvalidGenres,
+		},
+		{
+			name:    "zero genre ID",
+			input:   servicesevents.UpdateEventInput{Genres: []uint{0}},
+			wantErr: servicesevents.ErrInvalidGenres,
+		},
+		{
+			name:    "duplicate genre ID",
+			input:   servicesevents.UpdateEventInput{Genres: []uint{1, 1}},
+			wantErr: servicesevents.ErrInvalidGenres,
+		},
+		{
+			name:  "zero age limit",
+			input: servicesevents.UpdateEventInput{AgeLimit: eventCommandPointer(uint(0))},
+		},
+		{
+			name:  "address longer than five hundred runes",
+			input: servicesevents.UpdateEventInput{Address: eventCommandPointer(strings.Repeat("я", 501))},
+		},
+		{
+			name:  "country longer than one hundred runes",
+			input: servicesevents.UpdateEventInput{Country: eventCommandPointer(strings.Repeat("я", 101))},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			store := newEventCommandStoreStub()
+			audit := &eventAuditStoreStub{}
+			service := servicesevents.NewEventCommandService(&testLogger{}, &eventUnitOfWorkStub{
+				commands: store,
+				audit:    audit,
+			})
+
+			result, err := service.UpdateEvent(context.Background(), 5, 77, test.input)
+
+			if result != nil {
+				t.Fatalf("result = %#v, want nil", result)
+			}
+			wantErr := test.wantErr
+			if wantErr == nil {
+				wantErr = servicesevents.ErrInvalidEventUpdate
+			}
+			if !errors.Is(err, wantErr) {
+				t.Fatalf("err = %v, want %v", err, wantErr)
+			}
+			if len(store.updateRecords) != 0 {
+				t.Fatalf("update records = %#v, want none", store.updateRecords)
+			}
+			if len(audit.entries) != 0 {
+				t.Fatalf("audit entries = %#v, want none", audit.entries)
+			}
+			for _, call := range store.calls {
+				if call == "update_event" || call == "audit" || call == "load_event" {
+					t.Fatalf("side-effect call after validation error: %v", store.calls)
+				}
+			}
+		})
+	}
+}
+
+func TestEventCommandServiceUpdateEventAcceptsValidationBoundaries(t *testing.T) {
+	tests := []struct {
+		name  string
+		input servicesevents.UpdateEventInput
+	}{
+		{
+			name:  "title minimum",
+			input: servicesevents.UpdateEventInput{Title: eventCommandPointer(strings.Repeat("я", 5))},
+		},
+		{
+			name:  "description minimum",
+			input: servicesevents.UpdateEventInput{Description: eventCommandPointer(strings.Repeat("я", 10))},
+		},
+		{
+			name:  "absolute image URL",
+			input: servicesevents.UpdateEventInput{ImageURL: eventCommandPointer("https://example.com/events/image.png")},
+		},
+		{
+			name:  "duration minimum",
+			input: servicesevents.UpdateEventInput{Duration: eventCommandPointer(uint16(15))},
+		},
+		{
+			name:  "duration maximum",
+			input: servicesevents.UpdateEventInput{Duration: eventCommandPointer(uint16(1440))},
+		},
+		{
+			name:  "max users minimum",
+			input: servicesevents.UpdateEventInput{MaxUsers: eventCommandPointer(uint16(2))},
+		},
+		{
+			name:  "max users maximum",
+			input: servicesevents.UpdateEventInput{MaxUsers: eventCommandPointer(uint16(1000))},
+		},
+		{
+			name:  "address maximum",
+			input: servicesevents.UpdateEventInput{Address: eventCommandPointer(strings.Repeat("я", 500))},
+		},
+		{
+			name:  "country maximum",
+			input: servicesevents.UpdateEventInput{Country: eventCommandPointer(strings.Repeat("я", 100))},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			store := newEventCommandStoreStub()
+			audit := &eventAuditStoreStub{record: func(servicesevents.EventAuditInput) {
+				store.record("audit")
+			}}
+			service := servicesevents.NewEventCommandService(&testLogger{}, &eventUnitOfWorkStub{
+				commands: store,
+				audit:    audit,
+			})
+
+			result, err := service.UpdateEvent(context.Background(), 5, 77, test.input)
+
+			if err != nil {
+				t.Fatalf("UpdateEvent returned error: %v", err)
+			}
+			if result == nil || result.ID != store.view.ID {
+				t.Fatalf("result = %#v, want event %d", result, store.view.ID)
+			}
+			if len(store.updateRecords) != 1 {
+				t.Fatalf("update records = %#v, want one", store.updateRecords)
+			}
+			if len(audit.entries) != 1 {
+				t.Fatalf("audit entries = %#v, want one", audit.entries)
+			}
+		})
 	}
 }
 
@@ -307,6 +558,9 @@ func TestEventCommandServiceDeleteEventPreservesContextAndDelegatesExactInput(t 
 }
 
 func TestEventCommandServiceDomainErrorsDoNotMutateOrAudit(t *testing.T) {
+	eventTypeLookupErr := errors.New("event type lookup failed")
+	locationLookupErr := errors.New("event location lookup failed")
+
 	type commandRun func(servicesevents.EventCommandService) (bool, error)
 	createRun := func(service servicesevents.EventCommandService) (bool, error) {
 		result, err := service.CreateEvent(context.Background(), 5, validCreateEventCommandInput())
@@ -417,8 +671,11 @@ func TestEventCommandServiceDomainErrorsDoNotMutateOrAudit(t *testing.T) {
 		},
 		{
 			name: "update max users below current",
+			prepare: func(store *eventCommandStoreStub) {
+				store.snapshot.CurrentUsers = 4
+			},
 			run: func(service servicesevents.EventCommandService) (bool, error) {
-				maxUsers := uint16(1)
+				maxUsers := uint16(3)
 				result, err := service.UpdateEvent(context.Background(), 5, 77, servicesevents.UpdateEventInput{MaxUsers: &maxUsers})
 				return result != nil, err
 			},
@@ -445,6 +702,38 @@ func TestEventCommandServiceDomainErrorsDoNotMutateOrAudit(t *testing.T) {
 				return result != nil, err
 			},
 			wantErr: servicesevents.ErrAgeLimitNotFound,
+		},
+		{
+			name: "update missing event type",
+			prepare: func(store *eventCommandStoreStub) {
+				store.eventTypeExists = false
+			},
+			run:     updateRun(servicesevents.UpdateEventInput{EventTypeID: eventCommandPointer(uint(99))}),
+			wantErr: servicesevents.ErrEventTypeNotFound,
+		},
+		{
+			name: "update event type lookup error",
+			prepare: func(store *eventCommandStoreStub) {
+				store.eventTypeErr = eventTypeLookupErr
+			},
+			run:     updateRun(servicesevents.UpdateEventInput{EventTypeID: eventCommandPointer(uint(3))}),
+			wantErr: eventTypeLookupErr,
+		},
+		{
+			name: "update missing location",
+			prepare: func(store *eventCommandStoreStub) {
+				store.locationExists = false
+			},
+			run:     updateRun(servicesevents.UpdateEventInput{LocationID: eventCommandPointer(uint(99))}),
+			wantErr: servicesevents.ErrEventLocationNotFound,
+		},
+		{
+			name: "update location lookup error",
+			prepare: func(store *eventCommandStoreStub) {
+				store.locationErr = locationLookupErr
+			},
+			run:     updateRun(servicesevents.UpdateEventInput{LocationID: eventCommandPointer(uint(4))}),
+			wantErr: locationLookupErr,
 		},
 		{
 			name: "update missing genre",

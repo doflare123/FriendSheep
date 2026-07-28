@@ -118,6 +118,8 @@ type EventCommandView struct {
 type EventCommandStore interface {
 	FindEventForUpdate(eventID uint) (EventCommandSnapshot, error)
 	FindGroupRole(actorID uint, groupID uint) (string, error)
+	EventTypeExists(eventTypeID uint) (bool, error)
+	EventLocationExists(locationID uint) (bool, error)
 	AgeLimitExists(ageLimitID uint) (bool, error)
 	CountGenres(genreIDs []uint) (int, error)
 	CreateEvent(record EventCreateRecord) (uint, error)
@@ -249,8 +251,29 @@ func (s *eventCommandService) UpdateEvent(ctx context.Context, actorID uint, eve
 		if now.After(event.StartTime) {
 			return ErrEventAlreadyStarted
 		}
+		if err := validateUpdateEventInput(input, now); err != nil {
+			return err
+		}
 		if input.MaxUsers != nil && *input.MaxUsers < event.CurrentUsers {
 			return fmt.Errorf("%w (%d)", ErrMaxUsersBelowCurrent, event.CurrentUsers)
+		}
+		if input.EventTypeID != nil {
+			exists, err := store.EventTypeExists(*input.EventTypeID)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return ErrEventTypeNotFound
+			}
+		}
+		if input.LocationID != nil {
+			exists, err := store.EventLocationExists(*input.LocationID)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return ErrEventLocationNotFound
+			}
 		}
 		if input.AgeLimit != nil {
 			exists, err := store.AgeLimitExists(*input.AgeLimit)
@@ -262,9 +285,6 @@ func (s *eventCommandService) UpdateEvent(ctx context.Context, actorID uint, eve
 			}
 		}
 		if input.Genres != nil {
-			if err := validateEventGenreCount(input.Genres); err != nil {
-				return err
-			}
 			genreCount, err := store.CountGenres(input.Genres)
 			if err != nil {
 				return err

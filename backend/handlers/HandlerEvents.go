@@ -134,8 +134,14 @@ func (h *eventsHandler) UpdateEvent(c *gin.Context) {
 			utils.Forbidden(c, "Вы не состоите в группе")
 		case errors.Is(err, events.ErrEventAlreadyStarted):
 			utils.BadRequest(c, "Событие уже началось, изменение невозможно")
+		case errors.Is(err, events.ErrInvalidEventUpdate):
+			utils.BadRequest(c, err.Error())
 		case errors.Is(err, events.ErrInvalidGenres):
 			utils.BadRequest(c, err.Error())
+		case errors.Is(err, events.ErrEventTypeNotFound):
+			utils.BadRequest(c, "тип события не найден")
+		case errors.Is(err, events.ErrEventLocationNotFound):
+			utils.BadRequest(c, "формат события не найден")
 		case errors.Is(err, events.ErrAgeLimitNotFound):
 			utils.BadRequest(c, "Возрастное ограничение не найдено")
 		case errors.Is(err, events.ErrMaxUsersBelowCurrent):

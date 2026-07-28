@@ -540,36 +540,57 @@ definitions:
     properties:
       address:
         description: Опциональные поля
+        maxLength: 500
         type: string
       ageLimit:
+        minimum: 1
         type: integer
       country:
+        maxLength: 100
         type: string
       customFields:
         additionalProperties: true
         type: object
       description:
+        maxLength: 2000
+        minLength: 10
         type: string
       duration:
+        maximum: 1440
+        minimum: 15
         type: integer
       eventTypeId:
+        minimum: 1
         type: integer
       genres:
-        description: Если передано, то обновляем
+        description: Если передано, список должен содержать от 1 до 9 уникальных положительных
+          ID.
         items:
+          minimum: 1
           type: integer
+        maxItems: 9
+        minItems: 1
         type: array
+        uniqueItems: true
       imageUrl:
+        description: Если передано, должно содержать абсолютный URL со схемой и хостом.
+        format: uri
         type: string
       locationId:
+        minimum: 1
         type: integer
       maxUsers:
+        maximum: 1000
+        minimum: 2
         type: integer
       notes:
         type: string
       startTime:
+        description: Если передано, время должно быть строго в будущем.
         type: string
       title:
+        maxLength: 200
+        minLength: 5
         type: string
       year:
         type: integer

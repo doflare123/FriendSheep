@@ -3,6 +3,7 @@ package events
 import (
 	"errors"
 	"fmt"
+	"friendship/models"
 	"friendship/models/events"
 	groupmodels "friendship/models/groups"
 	"friendship/repository"
@@ -52,6 +53,28 @@ func (s *gormEventCommandStore) FindGroupRole(actorID uint, groupID uint) (strin
 		return "", fmt.Errorf("ошибка получения роли: %w", err)
 	}
 	return groupmodels.NormalizeRoleName(role.Name), nil
+}
+
+func (s *gormEventCommandStore) EventTypeExists(eventTypeID uint) (bool, error) {
+	var category models.Category
+	if err := s.repo.First(&category, eventTypeID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, fmt.Errorf("ошибка проверки типа события: %w", err)
+	}
+	return true, nil
+}
+
+func (s *gormEventCommandStore) EventLocationExists(locationID uint) (bool, error) {
+	var location events.EventLocation
+	if err := s.repo.First(&location, locationID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, fmt.Errorf("ошибка проверки формата события: %w", err)
+	}
+	return true, nil
 }
 
 func (s *gormEventCommandStore) AgeLimitExists(ageLimitID uint) (bool, error) {

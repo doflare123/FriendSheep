@@ -30,20 +30,20 @@ type CreateEventInput struct {
 }
 
 type UpdateEventInput struct {
-	Title       *string    `json:"title,omitempty"`
-	Description *string    `json:"description,omitempty"`
-	EventTypeID *uint      `json:"eventTypeId,omitempty"`
-	LocationID  *uint      `json:"locationId,omitempty"`
-	ImageURL    *string    `json:"imageUrl,omitempty"`
-	StartTime   *time.Time `json:"startTime,omitempty"`
-	Duration    *uint16    `json:"duration,omitempty"`
-	MaxUsers    *uint16    `json:"maxUsers,omitempty"`
-	Genres      []uint     `json:"genres,omitempty"` // Если передано, то обновляем
+	Title       *string    `json:"title,omitempty" binding:"omitempty,min=5,max=200"`
+	Description *string    `json:"description,omitempty" binding:"omitempty,min=10,max=2000"`
+	EventTypeID *uint      `json:"eventTypeId,omitempty" binding:"omitempty,gt=0" minimum:"1"`
+	LocationID  *uint      `json:"locationId,omitempty" binding:"omitempty,gt=0" minimum:"1"`
+	ImageURL    *string    `json:"imageUrl,omitempty" binding:"omitempty,url" format:"uri"` // Если передано, должно содержать абсолютный URL со схемой и хостом.
+	StartTime   *time.Time `json:"startTime,omitempty"`                                     // Если передано, время должно быть строго в будущем.
+	Duration    *uint16    `json:"duration,omitempty" binding:"omitempty,min=15,max=1440"`
+	MaxUsers    *uint16    `json:"maxUsers,omitempty" binding:"omitempty,min=2,max=1000"`
+	Genres      []uint     `json:"genres,omitempty" binding:"omitempty,min=1,max=9,unique,dive,gt=0" minimum:"1"` // Если передано, список должен содержать от 1 до 9 уникальных положительных ID.
 
 	// Опциональные поля
-	Address      *string                 `json:"address,omitempty"`
-	Country      *string                 `json:"country,omitempty"`
-	AgeLimit     *uint                   `json:"ageLimit,omitempty"`
+	Address      *string                 `json:"address,omitempty" binding:"omitempty,max=500"`
+	Country      *string                 `json:"country,omitempty" binding:"omitempty,max=100"`
+	AgeLimit     *uint                   `json:"ageLimit,omitempty" binding:"omitempty,gt=0" minimum:"1"`
 	Year         *int                    `json:"year,omitempty"`
 	Notes        *string                 `json:"notes,omitempty"`
 	CustomFields *map[string]interface{} `json:"customFields,omitempty"`
@@ -130,6 +130,9 @@ func (input *UpdateEventInput) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		parsedStartTime = &parsed
+	}
+	if err := validateUpdatedEventImageURL(raw.ImageURL); err != nil {
+		return err
 	}
 
 	input.Title = raw.Title

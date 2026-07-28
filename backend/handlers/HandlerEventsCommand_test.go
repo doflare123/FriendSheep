@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"friendship/models/dto"
@@ -16,9 +17,10 @@ import (
 )
 
 type eventCommandHandlerStub struct {
-	createErr error
-	updateErr error
-	deleteErr error
+	createErr   error
+	updateErr   error
+	deleteErr   error
+	updateCalls int
 }
 
 func (s *eventCommandHandlerStub) CreateEvent(context.Context, uint, events.CreateEventInput) (*dto.EventFullDto, error) {
@@ -26,6 +28,7 @@ func (s *eventCommandHandlerStub) CreateEvent(context.Context, uint, events.Crea
 }
 
 func (s *eventCommandHandlerStub) UpdateEvent(context.Context, uint, uint, events.UpdateEventInput) (*dto.EventFullDto, error) {
+	s.updateCalls++
 	return nil, s.updateErr
 }
 
@@ -124,6 +127,130 @@ func TestUpdateEventMapsCommandErrors(t *testing.T) {
 			handler.UpdateEvent(ctx)
 
 			assertEventCommandHandlerError(t, recorder, tt.wantStatus, tt.wantMessage)
+		})
+	}
+}
+
+func TestUpdateEventMapsValidationAndReferenceErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		err         error
+		wantMessage string
+	}{
+		{
+			name:        "generic update validation error",
+			err:         fmt.Errorf("%w: title is too short", events.ErrInvalidEventUpdate),
+			wantMessage: fmt.Sprintf("%s: title is too short", events.ErrInvalidEventUpdate),
+		},
+		{
+			name:        "event type does not exist",
+			err:         events.ErrEventTypeNotFound,
+			wantMessage: "тип события не найден",
+		},
+		{
+			name:        "event location does not exist",
+			err:         events.ErrEventLocationNotFound,
+			wantMessage: "формат события не найден",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := NewEventsHandler(EventsHandlerDependencies{
+				Commands: &eventCommandHandlerStub{updateErr: tt.err},
+			})
+			recorder, ctx := newEventCommandHandlerContext(t, http.MethodPut, "/api/v2/admin/events/17", []byte(`{"title":"Valid title"}`))
+			ctx.Params = gin.Params{{Key: "eventId", Value: "17"}}
+
+			handler.UpdateEvent(ctx)
+
+			assertEventCommandHandlerError(t, recorder, http.StatusBadRequest, tt.wantMessage)
+		})
+	}
+}
+
+func TestUpdateEventRejectsMalformedStartTimeBeforeCallingService(t *testing.T) {
+	commandStub := &eventCommandHandlerStub{}
+	handler := NewEventsHandler(EventsHandlerDependencies{Commands: commandStub})
+	recorder, ctx := newEventCommandHandlerContext(
+		t,
+		http.MethodPut,
+		"/api/v2/admin/events/17",
+		[]byte(`{"startTime":"tomorrow at noon"}`),
+	)
+	ctx.Params = gin.Params{{Key: "eventId", Value: "17"}}
+
+	handler.UpdateEvent(ctx)
+
+	assertEventCommandHandlerError(t, recorder, http.StatusBadRequest, events.ErrInvalidStartTimeFormat.Error())
+	if commandStub.updateCalls != 0 {
+		t.Fatalf("UpdateEvent service calls = %d, want 0", commandStub.updateCalls)
+	}
+}
+
+func TestUpdateEventRejectsTransportValidationBeforeCallingService(t *testing.T) {
+	tests := []struct {
+		name string
+		body []byte
+	}{
+		{
+			name: "short title",
+			body: []byte(`{"title":"four"}`),
+		},
+		{
+			name: "zero event type",
+			body: []byte(`{"eventTypeId":0}`),
+		},
+		{
+			name: "invalid image URL",
+			body: []byte(`{"imageUrl":"not-a-url"}`),
+		},
+		{
+			name: "image URI without host",
+			body: []byte(`{"imageUrl":"mailto:friend@example.com"}`),
+		},
+		{
+			name: "duration below minimum",
+			body: []byte(`{"duration":14}`),
+		},
+		{
+			name: "max users above maximum",
+			body: []byte(`{"maxUsers":1001}`),
+		},
+		{
+			name: "address above maximum",
+			body: []byte(`{"address":"` + strings.Repeat("я", 501) + `"}`),
+		},
+		{
+			name: "duplicate genre IDs",
+			body: []byte(`{"genres":[1,1]}`),
+		},
+		{
+			name: "zero genre ID",
+			body: []byte(`{"genres":[0]}`),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			commandStub := &eventCommandHandlerStub{}
+			handler := NewEventsHandler(EventsHandlerDependencies{Commands: commandStub})
+			recorder, ctx := newEventCommandHandlerContext(
+				t,
+				http.MethodPut,
+				"/api/v2/admin/events/17",
+				test.body,
+			)
+			ctx.Params = gin.Params{{Key: "eventId", Value: "17"}}
+
+			handler.UpdateEvent(ctx)
+
+			if recorder.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want %d; body = %s", recorder.Code, http.StatusBadRequest, recorder.Body.String())
+			}
+			if commandStub.updateCalls != 0 {
+				t.Fatalf("UpdateEvent service calls = %d, want 0", commandStub.updateCalls)
+			}
 		})
 	}
 }

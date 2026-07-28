@@ -563,6 +563,60 @@ func TestEventCommandServiceUpdateEventRejectsMissingAgeLimitWithoutSideEffects(
 	assertGroupActionLogCount(t, db, groupID, "update_event", 0)
 }
 
+func TestEventCommandServiceUpdateEventRejectsMissingEventTypeWithoutSideEffects(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventCommandService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
+
+	seedEventUser(t, db, 1)
+	groupID := seedEventGroup(t, db, 1, false)
+	seedEventGroupMembershipWithRole(t, db, 1, groupID, "Админ")
+	eventID := seedEvent(t, db, groupID, 1, 1, 5)
+	missingEventTypeID := uint(999)
+	newTitle := "Should Not Be Saved"
+
+	eventDTO, err := service.UpdateEvent(context.Background(), 1, eventID, servicesevents.UpdateEventInput{
+		Title:       &newTitle,
+		EventTypeID: &missingEventTypeID,
+	})
+
+	if eventDTO != nil {
+		t.Fatalf("eventDTO = %#v, want nil", eventDTO)
+	}
+	if !errors.Is(err, servicesevents.ErrEventTypeNotFound) {
+		t.Fatalf("err = %v, want ErrEventTypeNotFound", err)
+	}
+	assertEventTitle(t, db, eventID, "Test Event")
+	assertGroupActionLogCount(t, db, groupID, "update_event", 0)
+}
+
+func TestEventCommandServiceUpdateEventRejectsMissingLocationWithoutSideEffects(t *testing.T) {
+	db := newEventsServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicesevents.NewEventCommandService(&testLogger{}, servicesevents.NewGORMEventUnitOfWork(repo))
+
+	seedEventUser(t, db, 1)
+	groupID := seedEventGroup(t, db, 1, false)
+	seedEventGroupMembershipWithRole(t, db, 1, groupID, "Админ")
+	eventID := seedEvent(t, db, groupID, 1, 1, 5)
+	missingLocationID := uint(999)
+	newTitle := "Should Not Be Saved"
+
+	eventDTO, err := service.UpdateEvent(context.Background(), 1, eventID, servicesevents.UpdateEventInput{
+		Title:      &newTitle,
+		LocationID: &missingLocationID,
+	})
+
+	if eventDTO != nil {
+		t.Fatalf("eventDTO = %#v, want nil", eventDTO)
+	}
+	if !errors.Is(err, servicesevents.ErrEventLocationNotFound) {
+		t.Fatalf("err = %v, want ErrEventLocationNotFound", err)
+	}
+	assertEventTitle(t, db, eventID, "Test Event")
+	assertGroupActionLogCount(t, db, groupID, "update_event", 0)
+}
+
 func TestEventReadServiceGetEventDetailsReturnsSubscribedStateForGroupMember(t *testing.T) {
 	db := newEventsServiceDB(t)
 	repo := &testPostgresRepository{db: db}

@@ -3204,51 +3204,71 @@
             "properties": {
                 "address": {
                     "description": "Опциональные поля",
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 500
                 },
                 "ageLimit": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "country": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100
                 },
                 "customFields": {
                     "type": "object",
                     "additionalProperties": true
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 2000,
+                    "minLength": 10
                 },
                 "duration": {
-                    "type": "integer"
+                    "type": "integer",
+                    "maximum": 1440,
+                    "minimum": 15
                 },
                 "eventTypeId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "genres": {
-                    "description": "Если передано, то обновляем",
+                    "description": "Если передано, список должен содержать от 1 до 9 уникальных положительных ID.",
                     "type": "array",
+                    "maxItems": 9,
+                    "minItems": 1,
+                    "uniqueItems": true,
                     "items": {
-                        "type": "integer"
+                        "type": "integer",
+                        "minimum": 1
                     }
                 },
                 "imageUrl": {
-                    "type": "string"
+                    "description": "Если передано, должно содержать абсолютный URL со схемой и хостом.",
+                    "type": "string",
+                    "format": "uri"
                 },
                 "locationId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "maxUsers": {
-                    "type": "integer"
+                    "type": "integer",
+                    "maximum": 1000,
+                    "minimum": 2
                 },
                 "notes": {
                     "type": "string"
                 },
                 "startTime": {
+                    "description": "Если передано, время должно быть строго в будущем.",
                     "type": "string"
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 5
                 },
                 "year": {
                     "type": "integer"
