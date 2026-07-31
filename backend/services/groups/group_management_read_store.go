@@ -15,6 +15,7 @@ import (
 
 type groupManagementReadStore interface {
 	GetGroupDetails(userID uint, groupID uint) (*dto.GroupFullDto, error)
+	GetManagedGroups(userID uint) (*dto.ManagedGroupsDto, error)
 	ListJoinRequests(groupID uint, status string, limit int) ([]JoinRequestInfo, error)
 	ListGroupBlacklist(groupID uint, limit int) ([]BlacklistUser, error)
 	ListGroupActions(groupID uint, filter GroupActionFilter) ([]GroupAction, error)
@@ -66,6 +67,54 @@ func (s gormGroupManagementReadStore) GetGroupDetails(userID uint, groupID uint)
 	isSubscribed, userRole := s.findUserGroupSubscription(groupID, userID)
 
 	return convertorsdto.ConvertToGroupFullDto(group, totalMembers, members, activeEvents, isSubscribed, userRole), nil
+}
+
+func (s gormGroupManagementReadStore) GetManagedGroups(userID uint) (*dto.ManagedGroupsDto, error) {
+	var memberships []groups.GroupUsers
+	err := s.store.
+		Preload("Group.Categories", func(db *gorm.DB) *gorm.DB {
+			return db.Order("categories.name ASC, categories.id ASC")
+		}).
+		Preload("RoleInGroup").
+		Joins("JOIN role_in_groups ON role_in_groups.id = group_users.role_in_group_id").
+		Where("group_users.user_id = ?", userID).
+		Where("role_in_groups.name IN ?", []string{groups.RoleAdmin, groups.RoleModerator}).
+		Order("group_users.group_id DESC").
+		Find(&memberships).Error
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения управляемых групп: %w", err)
+	}
+
+	result := &dto.ManagedGroupsDto{
+		Admin:     make([]dto.ManagedGroupItemDto, 0),
+		Moderator: make([]dto.ManagedGroupItemDto, 0),
+	}
+	if len(memberships) == 0 {
+		return result, nil
+	}
+
+	groupIDs := make([]uint, 0, len(memberships))
+	for _, membership := range memberships {
+		groupIDs = append(groupIDs, membership.GroupID)
+	}
+
+	memberCounts, err := s.countGroupMembersByGroupIDs(groupIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, membership := range memberships {
+		item := convertorsdto.ConvertToManagedGroupItemDto(membership.Group, memberCounts[membership.GroupID])
+
+		switch groups.NormalizeRoleName(membership.RoleInGroup.Name) {
+		case groups.RoleAdmin:
+			result.Admin = append(result.Admin, item)
+		case groups.RoleModerator:
+			result.Moderator = append(result.Moderator, item)
+		}
+	}
+
+	return result, nil
 }
 
 func (s gormGroupManagementReadStore) ListJoinRequests(groupID uint, status string, limit int) ([]JoinRequestInfo, error) {
@@ -156,6 +205,34 @@ func (s gormGroupManagementReadStore) countGroupMembers(groupID uint) (int64, er
 	}
 
 	return totalMembers, nil
+}
+
+func (s gormGroupManagementReadStore) countGroupMembersByGroupIDs(groupIDs []uint) (map[uint]int64, error) {
+	type memberCountRow struct {
+		GroupID     uint
+		MemberCount int64
+	}
+
+	rows := make([]memberCountRow, 0, len(groupIDs))
+	if err := s.store.Model(&groups.GroupUsers{}).
+		Select("group_id, COUNT(*) AS member_count").
+		Where("group_id IN ?", groupIDs).
+		Group("group_id").
+		Scan(&rows).Error; err != nil {
+		return nil, fmt.Errorf("ошибка подсчета участников управляемых групп: %w", err)
+	}
+
+	counts := make(map[uint]int64, len(groupIDs))
+	for _, row := range rows {
+		counts[row.GroupID] = row.MemberCount
+	}
+	for _, groupID := range groupIDs {
+		if _, exists := counts[groupID]; !exists {
+			counts[groupID] = 0
+		}
+	}
+
+	return counts, nil
 }
 
 func (s gormGroupManagementReadStore) listGroupMembers(groupID uint, limit int) ([]dto.GroupMemberDto, error) {

@@ -46,3 +46,19 @@ func ConvertToGroupFullDto(group groups.Group, totalMembers int64, members []dto
 		UpdatedAt:    group.UpdatedAt,
 	}
 }
+
+func ConvertToManagedGroupItemDto(group groups.Group, totalMembers int64) dto.ManagedGroupItemDto {
+	categories := make([]string, 0, len(group.Categories))
+	for _, cat := range group.Categories {
+		categories = append(categories, cat.Name)
+	}
+
+	return dto.ManagedGroupItemDto{
+		ID:               group.ID,
+		Name:             group.Name,
+		Categories:       categories,
+		SmallDescription: group.SmallDescription,
+		MemberCount:      int(totalMembers),
+		Image:            group.Image,
+	}
+}

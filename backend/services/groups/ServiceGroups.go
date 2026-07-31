@@ -123,6 +123,7 @@ type GroupsService interface {
 	UpdateGroup(actorID uint, inf GroupUpdateInput) (*dto.GroupFullDto, error)
 	DeleteGroup(actorID uint, groupID uint) (bool, error)
 	GetGroupDetails(userID uint, groupID uint) (*dto.GroupFullDto, error)
+	GetManagedGroups(userID uint) (*dto.ManagedGroupsDto, error)
 
 	// Управление заявками
 	ApproveAllJoinRequests(actorID uint, groupID uint) (int, error)
@@ -176,6 +177,20 @@ func (s *groupService) GetGroupDetails(userID uint, groupID uint) (*dto.GroupFul
 	}
 
 	return s.reads.GetGroupDetails(userID, groupID)
+}
+
+func (s *groupService) GetManagedGroups(userID uint) (*dto.ManagedGroupsDto, error) {
+	if userID == 0 {
+		return nil, ErrInvalidInput
+	}
+
+	managedGroups, err := s.reads.GetManagedGroups(userID)
+	if err != nil {
+		s.logger.Error("Не удалось получить управляемые группы пользователя", "userID", userID, "error", err)
+		return nil, err
+	}
+
+	return managedGroups, nil
 }
 
 // CreateGroup создает новую группу

@@ -42,6 +42,7 @@ func (s *Server) initRouters() {
 	groupsrv := group.NewGroupService(s.logger, group.NewGORMGroupRepository(s.postgres))
 	groupH := handlers.NewGroupHandler(groupsrv)
 	routes.RegisterGroupsRoutes(s.engine, groupH, jwtMiddleware, groupRoleMiddleware)
+	routes.RegisterUserGroupsRoutes(s.engine, groupH, jwtMiddleware)
 
 	//регистрация событий
 	eventUnitOfWork := events.NewGORMEventUnitOfWork(s.postgres)

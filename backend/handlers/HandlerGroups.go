@@ -19,6 +19,7 @@ type GroupHandler interface {
 	JoinGroup(c *gin.Context)
 	LeaveGroup(c *gin.Context)
 	GetGroupDetails(c *gin.Context)
+	GetManagedGroups(c *gin.Context)
 
 	// Управление заявками
 	ApproveAllJoinRequests(c *gin.Context)
@@ -136,6 +137,38 @@ func (h *groupHandler) GetGroupDetails(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, groupDto)
+}
+
+// GetManagedGroups godoc
+// @Summary      Получить группы, где пользователь админ или модератор
+// @Description  Возвращает группы текущего пользователя, разделённые на блоки администратора и модератора
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} dto.ManagedGroupsDto "Группы текущего пользователя по ролям"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные данные"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
+// @Router       /api/v2/users/me/groups/managed [get]
+func (h *groupHandler) GetManagedGroups(c *gin.Context) {
+	userID := c.GetUint("userID")
+	if userID == 0 {
+		utils.Unauthorized(c, "Требуется авторизация")
+		return
+	}
+
+	managedGroups, err := h.srv.GetManagedGroups(userID)
+	if err != nil {
+		switch {
+		case errors.Is(err, group.ErrInvalidInput):
+			utils.BadRequest(c, "Некорректные данные")
+		default:
+			utils.InternalError(c, err.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, managedGroups)
 }
 
 // CreateGroup godoc

@@ -2398,6 +2398,49 @@
                     }
                 }
             }
+        },
+        "/api/v2/users/me/groups/managed": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает группы текущего пользователя, разделённые на блоки администратора и модератора",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Получить группы, где пользователь админ или модератор",
+                "responses": {
+                    "200": {
+                        "description": "Группы текущего пользователя по ролям",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ManagedGroupsDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -3063,6 +3106,49 @@
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.ManagedGroupItemDto": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "memberCount": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "smallDescription": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ManagedGroupsDto": {
+            "type": "object",
+            "properties": {
+                "admin": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ManagedGroupItemDto"
+                    }
+                },
+                "moderator": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ManagedGroupItemDto"
+                    }
                 }
             }
         },

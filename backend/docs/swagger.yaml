@@ -441,6 +441,34 @@ definitions:
       username:
         type: string
     type: object
+  dto.ManagedGroupItemDto:
+    properties:
+      categories:
+        items:
+          type: string
+        type: array
+      id:
+        type: integer
+      image:
+        type: string
+      memberCount:
+        type: integer
+      name:
+        type: string
+      smallDescription:
+        type: string
+    type: object
+  dto.ManagedGroupsDto:
+    properties:
+      admin:
+        items:
+          $ref: '#/definitions/dto.ManagedGroupItemDto'
+        type: array
+      moderator:
+        items:
+          $ref: '#/definitions/dto.ManagedGroupItemDto'
+        type: array
+    type: object
   dto.ReferenceItemDto:
     properties:
       id:
@@ -2655,6 +2683,34 @@ paths:
       summary: Загрузка фотографии
       tags:
       - sub_func
+  /api/v2/users/me/groups/managed:
+    get:
+      description: Возвращает группы текущего пользователя, разделённые на блоки администратора
+        и модератора
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Группы текущего пользователя по ролям
+          schema:
+            $ref: '#/definitions/dto.ManagedGroupsDto'
+        "400":
+          description: Некорректные данные
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить группы, где пользователь админ или модератор
+      tags:
+      - users
 securityDefinitions:
   BearerAuth:
     description: 'Введите токен в формате: Bearer <your_token>'
