@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"friendship/models"
 	"friendship/models/groups"
+	"friendship/repository"
 	"time"
 
 	"gorm.io/gorm"
@@ -38,11 +39,11 @@ type groupCreateResult struct {
 }
 
 type gormGroupAdminStore struct {
-	tx groupPersistence
+	tx repository.PostgresRepository
 	txGroupActorStore
 }
 
-func newGroupAdminStore(tx groupPersistence) groupAdminStore {
+func newGroupAdminStore(tx repository.PostgresRepository) groupAdminStore {
 	return gormGroupAdminStore{
 		tx:                tx,
 		txGroupActorStore: newTxGroupActorStore(tx),
@@ -377,7 +378,7 @@ func (s gormGroupAdminStore) findGroupMember(groupID uint, userID uint) (groups.
 	return groupUser, nil
 }
 
-func createGroupContacts(tx groupPersistence, groupID uint, contacts map[string]string) error {
+func createGroupContacts(tx repository.PostgresRepository, groupID uint, contacts map[string]string) error {
 	if len(contacts) == 0 {
 		return nil
 	}
@@ -404,7 +405,7 @@ func createGroupContacts(tx groupPersistence, groupID uint, contacts map[string]
 	return nil
 }
 
-func updateContactsInTx(tx groupPersistence, groupID uint, newContacts map[string]string) error {
+func updateContactsInTx(tx repository.PostgresRepository, groupID uint, newContacts map[string]string) error {
 	var existingContacts []groups.GroupContact
 	if err := tx.Where("group_id = ?", groupID).Find(&existingContacts).Error; err != nil {
 		return fmt.Errorf("ошибка получения существующих контактов: %w", err)

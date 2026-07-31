@@ -31,8 +31,8 @@ type gormGroupTxAdapter struct {
 	tx repository.PostgresRepository
 }
 
-// NewGORMGroupRepository wraps the temporary shared Postgres repository behind
-// the pure group service storage port.
+// NewGORMGroupRepository оборачивает временный общий Postgres-репозиторий
+// в чистый порт хранения данных группового сервиса.
 func NewGORMGroupRepository(store repository.PostgresRepository) groupUnitOfWork {
 	return gormGroupRepository{
 		store: store,
@@ -105,17 +105,8 @@ func (tx gormGroupTxAdapter) LogActorAction(input groupActorActionLogInput) erro
 	return createActorGroupActionLog(tx.tx, input)
 }
 
-func findGroupRoleID(store groupRoleStore, roleName string) (uint, error) {
-	var role groups.Role_in_group
-	if err := store.Where("name = ?", roleName).First(&role).Error; err != nil {
-		return 0, err
-	}
-
-	return role.Id, nil
-}
-
-func createActorGroupActionLog(tx groupPersistence, input groupActorActionLogInput) error {
-	actionTypeID, err := groups.FindGroupActionTypeID(tx, input.Action)
+func createActorGroupActionLog(tx repository.PostgresRepository, input groupActorActionLogInput) error {
+	actionTypeID, err := findGroupActionTypeID(tx, input.Action)
 	if err != nil {
 		return fmt.Errorf("group action type %q not found: %w", input.Action, err)
 	}

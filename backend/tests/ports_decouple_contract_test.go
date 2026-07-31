@@ -2,6 +2,9 @@ package tests
 
 import (
 	"context"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -57,15 +60,15 @@ func TestNewGroupServiceUsesGORMAdapterAndPreservesBehavior(t *testing.T) {
 	assertGroupMembershipExists(t, db, groupID, 2, true)
 }
 
-func TestGroupStoresDoNotImportSharedPostgresRepository(t *testing.T) {
+func TestGroupSharedRepositoryOnlyAppearsInAdapters(t *testing.T) {
 	groupsDir := filepath.Join("..", "services", "groups")
-	allowedFile := filepath.Join(groupsDir, "gorm_repository.go")
+	allowedAdapters := groupPersistenceAdapterFiles()
 
 	err := filepath.WalkDir(groupsDir, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if entry.IsDir() || filepath.Ext(path) != ".go" || path == allowedFile {
+		if entry.IsDir() || filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") || allowedAdapters[filepath.Base(path)] {
 			return nil
 		}
 
@@ -76,13 +79,177 @@ func TestGroupStoresDoNotImportSharedPostgresRepository(t *testing.T) {
 
 		text := string(content)
 		if strings.Contains(text, `"friendship/repository"`) || strings.Contains(text, "repository.PostgresRepository") {
-			t.Fatalf("%s imports or references shared Postgres repository; keep it isolated in %s", path, allowedFile)
+			t.Fatalf("%s imports or references shared Postgres repository outside the explicit group adapter allowlist", path)
 		}
 
 		return nil
 	})
 	if err != nil {
 		t.Fatalf("walk group services: %v", err)
+	}
+}
+
+func TestGroupApplicationContractsDoNotLeakPersistenceTypes(t *testing.T) {
+	groupsDir := filepath.Join("..", "services", "groups")
+	applicationFiles := []string{filepath.Join(groupsDir, "store.go")}
+
+	serviceFiles, err := filepath.Glob(filepath.Join(groupsDir, "Service*.go"))
+	if err != nil {
+		t.Fatalf("glob group service files: %v", err)
+	}
+	if len(serviceFiles) == 0 {
+		t.Fatal("no group application service files found")
+	}
+	applicationFiles = append(applicationFiles, serviceFiles...)
+
+	for _, path := range applicationFiles {
+		assertGoSourceDoesNotUsePersistence(t, path)
+	}
+}
+
+func TestGroupPersistenceLibrariesAreIsolatedInAdapters(t *testing.T) {
+	groupsDir := filepath.Join("..", "services", "groups")
+	allowedAdapters := groupPersistenceAdapterFiles()
+
+	err := filepath.WalkDir(groupsDir, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		if allowedAdapters[filepath.Base(path)] {
+			return nil
+		}
+
+		assertGoSourceDoesNotUsePersistence(t, path)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walk group service sources: %v", err)
+	}
+}
+
+func TestGroupApplicationInterfacesDoNotLeakPersistenceTypes(t *testing.T) {
+	groupsDir := filepath.Join("..", "services", "groups")
+	allowedAdapterInterfaces := map[string]bool{
+		"groupRepositoryTransactor": true,
+	}
+	adapterPersistenceTypes := map[string]bool{
+		"gormGroupLookupStore": true,
+		"gormGroupStore":       true,
+	}
+
+	err := filepath.WalkDir(groupsDir, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+
+		parsed, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+		if err != nil {
+			return err
+		}
+		persistenceImports := persistenceImportAliases(parsed)
+		for _, declaration := range parsed.Decls {
+			general, ok := declaration.(*ast.GenDecl)
+			if !ok {
+				continue
+			}
+			for _, spec := range general.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok || allowedAdapterInterfaces[typeSpec.Name.Name] {
+					continue
+				}
+				contract, ok := typeSpec.Type.(*ast.InterfaceType)
+				if !ok {
+					continue
+				}
+
+				ast.Inspect(contract, func(node ast.Node) bool {
+					identifier, ok := node.(*ast.Ident)
+					if ok && adapterPersistenceTypes[identifier.Name] {
+						t.Fatalf("%s interface %s leaks adapter persistence type %s", path, typeSpec.Name.Name, identifier.Name)
+					}
+
+					selector, ok := node.(*ast.SelectorExpr)
+					if !ok {
+						return true
+					}
+					qualifier, ok := selector.X.(*ast.Ident)
+					if ok && persistenceImports[qualifier.Name] {
+						t.Fatalf("%s interface %s leaks persistence type %s.%s", path, typeSpec.Name.Name, qualifier.Name, selector.Sel.Name)
+					}
+					return true
+				})
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("inspect group application interfaces: %v", err)
+	}
+}
+
+func TestGroupSharedGORMStoreAbstractionIsRemoved(t *testing.T) {
+	groupsDir := filepath.Join("..", "services", "groups")
+	removedSupportFile := filepath.Join(groupsDir, "gorm_store_support.go")
+	if _, err := os.Stat(removedSupportFile); err == nil {
+		t.Fatalf("%s still exists; group adapters must depend directly on their explicit repository ports", removedSupportFile)
+	} else if !os.IsNotExist(err) {
+		t.Fatalf("stat removed group GORM support file %s: %v", removedSupportFile, err)
+	}
+
+	err := filepath.WalkDir(groupsDir, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		for _, removedType := range []string{"gormGroupStore", "gormGroupLookupStore"} {
+			if strings.Contains(string(content), removedType) {
+				t.Fatalf("%s still references removed shared adapter abstraction %s", path, removedType)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("verify removed shared group GORM abstraction: %v", err)
+	}
+}
+
+func TestGroupActionTypeModelDoesNotExportGORMShapedLookup(t *testing.T) {
+	path := filepath.Join("..", "models", "groups", "GroupActionType.go")
+	assertGoSourceDoesNotUsePersistence(t, path)
+
+	parsed, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+	if err != nil {
+		t.Fatalf("parse group action type model %s: %v", path, err)
+	}
+
+	for _, declaration := range parsed.Decls {
+		switch declaration := declaration.(type) {
+		case *ast.GenDecl:
+			for _, spec := range declaration.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if ok && typeSpec.Name.Name == "ActionTypeLookup" {
+					t.Fatalf("%s exports ActionTypeLookup; persistence lookup belongs in a GORM adapter", path)
+				}
+			}
+		case *ast.FuncDecl:
+			if declaration.Recv == nil && declaration.Name.Name == "FindGroupActionTypeID" {
+				t.Fatalf("%s exports FindGroupActionTypeID; action-type lookup belongs in a GORM adapter", path)
+			}
+		}
 	}
 }
 
@@ -403,6 +570,74 @@ func readCombinedGoSource(t *testing.T, dir string) string {
 	}
 
 	return builder.String()
+}
+
+func assertGoSourceDoesNotUsePersistence(t *testing.T, path string) {
+	t.Helper()
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read Go source %s: %v", path, err)
+	}
+
+	parsed, err := parser.ParseFile(token.NewFileSet(), path, content, parser.ImportsOnly)
+	if err != nil {
+		t.Fatalf("parse Go source %s: %v", path, err)
+	}
+	for _, sourceImport := range parsed.Imports {
+		importPath := strings.Trim(sourceImport.Path.Value, `"`)
+		if importPath == "friendship/repository" || strings.HasPrefix(importPath, "gorm.io/") {
+			t.Fatalf("%s imports persistence implementation %q; keep it in an explicitly allowed group adapter", path, importPath)
+		}
+	}
+
+	text := string(content)
+	for _, forbidden := range []string{
+		"repository.PostgresRepository",
+		"*gorm.DB",
+		"gorm.DB",
+		"clause.Expression",
+		"gormGroupStore",
+		"gormGroupLookupStore",
+	} {
+		if strings.Contains(text, forbidden) {
+			t.Fatalf("%s contains persistence type %q; application contracts must remain storage-agnostic", path, forbidden)
+		}
+	}
+}
+
+func groupPersistenceAdapterFiles() map[string]bool {
+	return map[string]bool{
+		"gorm_helpers.go":                true,
+		"gorm_repository.go":             true,
+		"group_admin_store.go":           true,
+		"group_management_read_store.go": true,
+		"group_shared_store.go":          true,
+		"join_invite_store.go":           true,
+		"join_request_store.go":          true,
+		"membership_store.go":            true,
+	}
+}
+
+func persistenceImportAliases(file *ast.File) map[string]bool {
+	aliases := make(map[string]bool)
+	for _, sourceImport := range file.Imports {
+		importPath := strings.Trim(sourceImport.Path.Value, `"`)
+		if importPath != "friendship/repository" && !strings.HasPrefix(importPath, "gorm.io/") {
+			continue
+		}
+
+		alias := ""
+		if sourceImport.Name != nil {
+			alias = sourceImport.Name.Name
+		} else if separator := strings.LastIndex(importPath, "/"); separator >= 0 {
+			alias = importPath[separator+1:]
+		} else {
+			alias = importPath
+		}
+		aliases[alias] = true
+	}
+	return aliases
 }
 
 func TestNewEventMembershipServiceAcceptsOnlyLoggerAndUnitOfWork(t *testing.T) {

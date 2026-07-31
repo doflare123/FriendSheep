@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"friendship/models"
 	"friendship/models/groups"
+	"friendship/repository"
 	"time"
 
 	"gorm.io/gorm"
@@ -29,13 +30,13 @@ type joinInviteUser struct {
 }
 
 type gormJoinInviteCreationStore struct {
-	tx groupPersistence
+	tx repository.PostgresRepository
 	txGroupAccessStore
 	txGroupActorStore
 	txGroupRelationStore
 }
 
-func newJoinInviteCreationStore(tx groupPersistence) joinInviteCreationStore {
+func newJoinInviteCreationStore(tx repository.PostgresRepository) joinInviteCreationStore {
 	return gormJoinInviteCreationStore{
 		tx:                   tx,
 		txGroupAccessStore:   newTxGroupAccessStore(tx),
@@ -108,11 +109,11 @@ type joinInviteResponse struct {
 }
 
 type gormJoinInviteResponseStore struct {
-	tx groupPersistence
+	tx repository.PostgresRepository
 	txGroupRelationStore
 }
 
-func newJoinInviteResponseStore(tx groupPersistence) joinInviteResponseStore {
+func newJoinInviteResponseStore(tx repository.PostgresRepository) joinInviteResponseStore {
 	return gormJoinInviteResponseStore{
 		tx:                   tx,
 		txGroupRelationStore: newTxGroupRelationStore(tx),

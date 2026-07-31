@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"friendship/models"
 	"friendship/models/groups"
+	"friendship/repository"
 
 	"gorm.io/gorm"
 )
@@ -25,11 +26,11 @@ type joinGroupTarget struct {
 }
 
 type gormJoinGroupStore struct {
-	tx groupPersistence
+	tx repository.PostgresRepository
 	txGroupRelationStore
 }
 
-func newJoinGroupStore(tx groupPersistence) joinGroupStore {
+func newJoinGroupStore(tx repository.PostgresRepository) joinGroupStore {
 	return gormJoinGroupStore{
 		tx:                   tx,
 		txGroupRelationStore: newTxGroupRelationStore(tx),
@@ -119,10 +120,10 @@ type leaveGroupStore interface {
 }
 
 type gormLeaveGroupStore struct {
-	tx groupPersistence
+	tx repository.PostgresRepository
 }
 
-func newLeaveGroupStore(tx groupPersistence) leaveGroupStore {
+func newLeaveGroupStore(tx repository.PostgresRepository) leaveGroupStore {
 	return gormLeaveGroupStore{tx: tx}
 }
 

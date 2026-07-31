@@ -7,6 +7,7 @@ import (
 	convertorsdto "friendship/models/dto/convertorsDto"
 	"friendship/models/events"
 	"friendship/models/groups"
+	"friendship/repository"
 	"time"
 
 	"gorm.io/gorm"
@@ -20,10 +21,10 @@ type groupManagementReadStore interface {
 }
 
 type gormGroupManagementReadStore struct {
-	store groupPersistence
+	store repository.PostgresRepository
 }
 
-func newGroupManagementReadStore(store groupPersistence) groupManagementReadStore {
+func newGroupManagementReadStore(store repository.PostgresRepository) groupManagementReadStore {
 	return gormGroupManagementReadStore{store: store}
 }
 

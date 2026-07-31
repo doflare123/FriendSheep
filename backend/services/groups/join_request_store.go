@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"friendship/models/groups"
+	"friendship/repository"
 
 	"gorm.io/gorm"
 )
@@ -35,13 +36,13 @@ type joinRequestActor struct {
 }
 
 type gormJoinRequestReviewStore struct {
-	tx groupPersistence
+	tx repository.PostgresRepository
 	txGroupAccessStore
 	txGroupActorStore
 	txGroupRelationStore
 }
 
-func newJoinRequestReviewStore(tx groupPersistence) joinRequestReviewStore {
+func newJoinRequestReviewStore(tx repository.PostgresRepository) joinRequestReviewStore {
 	return gormJoinRequestReviewStore{
 		tx:                   tx,
 		txGroupAccessStore:   newTxGroupAccessStore(tx),
@@ -127,11 +128,11 @@ type bulkJoinRequestLogWarning struct {
 }
 
 type gormBulkJoinRequestStore struct {
-	tx groupPersistence
+	tx repository.PostgresRepository
 	txGroupActorStore
 }
 
-func newBulkJoinRequestStore(tx groupPersistence) bulkJoinRequestStore {
+func newBulkJoinRequestStore(tx repository.PostgresRepository) bulkJoinRequestStore {
 	return gormBulkJoinRequestStore{
 		tx:                tx,
 		txGroupActorStore: newTxGroupActorStore(tx),

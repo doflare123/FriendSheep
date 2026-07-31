@@ -1,7 +1,5 @@
 package groups
 
-import "gorm.io/gorm"
-
 type GroupActionType struct {
 	ID   uint   `gorm:"primaryKey;autoIncrement" json:"id"`
 	Code string `gorm:"uniqueIndex;not null" json:"code"`
@@ -34,10 +32,6 @@ const (
 	ActionKickFromEvent      = "kick_from_event"
 )
 
-type ActionTypeLookup interface {
-	Where(query interface{}, args ...interface{}) *gorm.DB
-}
-
 func DefaultGroupActionTypes() []GroupActionType {
 	return []GroupActionType{
 		{Code: ActionCreateGroup, Name: "Создание группы"},
@@ -64,13 +58,4 @@ func DefaultGroupActionTypes() []GroupActionType {
 		{Code: ActionLeaveEvent, Name: "Выход из события"},
 		{Code: ActionKickFromEvent, Name: "Удаление из события"},
 	}
-}
-
-func FindGroupActionTypeID(store ActionTypeLookup, code string) (uint, error) {
-	var actionType GroupActionType
-	if err := store.Where("code = ?", code).First(&actionType).Error; err != nil {
-		return 0, err
-	}
-
-	return actionType.ID, nil
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"friendship/models"
 	"friendship/models/groups"
+	"friendship/repository"
 	"time"
 )
 
@@ -17,7 +18,7 @@ type groupRoleLookup interface {
 }
 
 type gormGroupRoleLookup struct {
-	store groupRoleStore
+	store repository.PostgresRepository
 }
 
 type groupActorRoleFinder interface {
@@ -29,7 +30,7 @@ type groupActorFinder interface {
 }
 
 type txGroupActorStore struct {
-	tx groupPersistence
+	tx repository.PostgresRepository
 }
 
 type groupRelationChecks interface {
@@ -38,22 +39,22 @@ type groupRelationChecks interface {
 }
 
 type txGroupRelationStore struct {
-	tx groupPersistence
+	tx repository.PostgresRepository
 }
 
-func newTxGroupAccessStore(tx groupPersistence) txGroupAccessStore {
+func newTxGroupAccessStore(tx repository.PostgresRepository) txGroupAccessStore {
 	return newGroupAccessStore(tx)
 }
 
-func newGroupAccessStore(store groupRoleStore) txGroupAccessStore {
+func newGroupAccessStore(store repository.PostgresRepository) txGroupAccessStore {
 	return txGroupAccessStore{lookup: gormGroupRoleLookup{store: store}}
 }
 
-func newTxGroupActorStore(tx groupPersistence) txGroupActorStore {
+func newTxGroupActorStore(tx repository.PostgresRepository) txGroupActorStore {
 	return txGroupActorStore{tx: tx}
 }
 
-func newTxGroupRelationStore(tx groupPersistence) txGroupRelationStore {
+func newTxGroupRelationStore(tx repository.PostgresRepository) txGroupRelationStore {
 	return txGroupRelationStore{tx: tx}
 }
 
@@ -152,8 +153,8 @@ type groupActionLogInput struct {
 	EntityName   string
 }
 
-func createGroupActionLog(tx groupPersistence, input groupActionLogInput) error {
-	actionTypeID, err := groups.FindGroupActionTypeID(tx, input.Action)
+func createGroupActionLog(tx repository.PostgresRepository, input groupActionLogInput) error {
+	actionTypeID, err := findGroupActionTypeID(tx, input.Action)
 	if err != nil {
 		return fmt.Errorf("тип действия группы %q не найден: %w", input.Action, err)
 	}
