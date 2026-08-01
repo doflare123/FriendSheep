@@ -1,6 +1,7 @@
 package group
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"friendship/logger"
@@ -124,6 +125,7 @@ type GroupsService interface {
 	DeleteGroup(actorID uint, groupID uint) (bool, error)
 	GetGroupDetails(userID uint, groupID uint) (*dto.GroupFullDto, error)
 	GetManagedGroups(userID uint) (*dto.ManagedGroupsDto, error)
+	GetSubscribedGroups(ctx context.Context, userID uint, page int, limit int) (*dto.SubscribedGroupsResponseDto, error)
 
 	// Управление заявками
 	ApproveAllJoinRequests(actorID uint, groupID uint) (int, error)
@@ -155,18 +157,20 @@ type GroupsService interface {
 }
 
 type groupService struct {
-	logger logger.Logger
-	uow    groupUnitOfWork
-	access groupActorRoleFinder
-	reads  groupManagementReadStore
+	logger        logger.Logger
+	uow           groupUnitOfWork
+	access        groupActorRoleFinder
+	reads         groupManagementReadStore
+	subscriptions groupSubscriptionsStore
 }
 
 func NewGroupService(logger logger.Logger, uow groupUnitOfWork) GroupsService {
 	return &groupService{
-		logger: logger,
-		uow:    uow,
-		access: uow.Access(),
-		reads:  uow.Reads(),
+		logger:        logger,
+		uow:           uow,
+		access:        uow.Access(),
+		reads:         uow.Reads(),
+		subscriptions: uow.Subscriptions(),
 	}
 }
 

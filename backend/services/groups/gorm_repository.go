@@ -73,6 +73,10 @@ func (r gormGroupRepository) Reads() groupManagementReadStore {
 	return newGroupManagementReadStore(r.store)
 }
 
+func (r gormGroupRepository) Subscriptions() groupSubscriptionsStore {
+	return newGORMGroupSubscriptionsStore(r.store)
+}
+
 func (tx gormGroupTxAdapter) Admin() groupAdminStore {
 	return newGroupAdminStore(tx.tx)
 }

@@ -20,6 +20,7 @@ type GroupHandler interface {
 	LeaveGroup(c *gin.Context)
 	GetGroupDetails(c *gin.Context)
 	GetManagedGroups(c *gin.Context)
+	GetSubscribedGroups(c *gin.Context)
 
 	// Управление заявками
 	ApproveAllJoinRequests(c *gin.Context)
@@ -169,6 +170,73 @@ func (h *groupHandler) GetManagedGroups(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, managedGroups)
+}
+
+// GetSubscribedGroups godoc
+// @Summary      Получить подписки пользователя на группы
+// @Description  Возвращает страницу групп, где текущий пользователь состоит с ролью обычного участника. Группы, где пользователь администратор или модератор, не включаются.
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Param        page query int false "Номер страницы" default(1) minimum(1)
+// @Param        limit query int false "Размер страницы" default(20) minimum(1) maximum(100)
+// @Success      200 {object} dto.SubscribedGroupsResponseDto "Подписки текущего пользователя на группы"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные параметры пагинации"
+// @Failure      401 {object} dto.ErrorResponse "Не авторизован"
+// @Failure      500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
+// @Router       /api/v2/users/me/groups/subscriptions [get]
+func (h *groupHandler) GetSubscribedGroups(c *gin.Context) {
+	userID := c.GetUint("userID")
+	if userID == 0 {
+		utils.Unauthorized(c, "Требуется авторизация")
+		return
+	}
+
+	page, err := parseGroupSubscriptionsPaginationValue(
+		c.Query("page"),
+		group.DefaultSubscribedGroupsPage,
+		0,
+	)
+	if err != nil {
+		utils.BadRequest(c, "Некорректный параметр page")
+		return
+	}
+
+	limit, err := parseGroupSubscriptionsPaginationValue(
+		c.Query("limit"),
+		group.DefaultSubscribedGroupsLimit,
+		group.MaxSubscribedGroupsLimit,
+	)
+	if err != nil {
+		utils.BadRequest(c, "Некорректный параметр limit")
+		return
+	}
+
+	result, err := h.srv.GetSubscribedGroups(c.Request.Context(), userID, page, limit)
+	if err != nil {
+		switch {
+		case errors.Is(err, group.ErrInvalidInput):
+			utils.BadRequest(c, "Некорректные параметры пагинации")
+		default:
+			utils.InternalError(c, err.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func parseGroupSubscriptionsPaginationValue(raw string, defaultValue int, maxValue int) (int, error) {
+	if raw == "" {
+		return defaultValue, nil
+	}
+
+	value, err := strconv.Atoi(raw)
+	if err != nil || value < 1 || maxValue > 0 && value > maxValue {
+		return 0, group.ErrInvalidInput
+	}
+
+	return value, nil
 }
 
 // CreateGroup godoc

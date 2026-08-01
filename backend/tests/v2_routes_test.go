@@ -138,6 +138,10 @@ func (h *groupRouteHandlerStub) GetManagedGroups(c *gin.Context) {
 	h.called = "managed-groups"
 	c.Status(http.StatusNoContent)
 }
+func (h *groupRouteHandlerStub) GetSubscribedGroups(c *gin.Context) {
+	h.called = "subscribed-groups"
+	c.Status(http.StatusNoContent)
+}
 func (h *groupRouteHandlerStub) ApproveAllJoinRequests(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
@@ -567,6 +571,48 @@ func TestRegisterUserGroupsRoutesManagedGroupsReachesHandlerAfterAuth(t *testing
 	}
 	if handler.called != "managed-groups" {
 		t.Fatalf("called = %q, want managed-groups", handler.called)
+	}
+}
+
+func TestRegisterUserGroupsRoutesSubscriptionsRequiresAuth(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &groupRouteHandlerStub{}
+	router := gin.New()
+	authMiddleware := middlewares.NewAuthMiddleware(utils.NewJWTUtils("test-secret"))
+	routes.RegisterUserGroupsRoutes(router, handler, authMiddleware)
+
+	rec := performRouteRequest(router, http.MethodGet, "/api/v2/users/me/groups/subscriptions", "")
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusUnauthorized, rec.Body.String())
+	}
+	assertCommonErrorShape(t, rec)
+	if handler.called != "" {
+		t.Fatalf("handler was called: %q", handler.called)
+	}
+}
+
+func TestRegisterUserGroupsRoutesSubscriptionsReachesHandlerAfterAuth(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &groupRouteHandlerStub{}
+	jwtUtils := utils.NewJWTUtils("test-secret")
+	router := gin.New()
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	routes.RegisterUserGroupsRoutes(router, handler, authMiddleware)
+
+	tokenPair, err := jwtUtils.GenerateTokenPair(73, "Subscribed User", "subscribed-user", "")
+	if err != nil {
+		t.Fatalf("GenerateTokenPair returned error: %v", err)
+	}
+	rec := performRouteRequest(router, http.MethodGet, "/api/v2/users/me/groups/subscriptions?page=2&limit=10", tokenPair.AccessToken)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusNoContent, rec.Body.String())
+	}
+	if handler.called != "subscribed-groups" {
+		t.Fatalf("called = %q, want subscribed-groups", handler.called)
 	}
 }
 

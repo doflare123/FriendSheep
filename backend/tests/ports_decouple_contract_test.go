@@ -608,14 +608,15 @@ func assertGoSourceDoesNotUsePersistence(t *testing.T, path string) {
 
 func groupPersistenceAdapterFiles() map[string]bool {
 	return map[string]bool{
-		"gorm_helpers.go":                true,
-		"gorm_repository.go":             true,
-		"group_admin_store.go":           true,
-		"group_management_read_store.go": true,
-		"group_shared_store.go":          true,
-		"join_invite_store.go":           true,
-		"join_request_store.go":          true,
-		"membership_store.go":            true,
+		"gorm_helpers.go":                   true,
+		"gorm_repository.go":                true,
+		"group_admin_store.go":              true,
+		"group_management_read_store.go":    true,
+		"gorm_group_subscriptions_store.go": true,
+		"group_shared_store.go":             true,
+		"join_invite_store.go":              true,
+		"join_request_store.go":             true,
+		"membership_store.go":               true,
 	}
 }
 

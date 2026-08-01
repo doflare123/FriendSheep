@@ -13,3 +13,11 @@ type ManagedGroupsDto struct {
 	Admin     []ManagedGroupItemDto `json:"admin"`
 	Moderator []ManagedGroupItemDto `json:"moderator"`
 }
+
+type SubscribedGroupsResponseDto struct {
+	Items   []ManagedGroupItemDto `json:"items"`
+	Total   int64                 `json:"total"`
+	Page    int                   `json:"page"`
+	Limit   int                   `json:"limit"`
+	HasMore bool                  `json:"hasMore"`
+}

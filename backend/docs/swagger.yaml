@@ -503,6 +503,21 @@ definitions:
           $ref: '#/definitions/dto.ReferenceItemDto'
         type: array
     type: object
+  dto.SubscribedGroupsResponseDto:
+    properties:
+      hasMore:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/dto.ManagedGroupItemDto'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
   events.CreateEventInput:
     properties:
       address:
@@ -2709,6 +2724,49 @@ paths:
       security:
       - BearerAuth: []
       summary: Получить группы, где пользователь админ или модератор
+      tags:
+      - users
+  /api/v2/users/me/groups/subscriptions:
+    get:
+      description: Возвращает страницу групп, где текущий пользователь состоит с ролью
+        обычного участника. Группы, где пользователь администратор или модератор,
+        не включаются.
+      parameters:
+      - default: 1
+        description: Номер страницы
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Размер страницы
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Подписки текущего пользователя на группы
+          schema:
+            $ref: '#/definitions/dto.SubscribedGroupsResponseDto'
+        "400":
+          description: Некорректные параметры пагинации
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить подписки пользователя на группы
       tags:
       - users
 securityDefinitions:

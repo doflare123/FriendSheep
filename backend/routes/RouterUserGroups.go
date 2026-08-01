@@ -16,5 +16,6 @@ func RegisterUserGroupsRoutes(
 	userGroups.Use(authMiddleware.RequireAuth())
 	{
 		userGroups.GET("/managed", groupHandler.GetManagedGroups)
+		userGroups.GET("/subscriptions", groupHandler.GetSubscribedGroups)
 	}
 }

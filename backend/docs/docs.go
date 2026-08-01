@@ -2452,6 +2452,68 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v2/users/me/groups/subscriptions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает страницу групп, где текущий пользователь состоит с ролью обычного участника. Группы, где пользователь администратор или модератор, не включаются.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Получить подписки пользователя на группы",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Номер страницы",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Размер страницы",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Подписки текущего пользователя на группы",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SubscribedGroupsResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные параметры пагинации",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -3212,6 +3274,29 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dto.ReferenceItemDto"
                     }
+                }
+            }
+        },
+        "dto.SubscribedGroupsResponseDto": {
+            "type": "object",
+            "properties": {
+                "hasMore": {
+                    "type": "boolean"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ManagedGroupItemDto"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },

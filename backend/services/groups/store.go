@@ -4,6 +4,7 @@ type groupUnitOfWork interface {
 	WithinTransaction(func(groupTx) error) error
 	Access() groupActorRoleFinder
 	Reads() groupManagementReadStore
+	Subscriptions() groupSubscriptionsStore
 }
 
 type groupTx interface {
