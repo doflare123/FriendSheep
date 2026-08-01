@@ -1,6 +1,7 @@
 package group
 
 import (
+	"context"
 	"errors"
 	"friendship/models/groups"
 	"testing"
@@ -56,7 +57,7 @@ func TestGroupAdminStoreRemoveFromBlacklistRejectsRoleWithoutModerateCapability(
 func TestGroupServiceGetGroupDetailsRejectsZeroUserID(t *testing.T) {
 	service := groupService{}
 
-	result, err := service.GetGroupDetails(0, 1)
+	result, err := service.GetGroupDetails(context.Background(), 0, 1)
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
 	}
@@ -68,7 +69,7 @@ func TestGroupServiceGetGroupDetailsRejectsZeroUserID(t *testing.T) {
 func TestGroupServiceGetGroupDetailsRejectsZeroGroupID(t *testing.T) {
 	service := groupService{}
 
-	result, err := service.GetGroupDetails(1, 0)
+	result, err := service.GetGroupDetails(context.Background(), 1, 0)
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
 	}

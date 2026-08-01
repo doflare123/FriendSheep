@@ -1,6 +1,7 @@
 package group
 
 import (
+	"context"
 	"errors"
 	"friendship/models/groups"
 	"strings"
@@ -9,10 +10,10 @@ import (
 )
 
 // JoinGroup вступление в группу
-func (s *groupService) JoinGroup(userID uint, groupID uint) (*GroupResult, error) {
+func (s *groupService) JoinGroup(ctx context.Context, userID uint, groupID uint) (*GroupResult, error) {
 	var target joinGroupTarget
 
-	err := s.runInTx(func(tx groupTx) error {
+	err := s.runInTx(ctx, func(tx groupTx) error {
 		store := tx.JoinGroup()
 
 		if err := store.EnsureUserExists(userID); err != nil {
@@ -112,8 +113,8 @@ func isGroupMembershipUniqueViolation(err error) bool {
 }
 
 // LeaveGroup выход из группы
-func (s *groupService) LeaveGroup(userID uint, groupID uint) (bool, error) {
-	err := s.runInTx(func(tx groupTx) error {
+func (s *groupService) LeaveGroup(ctx context.Context, userID uint, groupID uint) (bool, error) {
+	err := s.runInTx(ctx, func(tx groupTx) error {
 		role, err := tx.LeaveGroup().LeaveGroup(userID, groupID)
 		if err != nil {
 			return err
@@ -134,10 +135,10 @@ func (s *groupService) LeaveGroup(userID uint, groupID uint) (bool, error) {
 }
 
 // AcceptJoinInvite принимает приглашение в группу
-func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResult, error) {
+func (s *groupService) AcceptJoinInvite(ctx context.Context, userID uint, inviteID uint) (*GroupResult, error) {
 	var invite joinInviteResponse
 
-	err := s.runInTx(func(tx groupTx) error {
+	err := s.runInTx(ctx, func(tx groupTx) error {
 		store := tx.JoinInviteResponse()
 
 		foundInvite, err := store.FindJoinInvite(inviteID)
@@ -200,8 +201,8 @@ func (s *groupService) AcceptJoinInvite(userID uint, inviteID uint) (*GroupResul
 }
 
 // RejectJoinInvite отклоняет приглашение в группу
-func (s *groupService) RejectJoinInvite(userID uint, inviteID uint) (bool, error) {
-	err := s.runInTx(func(tx groupTx) error {
+func (s *groupService) RejectJoinInvite(ctx context.Context, userID uint, inviteID uint) (bool, error) {
+	err := s.runInTx(ctx, func(tx groupTx) error {
 		store := tx.JoinInviteResponse()
 
 		invite, err := store.FindJoinInvite(inviteID)

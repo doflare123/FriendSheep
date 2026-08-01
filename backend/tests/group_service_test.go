@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"sync/atomic"
@@ -30,7 +31,7 @@ func TestGroupServiceJoinGroupAddsMemberForPublicGroup(t *testing.T) {
 	seedGroupServiceUser(t, db, 2)
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 
-	result, err := service.JoinGroup(2, groupID)
+	result, err := service.JoinGroup(context.Background(), 2, groupID)
 
 	if err != nil {
 		t.Fatalf("JoinGroup returned error: %v", err)
@@ -40,6 +41,31 @@ func TestGroupServiceJoinGroupAddsMemberForPublicGroup(t *testing.T) {
 	}
 	assertGroupMembershipExists(t, db, groupID, 2, true)
 	assertGroupJoinRequestCount(t, db, groupID, 2, "pending", 0)
+}
+
+func TestGroupServiceJoinGroupCanceledContextSkipsTransactionWrites(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
+
+	seedGroupServiceRole(t, db, groupmodels.RoleMember)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupServiceUser(t, db, 2)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	result, err := service.JoinGroup(ctx, 2, groupID)
+
+	if result != nil {
+		t.Fatalf("result = %#v, want nil", result)
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("err = %v, want context.Canceled", err)
+	}
+	assertGroupMembershipExists(t, db, groupID, 2, false)
+	assertGroupJoinRequestCount(t, db, groupID, 2, "pending", 0)
+	assertGroupServiceActionLogCount(t, db, groupID, groupmodels.ActionJoinGroup, 0)
 }
 
 func TestGroupServiceJoinGroupRejectsDuplicatePublicMembership(t *testing.T) {
@@ -53,7 +79,7 @@ func TestGroupServiceJoinGroupRejectsDuplicatePublicMembership(t *testing.T) {
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
 
-	result, err := service.JoinGroup(2, groupID)
+	result, err := service.JoinGroup(context.Background(), 2, groupID)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -74,7 +100,7 @@ func TestGroupServiceJoinGroupCreatesRequestForPrivateGroup(t *testing.T) {
 	seedGroupServiceUser(t, db, 2)
 	groupID := seedGroupServiceGroup(t, db, 1, true)
 
-	result, err := service.JoinGroup(2, groupID)
+	result, err := service.JoinGroup(context.Background(), 2, groupID)
 
 	if err != nil {
 		t.Fatalf("JoinGroup returned error: %v", err)
@@ -97,7 +123,7 @@ func TestGroupServiceJoinGroupRejectsBlacklistedUserWithoutSideEffects(t *testin
 	groupID := seedGroupServiceGroup(t, db, 1, true)
 	seedGroupBlacklist(t, db, groupID, 2, 1)
 
-	result, err := service.JoinGroup(2, groupID)
+	result, err := service.JoinGroup(context.Background(), 2, groupID)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -120,7 +146,7 @@ func TestGroupServiceJoinGroupRejectsDuplicatePendingRequest(t *testing.T) {
 	groupID := seedGroupServiceGroup(t, db, 1, true)
 	seedGroupJoinRequest(t, db, groupID, 2, "pending")
 
-	result, err := service.JoinGroup(2, groupID)
+	result, err := service.JoinGroup(context.Background(), 2, groupID)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -144,7 +170,7 @@ func TestGroupServiceJoinGroupAllowsNewPendingAfterRejectedRequest(t *testing.T)
 	seedGroupJoinRequest(t, db, groupID, 2, "rejected")
 	createPendingJoinRequestUniqueIndex(t, db)
 
-	result, err := service.JoinGroup(2, groupID)
+	result, err := service.JoinGroup(context.Background(), 2, groupID)
 
 	if err != nil {
 		t.Fatalf("JoinGroup returned error: %v", err)
@@ -167,7 +193,7 @@ func TestGroupServiceJoinGroupMapsPendingUniqueViolationToDuplicateRequest(t *te
 	groupID := seedGroupServiceGroup(t, db, 1, true)
 	createPendingJoinRequestUniqueIndex(t, db)
 
-	result, err := service.JoinGroup(2, groupID)
+	result, err := service.JoinGroup(context.Background(), 2, groupID)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -191,7 +217,7 @@ func TestGroupServiceJoinGroupMapsMembershipUniqueViolationToAlreadyInGroup(t *t
 	seedGroupServiceUser(t, db, 2)
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 
-	result, err := service.JoinGroup(2, groupID)
+	result, err := service.JoinGroup(context.Background(), 2, groupID)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -218,7 +244,7 @@ func TestGroupServiceApproveJoinRequestAddsMembershipAndWritesActionLog(t *testi
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	requestID := seedGroupJoinRequestWithID(t, db, groupID, 2, "pending")
 
-	approved, err := service.ApproveJoinRequest(1, requestID)
+	approved, err := service.ApproveJoinRequest(context.Background(), 1, requestID)
 
 	if err != nil {
 		t.Fatalf("ApproveJoinRequest returned error: %v", err)
@@ -244,7 +270,7 @@ func TestGroupServiceApproveJoinRequestUsesTransactionForActorRoleLookup(t *test
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	requestID := seedGroupJoinRequestWithID(t, db, groupID, 2, "pending")
 
-	approved, err := service.ApproveJoinRequest(1, requestID)
+	approved, err := service.ApproveJoinRequest(context.Background(), 1, requestID)
 
 	if err != nil {
 		t.Fatalf("ApproveJoinRequest returned error: %v", err)
@@ -268,7 +294,7 @@ func TestGroupServiceApproveJoinRequestRejectsMemberActorWithoutSideEffects(t *t
 	seedGroupServiceMembership(t, db, groupID, 1, memberRoleID)
 	requestID := seedGroupJoinRequestWithID(t, db, groupID, 2, "pending")
 
-	approved, err := service.ApproveJoinRequest(1, requestID)
+	approved, err := service.ApproveJoinRequest(context.Background(), 1, requestID)
 
 	if approved {
 		t.Fatal("ApproveJoinRequest returned true")
@@ -294,7 +320,7 @@ func TestGroupServiceApproveJoinRequestMapsMembershipUniqueViolationToAlreadyInG
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	requestID := seedGroupJoinRequestWithID(t, db, groupID, 2, "pending")
 
-	approved, err := service.ApproveJoinRequest(1, requestID)
+	approved, err := service.ApproveJoinRequest(context.Background(), 1, requestID)
 
 	if approved {
 		t.Fatal("ApproveJoinRequest returned true")
@@ -324,7 +350,7 @@ func TestGroupServiceApproveJoinRequestRejectsBlacklistedUserWithoutSideEffects(
 	seedGroupBlacklist(t, db, groupID, 2, 1)
 	requestID := seedGroupJoinRequestWithID(t, db, groupID, 2, "pending")
 
-	approved, err := service.ApproveJoinRequest(1, requestID)
+	approved, err := service.ApproveJoinRequest(context.Background(), 1, requestID)
 
 	if approved {
 		t.Fatal("ApproveJoinRequest returned true")
@@ -349,7 +375,7 @@ func TestGroupServiceRejectJoinRequestUpdatesStatusAndWritesActionLog(t *testing
 	seedGroupServiceMembership(t, db, groupID, 1, operatorRoleID)
 	requestID := seedGroupJoinRequestWithID(t, db, groupID, 2, "pending")
 
-	rejected, err := service.RejectJoinRequest(1, requestID)
+	rejected, err := service.RejectJoinRequest(context.Background(), 1, requestID)
 
 	if err != nil {
 		t.Fatalf("RejectJoinRequest returned error: %v", err)
@@ -374,7 +400,7 @@ func TestGroupServiceRejectJoinRequestRejectsMemberActorWithoutSideEffects(t *te
 	seedGroupServiceMembership(t, db, groupID, 1, memberRoleID)
 	requestID := seedGroupJoinRequestWithID(t, db, groupID, 2, "pending")
 
-	rejected, err := service.RejectJoinRequest(1, requestID)
+	rejected, err := service.RejectJoinRequest(context.Background(), 1, requestID)
 
 	if rejected {
 		t.Fatal("RejectJoinRequest returned true")
@@ -399,7 +425,7 @@ func TestGroupServiceRejectJoinRequestUsesTransactionForActorRoleLookup(t *testi
 	seedGroupServiceMembership(t, db, groupID, 1, operatorRoleID)
 	requestID := seedGroupJoinRequestWithID(t, db, groupID, 2, "pending")
 
-	rejected, err := service.RejectJoinRequest(1, requestID)
+	rejected, err := service.RejectJoinRequest(context.Background(), 1, requestID)
 
 	if err != nil {
 		t.Fatalf("RejectJoinRequest returned error: %v", err)
@@ -421,7 +447,7 @@ func TestGroupServiceCreateJoinInviteLoadsTargetUserAndRejectsMissingUser(t *tes
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
+	created, err := service.CreateJoinInvite(context.Background(), 1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  404,
 	})
@@ -447,7 +473,7 @@ func TestGroupServiceCreateJoinInviteUsesTransactionForActorRoleLookup(t *testin
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	seedGroupServiceMembership(t, db, groupID, 1, operatorRoleID)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
+	created, err := service.CreateJoinInvite(context.Background(), 1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -473,7 +499,7 @@ func TestGroupServiceCreateJoinInviteRejectsMemberActorWithoutSideEffects(t *tes
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	seedGroupServiceMembership(t, db, groupID, 1, memberRoleID)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
+	created, err := service.CreateJoinInvite(context.Background(), 1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -497,7 +523,7 @@ func TestGroupServiceCreateJoinInviteRejectsMissingActorMembershipWithoutSideEff
 	seedGroupServiceUser(t, db, 2)
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
+	created, err := service.CreateJoinInvite(context.Background(), 1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -525,7 +551,7 @@ func TestGroupServiceCreateJoinInviteRejectsExistingMemberWithoutSideEffects(t *
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
+	created, err := service.CreateJoinInvite(context.Background(), 1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -552,7 +578,7 @@ func TestGroupServiceCreateJoinInviteRejectsDuplicatePendingInviteWithoutSideEff
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
 
-	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
+	created, err := service.CreateJoinInvite(context.Background(), 1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -578,7 +604,7 @@ func TestGroupServiceCreateJoinInviteCreatesPendingInviteAndActionLog(t *testing
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
+	created, err := service.CreateJoinInvite(context.Background(), 1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -606,7 +632,7 @@ func TestGroupServiceCreateJoinInviteKeepsInviteWhenActionLogFails(t *testing.T)
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 
-	created, err := service.CreateJoinInvite(1, servicegroups.GroupUserInput{
+	created, err := service.CreateJoinInvite(context.Background(), 1, servicegroups.GroupUserInput{
 		GroupID: groupID,
 		UserID:  2,
 	})
@@ -634,7 +660,7 @@ func TestGroupServiceCreateGroupRejectsMissingCategoriesWithoutSideEffects(t *te
 	categoryID := uint(1)
 	missingCategoryID := uint(999)
 
-	groupDTO, err := service.CreateGroup(1, servicegroups.CreateGroupInput{
+	groupDTO, err := service.CreateGroup(context.Background(), 1, servicegroups.CreateGroupInput{
 		Name:             "Board Game Club",
 		Description:      "Group for board game fans",
 		SmallDescription: "Play together",
@@ -670,7 +696,7 @@ func TestGroupServiceCreateGroupReturnsFullDetailsForCreator(t *testing.T) {
 	isPrivate := true
 	categoryID := uint(1)
 
-	groupDTO, err := service.CreateGroup(1, servicegroups.CreateGroupInput{
+	groupDTO, err := service.CreateGroup(context.Background(), 1, servicegroups.CreateGroupInput{
 		Name:             "Board Game Club",
 		Description:      "Group for board game fans",
 		SmallDescription: "Play together",
@@ -724,7 +750,7 @@ func TestGroupServiceUpdateGroupReturnsFullDetailsForActor(t *testing.T) {
 	isPrivate := true
 	categoryID := uint(1)
 
-	created, err := service.CreateGroup(1, servicegroups.CreateGroupInput{
+	created, err := service.CreateGroup(context.Background(), 1, servicegroups.CreateGroupInput{
 		Name:             "Board Game Club",
 		Description:      "Group for board game fans",
 		SmallDescription: "Play together",
@@ -739,7 +765,7 @@ func TestGroupServiceUpdateGroupReturnsFullDetailsForActor(t *testing.T) {
 
 	newName := "Board Game Club Updated"
 	newContacts := "tg:https://t.me/newgroup"
-	updated, err := service.UpdateGroup(1, servicegroups.GroupUpdateInput{
+	updated, err := service.UpdateGroup(context.Background(), 1, servicegroups.GroupUpdateInput{
 		GroupID:  created.ID,
 		Name:     &newName,
 		Contacts: &newContacts,
@@ -777,6 +803,75 @@ func TestGroupServiceUpdateGroupReturnsFullDetailsForActor(t *testing.T) {
 	}
 }
 
+func TestGroupServiceCreateGroupRollsBackWhenMaterializationIsCanceled(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
+	services.InitValidator(validator.New())
+
+	seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
+	seedGroupServiceUser(t, db, 1)
+	seedGroupCategory(t, db, 1, "Board Games")
+	registerCanceledGroupMaterialization(t, db, "create")
+	isPrivate := false
+	categoryID := uint(1)
+
+	created, err := service.CreateGroup(context.Background(), 1, servicegroups.CreateGroupInput{
+		Name:             "Board Game Club",
+		Description:      "Group for board game fans",
+		SmallDescription: "Play together",
+		Image:            "https://example.com/group.png",
+		IsPrivate:        &isPrivate,
+		Categories:       []*uint{&categoryID},
+		Contacts:         "tg:https://t.me/group",
+	})
+
+	if created != nil {
+		t.Fatalf("created = %#v, want nil", created)
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("err = %v, want context.Canceled", err)
+	}
+	assertGroupTotal(t, db, 0)
+	assertGroupMembershipTotal(t, db, 0)
+	assertGroupContactTotal(t, db, 0)
+	assertGroupServiceActionLogTotal(t, db, 0)
+}
+
+func TestGroupServiceUpdateGroupRollsBackWhenMaterializationIsCanceled(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
+
+	adminRoleID := seedGroupServiceRole(t, db, groupmodels.RoleAdmin)
+	seedGroupServiceUser(t, db, 1)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
+	registerCanceledGroupMaterialization(t, db, "update")
+	newName := "Updated Group Name"
+
+	updated, err := service.UpdateGroup(context.Background(), 1, servicegroups.GroupUpdateInput{
+		GroupID: groupID,
+		Name:    &newName,
+	})
+
+	if updated != nil {
+		t.Fatalf("updated = %#v, want nil", updated)
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("err = %v, want context.Canceled", err)
+	}
+
+	var persisted groupmodels.Group
+	if err := db.First(&persisted, groupID).Error; err != nil {
+		t.Fatalf("load persisted group: %v", err)
+	}
+	if persisted.Name != "Group Service Test" {
+		t.Fatalf("persisted name = %q, want original %q", persisted.Name, "Group Service Test")
+	}
+	assertGroupServiceActionLogTotal(t, db, 0)
+}
+
 func TestGroupServiceGetGroupDetailsMarksActiveEventSubscription(t *testing.T) {
 	db := newGroupServiceDB(t)
 	repo := &testPostgresRepository{db: db}
@@ -794,7 +889,7 @@ func TestGroupServiceGetGroupDetailsMarksActiveEventSubscription(t *testing.T) {
 	eventID := seedEvent(t, db, groupID, 1, 1, 5)
 	seedEventParticipant(t, db, eventID, 2)
 
-	subscribedDetails, err := service.GetGroupDetails(2, groupID)
+	subscribedDetails, err := service.GetGroupDetails(context.Background(), 2, groupID)
 	if err != nil {
 		t.Fatalf("GetGroupDetails for subscribed user returned error: %v", err)
 	}
@@ -805,7 +900,7 @@ func TestGroupServiceGetGroupDetailsMarksActiveEventSubscription(t *testing.T) {
 		t.Fatal("active event subscribed = false, want true")
 	}
 
-	unsubscribedDetails, err := service.GetGroupDetails(3, groupID)
+	unsubscribedDetails, err := service.GetGroupDetails(context.Background(), 3, groupID)
 	if err != nil {
 		t.Fatalf("GetGroupDetails for unsubscribed user returned error: %v", err)
 	}
@@ -814,6 +909,51 @@ func TestGroupServiceGetGroupDetailsMarksActiveEventSubscription(t *testing.T) {
 	}
 	if unsubscribedDetails.ActiveEvents[0].Subscribed {
 		t.Fatal("active event subscribed = true, want false")
+	}
+}
+
+func TestGroupServiceGetGroupDetailsCanceledContextReturnsNoPartialResult(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
+
+	seedGroupServiceUser(t, db, 1)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	details, err := service.GetGroupDetails(ctx, 1, groupID)
+
+	if details != nil {
+		t.Fatalf("details = %#v, want nil", details)
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("err = %v, want context.Canceled", err)
+	}
+}
+
+func TestGroupServiceGetGroupDetailsPropagatesActiveEventsQueryError(t *testing.T) {
+	db := newGroupServiceDB(t)
+	repo := &testPostgresRepository{db: db}
+	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
+
+	seedGroupServiceUser(t, db, 1)
+	groupID := seedGroupServiceGroup(t, db, 1, false)
+	if err := db.Callback().Query().Before("gorm:query").Register("test:cancel-active-events-query", func(tx *gorm.DB) {
+		if tx.Statement.Table == "events" || tx.Statement.Schema != nil && tx.Statement.Schema.Table == "events" {
+			tx.AddError(context.Canceled)
+		}
+	}); err != nil {
+		t.Fatalf("register active-events query failure: %v", err)
+	}
+
+	details, err := service.GetGroupDetails(context.Background(), 1, groupID)
+
+	if details != nil {
+		t.Fatalf("details = %#v, want nil instead of partial success", details)
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("err = %v, want active-events context.Canceled", err)
 	}
 }
 
@@ -831,7 +971,7 @@ func TestGroupServiceAddPermissionsPromotesMemberAndWritesActionLog(t *testing.T
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
 
-	changed, err := service.AddPermissions(1, servicegroups.GroupUserInput{GroupID: groupID, UserID: 2})
+	changed, err := service.AddPermissions(context.Background(), 1, servicegroups.GroupUserInput{GroupID: groupID, UserID: 2})
 
 	if err != nil {
 		t.Fatalf("AddPermissions returned error: %v", err)
@@ -846,7 +986,7 @@ func TestGroupServiceAddPermissionsPromotesMemberAndWritesActionLog(t *testing.T
 
 	renameGroupServiceUser(t, db, 1, "Renamed Admin", "renamed-admin")
 	renameGroupServiceUser(t, db, 2, "Renamed Member", "renamed-member")
-	actions, err := service.WatchRecentActions(1, groupID, servicegroups.GroupActionFilter{Limit: 10})
+	actions, err := service.WatchRecentActions(context.Background(), 1, groupID, servicegroups.GroupActionFilter{Limit: 10})
 	if err != nil {
 		t.Fatalf("WatchRecentActions returned error: %v", err)
 	}
@@ -869,7 +1009,7 @@ func TestGroupServiceAddPermissionsRejectsModeratorActorWithoutSideEffects(t *te
 	seedGroupServiceMembership(t, db, groupID, 1, operatorRoleID)
 	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
 
-	changed, err := service.AddPermissions(1, servicegroups.GroupUserInput{GroupID: groupID, UserID: 2})
+	changed, err := service.AddPermissions(context.Background(), 1, servicegroups.GroupUserInput{GroupID: groupID, UserID: 2})
 
 	if changed {
 		t.Fatal("AddPermissions returned true")
@@ -895,7 +1035,7 @@ func TestGroupServiceRemovePermissionsDemotesModeratorAndWritesActionLog(t *test
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	seedGroupServiceMembership(t, db, groupID, 2, operatorRoleID)
 
-	changed, err := service.RemovePermissions(1, servicegroups.GroupUserInput{GroupID: groupID, UserID: 2})
+	changed, err := service.RemovePermissions(context.Background(), 1, servicegroups.GroupUserInput{GroupID: groupID, UserID: 2})
 
 	if err != nil {
 		t.Fatalf("RemovePermissions returned error: %v", err)
@@ -910,7 +1050,7 @@ func TestGroupServiceRemovePermissionsDemotesModeratorAndWritesActionLog(t *test
 
 	renameGroupServiceUser(t, db, 1, "Renamed Admin", "renamed-admin")
 	renameGroupServiceUser(t, db, 2, "Renamed Moderator", "renamed-moderator")
-	actions, err := service.WatchRecentActions(1, groupID, servicegroups.GroupActionFilter{Limit: 10})
+	actions, err := service.WatchRecentActions(context.Background(), 1, groupID, servicegroups.GroupActionFilter{Limit: 10})
 	if err != nil {
 		t.Fatalf("WatchRecentActions returned error: %v", err)
 	}
@@ -933,7 +1073,7 @@ func TestGroupServiceDeleteUserFromGroupMovesMemberToBlacklistAndWritesActionLog
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
 
-	deleted, err := service.DeleteUserFromGroup(1, groupID, 2)
+	deleted, err := service.DeleteUserFromGroup(context.Background(), 1, groupID, 2)
 
 	if err != nil {
 		t.Fatalf("DeleteUserFromGroup returned error: %v", err)
@@ -960,7 +1100,7 @@ func TestGroupServiceRemoveFromBlacklistDeletesEntryAndWritesActionLog(t *testin
 	seedGroupServiceMembership(t, db, groupID, 1, adminRoleID)
 	seedGroupBlacklist(t, db, groupID, 2, 1)
 
-	removed, err := service.RemoveFromBlacklist(1, groupID, 2)
+	removed, err := service.RemoveFromBlacklist(context.Background(), 1, groupID, 2)
 
 	if err != nil {
 		t.Fatalf("RemoveFromBlacklist returned error: %v", err)
@@ -985,7 +1125,7 @@ func TestGroupServiceAcceptJoinInviteAddsMembershipAndUpdatesStatus(t *testing.T
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
 
-	result, err := service.AcceptJoinInvite(2, inviteID)
+	result, err := service.AcceptJoinInvite(context.Background(), 2, inviteID)
 
 	if err != nil {
 		t.Fatalf("AcceptJoinInvite returned error: %v", err)
@@ -1009,7 +1149,7 @@ func TestGroupServiceAcceptJoinInviteIdempotentForExistingMembershipAndPendingIn
 	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
 
-	result, err := service.AcceptJoinInvite(2, inviteID)
+	result, err := service.AcceptJoinInvite(context.Background(), 2, inviteID)
 
 	if err != nil {
 		t.Fatalf("AcceptJoinInvite returned error: %v", err)
@@ -1035,7 +1175,7 @@ func TestGroupServiceAcceptJoinInviteIdempotentForAcceptedInvite(t *testing.T) {
 	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "accepted")
 
-	result, err := service.AcceptJoinInvite(2, inviteID)
+	result, err := service.AcceptJoinInvite(context.Background(), 2, inviteID)
 
 	if err != nil {
 		t.Fatalf("AcceptJoinInvite returned error: %v", err)
@@ -1052,7 +1192,7 @@ func TestGroupServiceAcceptJoinInviteRejectsMissingInvite(t *testing.T) {
 	repo := &testPostgresRepository{db: db}
 	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
-	result, err := service.AcceptJoinInvite(2, 404)
+	result, err := service.AcceptJoinInvite(context.Background(), 2, 404)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -1074,7 +1214,7 @@ func TestGroupServiceAcceptJoinInviteRejectsInviteOwnedByAnotherUser(t *testing.
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
 
-	result, err := service.AcceptJoinInvite(3, inviteID)
+	result, err := service.AcceptJoinInvite(context.Background(), 3, inviteID)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -1097,7 +1237,7 @@ func TestGroupServiceAcceptJoinInviteRejectsAcceptedInviteWithoutMembership(t *t
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "accepted")
 
-	result, err := service.AcceptJoinInvite(2, inviteID)
+	result, err := service.AcceptJoinInvite(context.Background(), 2, inviteID)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -1120,7 +1260,7 @@ func TestGroupServiceAcceptJoinInviteRejectsRejectedInvite(t *testing.T) {
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "rejected")
 
-	result, err := service.AcceptJoinInvite(2, inviteID)
+	result, err := service.AcceptJoinInvite(context.Background(), 2, inviteID)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -1144,7 +1284,7 @@ func TestGroupServiceAcceptJoinInviteRejectsBlacklistedUserWithoutSideEffects(t 
 	seedGroupBlacklist(t, db, groupID, 2, 1)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
 
-	result, err := service.AcceptJoinInvite(2, inviteID)
+	result, err := service.AcceptJoinInvite(context.Background(), 2, inviteID)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -1166,7 +1306,7 @@ func TestGroupServiceAcceptJoinInviteRejectsMissingMemberRoleWithoutSideEffects(
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
 
-	result, err := service.AcceptJoinInvite(2, inviteID)
+	result, err := service.AcceptJoinInvite(context.Background(), 2, inviteID)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -1189,7 +1329,7 @@ func TestGroupServiceAcceptJoinInviteHandlesStatusRaceWithoutSideEffects(t *test
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
 
-	result, err := service.AcceptJoinInvite(2, inviteID)
+	result, err := service.AcceptJoinInvite(context.Background(), 2, inviteID)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -1215,7 +1355,7 @@ func TestGroupServiceAcceptJoinInviteRollsBackMembershipWhenStatusUpdateFails(t 
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
 
-	result, err := service.AcceptJoinInvite(2, inviteID)
+	result, err := service.AcceptJoinInvite(context.Background(), 2, inviteID)
 
 	if result != nil {
 		t.Fatalf("result = %#v, want nil", result)
@@ -1240,7 +1380,7 @@ func TestGroupServiceRejectJoinInviteUpdatesStatusWithoutMembership(t *testing.T
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
 
-	rejected, err := service.RejectJoinInvite(2, inviteID)
+	rejected, err := service.RejectJoinInvite(context.Background(), 2, inviteID)
 
 	if err != nil {
 		t.Fatalf("RejectJoinInvite returned error: %v", err)
@@ -1257,7 +1397,7 @@ func TestGroupServiceRejectJoinInviteRejectsMissingInvite(t *testing.T) {
 	repo := &testPostgresRepository{db: db}
 	service := servicegroups.NewGroupService(&testLogger{}, servicegroups.NewGORMGroupRepository(repo))
 
-	rejected, err := service.RejectJoinInvite(2, 404)
+	rejected, err := service.RejectJoinInvite(context.Background(), 2, 404)
 
 	if rejected {
 		t.Fatal("RejectJoinInvite returned true")
@@ -1278,7 +1418,7 @@ func TestGroupServiceRejectJoinInviteRejectsInviteOwnedByAnotherUser(t *testing.
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "pending")
 
-	rejected, err := service.RejectJoinInvite(3, inviteID)
+	rejected, err := service.RejectJoinInvite(context.Background(), 3, inviteID)
 
 	if rejected {
 		t.Fatal("RejectJoinInvite returned true")
@@ -1299,7 +1439,7 @@ func TestGroupServiceRejectJoinInviteRejectsHandledInvite(t *testing.T) {
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 	inviteID := seedGroupJoinInviteWithID(t, db, groupID, 2, "accepted")
 
-	rejected, err := service.RejectJoinInvite(2, inviteID)
+	rejected, err := service.RejectJoinInvite(context.Background(), 2, inviteID)
 
 	if rejected {
 		t.Fatal("RejectJoinInvite returned true")
@@ -1397,6 +1537,43 @@ func renameGroupServiceUser(t *testing.T, db *gorm.DB, userID uint, name string,
 		}).Error; err != nil {
 		t.Fatalf("rename user %d: %v", userID, err)
 	}
+}
+
+func registerCanceledGroupMaterialization(t *testing.T, db *gorm.DB, mutation string) {
+	t.Helper()
+
+	var armed atomic.Bool
+	callbackPrefix := "test:cancel-group-materialization:" + strings.NewReplacer("/", "-", " ", "-").Replace(t.Name())
+	arm := func(tx *gorm.DB) {
+		if gormStatementTargetsTable(tx, "groups") {
+			armed.Store(true)
+		}
+	}
+
+	var err error
+	switch mutation {
+	case "create":
+		err = db.Callback().Create().After("gorm:create").Register(callbackPrefix+":arm", arm)
+	case "update":
+		err = db.Callback().Update().After("gorm:update").Register(callbackPrefix+":arm", arm)
+	default:
+		t.Fatalf("unsupported mutation callback %q", mutation)
+	}
+	if err != nil {
+		t.Fatalf("register %s materialization arm callback: %v", mutation, err)
+	}
+
+	if err := db.Callback().Query().Before("gorm:query").Register(callbackPrefix+":cancel", func(tx *gorm.DB) {
+		if gormStatementTargetsTable(tx, "groups") && armed.CompareAndSwap(true, false) {
+			tx.AddError(context.Canceled)
+		}
+	}); err != nil {
+		t.Fatalf("register group materialization cancellation callback: %v", err)
+	}
+}
+
+func gormStatementTargetsTable(tx *gorm.DB, table string) bool {
+	return tx.Statement.Table == table || tx.Statement.Schema != nil && tx.Statement.Schema.Table == table
 }
 
 func seedGroupServiceRole(t *testing.T, db *gorm.DB, roleName string) uint {
@@ -1497,8 +1674,8 @@ type duplicatePendingRequestRepository struct {
 	injected atomic.Bool
 }
 
-func (r *duplicatePendingRequestRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *duplicatePendingRequestRepository) TransactionWithContext(ctx context.Context, fc func(tx repository.PostgresRepository) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return fc(&duplicatePendingRequestTxRepository{
 			testPostgresRepository: &testPostgresRepository{db: tx},
 			injected:               &r.injected,
@@ -1525,8 +1702,8 @@ type duplicateMembershipRepository struct {
 	injected atomic.Bool
 }
 
-func (r *duplicateMembershipRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *duplicateMembershipRepository) TransactionWithContext(ctx context.Context, fc func(tx repository.PostgresRepository) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return fc(&duplicateMembershipTxRepository{
 			testPostgresRepository: &testPostgresRepository{db: tx},
 			injected:               &r.injected,
@@ -1563,8 +1740,8 @@ type actionLogFailureRepository struct {
 	injected atomic.Bool
 }
 
-func (r *actionLogFailureRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *actionLogFailureRepository) TransactionWithContext(ctx context.Context, fc func(tx repository.PostgresRepository) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return fc(&actionLogFailureTxRepository{
 			testPostgresRepository: &testPostgresRepository{db: tx},
 			injected:               &r.injected,
@@ -1591,8 +1768,8 @@ type inviteStatusRaceRepository struct {
 	injected atomic.Bool
 }
 
-func (r *inviteStatusRaceRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *inviteStatusRaceRepository) TransactionWithContext(ctx context.Context, fc func(tx repository.PostgresRepository) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return fc(&inviteStatusRaceTxRepository{
 			testPostgresRepository: &testPostgresRepository{db: tx},
 			injected:               &r.injected,
@@ -1623,8 +1800,8 @@ type inviteStatusUpdateFailureRepository struct {
 	injected atomic.Bool
 }
 
-func (r *inviteStatusUpdateFailureRepository) Transaction(fc func(tx repository.PostgresRepository) error) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *inviteStatusUpdateFailureRepository) TransactionWithContext(ctx context.Context, fc func(tx repository.PostgresRepository) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return fc(&inviteStatusUpdateFailureTxRepository{
 			testPostgresRepository: &testPostgresRepository{db: tx},
 			injected:               &r.injected,

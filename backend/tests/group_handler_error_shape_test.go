@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -114,20 +115,49 @@ func TestGroupHandlerRejectJoinInviteErrorMapping(t *testing.T) {
 	}
 }
 
+func TestGroupHandlerAcceptJoinInvitePassesRequestContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	srv := &inviteErrorGroupService{}
+	groupHandler := handlers.NewGroupHandler(srv)
+	router := gin.New()
+	router.POST("/api/v2/groups/invites/:inviteId/accept", withTestUserID(42), groupHandler.AcceptJoinInvite)
+
+	type contextKey string
+	const key contextKey = "group-command-context"
+	requestContext := context.WithValue(context.Background(), key, "request-value")
+	req := httptest.NewRequest(http.MethodPost, "/api/v2/groups/invites/7/accept", nil).WithContext(requestContext)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	if srv.acceptCtx != requestContext {
+		t.Fatalf("service context = %p, want exact request context %p", srv.acceptCtx, requestContext)
+	}
+	if got := srv.acceptCtx.Value(key); got != "request-value" {
+		t.Fatalf("service context value = %v, want request-value", got)
+	}
+}
+
 type inviteErrorGroupService struct {
 	group.GroupsService
 	acceptErr error
 	rejectErr error
+	acceptCtx context.Context
 }
 
-func (s *inviteErrorGroupService) AcceptJoinInvite(uint, uint) (*group.GroupResult, error) {
+func (s *inviteErrorGroupService) AcceptJoinInvite(ctx context.Context, _ uint, _ uint) (*group.GroupResult, error) {
+	s.acceptCtx = ctx
 	if s.acceptErr != nil {
 		return nil, s.acceptErr
 	}
 	return &group.GroupResult{Joined: true}, nil
 }
 
-func (s *inviteErrorGroupService) RejectJoinInvite(uint, uint) (bool, error) {
+func (s *inviteErrorGroupService) RejectJoinInvite(context.Context, uint, uint) (bool, error) {
 	if s.rejectErr != nil {
 		return false, s.rejectErr
 	}

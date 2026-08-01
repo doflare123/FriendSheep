@@ -1,6 +1,7 @@
 package group
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"friendship/models/dto"
@@ -14,11 +15,11 @@ import (
 )
 
 type groupManagementReadStore interface {
-	GetGroupDetails(userID uint, groupID uint) (*dto.GroupFullDto, error)
-	GetManagedGroups(userID uint) (*dto.ManagedGroupsDto, error)
-	ListJoinRequests(groupID uint, status string, limit int) ([]JoinRequestInfo, error)
-	ListGroupBlacklist(groupID uint, limit int) ([]BlacklistUser, error)
-	ListGroupActions(groupID uint, filter GroupActionFilter) ([]GroupAction, error)
+	GetGroupDetails(ctx context.Context, userID uint, groupID uint) (*dto.GroupFullDto, error)
+	GetManagedGroups(ctx context.Context, userID uint) (*dto.ManagedGroupsDto, error)
+	ListJoinRequests(ctx context.Context, groupID uint, status string, limit int) ([]JoinRequestInfo, error)
+	ListGroupBlacklist(ctx context.Context, groupID uint, limit int) ([]BlacklistUser, error)
+	ListGroupActions(ctx context.Context, groupID uint, filter GroupActionFilter) ([]GroupAction, error)
 }
 
 type gormGroupManagementReadStore struct {
@@ -29,12 +30,17 @@ func newGroupManagementReadStore(store repository.PostgresRepository) groupManag
 	return gormGroupManagementReadStore{store: store}
 }
 
-func (s gormGroupManagementReadStore) GetGroupDetails(userID uint, groupID uint) (*dto.GroupFullDto, error) {
+func (s gormGroupManagementReadStore) GetGroupDetails(ctx context.Context, userID uint, groupID uint) (*dto.GroupFullDto, error) {
+	if ctx == nil {
+		return nil, errGroupOperationContextMissing
+	}
+
 	var group groups.Group
 	err := s.store.
 		Preload("Categories").
 		Preload("Contacts").
 		Preload("Creater").
+		WithContext(ctx).
 		First(&group, groupID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -44,7 +50,7 @@ func (s gormGroupManagementReadStore) GetGroupDetails(userID uint, groupID uint)
 	}
 
 	if group.IsPrivate {
-		isMember, err := s.isGroupMember(groupID, userID)
+		isMember, err := s.isGroupMember(ctx, groupID, userID)
 		if err != nil {
 			return nil, err
 		}
@@ -53,29 +59,40 @@ func (s gormGroupManagementReadStore) GetGroupDetails(userID uint, groupID uint)
 		}
 	}
 
-	totalMembers, err := s.countGroupMembers(groupID)
+	totalMembers, err := s.countGroupMembers(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
 
-	members, err := s.listGroupMembers(groupID, 10)
+	members, err := s.listGroupMembers(ctx, groupID, 10)
 	if err != nil {
 		return nil, err
 	}
 
-	activeEvents := s.listActiveGroupEvents(groupID, userID)
-	isSubscribed, userRole := s.findUserGroupSubscription(groupID, userID)
+	activeEvents, err := s.listActiveGroupEvents(ctx, groupID, userID)
+	if err != nil {
+		return nil, err
+	}
+	isSubscribed, userRole, err := s.findUserGroupSubscription(ctx, groupID, userID)
+	if err != nil {
+		return nil, err
+	}
 
 	return convertorsdto.ConvertToGroupFullDto(group, totalMembers, members, activeEvents, isSubscribed, userRole), nil
 }
 
-func (s gormGroupManagementReadStore) GetManagedGroups(userID uint) (*dto.ManagedGroupsDto, error) {
+func (s gormGroupManagementReadStore) GetManagedGroups(ctx context.Context, userID uint) (*dto.ManagedGroupsDto, error) {
+	if ctx == nil {
+		return nil, errGroupOperationContextMissing
+	}
+
 	var memberships []groups.GroupUsers
 	err := s.store.
 		Preload("Group.Categories", func(db *gorm.DB) *gorm.DB {
 			return db.Order("categories.name ASC, categories.id ASC")
 		}).
 		Preload("RoleInGroup").
+		WithContext(ctx).
 		Joins("JOIN role_in_groups ON role_in_groups.id = group_users.role_in_group_id").
 		Where("group_users.user_id = ?", userID).
 		Where("role_in_groups.name IN ?", []string{groups.RoleAdmin, groups.RoleModerator}).
@@ -98,7 +115,7 @@ func (s gormGroupManagementReadStore) GetManagedGroups(userID uint) (*dto.Manage
 		groupIDs = append(groupIDs, membership.GroupID)
 	}
 
-	memberCounts, err := s.countGroupMembersByGroupIDs(groupIDs)
+	memberCounts, err := s.countGroupMembersByGroupIDs(ctx, groupIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +134,14 @@ func (s gormGroupManagementReadStore) GetManagedGroups(userID uint) (*dto.Manage
 	return result, nil
 }
 
-func (s gormGroupManagementReadStore) ListJoinRequests(groupID uint, status string, limit int) ([]JoinRequestInfo, error) {
+func (s gormGroupManagementReadStore) ListJoinRequests(ctx context.Context, groupID uint, status string, limit int) ([]JoinRequestInfo, error) {
+	if ctx == nil {
+		return nil, errGroupOperationContextMissing
+	}
+
 	query := s.store.
 		Preload("User").
+		WithContext(ctx).
 		Where("group_id = ?", groupID)
 
 	if status != "" {
@@ -152,11 +174,16 @@ func (s gormGroupManagementReadStore) ListJoinRequests(groupID uint, status stri
 	return result, nil
 }
 
-func (s gormGroupManagementReadStore) ListGroupBlacklist(groupID uint, limit int) ([]BlacklistUser, error) {
+func (s gormGroupManagementReadStore) ListGroupBlacklist(ctx context.Context, groupID uint, limit int) ([]BlacklistUser, error) {
+	if ctx == nil {
+		return nil, errGroupOperationContextMissing
+	}
+
 	var blacklist []groups.GroupBlacklist
 	err := s.store.
 		Preload("User").
 		Preload("Banned").
+		WithContext(ctx).
 		Where("group_id = ?", groupID).
 		Order("created_at DESC").
 		Limit(limit).
@@ -183,9 +210,10 @@ func (s gormGroupManagementReadStore) ListGroupBlacklist(groupID uint, limit int
 	return result, nil
 }
 
-func (s gormGroupManagementReadStore) isGroupMember(groupID uint, userID uint) (bool, error) {
+func (s gormGroupManagementReadStore) isGroupMember(ctx context.Context, groupID uint, userID uint) (bool, error) {
 	var memberCount int64
 	result := s.store.Model(&groups.GroupUsers{}).
+		WithContext(ctx).
 		Where("group_id = ? AND user_id = ?", groupID, userID).
 		Count(&memberCount)
 	if result.Error != nil {
@@ -195,9 +223,10 @@ func (s gormGroupManagementReadStore) isGroupMember(groupID uint, userID uint) (
 	return memberCount > 0, nil
 }
 
-func (s gormGroupManagementReadStore) countGroupMembers(groupID uint) (int64, error) {
+func (s gormGroupManagementReadStore) countGroupMembers(ctx context.Context, groupID uint) (int64, error) {
 	var totalMembers int64
 	result := s.store.Model(&groups.GroupUsers{}).
+		WithContext(ctx).
 		Where("group_id = ?", groupID).
 		Count(&totalMembers)
 	if result.Error != nil {
@@ -207,7 +236,7 @@ func (s gormGroupManagementReadStore) countGroupMembers(groupID uint) (int64, er
 	return totalMembers, nil
 }
 
-func (s gormGroupManagementReadStore) countGroupMembersByGroupIDs(groupIDs []uint) (map[uint]int64, error) {
+func (s gormGroupManagementReadStore) countGroupMembersByGroupIDs(ctx context.Context, groupIDs []uint) (map[uint]int64, error) {
 	type memberCountRow struct {
 		GroupID     uint
 		MemberCount int64
@@ -215,6 +244,7 @@ func (s gormGroupManagementReadStore) countGroupMembersByGroupIDs(groupIDs []uin
 
 	rows := make([]memberCountRow, 0, len(groupIDs))
 	if err := s.store.Model(&groups.GroupUsers{}).
+		WithContext(ctx).
 		Select("group_id, COUNT(*) AS member_count").
 		Where("group_id IN ?", groupIDs).
 		Group("group_id").
@@ -235,11 +265,12 @@ func (s gormGroupManagementReadStore) countGroupMembersByGroupIDs(groupIDs []uin
 	return counts, nil
 }
 
-func (s gormGroupManagementReadStore) listGroupMembers(groupID uint, limit int) ([]dto.GroupMemberDto, error) {
+func (s gormGroupManagementReadStore) listGroupMembers(ctx context.Context, groupID uint, limit int) ([]dto.GroupMemberDto, error) {
 	var groupUsers []groups.GroupUsers
 	err := s.store.
 		Preload("User").
 		Preload("RoleInGroup").
+		WithContext(ctx).
 		Where("group_id = ?", groupID).
 		Limit(limit).
 		Find(&groupUsers).Error
@@ -261,7 +292,7 @@ func (s gormGroupManagementReadStore) listGroupMembers(groupID uint, limit int) 
 	return members, nil
 }
 
-func (s gormGroupManagementReadStore) listActiveGroupEvents(groupID uint, userID uint) []dto.EventShortDto {
+func (s gormGroupManagementReadStore) listActiveGroupEvents(ctx context.Context, groupID uint, userID uint) ([]dto.EventShortDto, error) {
 	var activeEvents []events.Event
 	err := s.store.
 		Preload("EventType").
@@ -270,36 +301,46 @@ func (s gormGroupManagementReadStore) listActiveGroupEvents(groupID uint, userID
 		Preload("AgeLimit").
 		Preload("Genres.Genre").
 		Preload("Users", "user_id = ?", userID).
+		WithContext(ctx).
 		Where("group_id = ? AND status_id IN (?)", groupID, []uint{1, 2}).
 		Where("start_time > ?", time.Now()).
 		Order("start_time ASC").
 		Find(&activeEvents).Error
 	if err != nil {
-		activeEvents = []events.Event{}
+		return nil, fmt.Errorf("list active group events: %w", err)
 	}
 
-	return convertorsdto.ConvertManyToShortDtoForUser(activeEvents, userID)
+	return convertorsdto.ConvertManyToShortDtoForUser(activeEvents, userID), nil
 }
 
-func (s gormGroupManagementReadStore) findUserGroupSubscription(groupID uint, userID uint) (bool, string) {
+func (s gormGroupManagementReadStore) findUserGroupSubscription(ctx context.Context, groupID uint, userID uint) (bool, string, error) {
 	var userGroupMembership groups.GroupUsers
 	err := s.store.
 		Preload("RoleInGroup").
+		WithContext(ctx).
 		Where("group_id = ? AND user_id = ?", groupID, userID).
 		First(&userGroupMembership).Error
 	if err != nil {
-		return false, ""
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, "", nil
+		}
+		return false, "", fmt.Errorf("find user group subscription: %w", err)
 	}
 
-	return true, userGroupMembership.RoleInGroup.Name
+	return true, userGroupMembership.RoleInGroup.Name, nil
 }
 
-func (s gormGroupManagementReadStore) ListGroupActions(groupID uint, filter GroupActionFilter) ([]GroupAction, error) {
+func (s gormGroupManagementReadStore) ListGroupActions(ctx context.Context, groupID uint, filter GroupActionFilter) ([]GroupAction, error) {
+	if ctx == nil {
+		return nil, errGroupOperationContextMissing
+	}
+
 	var logs []groups.GroupActionLog
 	query := s.store.
 		Preload("ActionType").
 		Preload("User").
 		Preload("TargetUser").
+		WithContext(ctx).
 		Where("group_id = ?", groupID)
 
 	if filter.ActionTypeID != 0 {
@@ -307,6 +348,7 @@ func (s gormGroupManagementReadStore) ListGroupActions(groupID uint, filter Grou
 	}
 	if filter.Action != "" {
 		actionTypeSubquery := s.store.Model(&groups.GroupActionType{}).
+			WithContext(ctx).
 			Select("id").
 			Where("code = ?", filter.Action)
 		query = query.Where("action_type_id = (?)", actionTypeSubquery)

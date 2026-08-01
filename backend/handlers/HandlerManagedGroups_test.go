@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"friendship/models/dto"
@@ -17,13 +18,42 @@ type managedGroupsHandlerServiceStub struct {
 	result     *dto.ManagedGroupsDto
 	err        error
 	lastUserID uint
+	lastCtx    context.Context
 	calls      int
 }
 
-func (s *managedGroupsHandlerServiceStub) GetManagedGroups(userID uint) (*dto.ManagedGroupsDto, error) {
+func (s *managedGroupsHandlerServiceStub) GetManagedGroups(ctx context.Context, userID uint) (*dto.ManagedGroupsDto, error) {
 	s.calls++
+	s.lastCtx = ctx
 	s.lastUserID = userID
 	return s.result, s.err
+}
+
+func TestGroupHandlerGetManagedGroupsPassesExactRequestContext(t *testing.T) {
+	service := &managedGroupsHandlerServiceStub{result: &dto.ManagedGroupsDto{
+		Admin:     make([]dto.ManagedGroupItemDto, 0),
+		Moderator: make([]dto.ManagedGroupItemDto, 0),
+	}}
+	handler := NewGroupHandler(service)
+	recorder, ctx := newManagedGroupsHandlerContext(t)
+	ctx.Set("userID", uint(73))
+
+	type contextKey string
+	const key contextKey = "managed-groups-request-context"
+	requestContext := context.WithValue(context.Background(), key, "request-value")
+	ctx.Request = ctx.Request.WithContext(requestContext)
+
+	handler.GetManagedGroups(ctx)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+	if service.lastCtx != requestContext {
+		t.Fatal("service did not receive the exact request context")
+	}
+	if got := service.lastCtx.Value(key); got != "request-value" {
+		t.Fatalf("service context value = %v, want request-value", got)
+	}
 }
 
 func TestGroupHandlerGetManagedGroupsUsesCurrentUserAndExactJSONContract(t *testing.T) {

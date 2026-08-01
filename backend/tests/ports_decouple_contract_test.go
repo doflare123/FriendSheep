@@ -50,7 +50,7 @@ func TestNewGroupServiceUsesGORMAdapterAndPreservesBehavior(t *testing.T) {
 	seedGroupServiceUser(t, db, 2)
 	groupID := seedGroupServiceGroup(t, db, 1, false)
 
-	result, err := service.JoinGroup(2, groupID)
+	result, err := service.JoinGroup(context.Background(), 2, groupID)
 	if err != nil {
 		t.Fatalf("JoinGroup returned error: %v", err)
 	}

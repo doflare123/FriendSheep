@@ -120,46 +120,46 @@ type JoinRequestInfo struct {
 
 type GroupsService interface {
 	// Базовые операции с группами
-	CreateGroup(id uint, inf CreateGroupInput) (*dto.GroupFullDto, error)
-	UpdateGroup(actorID uint, inf GroupUpdateInput) (*dto.GroupFullDto, error)
-	DeleteGroup(actorID uint, groupID uint) (bool, error)
-	GetGroupDetails(userID uint, groupID uint) (*dto.GroupFullDto, error)
-	GetManagedGroups(userID uint) (*dto.ManagedGroupsDto, error)
+	CreateGroup(ctx context.Context, id uint, inf CreateGroupInput) (*dto.GroupFullDto, error)
+	UpdateGroup(ctx context.Context, actorID uint, inf GroupUpdateInput) (*dto.GroupFullDto, error)
+	DeleteGroup(ctx context.Context, actorID uint, groupID uint) (bool, error)
+	GetGroupDetails(ctx context.Context, userID uint, groupID uint) (*dto.GroupFullDto, error)
+	GetManagedGroups(ctx context.Context, userID uint) (*dto.ManagedGroupsDto, error)
 	GetSubscribedGroups(ctx context.Context, userID uint, page int, limit int) (*dto.SubscribedGroupsResponseDto, error)
 
 	// Управление заявками
-	ApproveAllJoinRequests(actorID uint, groupID uint) (int, error)
-	RejectAllJoinRequests(actorID uint, groupID uint) (int, error)
-	ApproveJoinRequest(actorID uint, requestID uint) (bool, error)
-	RejectJoinRequest(actorID uint, requestID uint) (bool, error)
-	GetJoinRequests(actorID uint, groupID uint, status string, limit int) ([]JoinRequestInfo, error)
+	ApproveAllJoinRequests(ctx context.Context, actorID uint, groupID uint) (int, error)
+	RejectAllJoinRequests(ctx context.Context, actorID uint, groupID uint) (int, error)
+	ApproveJoinRequest(ctx context.Context, actorID uint, requestID uint) (bool, error)
+	RejectJoinRequest(ctx context.Context, actorID uint, requestID uint) (bool, error)
+	GetJoinRequests(ctx context.Context, actorID uint, groupID uint, status string, limit int) ([]JoinRequestInfo, error)
 
 	// Вступление/выход
-	JoinGroup(userID uint, groupID uint) (*GroupResult, error)
-	LeaveGroup(userID uint, groupID uint) (bool, error)
+	JoinGroup(ctx context.Context, userID uint, groupID uint) (*GroupResult, error)
+	LeaveGroup(ctx context.Context, userID uint, groupID uint) (bool, error)
 
 	// Управление правами
-	AddPermissions(actorID uint, input GroupUserInput) (bool, error)
-	RemovePermissions(actorID uint, input GroupUserInput) (bool, error)
+	AddPermissions(ctx context.Context, actorID uint, input GroupUserInput) (bool, error)
+	RemovePermissions(ctx context.Context, actorID uint, input GroupUserInput) (bool, error)
 
 	// Управление участниками
-	DeleteUserFromGroup(actorID uint, groupID uint, targetUserID uint) (bool, error)
-	RemoveFromBlacklist(actorID uint, groupID uint, targetUserID uint) (bool, error)
-	GetGroupBlacklist(actorID uint, groupID uint, limit int) ([]BlacklistUser, error)
+	DeleteUserFromGroup(ctx context.Context, actorID uint, groupID uint, targetUserID uint) (bool, error)
+	RemoveFromBlacklist(ctx context.Context, actorID uint, groupID uint, targetUserID uint) (bool, error)
+	GetGroupBlacklist(ctx context.Context, actorID uint, groupID uint, limit int) ([]BlacklistUser, error)
 
 	// Приглашения
-	CreateJoinInvite(actorID uint, input GroupUserInput) (bool, error)
-	AcceptJoinInvite(userID uint, inviteID uint) (*GroupResult, error)
-	RejectJoinInvite(userID uint, inviteID uint) (bool, error)
+	CreateJoinInvite(ctx context.Context, actorID uint, input GroupUserInput) (bool, error)
+	AcceptJoinInvite(ctx context.Context, userID uint, inviteID uint) (*GroupResult, error)
+	RejectJoinInvite(ctx context.Context, userID uint, inviteID uint) (bool, error)
 
 	// История действий
-	WatchRecentActions(userID uint, groupID uint, filter GroupActionFilter) ([]GroupAction, error)
+	WatchRecentActions(ctx context.Context, userID uint, groupID uint, filter GroupActionFilter) ([]GroupAction, error)
 }
 
 type groupService struct {
 	logger        logger.Logger
 	uow           groupUnitOfWork
-	access        groupActorRoleFinder
+	access        rootGroupActorRoleFinder
 	reads         groupManagementReadStore
 	subscriptions groupSubscriptionsStore
 }
@@ -175,20 +175,20 @@ func NewGroupService(logger logger.Logger, uow groupUnitOfWork) GroupsService {
 }
 
 // GetGroupDetails получает полную информацию о группе
-func (s *groupService) GetGroupDetails(userID uint, groupID uint) (*dto.GroupFullDto, error) {
+func (s *groupService) GetGroupDetails(ctx context.Context, userID uint, groupID uint) (*dto.GroupFullDto, error) {
 	if userID == 0 || groupID == 0 {
 		return nil, ErrInvalidInput
 	}
 
-	return s.reads.GetGroupDetails(userID, groupID)
+	return s.reads.GetGroupDetails(ctx, userID, groupID)
 }
 
-func (s *groupService) GetManagedGroups(userID uint) (*dto.ManagedGroupsDto, error) {
+func (s *groupService) GetManagedGroups(ctx context.Context, userID uint) (*dto.ManagedGroupsDto, error) {
 	if userID == 0 {
 		return nil, ErrInvalidInput
 	}
 
-	managedGroups, err := s.reads.GetManagedGroups(userID)
+	managedGroups, err := s.reads.GetManagedGroups(ctx, userID)
 	if err != nil {
 		s.logger.Error("Не удалось получить управляемые группы пользователя", "userID", userID, "error", err)
 		return nil, err
@@ -198,7 +198,7 @@ func (s *groupService) GetManagedGroups(userID uint) (*dto.ManagedGroupsDto, err
 }
 
 // CreateGroup создает новую группу
-func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupFullDto, error) {
+func (s *groupService) CreateGroup(ctx context.Context, id uint, input CreateGroupInput) (*dto.GroupFullDto, error) {
 	if err := services.ValidateInput(input); err != nil {
 		return nil, fmt.Errorf("невалидная структура данных: %w", err)
 	}
@@ -209,14 +209,25 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 	}
 
 	var result groupCreateResult
-	err := s.runInTx(func(tx groupTx) error {
+	var groupDto *dto.GroupFullDto
+	var detailsErr error
+	err := s.runInTx(ctx, func(tx groupTx) error {
 		store := tx.Admin()
 		var createErr error
 		result, createErr = store.CreateGroup(id, input, contacts)
-		return createErr
+		if createErr != nil {
+			return createErr
+		}
+
+		groupDto, detailsErr = tx.Reads().GetGroupDetails(ctx, id, result.GroupID)
+		return detailsErr
 	})
 
 	if err != nil {
+		if detailsErr != nil {
+			s.logger.Error("Не удалось сформировать полный DTO группы после создания", "groupID", result.GroupID, "error", detailsErr)
+			return nil, fmt.Errorf("ошибка формирования данных группы: %w", detailsErr)
+		}
 		if errors.Is(err, ErrUserNotFound) {
 			s.logger.Error("Создатель группы не найден", "Id", id)
 			return nil, err
@@ -235,18 +246,12 @@ func (s *groupService) CreateGroup(id uint, input CreateGroupInput) (*dto.GroupF
 
 	s.logger.Info("Группа успешно создана", "groupID", result.GroupID, "name", result.GroupName, "creatorID", result.CreatorID)
 
-	groupDto, err := s.GetGroupDetails(id, result.GroupID)
-	if err != nil {
-		s.logger.Error("Не удалось сформировать полный DTO группы после создания", "groupID", result.GroupID, "error", err)
-		return nil, fmt.Errorf("ошибка формирования данных группы: %w", err)
-	}
-
 	return groupDto, nil
 }
 
 // UpdateGroup обновляет группу
-func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.GroupFullDto, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.CapabilityModerate)
+func (s *groupService) UpdateGroup(ctx context.Context, actorID uint, input GroupUpdateInput) (*dto.GroupFullDto, error) {
+	hasAccess, role, err := s.checkGroupAccess(ctx, actorID, input.GroupID, groups.CapabilityModerate)
 	if err != nil {
 		return nil, err
 	}
@@ -255,8 +260,10 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 	}
 
 	var result groupAdminResult
+	var groupDto *dto.GroupFullDto
+	var detailsErr error
 
-	err = s.runInTx(func(tx groupTx) error {
+	err = s.runInTx(ctx, func(tx groupTx) error {
 		store := tx.Admin()
 		actor, err := store.FindActor(actorID)
 		if err != nil {
@@ -265,10 +272,19 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 
 		var updateErr error
 		result, updateErr = store.UpdateGroup(input, actor, role)
-		return updateErr
+		if updateErr != nil {
+			return updateErr
+		}
+
+		groupDto, detailsErr = tx.Reads().GetGroupDetails(ctx, actorID, input.GroupID)
+		return detailsErr
 	})
 
 	if err != nil {
+		if detailsErr != nil {
+			s.logger.Error("Не удалось сформировать полный DTO группы после обновления", "groupID", input.GroupID, "error", detailsErr)
+			return nil, fmt.Errorf("ошибка формирования данных группы: %w", detailsErr)
+		}
 		s.logger.Error("Не удалось обновить группу", "groupID", input.GroupID, "error", err)
 		return nil, err
 	}
@@ -279,18 +295,12 @@ func (s *groupService) UpdateGroup(actorID uint, input GroupUpdateInput) (*dto.G
 
 	s.logger.Info("Группа успешно обновлена", "groupID", input.GroupID, "actorID", actorID)
 
-	groupDto, err := s.GetGroupDetails(actorID, input.GroupID)
-	if err != nil {
-		s.logger.Error("Не удалось сформировать полный DTO группы после обновления", "groupID", input.GroupID, "error", err)
-		return nil, fmt.Errorf("ошибка формирования данных группы: %w", err)
-	}
-
 	return groupDto, nil
 }
 
 // DeleteGroup удаляет группу (только админ)
-func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.CapabilityAdmin)
+func (s *groupService) DeleteGroup(ctx context.Context, actorID uint, groupID uint) (bool, error) {
+	hasAccess, role, err := s.checkGroupAccess(ctx, actorID, groupID, groups.CapabilityAdmin)
 	if err != nil {
 		return false, err
 	}
@@ -298,7 +308,7 @@ func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
 		return false, ErrPermissionDenied
 	}
 
-	err = s.runInTx(func(tx groupTx) error {
+	err = s.runInTx(ctx, func(tx groupTx) error {
 		store := tx.Admin()
 		if _, err := store.FindActor(actorID); err != nil {
 			return err
@@ -317,12 +327,12 @@ func (s *groupService) DeleteGroup(actorID uint, groupID uint) (bool, error) {
 }
 
 // AddPermissions добавляет права оператора (только админ)
-func (s *groupService) AddPermissions(actorID uint, input GroupUserInput) (bool, error) {
+func (s *groupService) AddPermissions(ctx context.Context, actorID uint, input GroupUserInput) (bool, error) {
 	if actorID == input.UserID {
 		return false, ErrCannotChangeOwnRole
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.CapabilityAdmin)
+	hasAccess, role, err := s.checkGroupAccess(ctx, actorID, input.GroupID, groups.CapabilityAdmin)
 	if err != nil {
 		return false, err
 	}
@@ -332,7 +342,7 @@ func (s *groupService) AddPermissions(actorID uint, input GroupUserInput) (bool,
 
 	var result groupAdminResult
 
-	err = s.runInTx(func(tx groupTx) error {
+	err = s.runInTx(ctx, func(tx groupTx) error {
 		store := tx.Admin()
 		actor, err := store.FindActor(actorID)
 		if err != nil {
@@ -358,12 +368,12 @@ func (s *groupService) AddPermissions(actorID uint, input GroupUserInput) (bool,
 }
 
 // RemovePermissions убирает права оператора (только админ)
-func (s *groupService) RemovePermissions(actorID uint, input GroupUserInput) (bool, error) {
+func (s *groupService) RemovePermissions(ctx context.Context, actorID uint, input GroupUserInput) (bool, error) {
 	if actorID == input.UserID {
 		return false, ErrCannotChangeOwnRole
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, input.GroupID, groups.CapabilityAdmin)
+	hasAccess, role, err := s.checkGroupAccess(ctx, actorID, input.GroupID, groups.CapabilityAdmin)
 	if err != nil {
 		return false, err
 	}
@@ -373,7 +383,7 @@ func (s *groupService) RemovePermissions(actorID uint, input GroupUserInput) (bo
 
 	var result groupAdminResult
 
-	err = s.runInTx(func(tx groupTx) error {
+	err = s.runInTx(ctx, func(tx groupTx) error {
 		store := tx.Admin()
 		actor, err := store.FindActor(actorID)
 		if err != nil {
@@ -399,12 +409,12 @@ func (s *groupService) RemovePermissions(actorID uint, input GroupUserInput) (bo
 }
 
 // DeleteUserFromGroup удаляет пользователя из группы и добавляет в черный список
-func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUserID uint) (bool, error) {
+func (s *groupService) DeleteUserFromGroup(ctx context.Context, actorID uint, groupID uint, targetUserID uint) (bool, error) {
 	if actorID == targetUserID {
 		return false, ErrCannotRemoveSelf
 	}
 
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.CapabilityModerate)
+	hasAccess, role, err := s.checkGroupAccess(ctx, actorID, groupID, groups.CapabilityModerate)
 	if err != nil {
 		return false, err
 	}
@@ -414,7 +424,7 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 
 	var result groupAdminResult
 
-	err = s.runInTx(func(tx groupTx) error {
+	err = s.runInTx(ctx, func(tx groupTx) error {
 		store := tx.Admin()
 		actor, err := store.FindActor(actorID)
 		if err != nil {
@@ -440,8 +450,8 @@ func (s *groupService) DeleteUserFromGroup(actorID uint, groupID uint, targetUse
 }
 
 // RemoveFromBlacklist убирает пользователя из черного списка
-func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUserID uint) (bool, error) {
-	hasAccess, role, err := s.checkGroupAccess(actorID, groupID, groups.CapabilityModerate)
+func (s *groupService) RemoveFromBlacklist(ctx context.Context, actorID uint, groupID uint, targetUserID uint) (bool, error) {
+	hasAccess, role, err := s.checkGroupAccess(ctx, actorID, groupID, groups.CapabilityModerate)
 	if err != nil {
 		return false, err
 	}
@@ -451,7 +461,7 @@ func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUse
 
 	var result groupAdminResult
 
-	err = s.runInTx(func(tx groupTx) error {
+	err = s.runInTx(ctx, func(tx groupTx) error {
 		store := tx.Admin()
 		actor, err := store.FindActor(actorID)
 		if err != nil {
@@ -477,9 +487,9 @@ func (s *groupService) RemoveFromBlacklist(actorID uint, groupID uint, targetUse
 }
 
 // WatchRecentActions получает историю действий в группе
-func (s *groupService) WatchRecentActions(userID uint, groupID uint, filter GroupActionFilter) ([]GroupAction, error) {
+func (s *groupService) WatchRecentActions(ctx context.Context, userID uint, groupID uint, filter GroupActionFilter) ([]GroupAction, error) {
 	// Проверяем, что пользователь в группе
-	hasAccess, _, err := s.checkGroupAccess(userID, groupID, groups.CapabilityMember)
+	hasAccess, _, err := s.checkGroupAccess(ctx, userID, groupID, groups.CapabilityMember)
 	if err != nil {
 		return nil, err
 	}
@@ -497,7 +507,7 @@ func (s *groupService) WatchRecentActions(userID uint, groupID uint, filter Grou
 		filter.Order = "desc"
 	}
 
-	actions, err := s.reads.ListGroupActions(groupID, filter)
+	actions, err := s.reads.ListGroupActions(ctx, groupID, filter)
 	if err != nil {
 		s.logger.Error("Не удалось получить историю действий группы", "groupID", groupID, "error", err)
 		return nil, err
@@ -509,14 +519,14 @@ func (s *groupService) WatchRecentActions(userID uint, groupID uint, filter Grou
 // Вспомогательные функции
 
 // checkGroupAccess проверяет, имеет ли пользователь доступ к группе с нужной ролью
-func (s *groupService) checkGroupAccess(userID uint, groupID uint, required groups.Capability) (bool, string, error) {
-	return s.access.FindActorRole(userID, groupID, required)
+func (s *groupService) checkGroupAccess(ctx context.Context, userID uint, groupID uint, required groups.Capability) (bool, string, error) {
+	return s.access.FindActorRole(ctx, userID, groupID, required)
 }
 
 // GetGroupBlacklist получает черный список группы
-func (s *groupService) GetGroupBlacklist(actorID uint, groupID uint, limit int) ([]BlacklistUser, error) {
+func (s *groupService) GetGroupBlacklist(ctx context.Context, actorID uint, groupID uint, limit int) ([]BlacklistUser, error) {
 	// Проверяем права доступа (admin или operator)
-	hasAccess, _, err := s.checkGroupAccess(actorID, groupID, groups.CapabilityModerate)
+	hasAccess, _, err := s.checkGroupAccess(ctx, actorID, groupID, groups.CapabilityModerate)
 	if err != nil {
 		return nil, err
 	}
@@ -531,7 +541,7 @@ func (s *groupService) GetGroupBlacklist(actorID uint, groupID uint, limit int) 
 		limit = 100
 	}
 
-	blacklist, err := s.reads.ListGroupBlacklist(groupID, limit)
+	blacklist, err := s.reads.ListGroupBlacklist(ctx, groupID, limit)
 	if err != nil {
 		s.logger.Error("Не удалось получить черный список", "groupID", groupID, "error", err)
 		return nil, err

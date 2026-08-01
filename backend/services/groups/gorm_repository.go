@@ -1,6 +1,7 @@
 package group
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"friendship/models"
@@ -11,7 +12,7 @@ import (
 )
 
 type groupRepositoryTransactor interface {
-	Transaction(func(tx repository.PostgresRepository) error) error
+	TransactionWithContext(ctx context.Context, fn func(tx repository.PostgresRepository) error) error
 }
 
 type groupRepositoryTransactionRunner struct {
@@ -51,22 +52,29 @@ func newGroupTransactionRunner(store interface{}) groupRepositoryTransactionRunn
 	return groupRepositoryTransactionRunner{transactor: transactor}
 }
 
-func (r groupRepositoryTransactionRunner) WithinTransaction(fn func(groupTx) error) error {
-	return r.transactor.Transaction(func(tx repository.PostgresRepository) error {
+func (r groupRepositoryTransactionRunner) WithinTransaction(ctx context.Context, fn func(groupTx) error) error {
+	if ctx == nil {
+		return errGroupTransactionContextMissing
+	}
+	if fn == nil {
+		return errGroupTransactionCallbackMissing
+	}
+
+	return r.transactor.TransactionWithContext(ctx, func(tx repository.PostgresRepository) error {
 		return fn(gormGroupTxAdapter{tx: tx})
 	})
 }
 
-func (r groupUnsupportedTransactionRunner) Transaction(func(repository.PostgresRepository) error) error {
+func (r groupUnsupportedTransactionRunner) TransactionWithContext(context.Context, func(repository.PostgresRepository) error) error {
 	return r.err
 }
 
-func (r gormGroupRepository) WithinTransaction(fn func(groupTx) error) error {
-	return r.tx.WithinTransaction(fn)
+func (r gormGroupRepository) WithinTransaction(ctx context.Context, fn func(groupTx) error) error {
+	return r.tx.WithinTransaction(ctx, fn)
 }
 
-func (r gormGroupRepository) Access() groupActorRoleFinder {
-	return newGroupAccessStore(r.store)
+func (r gormGroupRepository) Access() rootGroupActorRoleFinder {
+	return newRootGroupAccessStore(r.store)
 }
 
 func (r gormGroupRepository) Reads() groupManagementReadStore {
@@ -79,6 +87,10 @@ func (r gormGroupRepository) Subscriptions() groupSubscriptionsStore {
 
 func (tx gormGroupTxAdapter) Admin() groupAdminStore {
 	return newGroupAdminStore(tx.tx)
+}
+
+func (tx gormGroupTxAdapter) Reads() groupManagementReadStore {
+	return newGroupManagementReadStore(tx.tx)
 }
 
 func (tx gormGroupTxAdapter) JoinGroup() joinGroupStore {

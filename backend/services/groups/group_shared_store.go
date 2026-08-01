@@ -1,12 +1,30 @@
 package group
 
 import (
+	"context"
 	"fmt"
 	"friendship/models"
 	"friendship/models/groups"
 	"friendship/repository"
 	"time"
 )
+
+type rootGroupActorRoleFinder interface {
+	FindActorRole(ctx context.Context, actorID uint, groupID uint, required groups.Capability) (bool, string, error)
+}
+
+type rootGroupAccessStore struct {
+	lookup rootGroupRoleLookup
+}
+
+type rootGroupRoleLookup interface {
+	FindMembershipRoleID(ctx context.Context, actorID uint, groupID uint) (uint, error)
+	FindRoleName(ctx context.Context, roleID uint) (string, error)
+}
+
+type gormRootGroupRoleLookup struct {
+	store repository.PostgresRepository
+}
 
 type txGroupAccessStore struct {
 	lookup groupRoleLookup
@@ -50,12 +68,39 @@ func newGroupAccessStore(store repository.PostgresRepository) txGroupAccessStore
 	return txGroupAccessStore{lookup: gormGroupRoleLookup{store: store}}
 }
 
+func newRootGroupAccessStore(store repository.PostgresRepository) rootGroupAccessStore {
+	return rootGroupAccessStore{lookup: gormRootGroupRoleLookup{store: store}}
+}
+
 func newTxGroupActorStore(tx repository.PostgresRepository) txGroupActorStore {
 	return txGroupActorStore{tx: tx}
 }
 
 func newTxGroupRelationStore(tx repository.PostgresRepository) txGroupRelationStore {
 	return txGroupRelationStore{tx: tx}
+}
+
+func (s rootGroupAccessStore) FindActorRole(ctx context.Context, actorID uint, groupID uint, required groups.Capability) (bool, string, error) {
+	if ctx == nil {
+		return false, "", errGroupOperationContextMissing
+	}
+
+	roleID, err := s.lookup.FindMembershipRoleID(ctx, actorID, groupID)
+	if err != nil {
+		return false, "", err
+	}
+
+	roleName, err := s.lookup.FindRoleName(ctx, roleID)
+	if err != nil {
+		return false, "", err
+	}
+
+	normalizedRole := groups.NormalizeRoleName(roleName)
+	if groups.HasCapability(roleName, required) {
+		return true, normalizedRole, nil
+	}
+
+	return false, normalizedRole, nil
 }
 
 func (s txGroupAccessStore) FindActorRole(actorID uint, groupID uint, required groups.Capability) (bool, string, error) {
@@ -70,6 +115,31 @@ func (s txGroupAccessStore) FindActorRole(actorID uint, groupID uint, required g
 	}
 
 	return false, normalizedRole, nil
+}
+
+func (s gormRootGroupRoleLookup) FindMembershipRoleID(ctx context.Context, actorID uint, groupID uint) (uint, error) {
+	var groupUser groups.GroupUsers
+	err := s.store.Where(&groups.GroupUsers{
+		UserID:  actorID,
+		GroupID: groupID,
+	}).WithContext(ctx).Take(&groupUser).Error
+	if err != nil {
+		if isGroupRecordNotFound(err) {
+			return 0, ErrNotInGroup
+		}
+		return 0, fmt.Errorf("ошибка проверки доступа: %w", err)
+	}
+
+	return groupUser.RoleInGroupID, nil
+}
+
+func (s gormRootGroupRoleLookup) FindRoleName(ctx context.Context, roleID uint) (string, error) {
+	var role groups.Role_in_group
+	if err := s.store.Where(&groups.Role_in_group{Id: roleID}).WithContext(ctx).Take(&role).Error; err != nil {
+		return "", fmt.Errorf("ошибка получения роли: %w", err)
+	}
+
+	return role.Name, nil
 }
 
 func (s txGroupAccessStore) findActorRoleName(actorID uint, groupID uint) (string, error) {

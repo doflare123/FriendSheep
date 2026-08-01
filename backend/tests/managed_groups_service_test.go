@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"friendship/models/groups"
 	servicegroups "friendship/services/groups"
 	"testing"
@@ -43,7 +44,7 @@ func TestGroupServiceGetManagedGroupsSeparatesRolesAndUsesOnlyCurrentUser(t *tes
 	seedManagedGroupCategory(t, db, adminGroupID, 2)
 	seedManagedGroupCategory(t, db, moderatorGroupID, 1)
 
-	result, err := service.GetManagedGroups(1)
+	result, err := service.GetManagedGroups(context.Background(), 1)
 
 	if err != nil {
 		t.Fatalf("GetManagedGroups returned error: %v", err)
@@ -85,7 +86,7 @@ func TestGroupServiceGetManagedGroupsReturnsNonNilEmptyRoleSections(t *testing.T
 	)
 	seedGroupServiceUser(t, db, 1)
 
-	result, err := service.GetManagedGroups(1)
+	result, err := service.GetManagedGroups(context.Background(), 1)
 
 	if err != nil {
 		t.Fatalf("GetManagedGroups returned error: %v", err)

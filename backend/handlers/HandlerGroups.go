@@ -122,7 +122,7 @@ func (h *groupHandler) GetGroupDetails(c *gin.Context) {
 		return
 	}
 
-	groupDto, err := h.srv.GetGroupDetails(userID, uint(groupID))
+	groupDto, err := h.srv.GetGroupDetails(c.Request.Context(), userID, uint(groupID))
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrInvalidInput):
@@ -158,7 +158,7 @@ func (h *groupHandler) GetManagedGroups(c *gin.Context) {
 		return
 	}
 
-	managedGroups, err := h.srv.GetManagedGroups(userID)
+	managedGroups, err := h.srv.GetManagedGroups(c.Request.Context(), userID)
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrInvalidInput):
@@ -272,7 +272,7 @@ func (h *groupHandler) CreateGroup(c *gin.Context) {
 		return
 	}
 
-	groupDto, err := h.srv.CreateGroup(id, request.toServiceInput())
+	groupDto, err := h.srv.CreateGroup(c.Request.Context(), id, request.toServiceInput())
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrUserNotFound):
@@ -329,7 +329,7 @@ func (h *groupHandler) UpdateGroup(c *gin.Context) {
 		Contacts:         request.Contacts,
 	}
 
-	groupDto, err := h.srv.UpdateGroup(actorID, input)
+	groupDto, err := h.srv.UpdateGroup(c.Request.Context(), actorID, input)
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrGroupNotFound):
@@ -370,7 +370,7 @@ func (h *groupHandler) DeleteGroup(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.DeleteGroup(actorID, uint(groupID))
+	success, err := h.srv.DeleteGroup(c.Request.Context(), actorID, uint(groupID))
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrGroupNotFound):
@@ -415,7 +415,7 @@ func (h *groupHandler) JoinGroup(c *gin.Context) {
 		return
 	}
 
-	result, err := h.srv.JoinGroup(userID, uint(groupID))
+	result, err := h.srv.JoinGroup(c.Request.Context(), userID, uint(groupID))
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrGroupNotFound):
@@ -460,7 +460,7 @@ func (h *groupHandler) LeaveGroup(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.LeaveGroup(userID, uint(groupID))
+	success, err := h.srv.LeaveGroup(c.Request.Context(), userID, uint(groupID))
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrNotInGroup):
@@ -499,7 +499,7 @@ func (h *groupHandler) ApproveAllJoinRequests(c *gin.Context) {
 		return
 	}
 
-	count, err := h.srv.ApproveAllJoinRequests(actorID, uint(groupID))
+	count, err := h.srv.ApproveAllJoinRequests(c.Request.Context(), actorID, uint(groupID))
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
@@ -540,7 +540,7 @@ func (h *groupHandler) RejectAllJoinRequests(c *gin.Context) {
 		return
 	}
 
-	count, err := h.srv.RejectAllJoinRequests(actorID, uint(groupID))
+	count, err := h.srv.RejectAllJoinRequests(c.Request.Context(), actorID, uint(groupID))
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
@@ -582,7 +582,7 @@ func (h *groupHandler) ApproveJoinRequest(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.ApproveJoinRequest(actorID, uint(requestID))
+	success, err := h.srv.ApproveJoinRequest(c.Request.Context(), actorID, uint(requestID))
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
@@ -626,7 +626,7 @@ func (h *groupHandler) RejectJoinRequest(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.RejectJoinRequest(actorID, uint(requestID))
+	success, err := h.srv.RejectJoinRequest(c.Request.Context(), actorID, uint(requestID))
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
@@ -668,7 +668,7 @@ func (h *groupHandler) AddPermissions(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.AddPermissions(actorID, input)
+	success, err := h.srv.AddPermissions(c.Request.Context(), actorID, input)
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
@@ -714,7 +714,7 @@ func (h *groupHandler) RemovePermissions(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.RemovePermissions(actorID, input)
+	success, err := h.srv.RemovePermissions(c.Request.Context(), actorID, input)
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
@@ -768,7 +768,7 @@ func (h *groupHandler) DeleteUserFromGroup(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.DeleteUserFromGroup(actorID, uint(groupID), uint(targetUserID))
+	success, err := h.srv.DeleteUserFromGroup(c.Request.Context(), actorID, uint(groupID), uint(targetUserID))
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
@@ -822,7 +822,7 @@ func (h *groupHandler) RemoveFromBlacklist(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.RemoveFromBlacklist(actorID, uint(groupID), uint(targetUserID))
+	success, err := h.srv.RemoveFromBlacklist(c.Request.Context(), actorID, uint(groupID), uint(targetUserID))
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
@@ -865,7 +865,7 @@ func (h *groupHandler) CreateJoinInvite(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.CreateJoinInvite(actorID, input)
+	success, err := h.srv.CreateJoinInvite(c.Request.Context(), actorID, input)
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
@@ -911,7 +911,7 @@ func (h *groupHandler) AcceptJoinInvite(c *gin.Context) {
 		return
 	}
 
-	result, err := h.srv.AcceptJoinInvite(userID, uint(inviteID))
+	result, err := h.srv.AcceptJoinInvite(c.Request.Context(), userID, uint(inviteID))
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrUserInBlacklist):
@@ -954,7 +954,7 @@ func (h *groupHandler) RejectJoinInvite(c *gin.Context) {
 		return
 	}
 
-	success, err := h.srv.RejectJoinInvite(userID, uint(inviteID))
+	success, err := h.srv.RejectJoinInvite(c.Request.Context(), userID, uint(inviteID))
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrInviteNotFound):
@@ -1018,7 +1018,7 @@ func (h *groupHandler) WatchRecentActions(c *gin.Context) {
 		actionTypeID = uint(parsedActionTypeID)
 	}
 
-	actions, err := h.srv.WatchRecentActions(userID, uint(groupID), group.GroupActionFilter{
+	actions, err := h.srv.WatchRecentActions(c.Request.Context(), userID, uint(groupID), group.GroupActionFilter{
 		Limit:        limit,
 		Action:       strings.TrimSpace(c.Query("action")),
 		ActionTypeID: actionTypeID,
@@ -1068,7 +1068,7 @@ func (h *groupHandler) GetGroupBlacklist(c *gin.Context) {
 		limit = 50
 	}
 
-	blacklist, err := h.srv.GetGroupBlacklist(actorID, uint(groupID), limit)
+	blacklist, err := h.srv.GetGroupBlacklist(c.Request.Context(), actorID, uint(groupID), limit)
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):
@@ -1115,7 +1115,7 @@ func (h *groupHandler) GetJoinRequests(c *gin.Context) {
 		limit = 50
 	}
 
-	requests, err := h.srv.GetJoinRequests(actorID, uint(groupID), status, limit)
+	requests, err := h.srv.GetJoinRequests(c.Request.Context(), actorID, uint(groupID), status, limit)
 	if err != nil {
 		switch {
 		case errors.Is(err, group.ErrPermissionDenied):

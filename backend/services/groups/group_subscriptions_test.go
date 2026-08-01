@@ -15,6 +15,23 @@ func (s *groupSubscriptionsStoreStub) ListSubscribedGroups(_ context.Context, _ 
 	return groupSubscriptionsPage{}, nil
 }
 
+func TestGORMGroupSubscriptionsStoreRejectsNilContextBeforeRepositoryAccess(t *testing.T) {
+	store := gormGroupSubscriptionsStore{}
+
+	result, err := store.ListSubscribedGroups(nil, groupSubscriptionsQuery{
+		UserID: 1,
+		Page:   1,
+		Limit:  20,
+	})
+
+	if !errors.Is(err, errGroupOperationContextMissing) {
+		t.Fatalf("error = %v, want errGroupOperationContextMissing", err)
+	}
+	if result.Items != nil || result.Total != 0 {
+		t.Fatalf("result = %#v, want zero page", result)
+	}
+}
+
 func TestGroupServiceGetSubscribedGroupsRejectsInvalidInputBeforeStore(t *testing.T) {
 	maxInt := int(^uint(0) >> 1)
 	tests := []struct {

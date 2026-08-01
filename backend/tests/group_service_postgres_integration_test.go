@@ -53,7 +53,7 @@ func TestGroupServiceJoinGroupConcurrentPrivateRequestsPostgres(t *testing.T) {
 			defer wg.Done()
 			<-start
 
-			result, err := service.JoinGroup(2, groupID)
+			result, err := service.JoinGroup(context.Background(), 2, groupID)
 			switch {
 			case err == nil:
 				if result == nil || result.Joined {

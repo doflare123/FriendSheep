@@ -25,7 +25,7 @@ func (s gormGroupSubscriptionsStore) ListSubscribedGroups(
 	query groupSubscriptionsQuery,
 ) (groupSubscriptionsPage, error) {
 	if ctx == nil {
-		ctx = context.Background()
+		return groupSubscriptionsPage{}, errGroupOperationContextMissing
 	}
 
 	var total int64
