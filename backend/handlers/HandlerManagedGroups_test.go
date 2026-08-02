@@ -61,6 +61,7 @@ func TestGroupHandlerGetManagedGroupsUsesCurrentUserAndExactJSONContract(t *test
 		Admin: []dto.ManagedGroupItemDto{{
 			ID:               11,
 			Name:             "Admin group",
+			Enterprise:       true,
 			Categories:       []string{"Board games", "Travel"},
 			SmallDescription: "Admin description",
 			MemberCount:      14,
@@ -69,6 +70,7 @@ func TestGroupHandlerGetManagedGroupsUsesCurrentUserAndExactJSONContract(t *test
 		Moderator: []dto.ManagedGroupItemDto{{
 			ID:               22,
 			Name:             "Moderator group",
+			Enterprise:       false,
 			Categories:       []string{"Sport"},
 			SmallDescription: "Moderator description",
 			MemberCount:      27,
@@ -98,6 +100,7 @@ func TestGroupHandlerGetManagedGroupsUsesCurrentUserAndExactJSONContract(t *test
 	assertManagedGroupItemJSONContract(t, payload["admin"], map[string]interface{}{
 		"id":               float64(11),
 		"name":             "Admin group",
+		"enterprise":       true,
 		"categories":       []interface{}{"Board games", "Travel"},
 		"smallDescription": "Admin description",
 		"memberCount":      float64(14),
@@ -106,6 +109,7 @@ func TestGroupHandlerGetManagedGroupsUsesCurrentUserAndExactJSONContract(t *test
 	assertManagedGroupItemJSONContract(t, payload["moderator"], map[string]interface{}{
 		"id":               float64(22),
 		"name":             "Moderator group",
+		"enterprise":       false,
 		"categories":       []interface{}{"Sport"},
 		"smallDescription": "Moderator description",
 		"memberCount":      float64(27),
@@ -185,7 +189,7 @@ func assertManagedGroupItemJSONContract(t *testing.T, raw json.RawMessage, want 
 		t.Fatalf("items = %#v, want one item", items)
 	}
 	item := items[0]
-	wantKeys := []string{"id", "name", "categories", "smallDescription", "memberCount", "image"}
+	wantKeys := []string{"id", "name", "enterprise", "categories", "smallDescription", "memberCount", "image"}
 	if len(item) != len(wantKeys) {
 		t.Fatalf("item keys = %#v, want exactly %v", item, wantKeys)
 	}

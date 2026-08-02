@@ -3,6 +3,7 @@ package dto
 type ManagedGroupItemDto struct {
 	ID               uint     `json:"id"`
 	Name             string   `json:"name"`
+	Enterprise       bool     `json:"enterprise"`
 	Categories       []string `json:"categories"`
 	SmallDescription string   `json:"smallDescription"`
 	MemberCount      int      `json:"memberCount"`

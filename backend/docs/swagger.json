@@ -2886,6 +2886,9 @@
         "dto.EventSearchGroupDto": {
             "type": "object",
             "properties": {
+                "enterprise": {
+                    "type": "boolean"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -3179,6 +3182,9 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "enterprise": {
+                    "type": "boolean"
                 },
                 "id": {
                     "type": "integer"
@@ -4021,6 +4027,9 @@
                 },
                 "description": {
                     "type": "string"
+                },
+                "enterprise": {
+                    "type": "boolean"
                 },
                 "id": {
                     "type": "integer"

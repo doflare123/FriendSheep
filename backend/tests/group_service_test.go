@@ -712,6 +712,16 @@ func TestGroupServiceCreateGroupReturnsFullDetailsForCreator(t *testing.T) {
 	if groupDTO == nil {
 		t.Fatal("groupDTO is nil")
 	}
+	if groupDTO.Enterprise {
+		t.Fatal("enterprise = true, want system default false")
+	}
+	var storedGroup groupmodels.Group
+	if err := db.First(&storedGroup, groupDTO.ID).Error; err != nil {
+		t.Fatalf("load created group: %v", err)
+	}
+	if storedGroup.Enterprise {
+		t.Fatal("stored enterprise = true, want system default false")
+	}
 	if groupDTO.Creator.Image != "https://cdn.example.com/avatar.png" {
 		t.Fatalf("creator image = %q, want avatar url", groupDTO.Creator.Image)
 	}
@@ -762,6 +772,9 @@ func TestGroupServiceUpdateGroupReturnsFullDetailsForActor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateGroup returned error: %v", err)
 	}
+	if err := db.Model(&groupmodels.Group{}).Where("id = ?", created.ID).Update("enterprise", true).Error; err != nil {
+		t.Fatalf("set system enterprise marker: %v", err)
+	}
 
 	newName := "Board Game Club Updated"
 	newContacts := "tg:https://t.me/newgroup"
@@ -779,6 +792,16 @@ func TestGroupServiceUpdateGroupReturnsFullDetailsForActor(t *testing.T) {
 	}
 	if updated.Name != newName {
 		t.Fatalf("name = %q, want %q", updated.Name, newName)
+	}
+	if !updated.Enterprise {
+		t.Fatal("enterprise = false, want stored system marker true")
+	}
+	var storedGroup groupmodels.Group
+	if err := db.First(&storedGroup, updated.ID).Error; err != nil {
+		t.Fatalf("load updated group: %v", err)
+	}
+	if !storedGroup.Enterprise {
+		t.Fatal("stored enterprise = false, want system marker preserved")
 	}
 	if updated.Creator.Image != "https://cdn.example.com/avatar.png" {
 		t.Fatalf("creator image = %q, want avatar url", updated.Creator.Image)

@@ -54,6 +54,7 @@ func TestGroupHandlerGetSubscribedGroupsForwardsCurrentUserPaginationAndExactJSO
 				Items: []dto.ManagedGroupItemDto{{
 					ID:               11,
 					Name:             "Member group",
+					Enterprise:       true,
 					Categories:       []string{"Board games", "Travel"},
 					SmallDescription: "Subscription description",
 					MemberCount:      14,
@@ -184,7 +185,7 @@ func assertSubscribedGroupsJSONContract(t *testing.T, body []byte, wantPage, wan
 		t.Fatalf("items = %#v, want one item", items)
 	}
 	item := items[0]
-	wantItemKeys := []string{"id", "name", "categories", "smallDescription", "memberCount", "image"}
+	wantItemKeys := []string{"id", "name", "enterprise", "categories", "smallDescription", "memberCount", "image"}
 	if len(item) != len(wantItemKeys) {
 		t.Fatalf("item keys = %#v, want exactly %v", item, wantItemKeys)
 	}
@@ -193,7 +194,7 @@ func assertSubscribedGroupsJSONContract(t *testing.T, body []byte, wantPage, wan
 			t.Fatalf("item is missing %q: %#v", key, item)
 		}
 	}
-	if item["id"] != float64(11) || item["name"] != "Member group" || item["smallDescription"] != "Subscription description" || item["memberCount"] != float64(14) || item["image"] != "https://example.com/group.png" {
+	if item["id"] != float64(11) || item["name"] != "Member group" || item["enterprise"] != true || item["smallDescription"] != "Subscription description" || item["memberCount"] != float64(14) || item["image"] != "https://example.com/group.png" {
 		t.Fatalf("item = %#v, want exact subscription group fields", item)
 	}
 	if got, ok := item["categories"].([]interface{}); !ok || len(got) != 2 || got[0] != "Board games" || got[1] != "Travel" {

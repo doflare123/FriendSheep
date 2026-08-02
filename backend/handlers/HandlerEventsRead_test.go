@@ -63,7 +63,12 @@ func TestSearchEventsUsesReadServiceAndReturnsResult(t *testing.T) {
 	stub := &eventReadHandlerStub{
 		searchResult: &dto.EventSearchResponse{
 			Items: []dto.EventSearchItemDto{
-				{ID: 17, Title: "Настольные игры", Subscribed: true},
+				{
+					ID:         17,
+					Title:      "Настольные игры",
+					Group:      dto.EventSearchGroupDto{ID: 42, Name: "Клуб", Enterprise: true},
+					Subscribed: true,
+				},
 			},
 			Total:       1,
 			Limit:       5,
@@ -104,7 +109,7 @@ func TestSearchEventsUsesReadServiceAndReturnsResult(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if response.Total != 1 || len(response.Items) != 1 || response.Items[0].ID != 17 || !response.Items[0].Subscribed {
+	if response.Total != 1 || len(response.Items) != 1 || response.Items[0].ID != 17 || !response.Items[0].Subscribed || !response.Items[0].Group.Enterprise {
 		t.Fatalf("response = %#v, want configured search result", response)
 	}
 }

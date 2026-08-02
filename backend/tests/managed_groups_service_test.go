@@ -29,6 +29,7 @@ func TestGroupServiceGetManagedGroupsSeparatesRolesAndUsesOnlyCurrentUser(t *tes
 	otherUserGroupID := seedGroupServiceGroup(t, db, 2, false)
 	updateManagedGroupTestFields(t, db, adminGroupID, "Admin group", "Admin description", "https://example.com/admin.png")
 	updateManagedGroupTestFields(t, db, moderatorGroupID, "Moderator group", "Moderator description", "https://example.com/moderator.png")
+	setGroupEnterpriseMarker(t, db, adminGroupID, true)
 
 	seedGroupServiceMembership(t, db, adminGroupID, 1, adminRoleID)
 	seedGroupServiceMembership(t, db, adminGroupID, 2, memberRoleID)
@@ -61,7 +62,7 @@ func TestGroupServiceGetManagedGroupsSeparatesRolesAndUsesOnlyCurrentUser(t *tes
 
 	admin := result.Admin[0]
 	if admin.Name != "Admin group" || admin.SmallDescription != "Admin description" ||
-		admin.MemberCount != 3 || admin.Image != "https://example.com/admin.png" {
+		admin.MemberCount != 3 || admin.Image != "https://example.com/admin.png" || !admin.Enterprise {
 		t.Fatalf("admin item = %#v, want mapped group fields and three members", admin)
 	}
 	if len(admin.Categories) != 2 || admin.Categories[0] != "Board games" || admin.Categories[1] != "Travel" {
@@ -70,7 +71,7 @@ func TestGroupServiceGetManagedGroupsSeparatesRolesAndUsesOnlyCurrentUser(t *tes
 
 	moderator := result.Moderator[0]
 	if moderator.Name != "Moderator group" || moderator.SmallDescription != "Moderator description" ||
-		moderator.MemberCount != 2 || moderator.Image != "https://example.com/moderator.png" {
+		moderator.MemberCount != 2 || moderator.Image != "https://example.com/moderator.png" || moderator.Enterprise {
 		t.Fatalf("moderator item = %#v, want mapped group fields and two members", moderator)
 	}
 	if len(moderator.Categories) != 1 || moderator.Categories[0] != "Travel" {
@@ -113,6 +114,14 @@ func updateManagedGroupTestFields(t *testing.T, db *gorm.DB, groupID uint, name,
 			"image":             image,
 		}).Error; err != nil {
 		t.Fatalf("update managed group test fields for %d: %v", groupID, err)
+	}
+}
+
+func setGroupEnterpriseMarker(t *testing.T, db *gorm.DB, groupID uint, enterprise bool) {
+	t.Helper()
+
+	if err := db.Model(&groups.Group{}).Where("id = ?", groupID).Update("enterprise", enterprise).Error; err != nil {
+		t.Fatalf("set enterprise marker for group %d: %v", groupID, err)
 	}
 }
 

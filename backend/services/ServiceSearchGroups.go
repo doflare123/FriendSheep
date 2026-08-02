@@ -20,6 +20,7 @@ type GetGroups struct {
 	CountMembers     *uint     `json:"count"`
 	Image            *string   `json:"image"`
 	Category         []*string `json:"category"`
+	Enterprise       *bool     `json:"enterprise"`
 	IsPrivate        *bool     `json:"isPrivate"`
 	CreatedAt        time.Time `json:"createdAt"`
 }
@@ -89,6 +90,7 @@ func SearchGroups(name string, page int, sortBy, order, category string) (*GetGr
 		var memberCount int64
 		dbConn.Table("group_users").Where("group_id = ?", group.ID).Count(&memberCount)
 		memberCountUint := uint(memberCount)
+		enterprise := group.Enterprise
 
 		groupsDTO = append(groupsDTO, GetGroups{
 			Id:               &group.ID,
@@ -97,6 +99,7 @@ func SearchGroups(name string, page int, sortBy, order, category string) (*GetGr
 			CountMembers:     &memberCountUint,
 			Image:            &group.Image,
 			Category:         categories,
+			Enterprise:       &enterprise,
 			IsPrivate:        &group.IsPrivate,
 			CreatedAt:        group.CreatedAt,
 		})

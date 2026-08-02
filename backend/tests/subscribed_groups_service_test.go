@@ -28,6 +28,7 @@ func TestGroupServiceGetSubscribedGroupsReturnsOnlyOrdinaryMembershipsWithStable
 	adminGroupID := seedGroupServiceGroup(t, db, 2, false)
 	moderatorGroupID := seedGroupServiceGroup(t, db, 2, false)
 	updateManagedGroupTestFields(t, db, memberThirdID, "Newest member group", "Newest subscription", "https://example.com/newest.png")
+	setGroupEnterpriseMarker(t, db, memberThirdID, true)
 
 	seedGroupServiceMembership(t, db, memberFirstID, 1, memberRoleID)
 	seedGroupServiceMembership(t, db, memberSecondID, 1, memberRoleID)
@@ -53,7 +54,7 @@ func TestGroupServiceGetSubscribedGroupsReturnsOnlyOrdinaryMembershipsWithStable
 		t.Fatalf("first page IDs = %v, want stable descending %v", got, want)
 	}
 	newest := firstPage.Items[0]
-	if newest.Name != "Newest member group" || newest.SmallDescription != "Newest subscription" || newest.Image != "https://example.com/newest.png" || newest.MemberCount != 3 {
+	if newest.Name != "Newest member group" || newest.SmallDescription != "Newest subscription" || newest.Image != "https://example.com/newest.png" || newest.MemberCount != 3 || !newest.Enterprise {
 		t.Fatalf("newest item = %#v, want mapped group data and all three members", newest)
 	}
 	if got, want := newest.Categories, []string{"Board games", "Travel"}; !reflect.DeepEqual(got, want) {
@@ -69,6 +70,9 @@ func TestGroupServiceGetSubscribedGroupsReturnsOnlyOrdinaryMembershipsWithStable
 	}
 	if got, want := subscribedGroupIDs(secondPage), []uint{memberFirstID}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("second page IDs = %v, want %v", got, want)
+	}
+	if firstPage.Items[1].Enterprise || secondPage.Items[0].Enterprise {
+		t.Fatalf("default enterprise markers changed: first page = %#v, second page = %#v", firstPage.Items, secondPage.Items)
 	}
 
 	for _, item := range append(firstPage.Items, secondPage.Items...) {

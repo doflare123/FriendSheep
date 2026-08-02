@@ -307,9 +307,10 @@ func mapSearchEvents(items []eventmodels.Event, viewerID uint) []EventSearchItem
 			ID:    item.ID,
 			Title: item.Title,
 			Group: EventReadGroupView{
-				ID:   item.Group.ID,
-				Name: item.Group.Name,
-				City: item.Group.City,
+				ID:         item.Group.ID,
+				Name:       item.Group.Name,
+				Enterprise: item.Group.Enterprise,
+				City:       item.Group.City,
 			},
 			ImageURL:          item.ImageURL,
 			ParticipantsCount: item.CurrentUsers,

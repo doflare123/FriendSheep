@@ -16,7 +16,6 @@ type InformationAboutUser struct {
 	Us           string    `json:"us"`
 	Image        string    `json:"image"`
 	DataRegister time.Time `json:"data_register"`
-	Enterprise   bool      `json:"enterprise"`
 	TelegramLink bool      `json:"telegram_link"`
 	Status       string    `json:"status"`
 

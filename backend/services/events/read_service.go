@@ -152,8 +152,9 @@ func eventSearchItemsToDTO(items []EventSearchItemView) []dto.EventSearchItemDto
 			ID:    item.ID,
 			Title: item.Title,
 			Group: dto.EventSearchGroupDto{
-				ID:   item.Group.ID,
-				Name: item.Group.Name,
+				ID:         item.Group.ID,
+				Name:       item.Group.Name,
+				Enterprise: item.Group.Enterprise,
 			},
 			Image:             item.ImageURL,
 			ParticipantsCount: item.ParticipantsCount,

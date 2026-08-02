@@ -168,6 +168,35 @@ func TestEventReadServiceSearchEventsNormalizesDelegatesAndBuildsPage(t *testing
 	}
 }
 
+func TestEventReadServiceSearchEventsMapsGroupEnterprise(t *testing.T) {
+	start := time.Date(2028, 1, 2, 15, 4, 5, 0, time.UTC)
+	store := &eventReadStoreStub{
+		searchPage: servicesevents.EventSearchPageView{
+			Total: 2,
+			Items: []servicesevents.EventSearchItemView{
+				{ID: 17, Group: servicesevents.EventReadGroupView{ID: 41, Name: "Trusted group", Enterprise: true}, StartTime: start},
+				{ID: 18, Group: servicesevents.EventReadGroupView{ID: 42, Name: "Regular group", Enterprise: false}, StartTime: start},
+			},
+		},
+	}
+	service := servicesevents.NewEventReadService(&testLogger{}, store)
+
+	result, err := service.SearchEvents(context.Background(), 9, servicesevents.EventSearchInput{Page: 1, Limit: 20})
+
+	if err != nil {
+		t.Fatalf("SearchEvents returned error: %v", err)
+	}
+	if len(result.Items) != 2 {
+		t.Fatalf("items = %#v, want two items", result.Items)
+	}
+	if !result.Items[0].Group.Enterprise {
+		t.Fatalf("trusted group = %#v, want enterprise true", result.Items[0].Group)
+	}
+	if result.Items[1].Group.Enterprise {
+		t.Fatalf("regular group = %#v, want enterprise false", result.Items[1].Group)
+	}
+}
+
 func TestEventReadServiceSearchEventsClampsDirectInput(t *testing.T) {
 	store := &eventReadStoreStub{searchPage: servicesevents.EventSearchPageView{}}
 	service := servicesevents.NewEventReadService(&testLogger{}, store)

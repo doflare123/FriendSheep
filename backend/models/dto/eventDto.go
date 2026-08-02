@@ -84,8 +84,9 @@ type CachedPopularEvents struct {
 }
 
 type EventSearchGroupDto struct {
-	ID   uint   `json:"id"`
-	Name string `json:"name"`
+	ID         uint   `json:"id"`
+	Name       string `json:"name"`
+	Enterprise bool   `json:"enterprise"`
 }
 
 type EventSearchItemDto struct {

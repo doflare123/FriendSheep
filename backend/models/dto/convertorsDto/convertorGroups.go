@@ -56,6 +56,7 @@ func ConvertToManagedGroupItemDto(group groups.Group, totalMembers int64) dto.Ma
 	return dto.ManagedGroupItemDto{
 		ID:               group.ID,
 		Name:             group.Name,
+		Enterprise:       group.Enterprise,
 		Categories:       categories,
 		SmallDescription: group.SmallDescription,
 		MemberCount:      int(totalMembers),

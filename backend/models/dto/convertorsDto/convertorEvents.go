@@ -129,8 +129,9 @@ func ConvertToSearchItemDtoForUser(event *events.Event, userID uint) *dto.EventS
 		ID:    event.ID,
 		Title: event.Title,
 		Group: dto.EventSearchGroupDto{
-			ID:   event.Group.ID,
-			Name: event.Group.Name,
+			ID:         event.Group.ID,
+			Name:       event.Group.Name,
+			Enterprise: event.Group.Enterprise,
 		},
 		Image:             event.ImageURL,
 		ParticipantsCount: event.CurrentUsers,

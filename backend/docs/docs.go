@@ -2897,6 +2897,9 @@ const docTemplate = `{
         "dto.EventSearchGroupDto": {
             "type": "object",
             "properties": {
+                "enterprise": {
+                    "type": "boolean"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -3190,6 +3193,9 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "enterprise": {
+                    "type": "boolean"
                 },
                 "id": {
                     "type": "integer"
@@ -4032,6 +4038,9 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "enterprise": {
+                    "type": "boolean"
                 },
                 "id": {
                     "type": "integer"
