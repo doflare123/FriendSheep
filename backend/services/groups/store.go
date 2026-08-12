@@ -15,6 +15,7 @@ type groupUnitOfWork interface {
 	WithinTransaction(ctx context.Context, fn func(groupTx) error) error
 	Access() rootGroupActorRoleFinder
 	Reads() groupManagementReadStore
+	Search() groupSearchStore
 	Subscriptions() groupSubscriptionsStore
 }
 

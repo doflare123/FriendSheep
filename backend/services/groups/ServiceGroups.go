@@ -126,6 +126,7 @@ type GroupsService interface {
 	GetGroupDetails(ctx context.Context, userID uint, groupID uint) (*dto.GroupFullDto, error)
 	GetManagedGroups(ctx context.Context, userID uint) (*dto.ManagedGroupsDto, error)
 	GetSubscribedGroups(ctx context.Context, userID uint, page int, limit int) (*dto.SubscribedGroupsResponseDto, error)
+	SearchGroups(ctx context.Context, userID uint, input GroupSearchInput) (*dto.GroupSearchResponseDto, error)
 
 	// Управление заявками
 	ApproveAllJoinRequests(ctx context.Context, actorID uint, groupID uint) (int, error)
@@ -161,6 +162,7 @@ type groupService struct {
 	uow           groupUnitOfWork
 	access        rootGroupActorRoleFinder
 	reads         groupManagementReadStore
+	search        groupSearchStore
 	subscriptions groupSubscriptionsStore
 }
 
@@ -170,6 +172,7 @@ func NewGroupService(logger logger.Logger, uow groupUnitOfWork) GroupsService {
 		uow:           uow,
 		access:        uow.Access(),
 		reads:         uow.Reads(),
+		search:        uow.Search(),
 		subscriptions: uow.Subscriptions(),
 	}
 }

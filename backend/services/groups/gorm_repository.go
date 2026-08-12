@@ -81,6 +81,10 @@ func (r gormGroupRepository) Reads() groupManagementReadStore {
 	return newGroupManagementReadStore(r.store)
 }
 
+func (r gormGroupRepository) Search() groupSearchStore {
+	return newGORMGroupSearchStore(r.store)
+}
+
 func (r gormGroupRepository) Subscriptions() groupSubscriptionsStore {
 	return newGORMGroupSubscriptionsStore(r.store)
 }

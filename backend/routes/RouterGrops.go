@@ -13,6 +13,8 @@ func RegisterGroupsRoutes(
 	authMiddleware *middlewares.AuthMiddleware,
 	groupRoleMiddleware *middlewares.GroupRoleMiddleware,
 ) {
+	router.GET("/api/v2/groups/search", authMiddleware.OptionalAuth(), groupHandler.SearchGroups)
+
 	// Публичные эндпоинты
 	groupsPublic := router.Group("/api/v2/groups")
 	groupsPublic.Use(authMiddleware.RequireAuth())

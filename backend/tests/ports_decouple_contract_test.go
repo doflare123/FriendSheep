@@ -613,6 +613,7 @@ func groupPersistenceAdapterFiles() map[string]bool {
 		"group_admin_store.go":              true,
 		"group_management_read_store.go":    true,
 		"gorm_group_subscriptions_store.go": true,
+		"gorm_group_search_store.go":        true,
 		"group_shared_store.go":             true,
 		"join_invite_store.go":              true,
 		"join_request_store.go":             true,

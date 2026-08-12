@@ -462,6 +462,48 @@ definitions:
       username:
         type: string
     type: object
+  dto.GroupSearchItemDto:
+    properties:
+      categories:
+        items:
+          type: string
+        type: array
+      createdAt:
+        type: string
+      enterprise:
+        type: boolean
+      id:
+        type: integer
+      image:
+        type: string
+      isPrivate:
+        type: boolean
+      isSubscribed:
+        type: boolean
+      memberCount:
+        type: integer
+      name:
+        type: string
+      smallDescription:
+        type: string
+    type: object
+  dto.GroupSearchResponseDto:
+    properties:
+      hasMore:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/dto.GroupSearchItemDto'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
   dto.ManagedGroupItemDto:
     properties:
       categories:
@@ -2530,6 +2572,90 @@ paths:
       summary: Отклонить заявку на вступление
       tags:
       - groups_admin
+  /api/v2/groups/search:
+    get:
+      description: Публичный поиск групп с фильтрацией, сортировкой и пагинацией.
+        Авторизация не требуется. При валидной авторизации isSubscribed отражает членство
+        текущего пользователя, для анонимного запроса он равен false. Приватные группы
+        возвращаются только как безопасные карточки без состава участников, контактов
+        и административных данных.
+      parameters:
+      - description: Поиск по названию и описанию группы
+        in: query
+        name: q
+        type: string
+      - collectionFormat: csv
+        description: ID категорий (OR), повтором параметра или CSV
+        in: query
+        items:
+          type: integer
+        name: categoryIds
+        type: array
+      - description: Фильтр приватности
+        in: query
+        name: isPrivate
+        type: boolean
+      - description: Поиск по городу
+        in: query
+        name: city
+        type: string
+      - default: createdAt
+        description: Поле сортировки
+        enum:
+        - createdAt
+        - memberCount
+        - name
+        in: query
+        name: sortBy
+        type: string
+      - default: desc
+        description: Направление сортировки
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sortOrder
+        type: string
+      - default: 1
+        description: Номер страницы
+        in: query
+        maximum: 10000
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Размер страницы
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Страница групп
+          schema:
+            $ref: '#/definitions/dto.GroupSearchResponseDto'
+        "400":
+          description: Некорректные параметры поиска
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Передан невалидный или отозванный токен
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: Сервис авторизации временно недоступен
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Поиск групп
+      tags:
+      - groups
   /api/v2/references:
     get:
       description: Возвращает общие справочники групп и событий. Жанры доступны отдельно

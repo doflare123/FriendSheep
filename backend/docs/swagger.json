@@ -1433,6 +1433,121 @@
                 }
             }
         },
+        "/api/v2/groups/search": {
+            "get": {
+                "description": "Публичный поиск групп с фильтрацией, сортировкой и пагинацией. Авторизация не требуется. При валидной авторизации isSubscribed отражает членство текущего пользователя, для анонимного запроса он равен false. Приватные группы возвращаются только как безопасные карточки без состава участников, контактов и административных данных.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Поиск групп",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Поиск по названию и описанию группы",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "ID категорий (OR), повтором параметра или CSV",
+                        "name": "categoryIds",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Фильтр приватности",
+                        "name": "isPrivate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Поиск по городу",
+                        "name": "city",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "createdAt",
+                            "memberCount",
+                            "name"
+                        ],
+                        "type": "string",
+                        "default": "createdAt",
+                        "description": "Поле сортировки",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Направление сортировки",
+                        "name": "sortOrder",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 10000,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Номер страницы",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Размер страницы",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Страница групп",
+                        "schema": {
+                            "$ref": "#/definitions/dto.GroupSearchResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные параметры поиска",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Передан невалидный или отозванный токен",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Сервис авторизации временно недоступен",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v2/groups/{groupId}": {
             "get": {
                 "security": [
@@ -3317,6 +3432,70 @@
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.GroupSearchItemDto": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "enterprise": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "isPrivate": {
+                    "type": "boolean"
+                },
+                "isSubscribed": {
+                    "type": "boolean"
+                },
+                "memberCount": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "smallDescription": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.GroupSearchResponseDto": {
+            "type": "object",
+            "properties": {
+                "hasMore": {
+                    "type": "boolean"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.GroupSearchItemDto"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "totalPages": {
+                    "type": "integer"
                 }
             }
         },

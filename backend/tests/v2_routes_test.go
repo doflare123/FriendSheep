@@ -130,11 +130,17 @@ func (h *popularEventsRouteHandlerStub) GetPopularEvents(c *gin.Context) {
 
 type groupRouteHandlerStub struct {
 	called string
+	userID uint
 }
 
-func (h *groupRouteHandlerStub) CreateGroup(c *gin.Context)     { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) UpdateGroup(c *gin.Context)     { c.Status(http.StatusNoContent) }
-func (h *groupRouteHandlerStub) DeleteGroup(c *gin.Context)     { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) CreateGroup(c *gin.Context) { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) UpdateGroup(c *gin.Context) { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) DeleteGroup(c *gin.Context) { c.Status(http.StatusNoContent) }
+func (h *groupRouteHandlerStub) SearchGroups(c *gin.Context) {
+	h.called = "search-groups"
+	h.userID = c.GetUint("userID")
+	c.Status(http.StatusNoContent)
+}
 func (h *groupRouteHandlerStub) JoinGroup(c *gin.Context)       { c.Status(http.StatusNoContent) }
 func (h *groupRouteHandlerStub) LeaveGroup(c *gin.Context)      { c.Status(http.StatusNoContent) }
 func (h *groupRouteHandlerStub) GetGroupDetails(c *gin.Context) { c.Status(http.StatusNoContent) }
@@ -515,6 +521,71 @@ func TestRegisterGroupsRoutesRequireAuth(t *testing.T) {
 			}
 			assertCommonErrorShape(t, rec)
 		})
+	}
+}
+
+func TestRegisterGroupsRoutesSearchIsPublic(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &groupRouteHandlerStub{}
+	router := gin.New()
+	authMiddleware := middlewares.NewAuthMiddleware(utils.NewJWTUtils("test-secret"), &authSessionReaderStub{active: true})
+	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(nil)
+	routes.RegisterGroupsRoutes(router, handler, authMiddleware, groupRoleMiddleware)
+
+	rec := performRouteRequest(router, http.MethodGet, "/api/v2/groups/search", "")
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusNoContent, rec.Body.String())
+	}
+	if handler.called != "search-groups" {
+		t.Fatalf("called = %q, want search-groups", handler.called)
+	}
+	if handler.userID != 0 {
+		t.Fatalf("anonymous search userID = %d, want 0", handler.userID)
+	}
+}
+
+func TestRegisterGroupsRoutesSearchOptionalAuthPropagatesAuthenticatedUser(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &groupRouteHandlerStub{}
+	jwtUtils := utils.NewJWTUtils("test-secret")
+	router := gin.New()
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
+	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(nil)
+	routes.RegisterGroupsRoutes(router, handler, authMiddleware, groupRoleMiddleware)
+
+	accessToken := mustAccessToken(t, 73, "group-search-session", jwtUtils)
+	rec := performRouteRequest(router, http.MethodGet, "/api/v2/groups/search", accessToken)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusNoContent, rec.Body.String())
+	}
+	if handler.called != "search-groups" || handler.userID != 73 {
+		t.Fatalf("handler state = called:%q userID:%d, want search-groups/73", handler.called, handler.userID)
+	}
+}
+
+func TestRegisterGroupsRoutesSearchOptionalAuthRejectsRevokedSession(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &groupRouteHandlerStub{}
+	jwtUtils := utils.NewJWTUtils("test-secret")
+	router := gin.New()
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: false})
+	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(nil)
+	routes.RegisterGroupsRoutes(router, handler, authMiddleware, groupRoleMiddleware)
+
+	accessToken := mustAccessToken(t, 73, "revoked-group-search-session", jwtUtils)
+	rec := performRouteRequest(router, http.MethodGet, "/api/v2/groups/search", accessToken)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusUnauthorized, rec.Body.String())
+	}
+	assertCommonErrorShape(t, rec)
+	if handler.called != "" {
+		t.Fatalf("handler was called for revoked session: %q", handler.called)
 	}
 }
 

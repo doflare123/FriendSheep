@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,6 +22,7 @@ type GroupHandler interface {
 	GetGroupDetails(c *gin.Context)
 	GetManagedGroups(c *gin.Context)
 	GetSubscribedGroups(c *gin.Context)
+	SearchGroups(c *gin.Context)
 
 	// Управление заявками
 	ApproveAllJoinRequests(c *gin.Context)
@@ -236,6 +238,151 @@ func parseGroupSubscriptionsPaginationValue(raw string, defaultValue int, maxVal
 		return 0, group.ErrInvalidInput
 	}
 
+	return value, nil
+}
+
+// SearchGroups godoc
+// @Summary      Поиск групп
+// @Description  Публичный поиск групп с фильтрацией, сортировкой и пагинацией. Авторизация не требуется. При валидной авторизации isSubscribed отражает членство текущего пользователя, для анонимного запроса он равен false. Приватные группы возвращаются только как безопасные карточки без состава участников, контактов и административных данных.
+// @Tags         groups
+// @Produce      json
+// @Param        q query string false "Поиск по названию и описанию группы"
+// @Param        categoryIds query []int false "ID категорий (OR), повтором параметра или CSV"
+// @Param        isPrivate query bool false "Фильтр приватности"
+// @Param        city query string false "Поиск по городу"
+// @Param        sortBy query string false "Поле сортировки" Enums(createdAt,memberCount,name) default(createdAt)
+// @Param        sortOrder query string false "Направление сортировки" Enums(asc,desc) default(desc)
+// @Param        page query int false "Номер страницы" default(1) minimum(1) maximum(10000)
+// @Param        limit query int false "Размер страницы" default(20) minimum(1) maximum(100)
+// @Success      200 {object} dto.GroupSearchResponseDto "Страница групп"
+// @Failure      400 {object} dto.ErrorResponse "Некорректные параметры поиска"
+// @Failure      401 {object} dto.ErrorResponse "Передан невалидный или отозванный токен"
+// @Failure      500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
+// @Failure      503 {object} dto.ErrorResponse "Сервис авторизации временно недоступен"
+// @Router       /api/v2/groups/search [get]
+func (h *groupHandler) SearchGroups(c *gin.Context) {
+	userID := c.GetUint("userID")
+
+	input, err := bindGroupSearchQuery(c)
+	if err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+
+	result, err := h.srv.SearchGroups(c.Request.Context(), userID, input)
+	if err != nil {
+		if errors.Is(err, group.ErrInvalidGroupSearchInput) {
+			utils.BadRequest(c, err.Error())
+		} else {
+			utils.InternalError(c, "Не удалось выполнить поиск групп")
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func bindGroupSearchQuery(c *gin.Context) (group.GroupSearchInput, error) {
+	input := group.GroupSearchInput{
+		Query:     strings.TrimSpace(c.Query("q")),
+		City:      strings.TrimSpace(c.Query("city")),
+		SortBy:    strings.TrimSpace(c.Query("sortBy")),
+		SortOrder: strings.ToLower(strings.TrimSpace(c.Query("sortOrder"))),
+	}
+
+	var err error
+	input.CategoryIDs, err = parseGroupSearchCategoryIDs(c)
+	if err != nil {
+		return input, err
+	}
+	input.IsPrivate, err = parseGroupSearchOptionalBool(c, "isPrivate")
+	if err != nil {
+		return input, err
+	}
+	input.Page, err = parseGroupSearchOptionalInt(c.Query("page"), group.DefaultGroupSearchPage, "page")
+	if err != nil {
+		return input, err
+	}
+	input.Limit, err = parseGroupSearchOptionalInt(c.Query("limit"), group.DefaultGroupSearchLimit, "limit")
+	if err != nil {
+		return input, err
+	}
+	if input.Page < 1 || input.Page > group.MaxGroupSearchPage || input.Limit < 1 || input.Limit > group.MaxGroupSearchLimit {
+		return input, group.ErrInvalidGroupSearchInput
+	}
+	if input.SortBy != "" && input.SortBy != group.GroupSearchSortCreatedAt && input.SortBy != group.GroupSearchSortMemberCount && input.SortBy != group.GroupSearchSortName {
+		return input, group.ErrInvalidGroupSearchInput
+	}
+	if input.SortOrder != "" && input.SortOrder != group.GroupSearchOrderAscending && input.SortOrder != group.GroupSearchOrderDescending {
+		return input, group.ErrInvalidGroupSearchInput
+	}
+
+	return input, nil
+}
+
+func parseGroupSearchCategoryIDs(c *gin.Context) ([]uint, error) {
+	values := make([]string, 0)
+	for _, raw := range c.QueryArray("categoryIds") {
+		if raw == "" {
+			continue
+		}
+		for _, part := range strings.Split(raw, ",") {
+			value := strings.TrimSpace(part)
+			if value == "" {
+				return nil, group.ErrInvalidGroupSearchInput
+			}
+			values = append(values, value)
+		}
+	}
+
+	result := make([]uint, 0, len(values))
+	seen := make(map[uint]struct{}, len(values))
+	for _, value := range values {
+		parsed, err := strconv.ParseUint(value, 10, 32)
+		if err != nil || parsed == 0 {
+			return nil, group.ErrInvalidGroupSearchInput
+		}
+		id := uint(parsed)
+		if _, exists := seen[id]; exists {
+			return nil, group.ErrInvalidGroupSearchInput
+		}
+		seen[id] = struct{}{}
+		result = append(result, id)
+	}
+	if len(result) > 100 {
+		return nil, group.ErrInvalidGroupSearchInput
+	}
+	return result, nil
+}
+
+func parseGroupSearchOptionalBool(c *gin.Context, name string) (*bool, error) {
+	raw, exists := c.Request.URL.Query()[name]
+	if !exists {
+		return nil, nil
+	}
+	if len(raw) != 1 || strings.TrimSpace(raw[0]) == "" {
+		return nil, group.ErrInvalidGroupSearchInput
+	}
+	var value bool
+	switch strings.TrimSpace(raw[0]) {
+	case "true":
+		value = true
+	case "false":
+		value = false
+	default:
+		return nil, group.ErrInvalidGroupSearchInput
+	}
+	return &value, nil
+}
+
+func parseGroupSearchOptionalInt(raw string, defaultValue int, name string) (int, error) {
+	if strings.TrimSpace(raw) == "" {
+		return defaultValue, nil
+	}
+	value, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil {
+		return 0, fmt.Errorf("%w: %s", group.ErrInvalidGroupSearchInput, name)
+	}
 	return value, nil
 }
 
