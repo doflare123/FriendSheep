@@ -64,19 +64,19 @@ type EventSearchPageView struct {
 }
 
 type EventSearchItemView struct {
-	ID                uint
-	Title             string
-	Group             EventReadGroupView
-	ImageURL          string
-	ParticipantsCount uint16
-	MaxUsers          uint16
-	Duration          uint16
-	StartTime         time.Time
-	EventType         string
-	LocationType      string
-	City              string
-	Genres            []string
-	ViewerSubscribed  bool
+	ID               uint
+	Title            string
+	Group            EventReadGroupView
+	ImageURL         string
+	CurrentUsers     uint16
+	MaxUsers         uint16
+	Duration         uint16
+	StartTime        time.Time
+	EventType        string
+	LocationType     string
+	City             string
+	Genres           []string
+	ViewerSubscribed bool
 }
 
 type EventGroupEventsView struct {

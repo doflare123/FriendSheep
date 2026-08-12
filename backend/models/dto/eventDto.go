@@ -90,19 +90,19 @@ type EventSearchGroupDto struct {
 }
 
 type EventSearchItemDto struct {
-	ID                uint                `json:"id"`
-	Title             string              `json:"title"`
-	Group             EventSearchGroupDto `json:"group"`
-	Image             string              `json:"image"`
-	ParticipantsCount uint16              `json:"participantsCount"`
-	MaxUsers          uint16              `json:"maxUsers"`
-	Duration          uint16              `json:"duration"`
-	StartDate         string              `json:"startDate"`
-	EventType         string              `json:"eventType"`
-	LocationType      string              `json:"locationType"`
-	City              string              `json:"city,omitempty"`
-	Genres            []string            `json:"genres"`
-	Subscribed        bool                `json:"subscribed"`
+	ID           uint                `json:"id"`
+	Title        string              `json:"title"`
+	Group        EventSearchGroupDto `json:"group"`
+	Image        string              `json:"image"`
+	CurrentUsers uint16              `json:"currentUsers"`
+	MaxUsers     uint16              `json:"maxUsers"`
+	Duration     uint16              `json:"duration"`
+	StartDate    string              `json:"startDate"`
+	EventType    string              `json:"eventType"`
+	LocationType string              `json:"locationType"`
+	City         string              `json:"city,omitempty"`
+	Genres       []string            `json:"genres"`
+	Subscribed   bool                `json:"subscribed"`
 }
 
 type EventSearchResponse struct {

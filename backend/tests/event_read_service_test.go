@@ -62,19 +62,19 @@ func TestEventReadServiceSearchEventsNormalizesDelegatesAndBuildsPage(t *testing
 			Total: 5,
 			Items: []servicesevents.EventSearchItemView{
 				{
-					ID:                17,
-					Title:             "Настольные игры",
-					Group:             servicesevents.EventReadGroupView{ID: 42, Name: "Клуб"},
-					ImageURL:          "https://example.com/event.png",
-					ParticipantsCount: 3,
-					MaxUsers:          8,
-					Duration:          90,
-					StartTime:         start,
-					EventType:         "Игра",
-					LocationType:      "Offline",
-					City:              "Москва",
-					Genres:            []string{"Strategy", "Party"},
-					ViewerSubscribed:  true,
+					ID:               17,
+					Title:            "Настольные игры",
+					Group:            servicesevents.EventReadGroupView{ID: 42, Name: "Клуб"},
+					ImageURL:         "https://example.com/event.png",
+					CurrentUsers:     3,
+					MaxUsers:         8,
+					Duration:         90,
+					StartTime:        start,
+					EventType:        "Игра",
+					LocationType:     "Offline",
+					City:             "Москва",
+					Genres:           []string{"Strategy", "Party"},
+					ViewerSubscribed: true,
 				},
 			},
 		},
@@ -155,7 +155,7 @@ func TestEventReadServiceSearchEventsNormalizesDelegatesAndBuildsPage(t *testing
 		item.Group.ID != 42 ||
 		item.Group.Name != "Клуб" ||
 		item.Image != "https://example.com/event.png" ||
-		item.ParticipantsCount != 3 ||
+		item.CurrentUsers != 3 ||
 		item.MaxUsers != 8 ||
 		item.Duration != 90 ||
 		item.StartDate != "2028-01-02" ||

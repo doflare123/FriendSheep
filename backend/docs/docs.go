@@ -3202,7 +3202,7 @@ const docTemplate = `{
                 "maxUsers": {
                     "type": "integer"
                 },
-                "participantsCount": {
+                "currentUsers": {
                     "type": "integer"
                 },
                 "startDate": {

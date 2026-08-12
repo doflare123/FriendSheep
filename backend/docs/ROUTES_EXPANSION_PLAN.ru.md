@@ -87,7 +87,7 @@
   - `id`
   - `group: { id, name }`
   - `image`
-  - `participantsCount`
+  - `currentUsers`
   - `maxUsers`
   - `duration`
   - `startDate` (только дата, без времени)

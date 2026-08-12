@@ -299,7 +299,7 @@ definitions:
         type: string
       maxUsers:
         type: integer
-      participantsCount:
+      currentUsers:
         type: integer
       startDate:
         type: string

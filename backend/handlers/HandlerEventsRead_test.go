@@ -64,10 +64,11 @@ func TestSearchEventsUsesReadServiceAndReturnsResult(t *testing.T) {
 		searchResult: &dto.EventSearchResponse{
 			Items: []dto.EventSearchItemDto{
 				{
-					ID:         17,
-					Title:      "Настольные игры",
-					Group:      dto.EventSearchGroupDto{ID: 42, Name: "Клуб", Enterprise: true},
-					Subscribed: true,
+					ID:           17,
+					Title:        "Настольные игры",
+					Group:        dto.EventSearchGroupDto{ID: 42, Name: "Клуб", Enterprise: true},
+					CurrentUsers: 3,
+					Subscribed:   true,
 				},
 			},
 			Total:       1,
@@ -111,6 +112,25 @@ func TestSearchEventsUsesReadServiceAndReturnsResult(t *testing.T) {
 	}
 	if response.Total != 1 || len(response.Items) != 1 || response.Items[0].ID != 17 || !response.Items[0].Subscribed || !response.Items[0].Group.Enterprise {
 		t.Fatalf("response = %#v, want configured search result", response)
+	}
+
+	var rawResponse map[string]interface{}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &rawResponse); err != nil {
+		t.Fatalf("decode raw response: %v", err)
+	}
+	rawItems, ok := rawResponse["items"].([]interface{})
+	if !ok || len(rawItems) != 1 {
+		t.Fatalf("raw items = %#v, want one item", rawResponse["items"])
+	}
+	rawItem, ok := rawItems[0].(map[string]interface{})
+	if !ok {
+		t.Fatalf("raw item = %#v, want JSON object", rawItems[0])
+	}
+	if got, ok := rawItem["currentUsers"]; !ok || got != float64(3) {
+		t.Fatalf("currentUsers = %#v, want 3", got)
+	}
+	if _, exists := rawItem["participantsCount"]; exists {
+		t.Fatalf("deprecated participantsCount is present in response: %s", recorder.Body.String())
 	}
 }
 
