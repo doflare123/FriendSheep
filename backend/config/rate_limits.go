@@ -185,6 +185,15 @@ func (c RateLimitConfig) PolicyCatalog() map[string]RateLimitPolicyQuota {
 
 func applyConfigDefaults() {
 	defaults := DefaultRateLimitConfig()
+	viper.SetDefault("SECRET_KEY_JWT", "")
+	viper.SetDefault("JWT_ISSUER", "friendSheep")
+	viper.SetDefault("JWT_AUDIENCE", "friendSheep-api")
+	viper.SetDefault("JWT_KEY_ID", "primary-v1")
+	viper.SetDefault("JWT_PREVIOUS_SECRET_KEY", "")
+	viper.SetDefault("JWT_PREVIOUS_KEY_ID", "")
+	viper.SetDefault("JWT_ACCESS_TTL", "20m")
+	viper.SetDefault("AUTH_REFRESH_TTL", "720h")
+	viper.SetDefault("JWT_CLOCK_SKEW", "30s")
 
 	setPolicyDefault := func(limitKey string, limit int, windowKey string, window time.Duration) {
 		viper.SetDefault(limitKey, limit)
@@ -226,6 +235,39 @@ func applyConfigDefaults() {
 
 func (c *Config) NormalizeAndValidate() error {
 	var errs []error
+
+	if len(strings.TrimSpace(c.JWTSecretKey)) < 32 {
+		errs = append(errs, fmt.Errorf("SECRET_KEY_JWT must contain at least 32 characters"))
+	}
+	if strings.TrimSpace(c.JWTKeyID) == "" {
+		errs = append(errs, fmt.Errorf("JWT_KEY_ID must not be empty"))
+	}
+	previousSecret := strings.TrimSpace(c.JWTPreviousSecretKey)
+	previousKeyID := strings.TrimSpace(c.JWTPreviousKeyID)
+	if (previousSecret == "") != (previousKeyID == "") {
+		errs = append(errs, fmt.Errorf("JWT_PREVIOUS_SECRET_KEY and JWT_PREVIOUS_KEY_ID must be configured together"))
+	}
+	if previousSecret != "" && len(previousSecret) < 32 {
+		errs = append(errs, fmt.Errorf("JWT_PREVIOUS_SECRET_KEY must contain at least 32 characters"))
+	}
+	if previousKeyID != "" && previousKeyID == strings.TrimSpace(c.JWTKeyID) {
+		errs = append(errs, fmt.Errorf("JWT_PREVIOUS_KEY_ID must differ from JWT_KEY_ID"))
+	}
+	if strings.TrimSpace(c.Auth.Issuer) == "" {
+		errs = append(errs, fmt.Errorf("JWT_ISSUER must not be empty"))
+	}
+	if strings.TrimSpace(c.Auth.Audience) == "" {
+		errs = append(errs, fmt.Errorf("JWT_AUDIENCE must not be empty"))
+	}
+	if c.Auth.AccessTokenTTL < time.Minute || c.Auth.AccessTokenTTL > time.Hour {
+		errs = append(errs, fmt.Errorf("JWT_ACCESS_TTL must be between 1m and 1h"))
+	}
+	if c.Auth.RefreshTokenTTL <= c.Auth.AccessTokenTTL || c.Auth.RefreshTokenTTL > 90*24*time.Hour {
+		errs = append(errs, fmt.Errorf("AUTH_REFRESH_TTL must be greater than JWT_ACCESS_TTL and no more than 2160h"))
+	}
+	if c.Auth.ClockSkew < 0 || c.Auth.ClockSkew > 5*time.Minute {
+		errs = append(errs, fmt.Errorf("JWT_CLOCK_SKEW must be between 0 and 5m"))
+	}
 
 	trustedProxies, err := parseTrustedProxies(c.HTTP.TrustedProxiesRaw)
 	if err != nil {

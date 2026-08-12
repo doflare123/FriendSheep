@@ -11,6 +11,7 @@ import (
 
 	"friendship/config"
 	"friendship/models"
+	"friendship/models/dto"
 	statsusers "friendship/models/stats_users"
 	"friendship/services/register"
 	session "friendship/sessions"
@@ -39,6 +40,29 @@ type fakeRegistrationStore struct {
 	changePasswordCalls []changePasswordCall
 	changePasswordID    uint
 	changePasswordErr   error
+}
+
+type fakeRegistrationAuthService struct {
+	issueResponse dto.AuthResponse
+	issueErr      error
+	issueUserIDs  []uint
+	revokeErr     error
+	revokeErrors  []error
+	revokeUserIDs []uint
+}
+
+func (f *fakeRegistrationAuthService) IssueTokens(_ context.Context, userID uint) (dto.AuthResponse, error) {
+	f.issueUserIDs = append(f.issueUserIDs, userID)
+	return f.issueResponse, f.issueErr
+}
+
+func (f *fakeRegistrationAuthService) RevokeAll(_ context.Context, userID uint) error {
+	f.revokeUserIDs = append(f.revokeUserIDs, userID)
+	callIndex := len(f.revokeUserIDs) - 1
+	if callIndex < len(f.revokeErrors) {
+		return f.revokeErrors[callIndex]
+	}
+	return f.revokeErr
 }
 
 type changePasswordCall struct {
@@ -84,6 +108,16 @@ func (f *fakeRegistrationEmailSender) SendWelcomeEmail(userEmail, userName strin
 func (f *fakeRegistrationStore) CreateUser(_ context.Context, bootstrap register.UserBootstrap) (register.RegisteredUser, error) {
 	f.createCalls = append(f.createCalls, bootstrap)
 	return f.createResult, f.createErr
+}
+
+func (f *fakeRegistrationStore) FindUserIDByEmail(_ context.Context, _ string) (uint, error) {
+	if f.changePasswordErr != nil {
+		return 0, f.changePasswordErr
+	}
+	if f.changePasswordID == 0 {
+		return 0, register.ErrUserNotFound
+	}
+	return f.changePasswordID, nil
 }
 
 func (f *fakeRegistrationStore) ChangePasswordByEmail(_ context.Context, email, hashedPassword string) (uint, error) {
@@ -674,7 +708,8 @@ func TestRegisterServiceChangePasswordDelegatesToStoreAndDeletesSession(t *testi
 		},
 	}
 	registrationStore := &fakeRegistrationStore{changePasswordID: 51}
-	service := newRegisterServiceForTest(t, sessions, registrationStore, nil)
+	auth := &fakeRegistrationAuthService{}
+	service := newRegisterServiceForTestWithAuth(t, sessions, registrationStore, auth, nil)
 
 	err := service.ChangePassword(context.Background(), register.ChangePasswordInput{
 		NewPassword: "NewPassword123!",
@@ -696,6 +731,69 @@ func TestRegisterServiceChangePasswordDelegatesToStoreAndDeletesSession(t *testi
 	}
 	if !sessions.deleted["verified-reset-session"] {
 		t.Fatal("reset-password session was not deleted after store success")
+	}
+	if len(auth.revokeUserIDs) != 2 || auth.revokeUserIDs[0] != 51 || auth.revokeUserIDs[1] != 51 {
+		t.Fatalf("RevokeAll user IDs = %#v, want [51 51]", auth.revokeUserIDs)
+	}
+}
+
+func TestRegisterServiceChangePasswordDoesNotWriteOrConsumeResetSessionWhenPreRevocationFails(t *testing.T) {
+	sessions := newFakeSessionStore()
+	sessions.sessions["verified-reset-session"] = &session.Session{
+		IsVerified: true,
+		Type:       models.SessionTypeResetPassword,
+		Extra: map[string]string{
+			"email": "user@example.com",
+		},
+	}
+	revokeErr := errors.New("auth session store unavailable")
+	registrationStore := &fakeRegistrationStore{changePasswordID: 51}
+	auth := &fakeRegistrationAuthService{revokeErr: revokeErr}
+	service := newRegisterServiceForTestWithAuth(t, sessions, registrationStore, auth, nil)
+
+	err := service.ChangePassword(context.Background(), register.ChangePasswordInput{
+		NewPassword: "NewPassword123!",
+		Email:       "user@example.com",
+		SessionID:   "verified-reset-session",
+	})
+	if !errors.Is(err, revokeErr) {
+		t.Fatalf("ChangePassword error = %v, want revocation error", err)
+	}
+	if len(registrationStore.changePasswordCalls) != 0 {
+		t.Fatalf("ChangePasswordByEmail calls = %d, want 0", len(registrationStore.changePasswordCalls))
+	}
+	if sessions.deleted["verified-reset-session"] {
+		t.Fatal("reset-password session was deleted before pre-change revocation succeeded")
+	}
+}
+
+func TestRegisterServiceChangePasswordConsumesResetSessionWhenPostRevocationFails(t *testing.T) {
+	sessions := newFakeSessionStore()
+	sessions.sessions["verified-reset-session"] = &session.Session{
+		IsVerified: true,
+		Type:       models.SessionTypeResetPassword,
+		Extra: map[string]string{
+			"email": "user@example.com",
+		},
+	}
+	postRevokeErr := errors.New("post-change auth session store failure")
+	registrationStore := &fakeRegistrationStore{changePasswordID: 51}
+	auth := &fakeRegistrationAuthService{revokeErrors: []error{nil, postRevokeErr}}
+	service := newRegisterServiceForTestWithAuth(t, sessions, registrationStore, auth, nil)
+
+	err := service.ChangePassword(context.Background(), register.ChangePasswordInput{
+		NewPassword: "NewPassword123!",
+		Email:       "user@example.com",
+		SessionID:   "verified-reset-session",
+	})
+	if !errors.Is(err, postRevokeErr) {
+		t.Fatalf("ChangePassword error = %v, want post-change revocation error", err)
+	}
+	if len(registrationStore.changePasswordCalls) != 1 {
+		t.Fatalf("ChangePasswordByEmail calls = %d, want 1", len(registrationStore.changePasswordCalls))
+	}
+	if !sessions.deleted["verified-reset-session"] {
+		t.Fatal("reset-password session remained reusable after password write")
 	}
 }
 
@@ -719,8 +817,8 @@ func TestRegisterServiceChangePasswordPreservesSessionWhenUserIsMissing(t *testi
 	if !errors.Is(err, register.ErrUserNotFound) {
 		t.Fatalf("err = %v, want ErrUserNotFound", err)
 	}
-	if len(registrationStore.changePasswordCalls) != 1 {
-		t.Fatalf("ChangePasswordByEmail calls = %d, want 1", len(registrationStore.changePasswordCalls))
+	if len(registrationStore.changePasswordCalls) != 0 {
+		t.Fatalf("ChangePasswordByEmail calls = %d, want 0 after missing-user lookup", len(registrationStore.changePasswordCalls))
 	}
 	if sessions.deleted["verified-reset-session"] {
 		t.Fatal("reset-password session was deleted after store failure")
@@ -731,6 +829,9 @@ func TestGORMRegistrationStoreChangePasswordMapsMissingUser(t *testing.T) {
 	db := newRegisterDB(t)
 	registrationStore := register.NewGORMRegistrationStore(&testPostgresRepository{db: db})
 
+	if _, err := registrationStore.FindUserIDByEmail(context.Background(), "missing@example.com"); !errors.Is(err, register.ErrUserNotFound) {
+		t.Fatalf("FindUserIDByEmail err = %v, want ErrUserNotFound", err)
+	}
 	_, err := registrationStore.ChangePasswordByEmail(context.Background(), "missing@example.com", mustHashPassword(t, "NewPassword123!"))
 	if !errors.Is(err, register.ErrUserNotFound) {
 		t.Fatalf("ChangePasswordByEmail err = %v, want ErrUserNotFound", err)
@@ -752,6 +853,13 @@ func TestGORMRegistrationStoreChangesPasswordAndReturnsUserID(t *testing.T) {
 
 	newHash := mustHashPassword(t, "NewPassword123!")
 	registrationStore := register.NewGORMRegistrationStore(&testPostgresRepository{db: db})
+	foundUserID, err := registrationStore.FindUserIDByEmail(context.Background(), user.Email)
+	if err != nil {
+		t.Fatalf("FindUserIDByEmail returned error: %v", err)
+	}
+	if foundUserID != user.ID {
+		t.Fatalf("FindUserIDByEmail userID = %d, want %d", foundUserID, user.ID)
+	}
 	userID, err := registrationStore.ChangePasswordByEmail(context.Background(), user.Email, newHash)
 	if err != nil {
 		t.Fatalf("ChangePasswordByEmail returned error: %v", err)
@@ -763,6 +871,16 @@ func TestGORMRegistrationStoreChangesPasswordAndReturnsUserID(t *testing.T) {
 }
 
 func newRegisterServiceForTest(t *testing.T, store *fakeSessionStore, registrationStore register.RegistrationStore, notifier *fakeRegistrationEmailSender) register.RegService {
+	t.Helper()
+	auth := &fakeRegistrationAuthService{issueResponse: dto.AuthResponse{
+		AccessToken:  "access-token",
+		RefreshToken: "session-id.opaque-refresh-secret",
+		AdminGroups:  []dto.AdminGroupResponse{},
+	}}
+	return newRegisterServiceForTestWithAuth(t, store, registrationStore, auth, notifier)
+}
+
+func newRegisterServiceForTestWithAuth(t *testing.T, store *fakeSessionStore, registrationStore register.RegistrationStore, auth register.RegistrationAuthService, notifier *fakeRegistrationEmailSender) register.RegService {
 	t.Helper()
 
 	if registrationStore == nil {
@@ -777,7 +895,7 @@ func newRegisterServiceForTest(t *testing.T, store *fakeSessionStore, registrati
 		store,
 		registrationStore,
 		&config.Config{},
-		utils.NewJWTUtils("test-secret"),
+		auth,
 		notifier,
 	)
 	return service

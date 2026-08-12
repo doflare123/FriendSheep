@@ -27,6 +27,12 @@ type rateLimitStoreCall struct {
 	window time.Duration
 }
 
+type alwaysActiveAuthSessionReader struct{}
+
+func (alwaysActiveAuthSessionReader) HasActiveSession(context.Context, string) (bool, error) {
+	return true, nil
+}
+
 type fakeRateLimitStore struct {
 	mu       sync.Mutex
 	calls    []rateLimitStoreCall
@@ -380,7 +386,7 @@ func TestAuthMiddlewareAppliesLimitOnlyAfterSuccessfulRequireAuth(t *testing.T) 
 	}
 	rateLimiter := NewRateLimitMiddleware(rateLimitTestLogger{}, store, "test-hash-secret")
 	jwtUtils := utils.NewJWTUtils("test-secret")
-	auth := NewAuthMiddleware(jwtUtils)
+	auth := NewAuthMiddleware(jwtUtils, alwaysActiveAuthSessionReader{})
 	auth.SetRateLimiter(rateLimiter)
 
 	router := gin.New()
@@ -396,11 +402,11 @@ func TestAuthMiddlewareAppliesLimitOnlyAfterSuccessfulRequireAuth(t *testing.T) 
 		t.Fatalf("unauthenticated request consumed user limit: %#v", calls)
 	}
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(42, "Alice", "alice", "")
+	accessToken, _, _, err := jwtUtils.GenerateAccessToken(42, "session-42")
 	if err != nil {
-		t.Fatalf("GenerateTokenPair: %v", err)
+		t.Fatalf("GenerateAccessToken: %v", err)
 	}
-	authenticated := performRateLimitRequest(router, http.MethodGet, "/protected", nil, "192.0.2.14:1001", "application/json", tokenPair.AccessToken)
+	authenticated := performRateLimitRequest(router, http.MethodGet, "/protected", nil, "192.0.2.14:1001", "application/json", accessToken)
 	if authenticated.Code != http.StatusTooManyRequests {
 		t.Fatalf("authenticated status = %d, want %d; body=%s", authenticated.Code, http.StatusTooManyRequests, authenticated.Body.String())
 	}
@@ -415,7 +421,7 @@ func TestAuthMiddlewareOptionalAuthUsesPerUserKeys(t *testing.T) {
 	store := newFakeRateLimitStore()
 	rateLimiter := NewRateLimitMiddleware(rateLimitTestLogger{}, store, "test-hash-secret")
 	jwtUtils := utils.NewJWTUtils("test-secret")
-	auth := NewAuthMiddleware(jwtUtils)
+	auth := NewAuthMiddleware(jwtUtils, alwaysActiveAuthSessionReader{})
 	auth.SetRateLimiter(rateLimiter)
 
 	router := gin.New()
@@ -433,11 +439,11 @@ func TestAuthMiddlewareOptionalAuthUsesPerUserKeys(t *testing.T) {
 
 	var keys []string
 	for _, userID := range []uint{51, 52} {
-		tokenPair, err := jwtUtils.GenerateTokenPair(userID, "User", "user"+strconv.FormatUint(uint64(userID), 10), "")
+		accessToken, _, _, err := jwtUtils.GenerateAccessToken(userID, "session-"+strconv.FormatUint(uint64(userID), 10))
 		if err != nil {
-			t.Fatalf("GenerateTokenPair(%d): %v", userID, err)
+			t.Fatalf("GenerateAccessToken(%d): %v", userID, err)
 		}
-		recorder := performRateLimitRequest(router, http.MethodGet, "/optional", nil, "192.0.2.15:1000", "", tokenPair.AccessToken)
+		recorder := performRateLimitRequest(router, http.MethodGet, "/optional", nil, "192.0.2.15:1000", "", accessToken)
 		if recorder.Code != http.StatusNoContent {
 			t.Fatalf("user %d status = %d, want %d; body=%s", userID, recorder.Code, http.StatusNoContent, recorder.Body.String())
 		}
@@ -463,7 +469,7 @@ func TestAuthenticatedRouteUsesNormalizedFullPathPolicyAfterRequireAuth(t *testi
 	}
 	rateLimiter := NewRateLimitMiddleware(rateLimitTestLogger{}, store, "test-hash-secret")
 	jwtUtils := utils.NewJWTUtils("test-secret")
-	auth := NewAuthMiddleware(jwtUtils)
+	auth := NewAuthMiddleware(jwtUtils, alwaysActiveAuthSessionReader{})
 	auth.SetRateLimiter(rateLimiter)
 
 	router := gin.New()
@@ -474,9 +480,9 @@ func TestAuthenticatedRouteUsesNormalizedFullPathPolicyAfterRequireAuth(t *testi
 		c.Status(http.StatusNoContent)
 	})
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(61, "Member", "member", "")
+	accessToken, _, _, err := jwtUtils.GenerateAccessToken(61, "session-61")
 	if err != nil {
-		t.Fatalf("GenerateTokenPair: %v", err)
+		t.Fatalf("GenerateAccessToken: %v", err)
 	}
 	recorder := performRateLimitRequest(
 		router,
@@ -485,7 +491,7 @@ func TestAuthenticatedRouteUsesNormalizedFullPathPolicyAfterRequireAuth(t *testi
 		nil,
 		"192.0.2.23:1000",
 		"",
-		tokenPair.AccessToken,
+		accessToken,
 	)
 	if recorder.Code != http.StatusTooManyRequests {
 		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusTooManyRequests, recorder.Body.String())

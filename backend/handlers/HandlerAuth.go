@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"friendship/services"
 	"friendship/utils"
 	"net/http"
@@ -11,6 +12,9 @@ import (
 type AuthHandler interface {
 	Login(c *gin.Context)
 	RefreshToken(c *gin.Context)
+	Logout(c *gin.Context)
+	LogoutAll(c *gin.Context)
+	Me(c *gin.Context)
 }
 
 type authHandler struct {
@@ -18,9 +22,7 @@ type authHandler struct {
 }
 
 func NewAuthHandler(srv services.AuthService) AuthHandler {
-	return &authHandler{
-		srv: srv,
-	}
+	return &authHandler{srv: srv}
 }
 
 type UserRequest struct {
@@ -29,141 +31,154 @@ type UserRequest struct {
 }
 
 type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
-}
-
-type AuthResponse struct {
-	AccessToken  string                        `json:"access_token"`
-	RefreshToken string                        `json:"refresh_token"`
-	AdminGroups  []services.AdminGroupResponse `json:"admin_groups"`
+	RefreshToken string `json:"refresh_token" binding:"required,max=256"`
 }
 
 // RefreshToken godoc
 // @Summary      Обновить токены авторизации
-// @Description  Принимает токен обновления и возвращает новую пару токенов доступа и обновления.
+// @Description  Одноразово ротирует opaque refresh-токен и возвращает новую пару токенов с актуальными данными me.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        refreshRequest  body      RefreshRequest    true  "Данные refresh-токена"
-// @Success      200             {object}  dto.AuthResponse  "Токены обновлены"
-// @Failure      400             {object}  dto.ErrorResponse "Отсутствует или некорректный refresh-токен"
-// @Failure      401             {object}  dto.ErrorResponse "Невалидный или истекший refresh-токен"
+// @Param        refreshRequest  body      RefreshRequest    true  "Opaque refresh-токен"
+// @Success      200             {object}  dto.AuthResponse
+// @Failure      400             {object}  dto.ErrorResponse
+// @Failure      401             {object}  dto.ErrorResponse
+// @Failure      503             {object}  dto.ErrorResponse
 // @Router       /api/v2/auth/refresh [post]
 func (h *authHandler) RefreshToken(c *gin.Context) {
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, "invalid_request", utils.WithMessage("Refresh токен обязателен"))
+		utils.BadRequest(c, "invalid_request", utils.WithMessage("Refresh-токен обязателен"))
 		return
 	}
 
-	authRes, err := h.srv.RefreshTokens(req.RefreshToken)
+	authRes, err := h.srv.RefreshTokens(c.Request.Context(), req.RefreshToken)
 	if err != nil {
-		utils.Unauthorized(c, "invalid_refresh_token", utils.WithMessage("Невалидный или истекший refresh токен"))
+		switch {
+		case errors.Is(err, services.ErrInvalidRefreshToken),
+			errors.Is(err, services.ErrRefreshTokenReplay),
+			errors.Is(err, services.ErrAuthSessionRevoked),
+			errors.Is(err, services.ErrAuthSessionNotFound):
+			utils.Unauthorized(c, "invalid_refresh_token", utils.WithMessage("Невалидный, истекший или уже использованный refresh-токен"))
+		default:
+			utils.JSONError(c, http.StatusServiceUnavailable, "authentication_unavailable", utils.WithMessage("Сервис авторизации временно недоступен"))
+		}
 		return
 	}
 
-	c.JSON(http.StatusOK, authRes)
+	writeAuthResponse(c, authRes)
 }
 
 // Login godoc
 // @Summary      Вход пользователя
-// @Description  Проверяет адрес электронной почты и пароль, затем возвращает токены доступа и обновления.
+// @Description  Проверяет email и пароль, создаёт серверную auth-сессию и возвращает access/refresh-токены с данными me.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
 // @Param        user  body      UserRequest       true  "Email и пароль"
-// @Success      200   {object}  dto.AuthResponse  "Токены созданы"
-// @Failure      400   {object}  dto.ErrorResponse "Некорректный JSON или ошибка валидации"
-// @Failure      401   {object}  dto.ErrorResponse "Ошибка аутентификации"
+// @Success      200   {object}  dto.AuthResponse
+// @Failure      400   {object}  dto.ErrorResponse
+// @Failure      401   {object}  dto.ErrorResponse
+// @Failure      503   {object}  dto.ErrorResponse
 // @Router       /api/v2/auth/login [post]
 func (h *authHandler) Login(c *gin.Context) {
 	var req UserRequest
-
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, "invalid_request", utils.WithMessage("Некорректный формат данных. Проверьте email и пароль"))
+		utils.BadRequest(c, "invalid_request", utils.WithMessage("Некорректный формат email или пароля"))
 		return
 	}
-	authRes, err := h.srv.Login(req.Email, req.Password)
 
+	authRes, err := h.srv.Login(c.Request.Context(), req.Email, req.Password)
 	if err != nil {
-		utils.Unauthorized(c, "authentication_failed", utils.WithMessage(err.Error()))
+		if errors.Is(err, services.ErrInvalidCredentials) {
+			utils.Unauthorized(c, "authentication_failed", utils.WithMessage("Неверный email или пароль"))
+			return
+		}
+		utils.JSONError(c, http.StatusServiceUnavailable, "authentication_unavailable", utils.WithMessage("Сервис авторизации временно недоступен"))
 		return
 	}
 
-	c.JSON(http.StatusOK, authRes)
+	writeAuthResponse(c, authRes)
 }
 
-// RequestPasswordReset godoc
-// Неактивный устаревший маршрут: /api/users/request-reset [post]
-// @Summary      Запросить сброс пароля
-// @Description  Запускает устаревший сценарий сброса пароля и возвращает метаданные сессии.
+// Logout godoc
+// @Summary      Завершить текущую auth-сессию
 // @Tags         auth
-// @Accept       json
+// @Security     BearerAuth
 // @Produce      json
-// @Param        input  body      services.ResetPasswordRequest  true  "Email пользователя"
-// @Success      200    {object}  models.SessionRegResponse
-// @Failure      400    {object}  dto.ErrorResponse
-func RequestPasswordReset(c *gin.Context) {
-	var input services.ResetPasswordRequest
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// @Success      204
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      503 {object} dto.ErrorResponse
+// @Router       /api/v2/auth/logout [post]
+func (h *authHandler) Logout(c *gin.Context) {
+	sessionID := c.GetString("authSessionID")
+	if sessionID == "" {
+		utils.Unauthorized(c, "missing_auth_session", utils.WithMessage("Сессия авторизации не найдена"))
 		return
 	}
-
-	resp, err := services.CreateSessionReset(input.Email)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := h.srv.RevokeCurrent(c.Request.Context(), sessionID); err != nil {
+		utils.JSONError(c, http.StatusServiceUnavailable, "authentication_unavailable", utils.WithMessage("Не удалось завершить сессию"))
 		return
 	}
-
-	c.JSON(http.StatusOK, resp)
+	c.Status(http.StatusNoContent)
 }
 
-// ConfirmPasswordReset godoc
-// Неактивный устаревший маршрут: /api/users/confirm-reset [post]
-// @Summary      Подтвердить сброс пароля
-// @Description  Завершает устаревший сценарий сброса пароля.
+// LogoutAll godoc
+// @Summary      Завершить все auth-сессии пользователя
 // @Tags         auth
-// @Accept       json
+// @Security     BearerAuth
 // @Produce      json
-// @Param        input  body      services.ConfirmResetPasswordInput  true  "Данные подтверждения сброса"
-// @Success      200    {object}  map[string]string
-// @Failure      400    {object}  dto.ErrorResponse
-func ConfirmPasswordReset(c *gin.Context) {
-	var input services.ConfirmResetPasswordInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// @Success      204
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      503 {object} dto.ErrorResponse
+// @Router       /api/v2/auth/logout-all [post]
+func (h *authHandler) LogoutAll(c *gin.Context) {
+	userID := c.GetUint("userID")
+	if userID == 0 {
+		utils.Unauthorized(c, "missing_authenticated_user", utils.WithMessage("Пользователь не авторизован"))
 		return
 	}
-
-	if err := services.ResetPassword(input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := h.srv.RevokeAll(c.Request.Context(), userID); err != nil {
+		utils.JSONError(c, http.StatusServiceUnavailable, "authentication_unavailable", utils.WithMessage("Не удалось завершить сессии"))
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Пароль успешно изменён"})
+	c.Status(http.StatusNoContent)
 }
 
-// GettingUserId godoc
-// Неактивный устаревший маршрут: /api/users/{us} [get]
-// @Summary      Получить пользователя по us
-// @Description  Исторический обработчик поиска пользователя оставлен только как закомментированная справка.
+// Me godoc
+// @Summary      Получить текущего пользователя
+// @Description  Возвращает актуальные данные профиля, которые не хранятся в access-токене.
 // @Tags         users
 // @Security     BearerAuth
-// @Accept       json
 // @Produce      json
-// @Param        us   path      string  true  "Значение поля us"
-// @Success      200  {object}  models.User
-// @Failure      400  {object}  dto.ErrorResponse
-// @Failure      404  {object}  dto.ErrorResponse
-// func GettingUserId(c *gin.Context) {
-// 	us := c.Param("us")
-//
-// 	user, err := services.FindUserByUs(us)
-// 	if err != nil {
-// 		c.JSON(404, gin.H{"error": "User not found"})
-// 		return
-// 	}
-//
-// 	c.JSON(200, user)
-// }
+// @Success      200 {object} dto.AuthMeResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /api/v2/user/me [get]
+func (h *authHandler) Me(c *gin.Context) {
+	userID := c.GetUint("userID")
+	if userID == 0 {
+		utils.Unauthorized(c, "missing_authenticated_user", utils.WithMessage("Пользователь не авторизован"))
+		return
+	}
+
+	me, err := h.srv.GetMe(c.Request.Context(), userID)
+	if err != nil {
+		if errors.Is(err, services.ErrAuthUserNotFound) {
+			utils.NotFound(c, "user_not_found", utils.WithMessage("Пользователь не найден"))
+			return
+		}
+		utils.InternalError(c, "user_lookup_failed", utils.WithMessage("Не удалось получить данные пользователя"))
+		return
+	}
+
+	c.JSON(http.StatusOK, me)
+}
+
+func writeAuthResponse(c *gin.Context, response any) {
+	c.Header("Cache-Control", "no-store")
+	c.Header("Pragma", "no-cache")
+	c.JSON(http.StatusOK, response)
+}

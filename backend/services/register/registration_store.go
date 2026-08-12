@@ -25,5 +25,6 @@ type RegisteredUser struct {
 // CreateUser должен атомарно создать пользователя и все обязательные начальные строки.
 type RegistrationStore interface {
 	CreateUser(ctx context.Context, input UserBootstrap) (RegisteredUser, error)
+	FindUserIDByEmail(ctx context.Context, email string) (uint, error)
 	ChangePasswordByEmail(ctx context.Context, email, hashedPassword string) (uint, error)
 }

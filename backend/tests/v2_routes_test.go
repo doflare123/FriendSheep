@@ -32,6 +32,10 @@ func (h *authRouteHandlerStub) RefreshToken(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+func (h *authRouteHandlerStub) Logout(c *gin.Context)    { c.Status(http.StatusNoContent) }
+func (h *authRouteHandlerStub) LogoutAll(c *gin.Context) { c.Status(http.StatusNoContent) }
+func (h *authRouteHandlerStub) Me(c *gin.Context)        { c.Status(http.StatusNoContent) }
+
 type regRouteHandlerStub struct {
 	called string
 }
@@ -227,7 +231,7 @@ func TestRegisterSubRoutesRequiresAuth(t *testing.T) {
 	handler := &subRouteHandlerStub{}
 	router := gin.New()
 	jwtUtils := utils.NewJWTUtils("test-secret")
-	routes.RegisterSubRoutes(router, handler, middlewares.NewAuthMiddleware(jwtUtils))
+	routes.RegisterSubRoutes(router, handler, middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true}))
 
 	rec := performRouteRequest(router, http.MethodPost, "/api/v2/sub/UploadImg", "")
 	if rec.Code != http.StatusUnauthorized {
@@ -238,12 +242,9 @@ func TestRegisterSubRoutesRequiresAuth(t *testing.T) {
 		t.Fatal("unauthenticated upload reached handler")
 	}
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(42, "Alex", "alex", "")
-	if err != nil {
-		t.Fatalf("GenerateTokenPair returned error: %v", err)
-	}
+	accessToken := mustAccessToken(t, 42, "session-42", jwtUtils)
 
-	rec = performRouteRequest(router, http.MethodPost, "/api/v2/sub/UploadImg", tokenPair.AccessToken)
+	rec = performRouteRequest(router, http.MethodPost, "/api/v2/sub/UploadImg", accessToken)
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("authenticated upload status = %d, want %d", rec.Code, http.StatusNoContent)
 	}
@@ -339,16 +340,13 @@ func TestRegisterEventsRoutesGroupEventsAllowsMemberRole(t *testing.T) {
 	repo, groupID, memberID := newGroupEventsRouteRepo(t, groupmodels.RoleMember, false)
 
 	router := gin.New()
-	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(repo)
 	routes.RegisterEventsRoutes(router, eventsHandler, &popularEventsRouteHandlerStub{}, authMiddleware, groupRoleMiddleware)
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(memberID, "Member", "member", "")
-	if err != nil {
-		t.Fatalf("GenerateTokenPair returned error: %v", err)
-	}
+	accessToken := mustAccessToken(t, memberID, "session-member", jwtUtils)
 
-	rec := performRouteRequest(router, http.MethodGet, "/api/v2/groups/events/"+testUintString(groupID)+"/events", tokenPair.AccessToken)
+	rec := performRouteRequest(router, http.MethodGet, "/api/v2/groups/events/"+testUintString(groupID)+"/events", accessToken)
 
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusNoContent, rec.Body.String())
@@ -366,16 +364,13 @@ func TestRegisterEventsRoutesGroupEventsAllowsNonMemberForPublicGroup(t *testing
 	repo, groupID, _ := newGroupEventsRouteRepo(t, groupmodels.RoleMember, false)
 
 	router := gin.New()
-	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(repo)
 	routes.RegisterEventsRoutes(router, eventsHandler, &popularEventsRouteHandlerStub{}, authMiddleware, groupRoleMiddleware)
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(9999, "Outsider", "outsider", "")
-	if err != nil {
-		t.Fatalf("GenerateTokenPair returned error: %v", err)
-	}
+	accessToken := mustAccessToken(t, 9999, "session-outsider", jwtUtils)
 
-	rec := performRouteRequest(router, http.MethodGet, "/api/v2/groups/events/"+testUintString(groupID)+"/events", tokenPair.AccessToken)
+	rec := performRouteRequest(router, http.MethodGet, "/api/v2/groups/events/"+testUintString(groupID)+"/events", accessToken)
 
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusNoContent, rec.Body.String())
@@ -393,16 +388,13 @@ func TestRegisterEventsRoutesGroupEventsPassesThroughToHandlerForPrivateGroup(t 
 	repo, groupID, _ := newGroupEventsRouteRepo(t, groupmodels.RoleMember, true)
 
 	router := gin.New()
-	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(repo)
 	routes.RegisterEventsRoutes(router, eventsHandler, &popularEventsRouteHandlerStub{}, authMiddleware, groupRoleMiddleware)
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(9999, "Outsider", "outsider", "")
-	if err != nil {
-		t.Fatalf("GenerateTokenPair returned error: %v", err)
-	}
+	accessToken := mustAccessToken(t, 9999, "session-outsider", jwtUtils)
 
-	rec := performRouteRequest(router, http.MethodGet, "/api/v2/groups/events/"+testUintString(groupID)+"/events", tokenPair.AccessToken)
+	rec := performRouteRequest(router, http.MethodGet, "/api/v2/groups/events/"+testUintString(groupID)+"/events", accessToken)
 
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusNoContent, rec.Body.String())
@@ -438,14 +430,11 @@ func TestRegisterEventsRoutesEventIDAdminEndpointsReachHandlerAfterAuth(t *testi
 	repo, eventID := newEventAdminRouteRepo(t, 42, "Админ")
 
 	router := gin.New()
-	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(repo)
 	routes.RegisterEventsRoutes(router, eventsHandler, &popularEventsRouteHandlerStub{}, authMiddleware, groupRoleMiddleware)
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(42, "Alex", "alex", "")
-	if err != nil {
-		t.Fatalf("GenerateTokenPair returned error: %v", err)
-	}
+	accessToken := mustAccessToken(t, 42, "session-42", jwtUtils)
 
 	tests := []struct {
 		name       string
@@ -462,7 +451,7 @@ func TestRegisterEventsRoutesEventIDAdminEndpointsReachHandlerAfterAuth(t *testi
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			eventsHandler.called = ""
-			rec := performRouteRequest(router, tt.method, tt.path, tokenPair.AccessToken)
+			rec := performRouteRequest(router, tt.method, tt.path, accessToken)
 			if rec.Code != http.StatusNoContent {
 				t.Fatalf("%s %s status = %d, want %d", tt.method, tt.path, rec.Code, http.StatusNoContent)
 			}
@@ -481,16 +470,13 @@ func TestRegisterEventsRoutesEventIDAdminEndpointsRejectNonAdminRole(t *testing.
 	repo, eventID := newEventAdminRouteRepo(t, 42, "Участник")
 
 	router := gin.New()
-	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(repo)
 	routes.RegisterEventsRoutes(router, eventsHandler, &popularEventsRouteHandlerStub{}, authMiddleware, groupRoleMiddleware)
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(42, "Alex", "alex", "")
-	if err != nil {
-		t.Fatalf("GenerateTokenPair returned error: %v", err)
-	}
+	accessToken := mustAccessToken(t, 42, "session-42", jwtUtils)
 
-	rec := performRouteRequest(router, http.MethodGet, "/api/v2/admin/events/"+testUintString(eventID), tokenPair.AccessToken)
+	rec := performRouteRequest(router, http.MethodGet, "/api/v2/admin/events/"+testUintString(eventID), accessToken)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
 	}
@@ -505,7 +491,7 @@ func TestRegisterGroupsRoutesRequireAuth(t *testing.T) {
 
 	router := gin.New()
 	jwtUtils := utils.NewJWTUtils("test-secret")
-	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(nil)
 	routes.RegisterGroupsRoutes(router, &groupRouteHandlerStub{}, authMiddleware, groupRoleMiddleware)
 
@@ -537,7 +523,7 @@ func TestRegisterUserGroupsRoutesManagedGroupsRequiresAuth(t *testing.T) {
 
 	handler := &groupRouteHandlerStub{}
 	router := gin.New()
-	authMiddleware := middlewares.NewAuthMiddleware(utils.NewJWTUtils("test-secret"))
+	authMiddleware := middlewares.NewAuthMiddleware(utils.NewJWTUtils("test-secret"), &authSessionReaderStub{active: true})
 	routes.RegisterUserGroupsRoutes(router, handler, authMiddleware)
 
 	rec := performRouteRequest(router, http.MethodGet, "/api/v2/users/me/groups/managed", "")
@@ -557,14 +543,11 @@ func TestRegisterUserGroupsRoutesManagedGroupsReachesHandlerAfterAuth(t *testing
 	handler := &groupRouteHandlerStub{}
 	jwtUtils := utils.NewJWTUtils("test-secret")
 	router := gin.New()
-	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 	routes.RegisterUserGroupsRoutes(router, handler, authMiddleware)
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(73, "Managed User", "managed-user", "")
-	if err != nil {
-		t.Fatalf("GenerateTokenPair returned error: %v", err)
-	}
-	rec := performRouteRequest(router, http.MethodGet, "/api/v2/users/me/groups/managed", tokenPair.AccessToken)
+	accessToken := mustAccessToken(t, 73, "session-73", jwtUtils)
+	rec := performRouteRequest(router, http.MethodGet, "/api/v2/users/me/groups/managed", accessToken)
 
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusNoContent, rec.Body.String())
@@ -579,7 +562,7 @@ func TestRegisterUserGroupsRoutesSubscriptionsRequiresAuth(t *testing.T) {
 
 	handler := &groupRouteHandlerStub{}
 	router := gin.New()
-	authMiddleware := middlewares.NewAuthMiddleware(utils.NewJWTUtils("test-secret"))
+	authMiddleware := middlewares.NewAuthMiddleware(utils.NewJWTUtils("test-secret"), &authSessionReaderStub{active: true})
 	routes.RegisterUserGroupsRoutes(router, handler, authMiddleware)
 
 	rec := performRouteRequest(router, http.MethodGet, "/api/v2/users/me/groups/subscriptions", "")
@@ -599,14 +582,11 @@ func TestRegisterUserGroupsRoutesSubscriptionsReachesHandlerAfterAuth(t *testing
 	handler := &groupRouteHandlerStub{}
 	jwtUtils := utils.NewJWTUtils("test-secret")
 	router := gin.New()
-	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 	routes.RegisterUserGroupsRoutes(router, handler, authMiddleware)
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(73, "Subscribed User", "subscribed-user", "")
-	if err != nil {
-		t.Fatalf("GenerateTokenPair returned error: %v", err)
-	}
-	rec := performRouteRequest(router, http.MethodGet, "/api/v2/users/me/groups/subscriptions?page=2&limit=10", tokenPair.AccessToken)
+	accessToken := mustAccessToken(t, 73, "session-73", jwtUtils)
+	rec := performRouteRequest(router, http.MethodGet, "/api/v2/users/me/groups/subscriptions?page=2&limit=10", accessToken)
 
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusNoContent, rec.Body.String())
@@ -624,16 +604,13 @@ func TestRegisterGroupsRoutesRequestIDActionsRequireOperatorRole(t *testing.T) {
 	repo, requestID := newGroupJoinRequestRouteRepo(t, 42, "Админ")
 
 	router := gin.New()
-	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(repo)
 	routes.RegisterGroupsRoutes(router, groupHandler, authMiddleware, groupRoleMiddleware)
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(42, "Alex", "alex", "")
-	if err != nil {
-		t.Fatalf("GenerateTokenPair returned error: %v", err)
-	}
+	accessToken := mustAccessToken(t, 42, "session-42", jwtUtils)
 
-	rec := performRouteRequest(router, http.MethodPost, "/api/v2/groups/requests/"+testUintString(requestID)+"/approve", tokenPair.AccessToken)
+	rec := performRouteRequest(router, http.MethodPost, "/api/v2/groups/requests/"+testUintString(requestID)+"/approve", accessToken)
 
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusNoContent, rec.Body.String())
@@ -651,16 +628,13 @@ func TestRegisterGroupsRoutesRequestIDActionsRejectPlainMemberBeforeHandler(t *t
 	repo, requestID := newGroupJoinRequestRouteRepo(t, 42, "Участник")
 
 	router := gin.New()
-	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(repo)
 	routes.RegisterGroupsRoutes(router, groupHandler, authMiddleware, groupRoleMiddleware)
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(42, "Alex", "alex", "")
-	if err != nil {
-		t.Fatalf("GenerateTokenPair returned error: %v", err)
-	}
+	accessToken := mustAccessToken(t, 42, "session-42", jwtUtils)
 
-	rec := performRouteRequest(router, http.MethodPost, "/api/v2/groups/requests/"+testUintString(requestID)+"/reject", tokenPair.AccessToken)
+	rec := performRouteRequest(router, http.MethodPost, "/api/v2/groups/requests/"+testUintString(requestID)+"/reject", accessToken)
 
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusForbidden, rec.Body.String())
@@ -679,16 +653,13 @@ func TestRegisterGroupsRoutesRequestIDActionsReturnNotFoundBeforeHandler(t *test
 	repo, _ := newGroupJoinRequestRouteRepo(t, 42, "Админ")
 
 	router := gin.New()
-	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(repo)
 	routes.RegisterGroupsRoutes(router, groupHandler, authMiddleware, groupRoleMiddleware)
 
-	tokenPair, err := jwtUtils.GenerateTokenPair(42, "Alex", "alex", "")
-	if err != nil {
-		t.Fatalf("GenerateTokenPair returned error: %v", err)
-	}
+	accessToken := mustAccessToken(t, 42, "session-42", jwtUtils)
 
-	rec := performRouteRequest(router, http.MethodPost, "/api/v2/groups/requests/999/reject", tokenPair.AccessToken)
+	rec := performRouteRequest(router, http.MethodPost, "/api/v2/groups/requests/999/reject", accessToken)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusNotFound, rec.Body.String())
@@ -702,7 +673,7 @@ func TestRegisterGroupsRoutesRequestIDActionsReturnNotFoundBeforeHandler(t *test
 func newEventsTestRouter(eventsHandler *eventsRouteHandlerStub, popularHandler *popularEventsRouteHandlerStub) *gin.Engine {
 	router := gin.New()
 	jwtUtils := utils.NewJWTUtils("test-secret")
-	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(nil)
 	routes.RegisterEventsRoutes(router, eventsHandler, popularHandler, authMiddleware, groupRoleMiddleware)
 	return router

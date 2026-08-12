@@ -67,9 +67,9 @@ func TestImportantAuthenticatedRoutesHaveStrictRateLimitPolicy(t *testing.T) {
 	}
 
 	jwtUtils := utils.NewJWTUtils("rate-limit-route-test-secret")
-	tokenPair, err := jwtUtils.GenerateTokenPair(42, "Alice", "alice", "")
+	accessToken, _, _, err := jwtUtils.GenerateAccessToken(42, "session-42")
 	if err != nil {
-		t.Fatalf("GenerateTokenPair: %v", err)
+		t.Fatalf("GenerateAccessToken: %v", err)
 	}
 
 	for _, tt := range tests {
@@ -81,7 +81,7 @@ func TestImportantAuthenticatedRoutesHaveStrictRateLimitPolicy(t *testing.T) {
 				"rate-limit-key-secret",
 				config.DefaultRateLimitConfig(),
 			)
-			authMiddleware := middlewares.NewAuthMiddleware(jwtUtils)
+			authMiddleware := middlewares.NewAuthMiddleware(jwtUtils, &authSessionReaderStub{active: true})
 			authMiddleware.SetRateLimiter(rateLimiter)
 			groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(nil)
 
@@ -95,7 +95,7 @@ func TestImportantAuthenticatedRoutesHaveStrictRateLimitPolicy(t *testing.T) {
 				groupRoleMiddleware,
 			)
 
-			recorder := performRouteRequest(router, tt.method, tt.path, tokenPair.AccessToken)
+			recorder := performRouteRequest(router, tt.method, tt.path, accessToken)
 			if recorder.Code != http.StatusTooManyRequests {
 				t.Fatalf(
 					"%s %s status = %d, want %d for policy %s; body=%s",

@@ -1,6 +1,8 @@
 package tests
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"friendship/models"
@@ -64,7 +66,7 @@ func TestGORMAuthRepositoryFindsUserAndAdminGroups(t *testing.T) {
 
 	repo := services.NewGORMAuthRepository(&testPostgresRepository{db: db})
 
-	authUser, err := repo.FindAuthUserByEmail("user@example.com")
+	authUser, err := repo.FindAuthUserByEmail(context.Background(), "user@example.com")
 	if err != nil {
 		t.Fatalf("FindAuthUserByEmail returned error: %v", err)
 	}
@@ -72,7 +74,7 @@ func TestGORMAuthRepositoryFindsUserAndAdminGroups(t *testing.T) {
 		t.Fatalf("FindAuthUserByEmail returned %#v, want user id/name/password", authUser)
 	}
 
-	authUser, err = repo.FindAuthUserByID(user.ID)
+	authUser, err = repo.FindAuthUserByID(context.Background(), user.ID)
 	if err != nil {
 		t.Fatalf("FindAuthUserByID returned error: %v", err)
 	}
@@ -80,7 +82,7 @@ func TestGORMAuthRepositoryFindsUserAndAdminGroups(t *testing.T) {
 		t.Fatalf("FindAuthUserByID returned %#v, want us/image", authUser)
 	}
 
-	adminGroups, err := repo.GetAuthAdminGroups(user.ID)
+	adminGroups, err := repo.GetAuthAdminGroups(context.Background(), user.ID)
 	if err != nil {
 		t.Fatalf("GetAuthAdminGroups returned error: %v", err)
 	}
@@ -103,6 +105,16 @@ func TestGORMAuthRepositoryFindsUserAndAdminGroups(t *testing.T) {
 	}
 	if len(gotGroup.Category) != 1 || gotGroup.Category[0] == nil || *gotGroup.Category[0] != category.Name {
 		t.Fatalf("admin group category = %#v, want %s", gotGroup.Category, category.Name)
+	}
+}
+
+func TestGORMAuthRepositoryMapsMissingUsers(t *testing.T) {
+	repo := services.NewGORMAuthRepository(&testPostgresRepository{db: newAuthRepositoryDB(t)})
+	if _, err := repo.FindAuthUserByEmail(context.Background(), "missing@example.com"); !errors.Is(err, services.ErrAuthUserNotFound) {
+		t.Fatalf("FindAuthUserByEmail error = %v, want ErrAuthUserNotFound", err)
+	}
+	if _, err := repo.FindAuthUserByID(context.Background(), 999); !errors.Is(err, services.ErrAuthUserNotFound) {
+		t.Fatalf("FindAuthUserByID error = %v, want ErrAuthUserNotFound", err)
 	}
 }
 

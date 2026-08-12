@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"friendship/models/dto"
 	"net/http"
 
 	"friendship/services/register"
@@ -109,7 +110,7 @@ func (h *regHandler) VerifySession(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param input body register.CreateUserInput true "Данные для создания пользователя"
-// @Success 201 {object} map[string]string
+// @Success 201 {object} dto.RegistrationAuthResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 403 {object} dto.ErrorResponse
 // @Failure 404 {object} dto.ErrorResponse
@@ -141,11 +142,11 @@ func (h *regHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message":       "Пользователь успешно зарегистрирован",
-		"access_token":  authResponse.AccessToken,
-		"refresh_token": authResponse.RefreshToken,
-		"admin_groups":  authResponse.AdminGroups,
+	c.Header("Cache-Control", "no-store")
+	c.Header("Pragma", "no-cache")
+	c.JSON(http.StatusCreated, dto.RegistrationAuthResponse{
+		Message:      "Пользователь успешно зарегистрирован",
+		AuthResponse: *authResponse,
 	})
 }
 

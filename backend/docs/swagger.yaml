@@ -29,6 +29,17 @@ definitions:
       type:
         type: string
     type: object
+  dto.AuthMeResponse:
+    properties:
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      us:
+        type: string
+    type: object
   dto.AuthResponse:
     properties:
       access_token:
@@ -37,7 +48,15 @@ definitions:
         items:
           $ref: '#/definitions/dto.AdminGroupResponse'
         type: array
+      expires_in:
+        example: 1200
+        type: integer
+      me:
+        $ref: '#/definitions/dto.AuthMeResponse'
       refresh_token:
+        type: string
+      token_type:
+        example: Bearer
         type: string
     type: object
   dto.CachedPopularEvents:
@@ -507,6 +526,27 @@ definitions:
           $ref: '#/definitions/dto.ReferenceItemDto'
         type: array
     type: object
+  dto.RegistrationAuthResponse:
+    properties:
+      access_token:
+        type: string
+      admin_groups:
+        items:
+          $ref: '#/definitions/dto.AdminGroupResponse'
+        type: array
+      expires_in:
+        example: 1200
+        type: integer
+      me:
+        $ref: '#/definitions/dto.AuthMeResponse'
+      message:
+        type: string
+      refresh_token:
+        type: string
+      token_type:
+        example: Bearer
+        type: string
+    type: object
   dto.SubscribedGroupsResponseDto:
     properties:
       hasMore:
@@ -808,6 +848,7 @@ definitions:
   handlers.RefreshRequest:
     properties:
       refresh_token:
+        maxLength: 256
         type: string
     required:
     - refresh_token
@@ -985,19 +1026,6 @@ definitions:
       user_id:
         type: integer
     type: object
-  services.ConfirmResetPasswordInput:
-    properties:
-      email:
-        type: string
-      password:
-        type: string
-      session_id:
-        type: string
-    required:
-    - email
-    - password
-    - session_id
-    type: object
   services.CreateCommentInput:
     properties:
       text:
@@ -1114,13 +1142,6 @@ definitions:
         type: integer
       total:
         type: integer
-    type: object
-  services.ResetPasswordRequest:
-    properties:
-      email:
-        type: string
-    required:
-    - email
     type: object
 info:
   contact: {}
@@ -1322,8 +1343,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Проверяет адрес электронной почты и пароль, затем возвращает токены
-        доступа и обновления.
+      description: Проверяет email и пароль, создаёт серверную auth-сессию и возвращает
+        access/refresh-токены с данными me.
       parameters:
       - description: Email и пароль
         in: body
@@ -1335,28 +1356,72 @@ paths:
       - application/json
       responses:
         "200":
-          description: Токены созданы
+          description: OK
           schema:
             $ref: '#/definitions/dto.AuthResponse'
         "400":
-          description: Некорректный JSON или ошибка валидации
+          description: Bad Request
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Ошибка аутентификации
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: Service Unavailable
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Вход пользователя
+      tags:
+      - auth
+  /api/v2/auth/logout:
+    post:
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Завершить текущую auth-сессию
+      tags:
+      - auth
+  /api/v2/auth/logout-all:
+    post:
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Завершить все auth-сессии пользователя
       tags:
       - auth
   /api/v2/auth/refresh:
     post:
       consumes:
       - application/json
-      description: Принимает токен обновления и возвращает новую пару токенов доступа
-        и обновления.
+      description: Одноразово ротирует opaque refresh-токен и возвращает новую пару
+        токенов с актуальными данными me.
       parameters:
-      - description: Данные refresh-токена
+      - description: Opaque refresh-токен
         in: body
         name: refreshRequest
         required: true
@@ -1366,15 +1431,19 @@ paths:
       - application/json
       responses:
         "200":
-          description: Токены обновлены
+          description: OK
           schema:
             $ref: '#/definitions/dto.AuthResponse'
         "400":
-          description: Отсутствует или некорректный refresh-токен
+          description: Bad Request
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Невалидный или истекший refresh-токен
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: Service Unavailable
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Обновить токены авторизации
@@ -2536,9 +2605,7 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.RegistrationAuthResponse'
         "400":
           description: Bad Request
           schema:
@@ -2704,6 +2771,33 @@ paths:
       summary: Загрузка фотографии
       tags:
       - sub_func
+  /api/v2/user/me:
+    get:
+      description: Возвращает актуальные данные профиля, которые не хранятся в access-токене.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AuthMeResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить текущего пользователя
+      tags:
+      - users
   /api/v2/users/me/groups/managed:
     get:
       description: Возвращает группы текущего пользователя, разделённые на блоки администратора

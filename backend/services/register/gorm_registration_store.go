@@ -96,6 +96,17 @@ func (s *gormRegistrationStore) ChangePasswordByEmail(ctx context.Context, email
 	return user.ID, nil
 }
 
+func (s *gormRegistrationStore) FindUserIDByEmail(ctx context.Context, email string) (uint, error) {
+	var user models.User
+	if err := s.db.Model(&models.User{}).WithContext(ctx).Select("id").Where("email = ?", email).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, ErrUserNotFound
+		}
+		return 0, err
+	}
+	return user.ID, nil
+}
+
 func isRegistrationUniqueViolation(err error) bool {
 	if errors.Is(err, gorm.ErrDuplicatedKey) {
 		return true

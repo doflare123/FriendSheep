@@ -52,18 +52,23 @@ type RegService interface {
 	ChangePassword(ctx context.Context, input ChangePasswordInput) error
 }
 
+type RegistrationAuthService interface {
+	IssueTokens(ctx context.Context, userID uint) (dto.AuthResponse, error)
+	RevokeAll(ctx context.Context, userID uint) error
+}
+
 type registrationEmailSender interface {
 	SendVerificationEmail(userEmail, code, actionType string) error
 	SendWelcomeEmail(userEmail, userName string) error
 }
 
 type regService struct {
-	logger     logger.Logger
-	redis      session.SessionStore
-	cfg        *config.Config
-	store      RegistrationStore
-	jwtService *utils.JWTUtils
-	notifier   registrationEmailSender
+	logger   logger.Logger
+	redis    session.SessionStore
+	cfg      *config.Config
+	store    RegistrationStore
+	auth     RegistrationAuthService
+	notifier registrationEmailSender
 }
 
 func NewRegisterSrv(
@@ -71,7 +76,7 @@ func NewRegisterSrv(
 	redis session.SessionStore,
 	store RegistrationStore,
 	cfg *config.Config,
-	jwtService *utils.JWTUtils,
+	auth RegistrationAuthService,
 ) (RegService, error) {
 	emailManager, err := email.NewEmailTemplateManager()
 	if err != nil {
@@ -83,7 +88,7 @@ func NewRegisterSrv(
 		redis,
 		store,
 		cfg,
-		jwtService,
+		auth,
 		&templateRegistrationEmailSender{
 			logger:       logger,
 			cfg:          cfg,
@@ -97,16 +102,16 @@ func NewRegisterSrvWithEmailSender(
 	redis session.SessionStore,
 	store RegistrationStore,
 	cfg *config.Config,
-	jwtService *utils.JWTUtils,
+	auth RegistrationAuthService,
 	notifier registrationEmailSender,
 ) RegService {
 	return &regService{
-		logger:     logger,
-		redis:      redis,
-		cfg:        cfg,
-		store:      store,
-		jwtService: jwtService,
-		notifier:   notifier,
+		logger:   logger,
+		redis:    redis,
+		cfg:      cfg,
+		store:    store,
+		auth:     auth,
+		notifier: notifier,
 	}
 }
 
@@ -152,21 +157,18 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 
 	s.logger.Info("Пользователь успешно создан", "userID", user.ID, "email", user.Email)
 
-	tokenPair, err := s.jwtService.GenerateTokenPair(user.ID, user.Name, user.Username, user.Image)
+	if s.auth == nil {
+		return nil, fmt.Errorf("пользователь создан, но сервис авторизации не настроен")
+	}
+	authResponse, err := s.auth.IssueTokens(ctx, user.ID)
 	if err != nil {
 		s.logger.Error("Не удалось сгенерировать токены после регистрации", "userID", user.ID, "error", err)
 		return nil, fmt.Errorf("пользователь создан, но не удалось сгенерировать токены: %w", err)
 	}
 
-	authResponse := &dto.AuthResponse{
-		AccessToken:  tokenPair.AccessToken,
-		RefreshToken: tokenPair.RefreshToken,
-		AdminGroups:  []dto.AdminGroupResponse{},
-	}
-
 	s.logger.Info("Пользователь автоматически авторизован после регистрации", "userID", user.ID)
 
-	return authResponse, nil
+	return &authResponse, nil
 }
 
 func (s *regService) CreateSessionRegister(ctx context.Context, email, type_ses string) (*models.SessionRegResponse, error) {
@@ -362,7 +364,28 @@ func (s *regService) ChangePassword(ctx context.Context, input ChangePasswordInp
 		return fmt.Errorf("ошибка хэширования пароля: %w", err)
 	}
 
-	userID, err := s.store.ChangePasswordByEmail(ctx, boundEmail, hashPass)
+	userID, err := s.store.FindUserIDByEmail(ctx, boundEmail)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return ErrUserNotFound
+		}
+		return err
+	}
+	if s.auth == nil {
+		return fmt.Errorf("сервис отзыва авторизации не настроен")
+	}
+
+	if err := s.auth.RevokeAll(ctx, userID); err != nil {
+		s.logger.Error("Не удалось отозвать auth сессии перед сменой пароля", "userID", userID, "error", err)
+		return fmt.Errorf("не удалось завершить активные сессии перед сменой пароля: %w", err)
+	}
+
+	if err := s.redis.DeleteSession(ctx, input.SessionID); err != nil {
+		s.logger.Error("Не удалось поглотить reset-сессию перед сменой пароля", "sessionID", input.SessionID, "error", err)
+		return fmt.Errorf("не удалось завершить reset-сессию: %w", err)
+	}
+
+	changedUserID, err := s.store.ChangePasswordByEmail(ctx, boundEmail, hashPass)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			s.logger.Warn("Пользователь для смены пароля не найден", "email", boundEmail)
@@ -371,9 +394,13 @@ func (s *regService) ChangePassword(ctx context.Context, input ChangePasswordInp
 		s.logger.Error("Не удалось обновить пароль пользователя", "email", boundEmail, "error", err)
 		return err
 	}
+	if changedUserID != userID {
+		return fmt.Errorf("идентификатор пользователя изменился во время смены пароля")
+	}
 
-	if err := s.redis.DeleteSession(ctx, input.SessionID); err != nil {
-		s.logger.Warn("Не удалось удалить сессию после смены пароля", "sessionID", input.SessionID, "error", err)
+	if err := s.auth.RevokeAll(ctx, userID); err != nil {
+		s.logger.Error("Не удалось отозвать auth сессии после смены пароля", "userID", userID, "error", err)
+		return fmt.Errorf("пароль изменён, но не удалось завершить активные сессии: %w", err)
 	}
 
 	s.logger.Info("Пароль успешно изменен", "userID", userID, "email", boundEmail)

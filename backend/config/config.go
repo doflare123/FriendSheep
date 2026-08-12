@@ -1,8 +1,12 @@
 package config
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -12,6 +16,10 @@ type Config struct {
 	EnableStartupSQLMigrations bool            `mapstructure:"ENABLE_STARTUP_SQL_MIGRATIONS"`
 	ServerPort                 string          `mapstructure:"PORT"`
 	JWTSecretKey               string          `mapstructure:"SECRET_KEY_JWT"`
+	JWTKeyID                   string          `mapstructure:"JWT_KEY_ID"`
+	JWTPreviousSecretKey       string          `mapstructure:"JWT_PREVIOUS_SECRET_KEY"`
+	JWTPreviousKeyID           string          `mapstructure:"JWT_PREVIOUS_KEY_ID"`
+	Auth                       AuthConfig      `mapstructure:",squash"`
 	LogLevel                   string          `mapstructure:"LOG_LEVEL"`
 	HTTP                       HTTPConfig      `mapstructure:",squash"`
 	RateLimit                  RateLimitConfig `mapstructure:",squash"`
@@ -24,6 +32,20 @@ type Config struct {
 	S3 S3Storage `mapstructure:",squash"`
 
 	Upload Upload `mapstructure:",squash"`
+}
+
+type AuthConfig struct {
+	Issuer          string        `mapstructure:"JWT_ISSUER"`
+	Audience        string        `mapstructure:"JWT_AUDIENCE"`
+	AccessTokenTTL  time.Duration `mapstructure:"JWT_ACCESS_TTL"`
+	RefreshTokenTTL time.Duration `mapstructure:"AUTH_REFRESH_TTL"`
+	ClockSkew       time.Duration `mapstructure:"JWT_CLOCK_SKEW"`
+}
+
+func (c Config) DerivedRateLimitHashSecret() string {
+	mac := hmac.New(sha256.New, []byte(c.JWTSecretKey))
+	_, _ = mac.Write([]byte("friendSheep/rate-limit/v1"))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
 type EmailConfig struct {

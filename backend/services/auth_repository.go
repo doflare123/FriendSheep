@@ -1,6 +1,8 @@
 package services
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"friendship/models/dto"
 	groupmodels "friendship/models/groups"
@@ -22,9 +24,9 @@ type AuthUser struct {
 }
 
 type AuthUserAdminGroupRepository interface {
-	FindAuthUserByEmail(email string) (AuthUser, error)
-	FindAuthUserByID(id uint) (AuthUser, error)
-	GetAuthAdminGroups(userID uint) ([]dto.AdminGroupResponse, error)
+	FindAuthUserByEmail(ctx context.Context, email string) (AuthUser, error)
+	FindAuthUserByID(ctx context.Context, id uint) (AuthUser, error)
+	GetAuthAdminGroups(ctx context.Context, userID uint) ([]dto.AdminGroupResponse, error)
 }
 
 type AuthGORMStore interface {
@@ -64,30 +66,36 @@ func NewGORMAuthRepository(db AuthGORMStore) AuthUserAdminGroupRepository {
 	return &gormAuthRepository{db: db}
 }
 
-func (r *gormAuthRepository) FindAuthUserByEmail(email string) (AuthUser, error) {
+func (r *gormAuthRepository) FindAuthUserByEmail(ctx context.Context, email string) (AuthUser, error) {
 	var user authUserRecord
-	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := r.db.Where("email = ?", email).WithContext(ctx).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return AuthUser{}, ErrAuthUserNotFound
+		}
 		return AuthUser{}, err
 	}
 	return authUserFromRecord(user), nil
 }
 
-func (r *gormAuthRepository) FindAuthUserByID(id uint) (AuthUser, error) {
+func (r *gormAuthRepository) FindAuthUserByID(ctx context.Context, id uint) (AuthUser, error) {
 	var user authUserRecord
-	if err := r.db.Where("id = ?", id).First(&user).Error; err != nil {
+	if err := r.db.Where("id = ?", id).WithContext(ctx).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return AuthUser{}, ErrAuthUserNotFound
+		}
 		return AuthUser{}, err
 	}
 	return authUserFromRecord(user), nil
 }
 
-func (r *gormAuthRepository) GetAuthAdminGroups(userID uint) ([]dto.AdminGroupResponse, error) {
+func (r *gormAuthRepository) GetAuthAdminGroups(ctx context.Context, userID uint) ([]dto.AdminGroupResponse, error) {
 	if userID == 0 {
 		return nil, fmt.Errorf("некорректный ID пользователя")
 	}
 
 	var adminGroups []dto.AdminGroupResponse
 
-	err := r.db.Model(&authGroupRecord{}).
+	err := r.db.Model(&authGroupRecord{}).WithContext(ctx).
 		Select(
 			"groups.id, groups.name, groups.image, groups.small_description, CASE WHEN groups.is_private THEN ? ELSE ? END as type, COUNT(DISTINCT gu2.user_id) as member_count, rig.name as role",
 			authPrivateGroupType,
@@ -114,7 +122,7 @@ func (r *gormAuthRepository) GetAuthAdminGroups(userID uint) ([]dto.AdminGroupRe
 			continue
 		}
 
-		categories, err := r.loadGroupCategories(*adminGroups[i].ID)
+		categories, err := r.loadGroupCategories(ctx, *adminGroups[i].ID)
 		if err != nil {
 			return nil, fmt.Errorf("ошибка при получении категорий для группы %d: %w", *adminGroups[i].ID, err)
 		}
@@ -125,10 +133,10 @@ func (r *gormAuthRepository) GetAuthAdminGroups(userID uint) ([]dto.AdminGroupRe
 	return filteredGroups, nil
 }
 
-func (r *gormAuthRepository) loadGroupCategories(groupID uint) ([]*string, error) {
+func (r *gormAuthRepository) loadGroupCategories(ctx context.Context, groupID uint) ([]*string, error) {
 	var categoryNames []string
 
-	err := r.db.Model(&authCategoryRecord{}).
+	err := r.db.Model(&authCategoryRecord{}).WithContext(ctx).
 		Select("categories.name").
 		Joins("JOIN group_group_categories ON group_group_categories.group_category_id = categories.id").
 		Where("group_group_categories.group_id = ?", groupID).

@@ -311,7 +311,7 @@ const docTemplate = `{
         },
         "/api/v2/auth/login": {
             "post": {
-                "description": "Проверяет адрес электронной почты и пароль, затем возвращает токены доступа и обновления.",
+                "description": "Проверяет email и пароль, создаёт серверную auth-сессию и возвращает access/refresh-токены с данными me.",
                 "consumes": [
                     "application/json"
                 ],
@@ -335,19 +335,91 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Токены созданы",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.AuthResponse"
                         }
                     },
                     "400": {
-                        "description": "Некорректный JSON или ошибка валидации",
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Ошибка аутентификации",
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Завершить текущую auth-сессию",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/auth/logout-all": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Завершить все auth-сессии пользователя",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -357,7 +429,7 @@ const docTemplate = `{
         },
         "/api/v2/auth/refresh": {
             "post": {
-                "description": "Принимает токен обновления и возвращает новую пару токенов доступа и обновления.",
+                "description": "Одноразово ротирует opaque refresh-токен и возвращает новую пару токенов с актуальными данными me.",
                 "consumes": [
                     "application/json"
                 ],
@@ -370,7 +442,7 @@ const docTemplate = `{
                 "summary": "Обновить токены авторизации",
                 "parameters": [
                     {
-                        "description": "Данные refresh-токена",
+                        "description": "Opaque refresh-токен",
                         "name": "refreshRequest",
                         "in": "body",
                         "required": true,
@@ -381,19 +453,25 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Токены обновлены",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.AuthResponse"
                         }
                     },
                     "400": {
-                        "description": "Отсутствует или некорректный refresh-токен",
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Невалидный или истекший refresh-токен",
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -2157,10 +2235,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.RegistrationAuthResponse"
                         }
                     },
                     "400": {
@@ -2410,6 +2485,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v2/user/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает актуальные данные профиля, которые не хранятся в access-токене.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Получить текущего пользователя",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AuthMeResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v2/users/me/groups/managed": {
             "get": {
                 "security": [
@@ -2563,6 +2681,23 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.AuthMeResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "us": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.AuthResponse": {
             "type": "object",
             "properties": {
@@ -2575,8 +2710,19 @@ const docTemplate = `{
                         "$ref": "#/definitions/dto.AdminGroupResponse"
                     }
                 },
+                "expires_in": {
+                    "type": "integer",
+                    "example": 1200
+                },
+                "me": {
+                    "$ref": "#/definitions/dto.AuthMeResponse"
+                },
                 "refresh_token": {
                     "type": "string"
+                },
+                "token_type": {
+                    "type": "string",
+                    "example": "Bearer"
                 }
             }
         },
@@ -3283,6 +3429,37 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.RegistrationAuthResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "admin_groups": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminGroupResponse"
+                    }
+                },
+                "expires_in": {
+                    "type": "integer",
+                    "example": 1200
+                },
+                "me": {
+                    "$ref": "#/definitions/dto.AuthMeResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "token_type": {
+                    "type": "string",
+                    "example": "Bearer"
+                }
+            }
+        },
         "dto.SubscribedGroupsResponseDto": {
             "type": "object",
             "properties": {
@@ -3707,7 +3884,8 @@ const docTemplate = `{
             ],
             "properties": {
                 "refresh_token": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 256
                 }
             }
         },
@@ -3968,25 +4146,6 @@ const docTemplate = `{
                 }
             }
         },
-        "services.ConfirmResetPasswordInput": {
-            "type": "object",
-            "required": [
-                "email",
-                "password",
-                "session_id"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "session_id": {
-                    "type": "string"
-                }
-            }
-        },
         "services.CreateCommentInput": {
             "type": "object",
             "required": [
@@ -4162,17 +4321,6 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
-                }
-            }
-        },
-        "services.ResetPasswordRequest": {
-            "type": "object",
-            "required": [
-                "email"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
                 }
             }
         }

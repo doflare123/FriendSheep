@@ -2,6 +2,7 @@ package routes
 
 import (
 	"friendship/handlers"
+	"friendship/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,11 +17,28 @@ import (
 // 	}
 // }
 
-func RegisterAuthRoutes(r *gin.Engine, authH handlers.AuthHandler) {
+func RegisterAuthRoutes(r *gin.Engine, authH handlers.AuthHandler, authMiddleware ...*middlewares.AuthMiddleware) {
 	auth := r.Group("api/v2/auth")
 	{
 		auth.POST("/login", authH.Login)
 		auth.POST("/refresh", authH.RefreshToken)
+	}
+
+	if len(authMiddleware) == 0 || authMiddleware[0] == nil {
+		return
+	}
+
+	protectedAuth := r.Group("api/v2/auth")
+	protectedAuth.Use(authMiddleware[0].RequireAuth())
+	{
+		protectedAuth.POST("/logout", authH.Logout)
+		protectedAuth.POST("/logout-all", authH.LogoutAll)
+	}
+
+	user := r.Group("api/v2/user")
+	user.Use(authMiddleware[0].RequireAuth())
+	{
+		user.GET("/me", authH.Me)
 	}
 }
 

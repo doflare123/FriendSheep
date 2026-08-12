@@ -30,6 +30,7 @@ type Server struct {
 	postgres             repository.PostgresRepository
 	S3                   storage.S3Storage
 	mongo                repository.MongoRepository
+	redis                repository.RedisRepository
 	sessionStore         session.SessionStore
 	validators           *validator.Validator
 	cfg                  config.Config
@@ -95,7 +96,7 @@ func InitServer() (*Server, error) {
 	rateLimiter := middlewares.NewRateLimitMiddlewareWithConfig(
 		logger,
 		middlewares.NewRedisRateLimitStore(redis),
-		conf.JWTSecretKey,
+		conf.DerivedRateLimitHashSecret(),
 		conf.RateLimit,
 	)
 	hasSQLMigrations, err := discoverStartupMigrationAssets(conf.AppEnv, db.HasMigrationSource)
@@ -265,6 +266,7 @@ func InitServer() (*Server, error) {
 		postgres:             postgres,
 		S3:                   s3_storege,
 		mongo:                mongo,
+		redis:                redis,
 		sessionStore:         sessionStore,
 		cfg:                  *conf,
 		validators:           validator,

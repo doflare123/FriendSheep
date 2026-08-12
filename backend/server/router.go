@@ -14,19 +14,35 @@ import (
 )
 
 func (s *Server) initRouters() {
-	// jwt
-	jwtService := utils.NewJWTUtils(s.cfg.JWTSecretKey)
-	jwtMiddleware := middlewares.NewAuthMiddleware(jwtService)
+	verificationKeys := map[string]string{}
+	if s.cfg.JWTPreviousKeyID != "" && s.cfg.JWTPreviousSecretKey != "" {
+		verificationKeys[s.cfg.JWTPreviousKeyID] = s.cfg.JWTPreviousSecretKey
+	}
+	jwtService := utils.NewJWTUtilsWithConfig(s.cfg.JWTSecretKey, utils.JWTConfig{
+		Issuer:           s.cfg.Auth.Issuer,
+		Audience:         s.cfg.Auth.Audience,
+		KeyID:            s.cfg.JWTKeyID,
+		VerificationKeys: verificationKeys,
+		AccessTTL:        s.cfg.Auth.AccessTokenTTL,
+		ClockSkew:        s.cfg.Auth.ClockSkew,
+	})
+	authSessionStore, err := services.NewRedisAuthSessionStore(s.redis, services.AuthSessionStoreConfig{
+		RefreshTTL: s.cfg.Auth.RefreshTokenTTL,
+	})
+	if err != nil {
+		s.logger.Fatal("Failed to create auth session store", "error", err)
+	}
+	jwtMiddleware := middlewares.NewAuthMiddleware(jwtService, authSessionStore)
 	jwtMiddleware.SetRateLimiter(s.rateLimiter)
 
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(s.postgres)
 
 	//регистрация и авторизация
-	authsrv := services.NewAuthService(s.logger, jwtService, s.postgres)
+	authsrv := services.NewAuthService(s.logger, jwtService, s.postgres, authSessionStore)
 	authH := handlers.NewAuthHandler(authsrv)
-	routes.RegisterAuthRoutes(s.engine, authH)
+	routes.RegisterAuthRoutes(s.engine, authH, jwtMiddleware)
 	registrationStore := register.NewGORMRegistrationStore(s.postgres)
-	regsrv, err := register.NewRegisterSrv(s.logger, s.sessionStore, registrationStore, &s.cfg, jwtService)
+	regsrv, err := register.NewRegisterSrv(s.logger, s.sessionStore, registrationStore, &s.cfg, authsrv)
 	if err != nil {
 		s.logger.Fatal("Failed to create register service", "error", err)
 	}
