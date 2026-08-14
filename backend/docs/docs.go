@@ -992,7 +992,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.EventShortDto"
+                                "$ref": "#/definitions/dto.EventSearchItemDto"
                             }
                         }
                     },
@@ -2850,7 +2850,7 @@ const docTemplate = `{
                 "events": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.EventShortDto"
+                        "$ref": "#/definitions/dto.EventSearchItemDto"
                     }
                 },
                 "updated_at": {
@@ -2902,7 +2902,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "address": {
-                    "description": "Дополнительная информация (из MongoDB)",
+                    "description": "Дополнительная информация",
                     "type": "string"
                 },
                 "ageLimit": {
@@ -2933,7 +2933,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "customFields": {
-                    "description": "Произвольные поля (из CustomFields)",
+                    "description": "Произвольные поля",
                     "type": "object",
                     "additionalProperties": true
                 },
@@ -3048,7 +3048,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "address": {
-                    "description": "Дополнительная информация (из MongoDB)",
+                    "description": "Дополнительная информация",
                     "type": "string"
                 },
                 "ageLimit": {
@@ -3073,7 +3073,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "customFields": {
-                    "description": "Произвольные поля (из CustomFields)",
+                    "description": "Произвольные поля",
                     "type": "object",
                     "additionalProperties": true
                 },
@@ -3164,6 +3164,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "image": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 }
@@ -3172,8 +3175,14 @@ const docTemplate = `{
         "dto.EventSearchItemDto": {
             "type": "object",
             "properties": {
+                "ageLimit": {
+                    "type": "string"
+                },
                 "city": {
                     "type": "string"
+                },
+                "currentUsers": {
+                    "type": "integer"
                 },
                 "duration": {
                     "type": "integer"
@@ -3202,10 +3211,10 @@ const docTemplate = `{
                 "maxUsers": {
                     "type": "integer"
                 },
-                "currentUsers": {
-                    "type": "integer"
+                "startTime": {
+                    "type": "string"
                 },
-                "startDate": {
+                "status": {
                     "type": "string"
                 },
                 "subscribed": {
@@ -3239,68 +3248,6 @@ const docTemplate = `{
                 },
                 "totalPages": {
                     "type": "integer"
-                }
-            }
-        },
-        "dto.EventShortDto": {
-            "type": "object",
-            "properties": {
-                "ageLimit": {
-                    "description": "Возрастное ограничение",
-                    "type": "string"
-                },
-                "currentUsers": {
-                    "type": "integer"
-                },
-                "duration": {
-                    "description": "Длительность в минутах",
-                    "type": "integer"
-                },
-                "eventId": {
-                    "description": "ID события (дублирует ID для удобства)",
-                    "type": "integer"
-                },
-                "eventType": {
-                    "description": "Название типа события",
-                    "type": "integer"
-                },
-                "genres": {
-                    "description": "Список названий жанров",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "groupId": {
-                    "description": "ID группы",
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "imageUrl": {
-                    "type": "string"
-                },
-                "location": {
-                    "description": "Название места проведения (онлайн/оффлайн)",
-                    "type": "integer"
-                },
-                "maxUsers": {
-                    "type": "integer"
-                },
-                "startTime": {
-                    "description": "Дата и время начала",
-                    "type": "string"
-                },
-                "status": {
-                    "description": "Статус события",
-                    "type": "string"
-                },
-                "subscribed": {
-                    "type": "boolean"
-                },
-                "title": {
-                    "type": "string"
                 }
             }
         },
@@ -3354,7 +3301,7 @@ const docTemplate = `{
                     "description": "События в стадии набора",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.EventShortDto"
+                        "$ref": "#/definitions/dto.EventSearchItemDto"
                     }
                 },
                 "categories": {

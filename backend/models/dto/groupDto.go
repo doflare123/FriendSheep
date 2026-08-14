@@ -23,7 +23,7 @@ type GroupFullDto struct {
 	Members []GroupMemberDto `json:"members"`
 
 	// События в стадии набора
-	ActiveEvents []EventShortDto `json:"activeEvents"`
+	ActiveEvents []EventSearchItemDto `json:"activeEvents"`
 
 	// Флаги для пользователя
 	IsSubscribed bool   `json:"isSubscribed"`

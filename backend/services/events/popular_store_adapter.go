@@ -64,7 +64,7 @@ func (s *gormPopularEventsStore) ListTopPopularEvents(ctx context.Context, now t
 
 	groupIDs := make([]uint, 0, len(records))
 	for _, record := range records {
-		groupIDs = append(groupIDs, record.GroupID)
+		groupIDs = append(groupIDs, record.Group.ID)
 	}
 
 	var ownerRows []ownerRow
@@ -84,7 +84,7 @@ func (s *gormPopularEventsStore) ListTopPopularEvents(ctx context.Context, now t
 	}
 
 	for i := range records {
-		if owner, ok := ownersByGroupID[records[i].GroupID]; ok {
+		if owner, ok := ownersByGroupID[records[i].Group.ID]; ok {
 			records[i].OwnerEmail = owner.Email
 			records[i].OwnerUserID = owner.CreatorID
 			records[i].GroupName = owner.GroupName
@@ -107,23 +107,29 @@ func mapPopularEventRecord(eventModel eventmodels.Event) PopularEventRecord {
 
 	return PopularEventRecord{
 		PopularEventView: PopularEventView{
-			ID:           eventModel.ID,
-			Title:        eventModel.Title,
-			ImageURL:     eventModel.ImageURL,
-			MaxUsers:     eventModel.MaxUsers,
+			ID:    eventModel.ID,
+			Title: eventModel.Title,
+			Group: PopularEventGroupView{
+				ID:         eventModel.Group.ID,
+				Name:       eventModel.Group.Name,
+				Image:      eventModel.Group.Image,
+				Enterprise: eventModel.Group.Enterprise,
+			},
+			Image:        eventModel.ImageURL,
 			CurrentUsers: eventModel.CurrentUsers,
-			EventType:    eventModel.EventType.ID,
-			LocationType: eventModel.EventLocation.ID,
-			AgeLimit:     eventModel.AgeLimit.Name,
-			Genres:       genres,
-			StartTime:    eventModel.StartTime,
+			MaxUsers:     eventModel.MaxUsers,
 			Duration:     eventModel.Duration,
-			EventID:      eventModel.ID,
-			GroupID:      eventModel.GroupID,
+			StartTime:    eventModel.StartTime,
+			EventType:    eventModel.EventType.Name,
+			LocationType: eventModel.EventLocation.Name,
+			AgeLimit:     eventModel.AgeLimit.Name,
 			Status:       eventModel.Status.Name,
+			City:         eventModel.Group.City,
+			Genres:       genres,
 			Subscribed:   false,
 		},
 		GroupName:      eventModel.Group.Name,
 		PopularityRate: popularityRate,
+		StartTime:      eventModel.StartTime,
 	}
 }

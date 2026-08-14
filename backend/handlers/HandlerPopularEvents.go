@@ -62,23 +62,28 @@ func popularEventsSnapshotToDTO(snapshot *events.PopularEventsSnapshot) dto.Cach
 		return result
 	}
 
-	result.Events = make([]dto.EventShortDto, len(snapshot.Events))
+	result.Events = make([]dto.EventSearchItemDto, len(snapshot.Events))
 	for i, item := range snapshot.Events {
-		result.Events[i] = dto.EventShortDto{
-			ID:           item.ID,
-			Title:        item.Title,
-			ImageURL:     item.ImageURL,
-			MaxUsers:     item.MaxUsers,
+		result.Events[i] = dto.EventSearchItemDto{
+			ID:    item.ID,
+			Title: item.Title,
+			Group: dto.EventSearchGroupDto{
+				ID:         item.Group.ID,
+				Name:       item.Group.Name,
+				Image:      item.Group.Image,
+				Enterprise: item.Group.Enterprise,
+			},
+			Image:        item.Image,
 			CurrentUsers: item.CurrentUsers,
+			MaxUsers:     item.MaxUsers,
+			Duration:     item.Duration,
+			StartTime:    item.StartTime,
 			EventType:    item.EventType,
 			LocationType: item.LocationType,
 			AgeLimit:     item.AgeLimit,
-			Genres:       append([]string(nil), item.Genres...),
-			StartTime:    item.StartTime,
-			Duration:     item.Duration,
-			EventID:      item.EventID,
-			GroupID:      item.GroupID,
 			Status:       item.Status,
+			City:         item.City,
+			Genres:       append([]string(nil), item.Genres...),
 			Subscribed:   item.Subscribed,
 		}
 	}

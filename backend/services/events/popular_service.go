@@ -11,10 +11,12 @@ import (
 )
 
 const (
-	PopularEventsCacheKey = "popular_events:top10"
-	CacheExpiration       = 6 * time.Hour
-	TopEventsLimit        = 10
-	popularEventsCronSpec = "0 */6 * * *"
+	PopularEventsCacheKey         = "popular_events:v3:top10"
+	previousPopularEventsCacheKey = "popular_events:v2:top10"
+	legacyPopularEventsCacheKey   = "popular_events:top10"
+	CacheExpiration               = 6 * time.Hour
+	TopEventsLimit                = 10
+	popularEventsCronSpec         = "0 */6 * * *"
 )
 
 type popularEventsService struct {
@@ -159,6 +161,12 @@ func (s *popularEventsService) updateCache(ctx context.Context) error {
 
 func (s *popularEventsService) getPreviousPopularEventIDs(ctx context.Context) []uint {
 	snapshot, err := s.cache.Get(ctx, PopularEventsCacheKey)
+	if errors.Is(err, ErrPopularEventsCacheMiss) {
+		snapshot, err = s.cache.Get(ctx, previousPopularEventsCacheKey)
+	}
+	if errors.Is(err, ErrPopularEventsCacheMiss) {
+		snapshot, err = s.cache.Get(ctx, legacyPopularEventsCacheKey)
+	}
 	if err != nil || snapshot == nil {
 		return []uint{}
 	}

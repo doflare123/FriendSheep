@@ -292,9 +292,10 @@ func (s gormGroupManagementReadStore) listGroupMembers(ctx context.Context, grou
 	return members, nil
 }
 
-func (s gormGroupManagementReadStore) listActiveGroupEvents(ctx context.Context, groupID uint, userID uint) ([]dto.EventShortDto, error) {
+func (s gormGroupManagementReadStore) listActiveGroupEvents(ctx context.Context, groupID uint, userID uint) ([]dto.EventSearchItemDto, error) {
 	var activeEvents []events.Event
 	err := s.store.
+		Preload("Group").
 		Preload("EventType").
 		Preload("EventLocation").
 		Preload("Status").
@@ -310,7 +311,7 @@ func (s gormGroupManagementReadStore) listActiveGroupEvents(ctx context.Context,
 		return nil, fmt.Errorf("list active group events: %w", err)
 	}
 
-	return convertorsdto.ConvertManyToShortDtoForUser(activeEvents, userID), nil
+	return convertorsdto.ConvertManyToSearchItemDtoForUser(activeEvents, userID), nil
 }
 
 func (s gormGroupManagementReadStore) findUserGroupSubscription(ctx context.Context, groupID uint, userID uint) (bool, string, error) {

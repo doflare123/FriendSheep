@@ -82,6 +82,13 @@ func TestGORMPopularEventsStoreFiltersRanksLimitsAndLoadsOwnerMetadata(t *testin
 			records[index].OwnerUserID != 701 {
 			t.Fatalf("record %d owner metadata = group:%q email:%q user:%d", index, records[index].GroupName, records[index].OwnerEmail, records[index].OwnerUserID)
 		}
+		if records[index].Group.ID != publicGroupID || records[index].Group.Name != "Public Popular Group" ||
+			records[index].Group.Image != "https://example.com/group.png" ||
+			records[index].EventType != "Game" || records[index].LocationType != "Offline" ||
+			records[index].AgeLimit != "18+" || records[index].Status != "Набор" ||
+			records[index].StartTime.IsZero() || records[index].Subscribed {
+			t.Fatalf("record %d shared search fields = %#v", index, records[index].PopularEventView)
+		}
 	}
 	if records[0].PopularityRate != 0.9 ||
 		records[1].PopularityRate != 0.8 ||

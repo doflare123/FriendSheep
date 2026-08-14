@@ -305,7 +305,7 @@ func (h *eventsHandler) KickUserFromEvent(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        groupId  path      int               true  "ID группы"
-// @Success      200      {array}   dto.EventShortDto "События группы"
+// @Success      200      {array}   dto.EventSearchItemDto "События группы"
 // @Failure      401      {object}  dto.ErrorResponse "Требуется авторизация"
 // @Failure      403      {object}  dto.ErrorResponse "Требуется участие в группе"
 // @Router       /api/v2/groups/events/{groupId}/events [get]

@@ -41,6 +41,8 @@ func (s *gormEventReadStore) SearchEvents(ctx context.Context, query EventSearch
 		Preload("Group").
 		Preload("EventType").
 		Preload("EventLocation").
+		Preload("AgeLimit").
+		Preload("Status").
 		Preload("Genres.Genre")
 	if query.ViewerID != 0 {
 		itemsQuery = itemsQuery.Preload("Users", "user_id = ?", query.ViewerID)
@@ -68,14 +70,14 @@ func (s *gormEventReadStore) GetGroupEvents(ctx context.Context, query EventGrou
 	}
 	if !found {
 		return EventGroupEventsView{
-			Items: []EventShortView{},
+			Items: []EventSearchItemView{},
 		}, nil
 	}
 
 	view := EventGroupEventsView{
 		GroupFound:   true,
 		GroupPrivate: group.IsPrivate,
-		Items:        []EventShortView{},
+		Items:        []EventSearchItemView{},
 	}
 
 	if group.IsPrivate {
@@ -92,6 +94,7 @@ func (s *gormEventReadStore) GetGroupEvents(ctx context.Context, query EventGrou
 	eventQuery := s.repo.
 		Model(&eventmodels.Event{}).
 		WithContext(normalizeReadContext(ctx)).
+		Preload("Group").
 		Preload("EventType").
 		Preload("EventLocation").
 		Preload("AgeLimit").
@@ -108,7 +111,7 @@ func (s *gormEventReadStore) GetGroupEvents(ctx context.Context, query EventGrou
 		return EventGroupEventsView{}, fmt.Errorf("ошибка получения событий: %w", err)
 	}
 
-	view.Items = mapShortEvents(foundEvents, query.ViewerID)
+	view.Items = mapSearchEvents(foundEvents, query.ViewerID)
 	return view, nil
 }
 
@@ -309,6 +312,7 @@ func mapSearchEvents(items []eventmodels.Event, viewerID uint) []EventSearchItem
 			Group: EventReadGroupView{
 				ID:         item.Group.ID,
 				Name:       item.Group.Name,
+				Image:      item.Group.Image,
 				Enterprise: item.Group.Enterprise,
 				City:       item.Group.City,
 			},
@@ -319,31 +323,10 @@ func mapSearchEvents(items []eventmodels.Event, viewerID uint) []EventSearchItem
 			StartTime:        item.StartTime,
 			EventType:        item.EventType.Name,
 			LocationType:     item.EventLocation.Name,
+			AgeLimit:         item.AgeLimit.Name,
+			Status:           item.Status.Name,
 			City:             item.Group.City,
 			Genres:           eventGenresToNames(item.Genres),
-			ViewerSubscribed: eventHasViewerSubscription(item.Users, viewerID),
-		})
-	}
-	return result
-}
-
-func mapShortEvents(items []eventmodels.Event, viewerID uint) []EventShortView {
-	result := make([]EventShortView, 0, len(items))
-	for _, item := range items {
-		result = append(result, EventShortView{
-			ID:               item.ID,
-			Title:            item.Title,
-			ImageURL:         item.ImageURL,
-			MaxUsers:         item.MaxUsers,
-			CurrentUsers:     item.CurrentUsers,
-			EventTypeID:      item.EventType.ID,
-			LocationTypeID:   item.EventLocation.ID,
-			AgeLimit:         item.AgeLimit.Name,
-			Genres:           eventGenresToNames(item.Genres),
-			StartTime:        item.StartTime,
-			Duration:         item.Duration,
-			GroupID:          item.GroupID,
-			Status:           item.Status.Name,
 			ViewerSubscribed: eventHasViewerSubscription(item.Users, viewerID),
 		})
 	}

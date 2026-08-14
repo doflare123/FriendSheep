@@ -74,6 +74,8 @@ type EventSearchItemView struct {
 	StartTime        time.Time
 	EventType        string
 	LocationType     string
+	AgeLimit         string
+	Status           string
 	City             string
 	Genres           []string
 	ViewerSubscribed bool
@@ -83,24 +85,7 @@ type EventGroupEventsView struct {
 	GroupFound          bool
 	GroupPrivate        bool
 	ViewerIsGroupMember bool
-	Items               []EventShortView
-}
-
-type EventShortView struct {
-	ID               uint
-	Title            string
-	ImageURL         string
-	MaxUsers         uint16
-	CurrentUsers     uint16
-	EventTypeID      uint
-	LocationTypeID   uint
-	AgeLimit         string
-	Genres           []string
-	StartTime        time.Time
-	Duration         uint16
-	GroupID          uint
-	Status           string
-	ViewerSubscribed bool
+	Items               []EventSearchItemView
 }
 
 type EventDetailsView struct {

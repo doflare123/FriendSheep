@@ -5,7 +5,7 @@ import (
 	"friendship/models/groups"
 )
 
-func ConvertToGroupFullDto(group groups.Group, totalMembers int64, members []dto.GroupMemberDto, activeEvents []dto.EventShortDto, isSubscribed bool, userRole string) *dto.GroupFullDto {
+func ConvertToGroupFullDto(group groups.Group, totalMembers int64, members []dto.GroupMemberDto, activeEvents []dto.EventSearchItemDto, isSubscribed bool, userRole string) *dto.GroupFullDto {
 	categories := make([]string, 0, len(group.Categories))
 	for _, cat := range group.Categories {
 		categories = append(categories, cat.Name)

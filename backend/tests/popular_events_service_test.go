@@ -59,16 +59,17 @@ type popularEventsCacheSetCall struct {
 }
 
 type popularEventsCacheStub struct {
-	mu       sync.Mutex
-	snapshot *servicesevents.PopularEventsSnapshot
-	getErr   error
-	getErrs  []error
-	setErr   error
-	getCalls int
-	getCtxs  []context.Context
-	getKeys  []string
-	setCalls []popularEventsCacheSetCall
-	setCh    chan struct{}
+	mu             sync.Mutex
+	snapshot       *servicesevents.PopularEventsSnapshot
+	snapshotsByKey map[string]*servicesevents.PopularEventsSnapshot
+	getErr         error
+	getErrs        []error
+	setErr         error
+	getCalls       int
+	getCtxs        []context.Context
+	getKeys        []string
+	setCalls       []popularEventsCacheSetCall
+	setCh          chan struct{}
 }
 
 func (c *popularEventsCacheStub) Get(ctx context.Context, key string) (*servicesevents.PopularEventsSnapshot, error) {
@@ -87,6 +88,15 @@ func (c *popularEventsCacheStub) Get(ctx context.Context, key string) (*services
 	}
 	if c.getErr != nil {
 		return nil, c.getErr
+	}
+	if c.snapshotsByKey != nil {
+		snapshot := c.snapshotsByKey[key]
+		if snapshot == nil {
+			return nil, servicesevents.ErrPopularEventsCacheMiss
+		}
+
+		cloned := clonePopularEventsTestSnapshot(*snapshot)
+		return &cloned, nil
 	}
 	if c.snapshot == nil {
 		return nil, servicesevents.ErrPopularEventsCacheMiss
@@ -238,7 +248,6 @@ func TestPopularEventsServiceCacheMissRefreshesSynchronouslyAndReturnsStoredSnap
 	store := &popularEventsStoreStub{records: []servicesevents.PopularEventRecord{{
 		PopularEventView: servicesevents.PopularEventView{
 			ID:        21,
-			EventID:   21,
 			Title:     "Fresh event",
 			StartTime: now.Add(24 * time.Hour),
 			Genres:    []string{"Quest"},
@@ -266,8 +275,8 @@ func TestPopularEventsServiceCacheMissRefreshesSynchronouslyAndReturnsStoredSnap
 		t.Fatalf("ranking call = calls:%d ctx:%v now:%v limit:%d", storeCalls, storeCtx, storeNow, limit)
 	}
 	getCalls, getCtxs, getKeys, setCalls := cache.callsSnapshot()
-	if getCalls != 4 {
-		t.Fatalf("cache get calls = %d, want 4 (miss, locked recheck, previous IDs, post-refresh read)", getCalls)
+	if getCalls != 6 {
+		t.Fatalf("cache get calls = %d, want 6 (miss, locked recheck, v3/v2/legacy previous IDs, post-refresh read)", getCalls)
 	}
 	if len(setCalls) != 1 {
 		t.Fatalf("cache set calls = %d, want 1", len(setCalls))
@@ -276,7 +285,14 @@ func TestPopularEventsServiceCacheMissRefreshesSynchronouslyAndReturnsStoredSnap
 		if getCtx != ctx {
 			t.Fatalf("cache get context %d was not the request context", index)
 		}
-		if getKeys[index] != servicesevents.PopularEventsCacheKey {
+		wantKey := servicesevents.PopularEventsCacheKey
+		if index == 3 {
+			wantKey = "popular_events:v2:top10"
+		}
+		if index == 4 {
+			wantKey = "popular_events:top10"
+		}
+		if getKeys[index] != wantKey {
 			t.Fatalf("cache get key %d = %q", index, getKeys[index])
 		}
 	}
@@ -291,9 +307,8 @@ func TestPopularEventsServiceConcurrentCacheMissesShareOneRefresh(t *testing.T) 
 	store := &popularEventsStoreStub{
 		records: []servicesevents.PopularEventRecord{{
 			PopularEventView: servicesevents.PopularEventView{
-				ID:      22,
-				EventID: 22,
-				Title:   "Shared refresh",
+				ID:    22,
+				Title: "Shared refresh",
 			},
 		}},
 		callCh:  make(chan struct{}, 1),
@@ -391,9 +406,8 @@ func TestPopularEventsServiceUpdateCacheWritesExactSnapshotTTLAndNotifications(t
 		{
 			PopularEventView: servicesevents.PopularEventView{
 				ID:           40,
-				EventID:      40,
 				Title:        "Already popular",
-				GroupID:      4,
+				Group:        servicesevents.PopularEventGroupView{ID: 4, Name: "Existing group"},
 				CurrentUsers: 8,
 				MaxUsers:     10,
 				StartTime:    now.Add(24 * time.Hour),
@@ -402,31 +416,33 @@ func TestPopularEventsServiceUpdateCacheWritesExactSnapshotTTLAndNotifications(t
 			GroupName:   "Existing group",
 			OwnerEmail:  "existing@example.com",
 			OwnerUserID: 400,
+			StartTime:   now.Add(24 * time.Hour),
 		},
 		{
 			PopularEventView: servicesevents.PopularEventView{
 				ID:           41,
-				EventID:      41,
 				Title:        "Newly popular",
-				GroupID:      5,
+				Group:        servicesevents.PopularEventGroupView{ID: 5, Name: "New group"},
 				CurrentUsers: 9,
 				MaxUsers:     10,
 				StartTime:    now.Add(48 * time.Hour),
 				Genres:       []string{"New"},
+				Subscribed:   true,
 			},
 			GroupName:   "New group",
 			OwnerEmail:  "owner@example.com",
 			OwnerUserID: 500,
+			StartTime:   now.Add(48 * time.Hour),
 		},
 		{
 			PopularEventView: servicesevents.PopularEventView{
 				ID:        42,
-				EventID:   42,
 				Title:     "No recipient",
-				GroupID:   6,
+				Group:     servicesevents.PopularEventGroupView{ID: 6, Name: "No-mail group"},
 				StartTime: now.Add(72 * time.Hour),
 			},
 			GroupName: "No-mail group",
+			StartTime: now.Add(72 * time.Hour),
 		},
 	}
 	store := &popularEventsStoreStub{records: records}
@@ -482,6 +498,64 @@ func TestPopularEventsServiceUpdateCacheWritesExactSnapshotTTLAndNotifications(t
 	}}
 	if !reflect.DeepEqual(notifications, wantNotifications) {
 		t.Fatalf("notifications = %#v, want %#v", notifications, wantNotifications)
+	}
+}
+
+func TestPopularEventsServiceUsesPreviousCacheIDsDuringV3Cutover(t *testing.T) {
+	now := time.Date(2034, 6, 7, 8, 9, 10, 0, time.UTC)
+	previous := servicesevents.PopularEventsSnapshot{
+		Events: []servicesevents.PopularEventView{{ID: 81}},
+		Count:  1,
+	}
+
+	tests := []struct {
+		name        string
+		fallbackKey string
+		wantGetKeys []string
+	}{
+		{
+			name:        "v2 snapshot",
+			fallbackKey: "popular_events:v2:top10",
+			wantGetKeys: []string{"popular_events:v3:top10", "popular_events:v2:top10"},
+		},
+		{
+			name:        "legacy snapshot",
+			fallbackKey: "popular_events:top10",
+			wantGetKeys: []string{"popular_events:v3:top10", "popular_events:v2:top10", "popular_events:top10"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &popularEventsStoreStub{records: []servicesevents.PopularEventRecord{{
+				PopularEventView: servicesevents.PopularEventView{ID: 81, Title: "Already popular"},
+				OwnerEmail:       "owner@example.com",
+			}}}
+			cache := &popularEventsCacheStub{snapshotsByKey: map[string]*servicesevents.PopularEventsSnapshot{
+				tt.fallbackKey: &previous,
+			}}
+			notifier := &popularEventsNotifierStub{callCh: make(chan struct{}, 1)}
+			service := newPopularEventsTestService(store, cache, notifier, nil, now)
+			defer service.Stop()
+
+			if err := service.UpdateCache(context.Background()); err != nil {
+				t.Fatalf("UpdateCache returned error: %v", err)
+			}
+
+			select {
+			case <-notifier.callCh:
+				t.Fatalf("event from %s was notified again during v3 cache cutover", tt.fallbackKey)
+			case <-time.After(50 * time.Millisecond):
+			}
+
+			_, _, getKeys, setCalls := cache.callsSnapshot()
+			if !reflect.DeepEqual(getKeys, tt.wantGetKeys) {
+				t.Fatalf("cache get keys = %#v, want %#v", getKeys, tt.wantGetKeys)
+			}
+			if len(setCalls) != 1 || setCalls[0].key != servicesevents.PopularEventsCacheKey {
+				t.Fatalf("cache set calls = %#v, want one v3 write", setCalls)
+			}
+		})
 	}
 }
 

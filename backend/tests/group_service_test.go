@@ -910,6 +910,8 @@ func TestGroupServiceGetGroupDetailsMarksActiveEventSubscription(t *testing.T) {
 	seedGroupServiceMembership(t, db, groupID, 2, memberRoleID)
 	seedGroupServiceMembership(t, db, groupID, 3, memberRoleID)
 	eventID := seedEvent(t, db, groupID, 1, 1, 5)
+	startTime := time.Date(2035, 7, 8, 19, 20, 21, 0, time.UTC)
+	setEventSearchFields(t, db, eventID, "Group detail event", startTime, 1, 1)
 	seedEventParticipant(t, db, eventID, 2)
 
 	subscribedDetails, err := service.GetGroupDetails(context.Background(), 2, groupID)
@@ -921,6 +923,13 @@ func TestGroupServiceGetGroupDetailsMarksActiveEventSubscription(t *testing.T) {
 	}
 	if !subscribedDetails.ActiveEvents[0].Subscribed {
 		t.Fatal("active event subscribed = false, want true")
+	}
+	activeEvent := subscribedDetails.ActiveEvents[0]
+	if activeEvent.ID != eventID || activeEvent.Group.ID != groupID ||
+		activeEvent.Group.Image != "https://example.com/group.png" ||
+		!activeEvent.StartTime.Equal(startTime) || activeEvent.AgeLimit != "18+" ||
+		activeEvent.Status != "Planned" {
+		t.Fatalf("active event = %#v, want shared search item metadata", activeEvent)
 	}
 
 	unsubscribedDetails, err := service.GetGroupDetails(context.Background(), 3, groupID)

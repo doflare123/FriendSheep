@@ -44,12 +44,26 @@ func TestPopularEventsHandlerPropagatesRequestContextAndReturnsSnapshot(t *testi
 	updatedAt := time.Date(2036, 8, 9, 10, 11, 12, 0, time.UTC)
 	stub := &popularEventsHandlerServiceStub{snapshot: &events.PopularEventsSnapshot{
 		Events: []events.PopularEventView{{
-			ID:           61,
-			EventID:      61,
-			Title:        "Popular event",
+			ID:    61,
+			Title: "Popular event",
+			Group: events.PopularEventGroupView{
+				ID:         7,
+				Name:       "Strategy Club",
+				Image:      "https://example.com/group.png",
+				Enterprise: true,
+			},
+			Image:        "https://example.com/popular.png",
 			CurrentUsers: 9,
 			MaxUsers:     10,
+			Duration:     120,
+			StartTime:    time.Date(2036, 8, 10, 21, 22, 23, 0, time.UTC),
+			EventType:    "Game",
+			LocationType: "Offline",
+			City:         "Kaliningrad",
 			Genres:       []string{"Strategy"},
+			AgeLimit:     "18+",
+			Status:       "Recruitment",
+			Subscribed:   true,
 		}},
 		UpdatedAt: updatedAt,
 		Count:     1,
@@ -70,7 +84,7 @@ func TestPopularEventsHandlerPropagatesRequestContextAndReturnsSnapshot(t *testi
 		t.Fatal("handler did not propagate the HTTP request context")
 	}
 
-	var response events.PopularEventsSnapshot
+	var response dto.CachedPopularEvents
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("decode popular events response: %v", err)
 	}
@@ -79,6 +93,16 @@ func TestPopularEventsHandlerPropagatesRequestContextAndReturnsSnapshot(t *testi
 		response.Events[0].ID != 61 ||
 		!response.UpdatedAt.Equal(updatedAt) {
 		t.Fatalf("response = %#v, want service snapshot", response)
+	}
+	item := response.Events[0]
+	if item.Group.ID != 7 || item.Group.Name != "Strategy Club" ||
+		item.Group.Image != "https://example.com/group.png" || !item.Group.Enterprise ||
+		item.Image != "https://example.com/popular.png" ||
+		!item.StartTime.Equal(time.Date(2036, 8, 10, 21, 22, 23, 0, time.UTC)) ||
+		item.EventType != "Game" || item.LocationType != "Offline" ||
+		item.City != "Kaliningrad" || item.AgeLimit != "18+" ||
+		item.Status != "Recruitment" || !item.Subscribed {
+		t.Fatalf("response item = %#v, want EventSearchItemDto fields including subscribed", item)
 	}
 }
 

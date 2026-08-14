@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"friendship/models/dto"
 	"friendship/services/events"
@@ -19,7 +20,7 @@ type eventReadHandlerContextKey struct{}
 type eventReadHandlerStub struct {
 	searchResult  *dto.EventSearchResponse
 	searchErr     error
-	groupResult   []dto.EventShortDto
+	groupResult   []dto.EventSearchItemDto
 	groupErr      error
 	detailsResult *dto.EventFullDto
 	detailsErr    error
@@ -43,7 +44,7 @@ func (s *eventReadHandlerStub) SearchEvents(ctx context.Context, userID uint, in
 	return s.searchResult, s.searchErr
 }
 
-func (s *eventReadHandlerStub) GetGroupEvents(ctx context.Context, userID uint, groupID uint) ([]dto.EventShortDto, error) {
+func (s *eventReadHandlerStub) GetGroupEvents(ctx context.Context, userID uint, groupID uint) ([]dto.EventSearchItemDto, error) {
 	s.groupCalls++
 	s.lastContext = ctx
 	s.lastUserID = userID
@@ -60,13 +61,17 @@ func (s *eventReadHandlerStub) GetEventDetails(ctx context.Context, userID uint,
 }
 
 func TestSearchEventsUsesReadServiceAndReturnsResult(t *testing.T) {
+	startTime := time.Date(2035, 4, 5, 16, 17, 18, 0, time.UTC)
 	stub := &eventReadHandlerStub{
 		searchResult: &dto.EventSearchResponse{
 			Items: []dto.EventSearchItemDto{
 				{
 					ID:           17,
 					Title:        "Настольные игры",
-					Group:        dto.EventSearchGroupDto{ID: 42, Name: "Клуб", Enterprise: true},
+					Group:        dto.EventSearchGroupDto{ID: 42, Name: "Клуб", Image: "https://example.com/group.png", Enterprise: true},
+					StartTime:    startTime,
+					AgeLimit:     "18+",
+					Status:       "Recruitment",
 					CurrentUsers: 3,
 					Subscribed:   true,
 				},
@@ -110,7 +115,11 @@ func TestSearchEventsUsesReadServiceAndReturnsResult(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if response.Total != 1 || len(response.Items) != 1 || response.Items[0].ID != 17 || !response.Items[0].Subscribed || !response.Items[0].Group.Enterprise {
+	if response.Total != 1 || len(response.Items) != 1 || response.Items[0].ID != 17 ||
+		!response.Items[0].Subscribed || !response.Items[0].Group.Enterprise ||
+		response.Items[0].Group.Image != "https://example.com/group.png" ||
+		!response.Items[0].StartTime.Equal(startTime) ||
+		response.Items[0].AgeLimit != "18+" || response.Items[0].Status != "Recruitment" {
 		t.Fatalf("response = %#v, want configured search result", response)
 	}
 
@@ -158,9 +167,18 @@ func TestSearchEventsMapsReadErrorToInternalServerError(t *testing.T) {
 }
 
 func TestGetGroupEventsUsesReadServiceAndReturnsResult(t *testing.T) {
+	startTime := time.Date(2035, 6, 7, 18, 19, 20, 0, time.UTC)
 	stub := &eventReadHandlerStub{
-		groupResult: []dto.EventShortDto{
-			{ID: 23, EventID: 23, GroupID: 17, Title: "Встреча", Subscribed: true},
+		groupResult: []dto.EventSearchItemDto{
+			{
+				ID:         23,
+				Title:      "Встреча",
+				Group:      dto.EventSearchGroupDto{ID: 17, Name: "Group", Image: "https://example.com/group.png"},
+				StartTime:  startTime,
+				AgeLimit:   "16+",
+				Status:     "Recruitment",
+				Subscribed: true,
+			},
 		},
 	}
 	handler := NewEventsHandler(EventsHandlerDependencies{Reads: stub})
@@ -179,11 +197,14 @@ func TestGetGroupEventsUsesReadServiceAndReturnsResult(t *testing.T) {
 		t.Fatal("контекст запроса не передан в read service")
 	}
 
-	var response []dto.EventShortDto
+	var response []dto.EventSearchItemDto
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if len(response) != 1 || response[0].ID != 23 || !response[0].Subscribed {
+	if len(response) != 1 || response[0].ID != 23 || !response[0].Subscribed ||
+		response[0].Group.ID != 17 || response[0].Group.Image != "https://example.com/group.png" ||
+		!response[0].StartTime.Equal(startTime) || response[0].AgeLimit != "16+" ||
+		response[0].Status != "Recruitment" {
 		t.Fatalf("response = %#v, want configured group event", response)
 	}
 }

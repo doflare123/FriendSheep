@@ -2,22 +2,29 @@ package events
 
 import "time"
 
+type PopularEventGroupView struct {
+	ID         uint   `json:"id"`
+	Name       string `json:"name"`
+	Image      string `json:"image"`
+	Enterprise bool   `json:"enterprise"`
+}
+
 type PopularEventView struct {
-	ID           uint      `json:"id"`
-	Title        string    `json:"title"`
-	ImageURL     string    `json:"imageUrl"`
-	MaxUsers     uint16    `json:"maxUsers"`
-	CurrentUsers uint16    `json:"currentUsers"`
-	EventType    uint      `json:"eventType"`
-	LocationType uint      `json:"location"`
-	AgeLimit     string    `json:"ageLimit"`
-	Genres       []string  `json:"genres"`
-	StartTime    time.Time `json:"startTime"`
-	Duration     uint16    `json:"duration"`
-	EventID      uint      `json:"eventId"`
-	GroupID      uint      `json:"groupId"`
-	Status       string    `json:"status"`
-	Subscribed   bool      `json:"subscribed"`
+	ID           uint                  `json:"id"`
+	Title        string                `json:"title"`
+	Group        PopularEventGroupView `json:"group"`
+	Image        string                `json:"image"`
+	CurrentUsers uint16                `json:"currentUsers"`
+	MaxUsers     uint16                `json:"maxUsers"`
+	Duration     uint16                `json:"duration"`
+	StartTime    time.Time             `json:"startTime"`
+	EventType    string                `json:"eventType"`
+	LocationType string                `json:"locationType"`
+	AgeLimit     string                `json:"ageLimit"`
+	Status       string                `json:"status"`
+	City         string                `json:"city,omitempty"`
+	Genres       []string              `json:"genres"`
+	Subscribed   bool                  `json:"subscribed"`
 }
 
 type PopularEventsSnapshot struct {
@@ -32,6 +39,7 @@ type PopularEventRecord struct {
 	OwnerEmail     string
 	OwnerUserID    uint
 	PopularityRate float64
+	StartTime      time.Time
 }
 
 type PopularEventNotification struct {

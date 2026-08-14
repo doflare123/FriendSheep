@@ -85,16 +85,19 @@
 - Ответ: список с пагинацией.
 - Поля элемента:
   - `id`
-  - `group: { id, name }`
+  - `group: { id, name, image, enterprise }`
   - `image`
   - `currentUsers`
   - `maxUsers`
   - `duration`
-  - `startDate` (только дата, без времени)
+  - `startTime` (полная дата и время)
   - `eventType`
   - `locationType` (онлайн/оффлайн)
+  - `ageLimit`
+  - `status`
   - `city` (если есть)
   - `genres`
+  - `subscribed`
 
 ## 5. Новости
 

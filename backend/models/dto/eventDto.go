@@ -2,25 +2,6 @@ package dto
 
 import "time"
 
-// краткая информация о событии
-type EventShortDto struct {
-	ID           uint      `json:"id"`
-	Title        string    `json:"title"`
-	ImageURL     string    `json:"imageUrl"`
-	MaxUsers     uint16    `json:"maxUsers"`
-	CurrentUsers uint16    `json:"currentUsers"`
-	EventType    uint      `json:"eventType"` // Название типа события
-	LocationType uint      `json:"location"`  // Название места проведения (онлайн/оффлайн)
-	AgeLimit     string    `json:"ageLimit"`  // Возрастное ограничение
-	Genres       []string  `json:"genres"`    // Список названий жанров
-	StartTime    time.Time `json:"startTime"` // Дата и время начала
-	Duration     uint16    `json:"duration"`  // Длительность в минутах
-	EventID      uint      `json:"eventId"`   // ID события (дублирует ID для удобства)
-	GroupID      uint      `json:"groupId"`   // ID группы
-	Status       string    `json:"status"`    // Статус события
-	Subscribed   bool      `json:"subscribed"`
-}
-
 type EventFullDto struct {
 	// Базовая информация
 	ID           uint          `json:"id"`
@@ -43,14 +24,14 @@ type EventFullDto struct {
 	// Создатель
 	Creator EventCreatorDto `json:"creator"`
 
-	// Дополнительная информация (из MongoDB)
+	// Дополнительная информация
 	Address  string `json:"address"`
 	Country  string `json:"country"`
 	AgeLimit string `json:"ageLimit"`
 	Year     *int   `json:"year,omitempty"`
 	Notes    string `json:"notes"`
 
-	// Произвольные поля (из CustomFields)
+	// Произвольные поля
 	CustomFields map[string]interface{} `json:"customFields"`
 
 	Subscribed bool `json:"subscribed"`
@@ -78,14 +59,15 @@ type EventGroupDto struct {
 
 // CachedPopularEvents - структура для кэша популярных событий
 type CachedPopularEvents struct {
-	Events    []EventShortDto `json:"events"`
-	UpdatedAt time.Time       `json:"updated_at"`
-	Count     int             `json:"count"`
+	Events    []EventSearchItemDto `json:"events"`
+	UpdatedAt time.Time            `json:"updated_at"`
+	Count     int                  `json:"count"`
 }
 
 type EventSearchGroupDto struct {
 	ID         uint   `json:"id"`
 	Name       string `json:"name"`
+	Image      string `json:"image"`
 	Enterprise bool   `json:"enterprise"`
 }
 
@@ -97,9 +79,11 @@ type EventSearchItemDto struct {
 	CurrentUsers uint16              `json:"currentUsers"`
 	MaxUsers     uint16              `json:"maxUsers"`
 	Duration     uint16              `json:"duration"`
-	StartDate    string              `json:"startDate"`
+	StartTime    time.Time           `json:"startTime"`
 	EventType    string              `json:"eventType"`
 	LocationType string              `json:"locationType"`
+	AgeLimit     string              `json:"ageLimit"`
+	Status       string              `json:"status"`
 	City         string              `json:"city,omitempty"`
 	Genres       []string            `json:"genres"`
 	Subscribed   bool                `json:"subscribed"`

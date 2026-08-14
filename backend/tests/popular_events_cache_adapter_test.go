@@ -77,9 +77,26 @@ func TestRedisPopularEventsCacheSerializesSnapshotAndPropagatesContextKeyTTL(t *
 	ctx := context.WithValue(context.Background(), popularEventsServiceContextKey{}, "redis-set")
 	snapshot := servicesevents.PopularEventsSnapshot{
 		Events: []servicesevents.PopularEventView{{
-			ID:     71,
-			Title:  "Cached adapter event",
-			Genres: []string{"Co-op"},
+			ID:    71,
+			Title: "Cached adapter event",
+			Group: servicesevents.PopularEventGroupView{
+				ID:         17,
+				Name:       "Cache group",
+				Image:      "https://example.com/group.png",
+				Enterprise: true,
+			},
+			Image:        "https://example.com/cache.png",
+			CurrentUsers: 7,
+			MaxUsers:     8,
+			Duration:     90,
+			StartTime:    time.Date(2037, 9, 11, 14, 15, 16, 0, time.UTC),
+			EventType:    "Game",
+			LocationType: "Online",
+			City:         "Kaliningrad",
+			Genres:       []string{"Co-op"},
+			AgeLimit:     "16+",
+			Status:       "Recruitment",
+			Subscribed:   true,
 		}},
 		UpdatedAt: time.Date(2037, 9, 10, 11, 12, 13, 0, time.UTC),
 		Count:     1,
@@ -117,7 +134,11 @@ func TestRedisPopularEventsCacheSerializesSnapshotAndPropagatesContextKeyTTL(t *
 
 func TestRedisPopularEventsCacheDeserializesSnapshotAndMapsRedisMiss(t *testing.T) {
 	want := servicesevents.PopularEventsSnapshot{
-		Events:    []servicesevents.PopularEventView{{ID: 72, Title: "Redis hit"}},
+		Events: []servicesevents.PopularEventView{{
+			ID:         72,
+			Title:      "Redis hit",
+			Subscribed: true,
+		}},
 		UpdatedAt: time.Date(2038, 10, 11, 12, 13, 14, 0, time.UTC),
 		Count:     1,
 	}

@@ -65,7 +65,7 @@ definitions:
         type: integer
       events:
         items:
-          $ref: '#/definitions/dto.EventShortDto'
+          $ref: '#/definitions/dto.EventSearchItemDto'
         type: array
       updated_at:
         type: string
@@ -100,7 +100,7 @@ definitions:
   dto.EventAdminDto:
     properties:
       address:
-        description: Дополнительная информация (из MongoDB)
+        description: Дополнительная информация
         type: string
       ageLimit:
         type: string
@@ -121,7 +121,7 @@ definitions:
         type: integer
       customFields:
         additionalProperties: true
-        description: Произвольные поля (из CustomFields)
+        description: Произвольные поля
         type: object
       description:
         type: string
@@ -197,7 +197,7 @@ definitions:
   dto.EventFullDto:
     properties:
       address:
-        description: Дополнительная информация (из MongoDB)
+        description: Дополнительная информация
         type: string
       ageLimit:
         type: string
@@ -214,7 +214,7 @@ definitions:
         type: integer
       customFields:
         additionalProperties: true
-        description: Произвольные поля (из CustomFields)
+        description: Произвольные поля
         type: object
       description:
         type: string
@@ -274,13 +274,19 @@ definitions:
         type: boolean
       id:
         type: integer
+      image:
+        type: string
       name:
         type: string
     type: object
   dto.EventSearchItemDto:
     properties:
+      ageLimit:
+        type: string
       city:
         type: string
+      currentUsers:
+        type: integer
       duration:
         type: integer
       eventType:
@@ -299,9 +305,9 @@ definitions:
         type: string
       maxUsers:
         type: integer
-      currentUsers:
-        type: integer
-      startDate:
+      startTime:
+        type: string
+      status:
         type: string
       subscribed:
         type: boolean
@@ -324,50 +330,6 @@ definitions:
         type: integer
       totalPages:
         type: integer
-    type: object
-  dto.EventShortDto:
-    properties:
-      ageLimit:
-        description: Возрастное ограничение
-        type: string
-      currentUsers:
-        type: integer
-      duration:
-        description: Длительность в минутах
-        type: integer
-      eventId:
-        description: ID события (дублирует ID для удобства)
-        type: integer
-      eventType:
-        description: Название типа события
-        type: integer
-      genres:
-        description: Список названий жанров
-        items:
-          type: string
-        type: array
-      groupId:
-        description: ID группы
-        type: integer
-      id:
-        type: integer
-      imageUrl:
-        type: string
-      location:
-        description: Название места проведения (онлайн/оффлайн)
-        type: integer
-      maxUsers:
-        type: integer
-      startTime:
-        description: Дата и время начала
-        type: string
-      status:
-        description: Статус события
-        type: string
-      subscribed:
-        type: boolean
-      title:
-        type: string
     type: object
   dto.GenreSearchResponseDto:
     properties:
@@ -402,7 +364,7 @@ definitions:
       activeEvents:
         description: События в стадии набора
         items:
-          $ref: '#/definitions/dto.EventShortDto'
+          $ref: '#/definitions/dto.EventSearchItemDto'
         type: array
       categories:
         items:
@@ -2275,7 +2237,7 @@ paths:
           description: События группы
           schema:
             items:
-              $ref: '#/definitions/dto.EventShortDto'
+              $ref: '#/definitions/dto.EventSearchItemDto'
             type: array
         "401":
           description: Требуется авторизация

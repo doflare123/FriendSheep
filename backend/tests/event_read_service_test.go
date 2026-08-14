@@ -64,7 +64,7 @@ func TestEventReadServiceSearchEventsNormalizesDelegatesAndBuildsPage(t *testing
 				{
 					ID:               17,
 					Title:            "Настольные игры",
-					Group:            servicesevents.EventReadGroupView{ID: 42, Name: "Клуб"},
+					Group:            servicesevents.EventReadGroupView{ID: 42, Name: "Клуб", Image: "https://example.com/group.png"},
 					ImageURL:         "https://example.com/event.png",
 					CurrentUsers:     3,
 					MaxUsers:         8,
@@ -74,6 +74,8 @@ func TestEventReadServiceSearchEventsNormalizesDelegatesAndBuildsPage(t *testing
 					LocationType:     "Offline",
 					City:             "Москва",
 					Genres:           []string{"Strategy", "Party"},
+					AgeLimit:         "18+",
+					Status:           "Recruitment",
 					ViewerSubscribed: true,
 				},
 			},
@@ -154,14 +156,17 @@ func TestEventReadServiceSearchEventsNormalizesDelegatesAndBuildsPage(t *testing
 		item.Title != "Настольные игры" ||
 		item.Group.ID != 42 ||
 		item.Group.Name != "Клуб" ||
+		item.Group.Image != "https://example.com/group.png" ||
 		item.Image != "https://example.com/event.png" ||
 		item.CurrentUsers != 3 ||
 		item.MaxUsers != 8 ||
 		item.Duration != 90 ||
-		item.StartDate != "2028-01-02" ||
+		!item.StartTime.Equal(start) ||
 		item.EventType != "Игра" ||
 		item.LocationType != "Offline" ||
 		item.City != "Москва" ||
+		item.AgeLimit != "18+" ||
+		item.Status != "Recruitment" ||
 		!reflect.DeepEqual(item.Genres, []string{"Strategy", "Party"}) ||
 		!item.Subscribed {
 		t.Fatalf("mapped item = %#v, want all view fields", item)
@@ -268,21 +273,22 @@ func TestEventReadServiceGetGroupEventsDelegatesAndMapsDTO(t *testing.T) {
 			GroupFound:          true,
 			GroupPrivate:        false,
 			ViewerIsGroupMember: false,
-			Items: []servicesevents.EventShortView{
+			Items: []servicesevents.EventSearchItemView{
 				{
 					ID:               21,
-					Title:            "Короткое событие",
+					Title:            "Событие группы",
+					Group:            servicesevents.EventReadGroupView{ID: 42, Name: "Клуб", Image: "https://example.com/group.png", Enterprise: true},
 					ImageURL:         "https://example.com/short.png",
 					MaxUsers:         12,
 					CurrentUsers:     4,
-					EventTypeID:      6,
-					LocationTypeID:   7,
+					EventType:        "Quest",
+					LocationType:     "Offline",
 					AgeLimit:         "12+",
 					Genres:           []string{"Quest"},
 					StartTime:        start,
 					Duration:         75,
-					GroupID:          42,
 					Status:           "Набор",
+					City:             "Москва",
 					ViewerSubscribed: true,
 				},
 			},
@@ -307,21 +313,22 @@ func TestEventReadServiceGetGroupEventsDelegatesAndMapsDTO(t *testing.T) {
 	}
 	item := result[0]
 	if item.ID != 21 ||
-		item.EventID != 21 ||
-		item.GroupID != 42 ||
-		item.Title != "Короткое событие" ||
-		item.ImageURL != "https://example.com/short.png" ||
+		item.Group.ID != 42 || item.Group.Name != "Клуб" ||
+		item.Group.Image != "https://example.com/group.png" || !item.Group.Enterprise ||
+		item.Title != "Событие группы" ||
+		item.Image != "https://example.com/short.png" ||
 		item.MaxUsers != 12 ||
 		item.CurrentUsers != 4 ||
-		item.EventType != 6 ||
-		item.LocationType != 7 ||
+		item.EventType != "Quest" ||
+		item.LocationType != "Offline" ||
 		item.AgeLimit != "12+" ||
 		!reflect.DeepEqual(item.Genres, []string{"Quest"}) ||
 		!item.StartTime.Equal(start) ||
 		item.Duration != 75 ||
 		item.Status != "Набор" ||
+		item.City != "Москва" ||
 		!item.Subscribed {
-		t.Fatalf("mapped item = %#v, want all short view fields", item)
+		t.Fatalf("mapped item = %#v, want all shared search item fields", item)
 	}
 }
 
@@ -339,7 +346,7 @@ func TestEventReadServiceGetGroupEventsAccessAndMissingGroup(t *testing.T) {
 				GroupFound:          true,
 				GroupPrivate:        false,
 				ViewerIsGroupMember: false,
-				Items:               []servicesevents.EventShortView{},
+				Items:               []servicesevents.EventSearchItemView{},
 			},
 			wantLength: 0,
 		},
@@ -349,7 +356,7 @@ func TestEventReadServiceGetGroupEventsAccessAndMissingGroup(t *testing.T) {
 				GroupFound:          true,
 				GroupPrivate:        true,
 				ViewerIsGroupMember: true,
-				Items:               []servicesevents.EventShortView{{ID: 1}},
+				Items:               []servicesevents.EventSearchItemView{{ID: 1}},
 			},
 			wantLength: 1,
 		},
@@ -359,7 +366,7 @@ func TestEventReadServiceGetGroupEventsAccessAndMissingGroup(t *testing.T) {
 				GroupFound:          true,
 				GroupPrivate:        true,
 				ViewerIsGroupMember: false,
-				Items:               []servicesevents.EventShortView{{ID: 1}},
+				Items:               []servicesevents.EventSearchItemView{{ID: 1}},
 			},
 			wantErr: servicesevents.ErrNotGroupMember,
 			wantNil: true,
@@ -368,7 +375,7 @@ func TestEventReadServiceGetGroupEventsAccessAndMissingGroup(t *testing.T) {
 			name: "отсутствующая группа возвращает пустой список",
 			view: servicesevents.EventGroupEventsView{
 				GroupFound: false,
-				Items:      []servicesevents.EventShortView{{ID: 1}},
+				Items:      []servicesevents.EventSearchItemView{{ID: 1}},
 			},
 			wantLength: 0,
 		},

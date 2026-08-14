@@ -789,6 +789,8 @@ func TestEventReadServiceGetGroupEventsAllowsPlainMember(t *testing.T) {
 	groupID := seedEventGroup(t, db, 1, false)
 	seedEventGroupMembershipWithRole(t, db, 2, groupID, groupmodels.RoleMember)
 	eventID := seedEvent(t, db, groupID, 1, 1, 5)
+	startTime := time.Date(2035, 5, 6, 17, 18, 19, 0, time.UTC)
+	setEventSearchFields(t, db, eventID, "Group event", startTime, 1, 1)
 	genreID := seedEventGenre(t, db, "Strategy")
 	seedEventGenreRelation(t, db, eventID, genreID)
 	seedEventParticipant(t, db, eventID, 2)
@@ -806,6 +808,11 @@ func TestEventReadServiceGetGroupEventsAllowsPlainMember(t *testing.T) {
 	}
 	if !eventsList[0].Subscribed {
 		t.Fatal("event subscribed = false, want true")
+	}
+	item := eventsList[0]
+	if item.Group.ID != groupID || item.Group.Image != "https://example.com/group.png" ||
+		!item.StartTime.Equal(startTime) || item.AgeLimit != "18+" || item.Status != "Planned" {
+		t.Fatalf("group event = %#v, want shared search item metadata", item)
 	}
 }
 

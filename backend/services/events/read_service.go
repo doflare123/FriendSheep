@@ -13,7 +13,7 @@ var errEventReadStoreUnavailable = errors.New("хранилище чтения �
 
 type EventReadService interface {
 	SearchEvents(ctx context.Context, userID uint, input EventSearchInput) (*dto.EventSearchResponse, error)
-	GetGroupEvents(ctx context.Context, actorID uint, groupID uint) ([]dto.EventShortDto, error)
+	GetGroupEvents(ctx context.Context, actorID uint, groupID uint) ([]dto.EventSearchItemDto, error)
 	GetEventDetails(ctx context.Context, userID uint, eventID uint) (*dto.EventFullDto, error)
 }
 
@@ -105,7 +105,7 @@ func (s *eventReadService) SearchEvents(ctx context.Context, userID uint, input 
 	}, nil
 }
 
-func (s *eventReadService) GetGroupEvents(ctx context.Context, actorID uint, groupID uint) ([]dto.EventShortDto, error) {
+func (s *eventReadService) GetGroupEvents(ctx context.Context, actorID uint, groupID uint) ([]dto.EventSearchItemDto, error) {
 	view, err := s.store.GetGroupEvents(ctx, EventGroupEventsQuery{
 		ViewerID: actorID,
 		GroupID:  groupID,
@@ -116,13 +116,13 @@ func (s *eventReadService) GetGroupEvents(ctx context.Context, actorID uint, gro
 	}
 
 	if !view.GroupFound {
-		return []dto.EventShortDto{}, nil
+		return []dto.EventSearchItemDto{}, nil
 	}
 	if view.GroupPrivate && !view.ViewerIsGroupMember {
 		return nil, ErrNotGroupMember
 	}
 
-	return eventShortViewsToDTO(view.Items), nil
+	return eventSearchItemsToDTO(view.Items), nil
 }
 
 func (s *eventReadService) GetEventDetails(ctx context.Context, userID uint, eventID uint) (*dto.EventFullDto, error) {
@@ -154,41 +154,20 @@ func eventSearchItemsToDTO(items []EventSearchItemView) []dto.EventSearchItemDto
 			Group: dto.EventSearchGroupDto{
 				ID:         item.Group.ID,
 				Name:       item.Group.Name,
+				Image:      item.Group.Image,
 				Enterprise: item.Group.Enterprise,
 			},
 			Image:        item.ImageURL,
 			CurrentUsers: item.CurrentUsers,
 			MaxUsers:     item.MaxUsers,
 			Duration:     item.Duration,
-			StartDate:    item.StartTime.Format("2006-01-02"),
+			StartTime:    item.StartTime,
 			EventType:    item.EventType,
 			LocationType: item.LocationType,
+			AgeLimit:     item.AgeLimit,
+			Status:       item.Status,
 			City:         item.City,
 			Genres:       append([]string(nil), item.Genres...),
-			Subscribed:   item.ViewerSubscribed,
-		})
-	}
-	return result
-}
-
-func eventShortViewsToDTO(items []EventShortView) []dto.EventShortDto {
-	result := make([]dto.EventShortDto, 0, len(items))
-	for _, item := range items {
-		result = append(result, dto.EventShortDto{
-			ID:           item.ID,
-			Title:        item.Title,
-			ImageURL:     item.ImageURL,
-			MaxUsers:     item.MaxUsers,
-			CurrentUsers: item.CurrentUsers,
-			EventType:    item.EventTypeID,
-			LocationType: item.LocationTypeID,
-			AgeLimit:     item.AgeLimit,
-			Genres:       append([]string(nil), item.Genres...),
-			StartTime:    item.StartTime,
-			Duration:     item.Duration,
-			EventID:      item.ID,
-			GroupID:      item.GroupID,
-			Status:       item.Status,
 			Subscribed:   item.ViewerSubscribed,
 		})
 	}

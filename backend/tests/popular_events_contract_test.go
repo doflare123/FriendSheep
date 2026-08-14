@@ -10,8 +10,10 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	applicationlogger "friendship/logger"
+	"friendship/models/dto"
 	servicesevents "friendship/services/events"
 )
 
@@ -80,6 +82,46 @@ func TestPopularEventsServiceMethodsPropagateContextByContract(t *testing.T) {
 		if method.Type.NumIn() == 0 || method.Type.In(0) != contextType {
 			t.Fatalf("%s input 0 = %v, want context.Context", methodName, firstMethodInput(method.Type))
 		}
+	}
+}
+
+func TestCachedPopularEventsUsesSearchItemsWithSubscriptionState(t *testing.T) {
+	cachedType := reflect.TypeOf(dto.CachedPopularEvents{})
+	eventsField, exists := cachedType.FieldByName("Events")
+	if !exists {
+		t.Fatal("CachedPopularEvents is missing Events")
+	}
+
+	wantEventsType := reflect.TypeOf([]dto.EventSearchItemDto{})
+	if eventsField.Type != wantEventsType {
+		t.Fatalf("CachedPopularEvents.Events type = %v, want %v", eventsField.Type, wantEventsType)
+	}
+
+	itemType := reflect.TypeOf(dto.EventSearchItemDto{})
+	for _, field := range []struct {
+		name     string
+		typeOf   reflect.Type
+		jsonName string
+	}{
+		{name: "StartTime", typeOf: reflect.TypeOf(time.Time{}), jsonName: "startTime"},
+		{name: "AgeLimit", typeOf: reflect.TypeOf(""), jsonName: "ageLimit"},
+		{name: "Status", typeOf: reflect.TypeOf(""), jsonName: "status"},
+	} {
+		actual, exists := itemType.FieldByName(field.name)
+		if !exists || actual.Type != field.typeOf || actual.Tag.Get("json") != field.jsonName {
+			t.Fatalf("EventSearchItemDto.%s = %#v, want %v with json tag %s", field.name, actual, field.typeOf, field.jsonName)
+		}
+	}
+
+	groupType := reflect.TypeOf(dto.EventSearchGroupDto{})
+	groupImage, exists := groupType.FieldByName("Image")
+	if !exists || groupImage.Type.Kind() != reflect.String || groupImage.Tag.Get("json") != "image" {
+		t.Fatalf("EventSearchGroupDto.Image = %#v, want string with json tag image", groupImage)
+	}
+
+	subscribedField, exists := itemType.FieldByName("Subscribed")
+	if !exists || subscribedField.Type.Kind() != reflect.Bool || subscribedField.Tag.Get("json") != "subscribed" {
+		t.Fatalf("EventSearchItemDto.Subscribed = %#v, want bool with json tag subscribed", subscribedField)
 	}
 }
 
