@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -36,6 +37,9 @@ type Server struct {
 	cfg                  config.Config
 	popularEventsService event.PopularEventsService
 	rateLimiter          *middlewares.RateLimitMiddleware
+	backgroundStopOnce   sync.Once
+	resourcesCloseOnce   sync.Once
+	resourcesCloseErr    error
 }
 
 func configureTrustedProxies(engine *gin.Engine, trustedProxies []string) error {
@@ -279,7 +283,5 @@ func InitServer() (*Server, error) {
 }
 
 func (s *Server) Run(addr string) error {
-	s.logger.Info("Server running on " + addr)
-	defer s.popularEventsService.Stop()
-	return s.engine.Run(addr)
+	return s.run(addr)
 }
