@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+firebase-credentials.json
+*-credentials.json
+*.pem
+*.key
+.cache/
+bin/
+tmp/

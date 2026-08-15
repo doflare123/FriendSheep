@@ -1,26 +1,24 @@
-# Этап сборки
 FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-# Копируем go.mod и go.sum для кеша зависимостей
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Копируем весь код
 COPY . .
 
-# Собираем бинарник
-RUN go build -o main .
+RUN CGO_ENABLED=0 go build -trimpath -o notify_service .
 
-# Финальный минимальный образ
 FROM alpine:latest
 
 WORKDIR /app
+RUN apk add --no-cache ca-certificates \
+    && addgroup -S notify \
+    && adduser -S notify -G notify
 
-# Копируем бинарник из builder-а
-COPY --from=builder /app/main .
+COPY --from=builder /app/notify_service .
+USER notify
 
 EXPOSE 8080
 
-CMD ["./main"]
+CMD ["./notify_service"]

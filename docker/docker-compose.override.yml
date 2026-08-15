@@ -34,15 +34,10 @@ services:
     build:
       context: ../notify_service
       dockerfile: Dockerfile
-    volumes:
-      - ../notify_service/.env:/app/.env  # монтируем файл внутрь контейнера
-    env_file:
-      - ../notify_service/.env
+    environment:
+      NOTIFY_DATABASE_URL: "${NOTIFY_DATABASE_URL:?задайте отдельный NOTIFY_DATABASE_URL для notify_service}"
     ports:
     - "8083:8080"
-    depends_on:
-      - db
-      - telegram-bot
     restart: unless-stopped
     networks:
       - appnet

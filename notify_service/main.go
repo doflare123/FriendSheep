@@ -1,43 +1,64 @@
 package main
 
 import (
-	"log"
-	"notify_service/db"
-	worker "notify_service/schedulers"
+	"context"
+	"database/sql"
+	"errors"
+	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
+	"notify_service/internal/application"
+	"notify_service/internal/bootstrap"
+	"notify_service/internal/config"
+	"notify_service/internal/database"
+	"notify_service/internal/httpserver"
+	"notify_service/internal/logging"
 )
 
-func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Ошибка загрузки .env файла")
+func main() {
+	if err := run(); err != nil {
+		logging.New(os.Stderr, slog.LevelInfo).Error("notify_service остановлен с ошибкой", "ошибка", err)
+		os.Exit(1)
 	}
 }
 
-func main() {
-	r := gin.Default()
+func run() error {
+	cfg, err := config.LoadFromEnv()
+	if err != nil {
+		return err
+	}
+	logger := logging.New(os.Stdout, cfg.LogLevel)
 
-	db.InitDatabase()
-	db.SeedNotificationTypes(db.GetDB())
-	worker.StartNotificationWorker(db.GetDB())
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "ok",
-		})
+	return bootstrap.Run(ctx, cfg, logger, bootstrap.Dependencies{
+		OpenDatabase: func(ctx context.Context, cfg config.Config) (bootstrap.Database, error) {
+			return database.Open(ctx, cfg.DatabaseURL, cfg.DatabaseConnectTimeout)
+		},
+		Migrate: func(ctx context.Context, connection bootstrap.Database) error {
+			db, ok := connection.(*sql.DB)
+			if !ok {
+				return errors.New("неподдерживаемое соединение с базой данных уведомлений")
+			}
+			return database.Migrate(ctx, db)
+		},
+		BuildApplication: func() (*application.Application, error) {
+			// Каналы доставки и планировщик намеренно отсутствуют в P0.2a.
+			return application.New(), nil
+		},
+		ServeHTTP: func(
+			ctx context.Context,
+			cfg config.Config,
+			logger *slog.Logger,
+			connection bootstrap.Database,
+			_ *application.Application,
+		) error {
+			server := httpserver.New(cfg, logger, connection)
+			logger.Info("HTTP-сервер запускается", "адрес", cfg.Address())
+			return server.ListenAndServe(ctx)
+		},
 	})
-
-	// Запуск сервера
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
-	log.Printf("Server starting on port %s", port)
-	if err := r.Run(":" + port); err != nil {
-		log.Fatal("Failed to start server:", err)
-	}
 }
