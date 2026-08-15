@@ -68,6 +68,9 @@ func (s *Server) initRouters() {
 	eventReadService := events.NewEventReadService(s.logger, eventReadStore)
 	eventAdminReader := events.NewGORMEventAdminReader(s.postgres)
 	eventAdminService := events.NewEventAdminService(s.logger, eventAdminReader, eventUnitOfWork)
+	eventLifecycleStore := events.NewGORMEventLifecycleStore(s.postgres)
+	eventLifecycleService := events.NewEventLifecycleService(eventLifecycleStore, nil)
+	eventLifecycleH := handlers.NewEventLifecycleHandler(eventLifecycleService)
 	popularEventsH := handlers.NewPopularEventsHandler(s.popularEventsService)
 	eventsH := handlers.NewEventsHandler(handlers.EventsHandlerDependencies{
 		Membership: eventMembershipService,
@@ -76,6 +79,11 @@ func (s *Server) initRouters() {
 		Admin:      eventAdminService,
 	})
 	routes.RegisterEventsRoutes(s.engine, eventsH, popularEventsH, jwtMiddleware, groupRoleMiddleware)
+	routes.RegisterInternalEventLifecycleRoutes(
+		s.engine,
+		eventLifecycleH,
+		middlewares.NewInternalTokenMiddleware(s.cfg.NotifyServiceToken),
+	)
 
 	referenceStore := references.NewGORMReferenceStore(s.postgres)
 	referenceService := references.NewReferenceService(referenceStore)

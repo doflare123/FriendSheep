@@ -20,7 +20,7 @@ func (s *gormPopularEventsStore) ListTopPopularEvents(ctx context.Context, now t
 	var recruitmentStatus eventmodels.Status
 	if err := s.postgresRepo.Model(&eventmodels.Status{}).
 		WithContext(ctx).
-		Where("name = ?", "Набор").
+		Where("name = ?", eventmodels.StatusRecruitment).
 		First(&recruitmentStatus).Error; err != nil {
 		return nil, fmt.Errorf("recruitment status not found: %w", err)
 	}

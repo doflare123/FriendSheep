@@ -356,26 +356,22 @@ func sanitizeSensitiveData(data interface{}) interface{} {
 // sanitizeHeaders - очищает чувствительные заголовки
 func sanitizeHeaders(headers map[string][]string) map[string][]string {
 	sensitiveHeaders := map[string]bool{
-		"authorization": true,
-		"Authorization": true,
-		"AUTHORIZATION": true,
-		"x-api-key":     true,
-		"X-Api-Key":     true,
-		"X-API-KEY":     true,
-		"cookie":        true,
-		"Cookie":        true,
-		"COOKIE":        true,
-		"set-cookie":    true,
-		"Set-Cookie":    true,
-		"SET-COOKIE":    true,
+		"authorization":    true,
+		"x-api-key":        true,
+		"cookie":           true,
+		"set-cookie":       true,
+		"x-internal-token": true,
 	}
 
 	result := make(map[string][]string)
 	for key, values := range headers {
-		if sensitiveHeaders[key] {
+		normalizedKey := strings.ToLower(key)
+		if sensitiveHeaders[normalizedKey] {
 			maskedValues := make([]string, len(values))
 			for i, value := range values {
-				if len(value) > 10 {
+				if normalizedKey == "x-internal-token" {
+					maskedValues[i] = "[REDACTED]"
+				} else if len(value) > 10 {
 					maskedValues[i] = value[:6] + "...***"
 				} else {
 					maskedValues[i] = "[REDACTED]"

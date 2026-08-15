@@ -48,6 +48,7 @@ func TestNewConfigReadsRateLimitAndTrustedProxyOverridesFromEnvironment(t *testi
 	t.Setenv("TRUSTED_PROXIES", "192.0.2.10, 10.0.0.99/24, 192.0.2.10")
 	t.Setenv("SECRET_KEY_JWT", strings.Repeat("s", 32))
 	t.Setenv("JWT_KEY_ID", "test-primary")
+	t.Setenv("NOTIFY_SERVICE_TOKEN", "notify-service-test-token")
 
 	cfg := NewConfig()
 
@@ -61,6 +62,9 @@ func TestNewConfigReadsRateLimitAndTrustedProxyOverridesFromEnvironment(t *testi
 	if !reflect.DeepEqual(cfg.HTTP.TrustedProxies, wantProxies) {
 		t.Fatalf("TrustedProxies = %#v, want %#v", cfg.HTTP.TrustedProxies, wantProxies)
 	}
+	if got, want := cfg.NotifyServiceToken, "notify-service-test-token"; got != want {
+		t.Fatalf("NotifyServiceToken = %q, want %q", got, want)
+	}
 }
 
 func TestNewConfigReadsRateLimitOverridesSetThroughViper(t *testing.T) {
@@ -70,6 +74,7 @@ func TestNewConfigReadsRateLimitOverridesSetThroughViper(t *testing.T) {
 	viper.Set("RATE_LIMIT_REFERENCES_READ_IP_WINDOW", "90s")
 	viper.Set("SECRET_KEY_JWT", strings.Repeat("s", 32))
 	viper.Set("JWT_KEY_ID", "test-primary")
+	viper.Set("NOTIFY_SERVICE_TOKEN", "notify-service-test-token")
 
 	cfg := NewConfig()
 
@@ -131,6 +136,18 @@ func TestNormalizeAndValidateConfigRejectsNonPositiveRateLimitValues(t *testing.
 				t.Fatalf("NormalizeAndValidate() error = %q, want contains %q", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestNormalizeAndValidateConfigRejectsEmptyNotifyServiceToken(t *testing.T) {
+	for _, token := range []string{"", "   \t"} {
+		cfg := validConfigForTest(DefaultRateLimitConfig())
+		cfg.NotifyServiceToken = token
+
+		err := cfg.NormalizeAndValidate()
+		if err == nil || !strings.Contains(err.Error(), "NOTIFY_SERVICE_TOKEN") {
+			t.Fatalf("NormalizeAndValidate() error = %v, want NOTIFY_SERVICE_TOKEN validation", err)
+		}
 	}
 }
 
@@ -257,8 +274,9 @@ func TestDerivedRateLimitHashSecretIsDomainSeparated(t *testing.T) {
 
 func validConfigForTest(rateLimits RateLimitConfig) Config {
 	return Config{
-		JWTSecretKey: strings.Repeat("s", 32),
-		JWTKeyID:     "test-primary",
+		JWTSecretKey:       strings.Repeat("s", 32),
+		JWTKeyID:           "test-primary",
+		NotifyServiceToken: "notify-service-test-token",
 		Auth: AuthConfig{
 			Issuer:          "friendSheep",
 			Audience:        "friendSheep-api",

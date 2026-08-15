@@ -19,6 +19,7 @@ type Config struct {
 	JWTKeyID                   string          `mapstructure:"JWT_KEY_ID"`
 	JWTPreviousSecretKey       string          `mapstructure:"JWT_PREVIOUS_SECRET_KEY"`
 	JWTPreviousKeyID           string          `mapstructure:"JWT_PREVIOUS_KEY_ID"`
+	NotifyServiceToken         string          `mapstructure:"NOTIFY_SERVICE_TOKEN"`
 	Auth                       AuthConfig      `mapstructure:",squash"`
 	LogLevel                   string          `mapstructure:"LOG_LEVEL"`
 	HTTP                       HTTPConfig      `mapstructure:",squash"`

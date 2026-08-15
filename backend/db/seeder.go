@@ -39,9 +39,9 @@ func Seeder(db repository.PostgresRepository) []error {
 		{
 			name: "статусы",
 			data: []interface{}{
-				&events.Status{Name: "Набор"},
-				&events.Status{Name: "В процессе"},
-				&events.Status{Name: "Завершена"},
+				&events.Status{Name: events.StatusRecruitment},
+				&events.Status{Name: events.StatusActive},
+				&events.Status{Name: events.StatusCompleted},
 			},
 		},
 		{
