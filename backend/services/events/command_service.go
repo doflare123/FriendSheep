@@ -8,6 +8,8 @@ import (
 	"friendship/models/dto"
 	groupmodels "friendship/models/groups"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var ErrMaxUsersBelowCurrent = errors.New("нельзя установить максимум меньше текущего количества участников")
@@ -179,6 +181,7 @@ func (s *eventCommandService) CreateEvent(ctx context.Context, actorID uint, inp
 		}
 
 		now := time.Now()
+		endTime := input.StartTime.Add(time.Duration(input.Duration) * time.Minute)
 		eventID, err := store.CreateEvent(EventCreateRecord{
 			Title:           input.Title,
 			Description:     input.Description,
@@ -187,7 +190,7 @@ func (s *eventCommandService) CreateEvent(ctx context.Context, actorID uint, inp
 			LocationID:      input.LocationID,
 			CreatorID:       actorID,
 			StartTime:       input.StartTime,
-			EndTime:         input.StartTime.Add(time.Duration(input.Duration) * time.Minute),
+			EndTime:         endTime,
 			Duration:        input.Duration,
 			MaxUsers:        input.MaxUsers,
 			CurrentUsers:    1,
@@ -203,6 +206,15 @@ func (s *eventCommandService) CreateEvent(ctx context.Context, actorID uint, inp
 			CreatorJoinedAt: now,
 		})
 		if err != nil {
+			return err
+		}
+		if err := appendLifecycleScheduleUpsert(
+			tx.LifecycleScheduleOutbox(),
+			eventID,
+			input.StartTime,
+			endTime,
+			now,
+		); err != nil {
 			return err
 		}
 
@@ -317,6 +329,24 @@ func (s *eventCommandService) UpdateEvent(ctx context.Context, actorID uint, eve
 		if err := store.UpdateEvent(update); err != nil {
 			return err
 		}
+		if input.StartTime != nil || input.Duration != nil {
+			startTime := event.StartTime
+			if input.StartTime != nil {
+				startTime = *input.StartTime
+			}
+			if update.EndTime == nil {
+				return errors.New("не удалось вычислить новое окончание мероприятия")
+			}
+			if err := appendLifecycleScheduleUpsert(
+				tx.LifecycleScheduleOutbox(),
+				eventID,
+				startTime,
+				*update.EndTime,
+				now,
+			); err != nil {
+				return err
+			}
+		}
 
 		entityName := event.Title
 		if input.Title != nil {
@@ -361,6 +391,10 @@ func (s *eventCommandService) DeleteEvent(ctx context.Context, actorID uint, eve
 		if !groupmodels.HasCapability(role, groupmodels.CapabilityModerate) {
 			return ErrPermissionDenied
 		}
+		now := time.Now()
+		if err := appendLifecycleScheduleCancel(tx.LifecycleScheduleOutbox(), eventID, now); err != nil {
+			return err
+		}
 		if err := store.DeleteEventAggregate(eventID); err != nil {
 			return err
 		}
@@ -371,7 +405,7 @@ func (s *eventCommandService) DeleteEvent(ctx context.Context, actorID uint, eve
 			Action:     groupmodels.ActionDeleteEvent,
 			EntityID:   uintPointer(event.ID),
 			EntityName: event.Title,
-			CreatedAt:  time.Now(),
+			CreatedAt:  now,
 		})
 		return nil
 	})
@@ -420,6 +454,40 @@ func calculateUpdatedEventEndTime(event EventCommandSnapshot, input UpdateEventI
 func uintPointer(value uint) *uint {
 	result := value
 	return &result
+}
+
+func appendLifecycleScheduleUpsert(
+	writer EventLifecycleScheduleOutboxWriter,
+	eventID uint,
+	startTime time.Time,
+	endTime time.Time,
+	occurredAt time.Time,
+) error {
+	if writer == nil {
+		return errEventScheduleOutboxUnavailable
+	}
+	return writer.AppendLifecycleScheduleEvent(EventLifecycleScheduleOutboxInput{
+		MessageID:     uuid.NewString(),
+		EventID:       eventID,
+		Operation:     LifecycleScheduleOperationUpsert,
+		StartTime:     &startTime,
+		EndTime:       &endTime,
+		OccurredAt:    occurredAt,
+		SchemaVersion: LifecycleScheduleSchemaVersion,
+	})
+}
+
+func appendLifecycleScheduleCancel(writer EventLifecycleScheduleOutboxWriter, eventID uint, occurredAt time.Time) error {
+	if writer == nil {
+		return errEventScheduleOutboxUnavailable
+	}
+	return writer.AppendLifecycleScheduleEvent(EventLifecycleScheduleOutboxInput{
+		MessageID:     uuid.NewString(),
+		EventID:       eventID,
+		Operation:     LifecycleScheduleOperationCancel,
+		OccurredAt:    occurredAt,
+		SchemaVersion: LifecycleScheduleSchemaVersion,
+	})
 }
 
 func eventCommandViewToDTO(view EventCommandView) *dto.EventFullDto {

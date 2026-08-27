@@ -1268,6 +1268,7 @@ func newEventsServiceDB(t *testing.T) *gorm.DB {
 		&eventmodels.AgeLimit{},
 		&eventmodels.Genre{},
 		&eventmodels.EventGenre{},
+		&eventmodels.EventLifecycleScheduleOutbox{},
 	); err != nil {
 		t.Fatalf("auto migrate event service models: %v", err)
 	}

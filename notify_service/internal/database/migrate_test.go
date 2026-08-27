@@ -69,11 +69,27 @@ func TestMigratePostgresIsIdempotent(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM notify_service.schema_migrations
-		WHERE version = 1
+		WHERE version IN (1, 2)
 	`).Scan(&count); err != nil {
 		t.Fatalf("не удалось прочитать историю миграций: %v", err)
 	}
-	if count != 1 {
-		t.Fatalf("число записей версии миграции 1 = %d, ожидалось 1", count)
+	if count != 2 {
+		t.Fatalf("число записей миграций 1 и 2 = %d, ожидалось 2", count)
+	}
+
+	for _, table := range []string{"event_lifecycle_source_cursors", "event_lifecycle_source_messages", "event_lifecycle_jobs"} {
+		var exists bool
+		if err := db.QueryRowContext(ctx, `
+			SELECT EXISTS (
+				SELECT 1
+				FROM information_schema.tables
+				WHERE table_schema = 'notify_service' AND table_name = $1
+			)
+		`, table).Scan(&exists); err != nil {
+			t.Fatalf("не удалось проверить таблицу %s: %v", table, err)
+		}
+		if !exists {
+			t.Errorf("миграции не создали таблицу notify_service.%s", table)
+		}
 	}
 }

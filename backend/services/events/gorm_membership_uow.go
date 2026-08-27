@@ -55,6 +55,7 @@ func (uow *gormEventUnitOfWork) WithinTransaction(ctx context.Context, fn func(E
 			CommandStore:    &gormEventCommandStore{repo: tx},
 			AdminStore:      &gormEventAdminStore{repo: tx},
 			AuditStore:      &gormEventAuditStore{repo: tx, ctx: ctx},
+			ScheduleOutbox:  &gormEventLifecycleScheduleOutboxStore{repo: tx},
 		}))
 	})
 }

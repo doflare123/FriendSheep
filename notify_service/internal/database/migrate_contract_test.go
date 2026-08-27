@@ -118,7 +118,7 @@ func TestMigrateStoresChecksumInHistory(t *testing.T) {
 	}
 
 	var historyHasChecksum bool
-	var insertedChecksum string
+	insertedChecksums := make(map[int64]string)
 	for _, execution := range state.execs {
 		lowerQuery := strings.ToLower(execution.query)
 		if strings.Contains(lowerQuery, "schema_migrations") && strings.Contains(lowerQuery, "checksum text not null") {
@@ -128,23 +128,26 @@ func TestMigrateStoresChecksumInHistory(t *testing.T) {
 			if len(execution.args) != 3 {
 				t.Fatalf("запись истории содержит %d аргументов, ожидалось 3", len(execution.args))
 			}
-			insertedChecksum, _ = execution.args[2].Value.(string)
+			version, _ := execution.args[0].Value.(int64)
+			checksum, _ := execution.args[2].Value.(string)
+			insertedChecksums[version] = checksum
 		}
 	}
 	if !historyHasChecksum {
 		t.Fatal("таблица истории миграций не требует обязательную контрольную сумму")
 	}
-	if insertedChecksum == "" {
-		t.Fatal("исполнитель миграций не записал контрольную сумму в историю")
-	}
-
-	body, err := migrations.Files.ReadFile("000001_initial_schema.sql")
-	if err != nil {
-		t.Fatalf("не удалось прочитать встроенную миграцию: %v", err)
-	}
-	wantChecksum := fmt.Sprintf("%x", sha256.Sum256(body))
-	if insertedChecksum != wantChecksum {
-		t.Errorf("записана контрольная сумма %q, ожидалась %q", insertedChecksum, wantChecksum)
+	for version, name := range map[int64]string{
+		1: "000001_initial_schema.sql",
+		2: "000002_event_lifecycle_scheduler.sql",
+	} {
+		body, err := migrations.Files.ReadFile(name)
+		if err != nil {
+			t.Fatalf("не удалось прочитать встроенную миграцию: %v", err)
+		}
+		wantChecksum := fmt.Sprintf("%x", sha256.Sum256(body))
+		if insertedChecksums[version] != wantChecksum {
+			t.Errorf("контрольная сумма версии %d = %q, ожидалась %q", version, insertedChecksums[version], wantChecksum)
+		}
 	}
 	if len(state.queries) == 0 || !strings.Contains(strings.ToLower(state.queries[0]), "select name, checksum") {
 		t.Fatal("исполнитель миграций не проверяет имя и контрольную сумму ранее применённой версии")

@@ -46,10 +46,11 @@ type EventAuditStore interface {
 }
 
 type EventTransaction struct {
-	membership EventMembershipStore
-	commands   EventCommandStore
-	admin      EventAdminStore
-	audit      EventAuditStore
+	membership     EventMembershipStore
+	commands       EventCommandStore
+	admin          EventAdminStore
+	audit          EventAuditStore
+	scheduleOutbox EventLifecycleScheduleOutboxWriter
 }
 
 type EventTransactionStores struct {
@@ -57,14 +58,16 @@ type EventTransactionStores struct {
 	CommandStore    EventCommandStore
 	AdminStore      EventAdminStore
 	AuditStore      EventAuditStore
+	ScheduleOutbox  EventLifecycleScheduleOutboxWriter
 }
 
 func NewEventTransaction(stores EventTransactionStores) EventTransaction {
 	return EventTransaction{
-		membership: stores.MembershipStore,
-		commands:   stores.CommandStore,
-		admin:      stores.AdminStore,
-		audit:      stores.AuditStore,
+		membership:     stores.MembershipStore,
+		commands:       stores.CommandStore,
+		admin:          stores.AdminStore,
+		audit:          stores.AuditStore,
+		scheduleOutbox: stores.ScheduleOutbox,
 	}
 }
 
@@ -82,6 +85,10 @@ func (tx EventTransaction) Admin() EventAdminStore {
 
 func (tx EventTransaction) Audit() EventAuditStore {
 	return tx.audit
+}
+
+func (tx EventTransaction) LifecycleScheduleOutbox() EventLifecycleScheduleOutboxWriter {
+	return tx.scheduleOutbox
 }
 
 type EventUnitOfWork interface {

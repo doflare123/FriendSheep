@@ -87,6 +87,16 @@ type eventAuditStoreStub struct {
 	record    func(servicesevents.EventAuditInput)
 }
 
+type eventLifecycleScheduleOutboxStub struct {
+	err     error
+	entries []servicesevents.EventLifecycleScheduleOutboxInput
+}
+
+func (s *eventLifecycleScheduleOutboxStub) AppendLifecycleScheduleEvent(entry servicesevents.EventLifecycleScheduleOutboxInput) error {
+	s.entries = append(s.entries, entry)
+	return s.err
+}
+
 func (s *eventAuditStoreStub) RecordBestEffort(entry servicesevents.EventAuditInput) error {
 	s.entries = append(s.entries, entry)
 	if s.record != nil {
@@ -100,6 +110,7 @@ type eventUnitOfWorkStub struct {
 	commands   servicesevents.EventCommandStore
 	admin      servicesevents.EventAdminStore
 	audit      *eventAuditStoreStub
+	outbox     *eventLifecycleScheduleOutboxStub
 	err        error
 	ctx        context.Context
 	calls      int
@@ -111,11 +122,15 @@ func (u *eventUnitOfWorkStub) WithinTransaction(ctx context.Context, fn func(ser
 	if u.err != nil {
 		return u.err
 	}
+	if u.outbox == nil {
+		u.outbox = &eventLifecycleScheduleOutboxStub{}
+	}
 	return fn(servicesevents.NewEventTransaction(servicesevents.EventTransactionStores{
 		MembershipStore: u.membership,
 		CommandStore:    u.commands,
 		AdminStore:      u.admin,
 		AuditStore:      u.audit,
+		ScheduleOutbox:  u.outbox,
 	}))
 }
 

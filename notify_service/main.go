@@ -14,6 +14,7 @@ import (
 	"notify_service/internal/config"
 	"notify_service/internal/database"
 	"notify_service/internal/httpserver"
+	"notify_service/internal/lifecycle"
 	"notify_service/internal/logging"
 )
 
@@ -46,7 +47,7 @@ func run() error {
 			return database.Migrate(ctx, db)
 		},
 		BuildApplication: func() (*application.Application, error) {
-			// Каналы доставки и планировщик намеренно отсутствуют в P0.2a.
+			// Пользовательские каналы доставки намеренно отсутствуют в P0.2b.
 			return application.New(), nil
 		},
 		ServeHTTP: func(
@@ -55,8 +56,23 @@ func run() error {
 			logger *slog.Logger,
 			connection bootstrap.Database,
 			_ *application.Application,
-		) error {
-			server := httpserver.New(cfg, logger, connection)
+		) (serveErr error) {
+			db, ok := connection.(*sql.DB)
+			if !ok {
+				return errors.New("неподдерживаемое соединение с базой данных notify_service")
+			}
+			manager := lifecycle.NewManager(cfg, logger, db, nil)
+			if err := manager.Start(ctx); err != nil {
+				return err
+			}
+			defer func() {
+				if err := manager.Stop(cfg.HTTPShutdownTimeout); err != nil {
+					logger.Warn("lifecycle manager завершился по таймауту", "ошибка", err)
+					serveErr = errors.Join(serveErr, err)
+				}
+			}()
+
+			server := httpserver.New(cfg, logger, manager)
 			logger.Info("HTTP-сервер запускается", "адрес", cfg.Address())
 			return server.ListenAndServe(ctx)
 		},
