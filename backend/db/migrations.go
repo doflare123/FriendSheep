@@ -49,6 +49,7 @@ func bootstrapRegistrationModels() []interface{} {
 		&events.Genre{},
 		&events.EventGenre{},
 		&events.EventLifecycleScheduleOutbox{},
+		&events.EventReminderIntentOutbox{},
 		&statsusers.PopSessionType{},
 		&models.User{},
 		&models.StatsProcessedEvent{},

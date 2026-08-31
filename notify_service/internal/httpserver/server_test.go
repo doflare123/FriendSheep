@@ -16,6 +16,7 @@ import (
 
 	"notify_service/internal/config"
 	"notify_service/internal/httpserver"
+	"notify_service/internal/reminders"
 )
 
 type readinessFunc func(context.Context) error
@@ -24,12 +25,53 @@ func (fn readinessFunc) PingContext(ctx context.Context) error {
 	return fn(ctx)
 }
 
+type notificationsStub struct {
+	listPage    any
+	listErr     error
+	unreadCount int
+	unreadErr   error
+	markRecord  any
+	markErr     error
+	listUserID  uint64
+	listAfter   string
+	listUnread  bool
+	listLimit   int
+	markUserID  uint64
+	markNotifID string
+	countUserID uint64
+}
+
+func (stub *notificationsStub) ListNotifications(_ context.Context, userID uint64, after string, limit int, unreadOnly bool) (page reminders.NotificationPage, err error) {
+	stub.listUserID = userID
+	stub.listAfter = after
+	stub.listUnread = unreadOnly
+	stub.listLimit = limit
+	if stub.listPage != nil {
+		page = stub.listPage.(reminders.NotificationPage)
+	}
+	return page, stub.listErr
+}
+
+func (stub *notificationsStub) CountUnread(_ context.Context, userID uint64) (int, error) {
+	stub.countUserID = userID
+	return stub.unreadCount, stub.unreadErr
+}
+
+func (stub *notificationsStub) MarkAsRead(_ context.Context, userID uint64, notificationID string) (record reminders.NotificationRecord, err error) {
+	stub.markUserID = userID
+	stub.markNotifID = notificationID
+	if stub.markRecord != nil {
+		record = stub.markRecord.(reminders.NotificationRecord)
+	}
+	return record, stub.markErr
+}
+
 func TestHealthIsIndependentOfDatabaseReadiness(t *testing.T) {
 	t.Parallel()
 
 	handler := httpserver.NewHandler(discardLogger(), readinessFunc(func(context.Context) error {
 		return errors.New("база данных недоступна")
-	}))
+	}), nil, "internal-token")
 
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/health", nil))
@@ -75,7 +117,7 @@ func TestReadyReflectsDatabasePing(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			response := httptest.NewRecorder()
-			httpserver.NewHandler(discardLogger(), test.readiness).
+			httpserver.NewHandler(discardLogger(), test.readiness, nil, "internal-token").
 				ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/ready", nil))
 			assertJSONStatus(t, response, test.wantCode, test.wantStatus)
 		})
@@ -88,7 +130,7 @@ func TestRequestLogDoesNotExposeHeadersOrQuerySecrets(t *testing.T) {
 	const secret = "unique-test-service-token"
 	var logs bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&logs, nil))
-	handler := httpserver.NewHandler(logger, readinessFunc(func(context.Context) error { return nil }))
+	handler := httpserver.NewHandler(logger, readinessFunc(func(context.Context) error { return nil }), nil, secret)
 	request := httptest.NewRequest(http.MethodGet, "/ready?token="+secret, nil)
 	request.Header.Set("Authorization", "Bearer "+secret)
 	request.Header.Set("X-Internal-Token", secret)
@@ -101,6 +143,95 @@ func TestRequestLogDoesNotExposeHeadersOrQuerySecrets(t *testing.T) {
 	}
 	if strings.Contains(logs.String(), secret) {
 		t.Fatalf("структурированный журнал HTTP-запроса раскрывает секрет: %s", logs.String())
+	}
+}
+
+func TestInternalInboxRoutesRequireInternalToken(t *testing.T) {
+	t.Parallel()
+
+	handler := httpserver.NewHandler(discardLogger(), readinessFunc(func(context.Context) error { return nil }), &notificationsStub{}, "expected-token")
+	request := httptest.NewRequest(http.MethodGet, "/internal/v1/users/7/notifications", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("HTTP-статус = %d, ожидался %d", response.Code, http.StatusUnauthorized)
+	}
+	if !strings.Contains(response.Body.String(), reminders.ErrorCodeInvalidInternalToken) {
+		t.Fatalf("тело ответа не содержит expected error code: %s", response.Body.String())
+	}
+}
+
+func TestInternalUnreadCountUsesServerSideUserIDAndStableResponseShape(t *testing.T) {
+	t.Parallel()
+
+	notifications := &notificationsStub{unreadCount: 3}
+	handler := httpserver.NewHandler(discardLogger(), readinessFunc(func(context.Context) error { return nil }), notifications, "expected-token")
+	request := httptest.NewRequest(http.MethodGet, "/internal/v1/users/42/notifications/unread-count", nil)
+	request.Header.Set("X-Internal-Token", "expected-token")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("HTTP-статус = %d, ожидался %d; тело=%s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if notifications.countUserID != 42 {
+		t.Fatalf("CountUnread получил userID=%d, ожидался 42", notifications.countUserID)
+	}
+	var body struct {
+		UnreadCount int `json:"unreadCount"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatalf("не удалось декодировать unread-count response: %v", err)
+	}
+	if body.UnreadCount != 3 {
+		t.Fatalf("unreadCount = %d, ожидалось 3", body.UnreadCount)
+	}
+}
+
+func TestInternalListRouteDoesNotAllowUserIDSubstitutionOutsidePath(t *testing.T) {
+	t.Parallel()
+
+	notifications := &notificationsStub{listPage: reminders.NotificationPage{}}
+	handler := httpserver.NewHandler(discardLogger(), readinessFunc(func(context.Context) error { return nil }), notifications, "expected-token")
+	request := httptest.NewRequest(http.MethodGet, "/internal/v1/users/77/notifications?after=cursor-1&limit=25&unread=true&userId=999", nil)
+	request.Header.Set("X-Internal-Token", "expected-token")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("HTTP-статус = %d, ожидался %d; тело=%s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if notifications.listUserID != 77 {
+		t.Fatalf("ListNotifications получил userID=%d, ожидался 77", notifications.listUserID)
+	}
+	if notifications.listAfter != "cursor-1" || notifications.listLimit != 25 || !notifications.listUnread {
+		t.Fatalf("ListNotifications args = after:%q limit:%d unread:%t", notifications.listAfter, notifications.listLimit, notifications.listUnread)
+	}
+}
+
+func TestInternalListRouteRejectsInvalidUnreadFilter(t *testing.T) {
+	t.Parallel()
+
+	notifications := &notificationsStub{}
+	handler := httpserver.NewHandler(discardLogger(), readinessFunc(func(context.Context) error { return nil }), notifications, "expected-token")
+	request := httptest.NewRequest(http.MethodGet, "/internal/v1/users/77/notifications?unread=definitely-not-bool", nil)
+	request.Header.Set("X-Internal-Token", "expected-token")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("HTTP-статус = %d, ожидался %d; тело=%s", response.Code, http.StatusBadRequest, response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), reminders.ErrorCodeInvalidUnreadFilter) {
+		t.Fatalf("тело ответа не содержит invalid_unread_filter: %s", response.Body.String())
+	}
+	if notifications.listUserID != 0 {
+		t.Fatalf("ListNotifications не должен вызываться при невалидном unread, но получил userID=%d", notifications.listUserID)
 	}
 }
 
@@ -123,7 +254,7 @@ func TestReadyStopsBlockedPingAtConfiguredDeadline(t *testing.T) {
 	})
 	cfg := validConfig()
 	cfg.DatabaseReadyTimeout = readyTimeout
-	server := httpserver.New(cfg, discardLogger(), readiness)
+	server := httpserver.New(cfg, discardLogger(), readiness, nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	serveDone := make(chan error, 1)
 	go func() {
@@ -176,7 +307,7 @@ func TestServerServeStopsAfterContextCancellation(t *testing.T) {
 	}
 
 	cfg := validConfig()
-	server := httpserver.New(cfg, discardLogger(), readinessFunc(func(context.Context) error { return nil }))
+	server := httpserver.New(cfg, discardLogger(), readinessFunc(func(context.Context) error { return nil }), nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	serveDone := make(chan error, 1)
 	go func() {

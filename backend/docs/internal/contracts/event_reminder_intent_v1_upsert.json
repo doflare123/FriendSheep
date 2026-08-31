@@ -1,0 +1,11 @@
+{
+  "sequence": 125,
+  "messageId": "7556d607-1df0-41df-9682-8baba85e37e7",
+  "schemaVersion": 1,
+  "intentType": "event_reminder",
+  "operation": "schedule_upsert",
+  "eventId": 42,
+  "startTime": "2026-09-01T18:00:00Z",
+  "reminderOffsetMinutes": [1440, 360, 60],
+  "occurredAt": "2026-08-30T12:00:00Z"
+}

@@ -51,6 +51,7 @@ type EventTransaction struct {
 	admin          EventAdminStore
 	audit          EventAuditStore
 	scheduleOutbox EventLifecycleScheduleOutboxWriter
+	reminderOutbox EventReminderIntentOutboxWriter
 }
 
 type EventTransactionStores struct {
@@ -59,6 +60,7 @@ type EventTransactionStores struct {
 	AdminStore      EventAdminStore
 	AuditStore      EventAuditStore
 	ScheduleOutbox  EventLifecycleScheduleOutboxWriter
+	ReminderOutbox  EventReminderIntentOutboxWriter
 }
 
 func NewEventTransaction(stores EventTransactionStores) EventTransaction {
@@ -68,6 +70,7 @@ func NewEventTransaction(stores EventTransactionStores) EventTransaction {
 		admin:          stores.AdminStore,
 		audit:          stores.AuditStore,
 		scheduleOutbox: stores.ScheduleOutbox,
+		reminderOutbox: stores.ReminderOutbox,
 	}
 }
 
@@ -89,6 +92,10 @@ func (tx EventTransaction) Audit() EventAuditStore {
 
 func (tx EventTransaction) LifecycleScheduleOutbox() EventLifecycleScheduleOutboxWriter {
 	return tx.scheduleOutbox
+}
+
+func (tx EventTransaction) EventReminderIntentOutbox() EventReminderIntentOutboxWriter {
+	return tx.reminderOutbox
 }
 
 type EventUnitOfWork interface {

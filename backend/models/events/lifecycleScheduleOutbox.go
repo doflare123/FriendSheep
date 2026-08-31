@@ -2,9 +2,9 @@ package events
 
 import "time"
 
-// EventLifecycleScheduleOutbox is the PostgreSQL adapter record for the
-// lifecycle schedule source consumed by notify_service. Application and HTTP
-// contracts use storage-independent types from services/events.
+// EventLifecycleScheduleOutbox — запись PostgreSQL-адаптера для источника
+// lifecycle-расписания, который читает notify_service. Прикладные и HTTP
+// контракты используют storage-независимые типы из services/events.
 type EventLifecycleScheduleOutbox struct {
 	Sequence      int64  `gorm:"primaryKey;autoIncrement"`
 	MessageID     string `gorm:"type:uuid;not null;uniqueIndex"`

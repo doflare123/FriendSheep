@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://friendsheep.local/contracts/event-reminder-intent-v1.schema.json",
+  "title": "friendSheep event reminder intent v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sequence", "messageId", "schemaVersion", "intentType", "operation", "eventId", "occurredAt"],
+  "properties": {
+    "sequence": { "type": "integer", "minimum": 1 },
+    "messageId": { "type": "string", "format": "uuid" },
+    "schemaVersion": { "const": 1 },
+    "intentType": { "const": "event_reminder" },
+    "operation": { "enum": ["schedule_upsert", "schedule_cancel"] },
+    "eventId": { "type": "integer", "minimum": 1 },
+    "startTime": { "type": "string", "format": "date-time" },
+    "reminderOffsetMinutes": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1 },
+      "uniqueItems": true,
+      "minItems": 1
+    },
+    "occurredAt": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "operation": { "const": "schedule_upsert" } } },
+      "then": { "required": ["startTime", "reminderOffsetMinutes"] },
+      "else": {
+        "not": { "anyOf": [{ "required": ["startTime"] }, { "required": ["reminderOffsetMinutes"] }] }
+      }
+    }
+  ]
+}

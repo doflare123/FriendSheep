@@ -7,6 +7,7 @@ import (
 	"friendship/logger"
 	"friendship/models/dto"
 	groupmodels "friendship/models/groups"
+	"friendship/services/notifications"
 	"time"
 
 	"github.com/google/uuid"
@@ -217,6 +218,9 @@ func (s *eventCommandService) CreateEvent(ctx context.Context, actorID uint, inp
 		); err != nil {
 			return err
 		}
+		if err := appendEventReminderUpsert(tx.EventReminderIntentOutbox(), eventID, input.StartTime, now); err != nil {
+			return err
+		}
 
 		s.recordCommandAudit(tx.Audit(), EventAuditInput{
 			GroupID:    input.GroupID,
@@ -347,6 +351,11 @@ func (s *eventCommandService) UpdateEvent(ctx context.Context, actorID uint, eve
 				return err
 			}
 		}
+		if input.StartTime != nil {
+			if err := appendEventReminderUpsert(tx.EventReminderIntentOutbox(), eventID, *input.StartTime, now); err != nil {
+				return err
+			}
+		}
 
 		entityName := event.Title
 		if input.Title != nil {
@@ -393,6 +402,9 @@ func (s *eventCommandService) DeleteEvent(ctx context.Context, actorID uint, eve
 		}
 		now := time.Now()
 		if err := appendLifecycleScheduleCancel(tx.LifecycleScheduleOutbox(), eventID, now); err != nil {
+			return err
+		}
+		if err := appendEventReminderCancel(tx.EventReminderIntentOutbox(), eventID, now); err != nil {
 			return err
 		}
 		if err := store.DeleteEventAggregate(eventID); err != nil {
@@ -487,6 +499,36 @@ func appendLifecycleScheduleCancel(writer EventLifecycleScheduleOutboxWriter, ev
 		Operation:     LifecycleScheduleOperationCancel,
 		OccurredAt:    occurredAt,
 		SchemaVersion: LifecycleScheduleSchemaVersion,
+	})
+}
+
+func appendEventReminderUpsert(writer EventReminderIntentOutboxWriter, eventID uint, startTime time.Time, occurredAt time.Time) error {
+	if writer == nil {
+		return errEventReminderIntentOutboxUnavailable
+	}
+	return writer.AppendEventReminderIntent(EventReminderIntentOutboxInput{
+		MessageID:             uuid.NewString(),
+		SchemaVersion:         EventReminderIntentSchemaVersion,
+		IntentType:            EventReminderIntentType,
+		Operation:             EventReminderOperationUpsert,
+		EventID:               eventID,
+		StartTime:             &startTime,
+		ReminderOffsetMinutes: notifications.DefaultEventReminderOffsetsMinutes(),
+		OccurredAt:            occurredAt,
+	})
+}
+
+func appendEventReminderCancel(writer EventReminderIntentOutboxWriter, eventID uint, occurredAt time.Time) error {
+	if writer == nil {
+		return errEventReminderIntentOutboxUnavailable
+	}
+	return writer.AppendEventReminderIntent(EventReminderIntentOutboxInput{
+		MessageID:     uuid.NewString(),
+		SchemaVersion: EventReminderIntentSchemaVersion,
+		IntentType:    EventReminderIntentType,
+		Operation:     EventReminderOperationCancel,
+		EventID:       eventID,
+		OccurredAt:    occurredAt,
 	})
 }
 

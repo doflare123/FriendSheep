@@ -7,6 +7,7 @@ import (
 	"friendship/services"
 	events "friendship/services/events"
 	group "friendship/services/groups"
+	"friendship/services/notifications"
 	"friendship/services/references"
 	"friendship/services/register"
 	"friendship/services/sub"
@@ -34,6 +35,16 @@ func (s *Server) initRouters() {
 	}
 	jwtMiddleware := middlewares.NewAuthMiddleware(jwtService, authSessionStore)
 	jwtMiddleware.SetRateLimiter(s.rateLimiter)
+	inboxClient, err := notifications.NewHTTPNotificationInboxClient(
+		s.cfg.NotifyServiceBaseURL,
+		s.cfg.NotifyServiceToken,
+		s.cfg.NotifyServiceHTTPTimeout,
+	)
+	if err != nil {
+		s.logger.Fatal("Failed to create notification inbox client", "error", err)
+	}
+	notificationH := handlers.NewNotificationsHandler(inboxClient)
+	routes.RegisterNotificationRoutes(s.engine, notificationH, jwtMiddleware.RequireAuth())
 
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(s.postgres)
 
@@ -74,6 +85,9 @@ func (s *Server) initRouters() {
 	eventLifecycleScheduleReader := events.NewGORMEventLifecycleScheduleOutboxReader(s.postgres)
 	eventLifecycleScheduleService := events.NewEventLifecycleScheduleOutboxService(eventLifecycleScheduleReader)
 	eventLifecycleScheduleH := handlers.NewEventLifecycleScheduleOutboxHandler(eventLifecycleScheduleService)
+	eventReminderIntentReader := events.NewGORMEventReminderIntentOutboxReader(s.postgres)
+	eventReminderIntentService := events.NewEventReminderIntentService(eventReminderIntentReader)
+	eventReminderIntentH := handlers.NewEventReminderIntentOutboxHandler(eventReminderIntentService)
 	popularEventsH := handlers.NewPopularEventsHandler(s.popularEventsService)
 	eventsH := handlers.NewEventsHandler(handlers.EventsHandlerDependencies{
 		Membership: eventMembershipService,
@@ -90,6 +104,20 @@ func (s *Server) initRouters() {
 	routes.RegisterInternalEventLifecycleScheduleRoutes(
 		s.engine,
 		eventLifecycleScheduleH,
+		middlewares.NewInternalTokenMiddleware(s.cfg.NotifyServiceToken),
+	)
+	routes.RegisterInternalEventReminderIntentRoutes(
+		s.engine,
+		eventReminderIntentH,
+		middlewares.NewInternalTokenMiddleware(s.cfg.NotifyServiceToken),
+	)
+	reminderRecipientStore := notifications.NewGORMEventReminderRecipientStore(s.postgres)
+	reminderPreferenceReader := notifications.NewDefaultEventReminderPreferenceReader()
+	reminderRecipientService := notifications.NewEventReminderRecipientService(reminderRecipientStore, reminderPreferenceReader)
+	reminderRecipientH := handlers.NewEventReminderRecipientsHandler(reminderRecipientService)
+	routes.RegisterInternalEventReminderRecipientRoutes(
+		s.engine,
+		reminderRecipientH,
 		middlewares.NewInternalTokenMiddleware(s.cfg.NotifyServiceToken),
 	)
 

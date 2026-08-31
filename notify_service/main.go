@@ -16,6 +16,7 @@ import (
 	"notify_service/internal/httpserver"
 	"notify_service/internal/lifecycle"
 	"notify_service/internal/logging"
+	"notify_service/internal/reminders"
 )
 
 func main() {
@@ -47,7 +48,8 @@ func run() error {
 			return database.Migrate(ctx, db)
 		},
 		BuildApplication: func() (*application.Application, error) {
-			// Пользовательские каналы доставки намеренно отсутствуют в P0.2b.
+			// Реестр каналов reminder-среза собирается внутри reminders.Manager;
+			// общий контейнер application пока не владеет отдельными каналами.
 			return application.New(), nil
 		},
 		ServeHTTP: func(
@@ -61,18 +63,27 @@ func run() error {
 			if !ok {
 				return errors.New("неподдерживаемое соединение с базой данных notify_service")
 			}
-			manager := lifecycle.NewManager(cfg, logger, db, nil)
-			if err := manager.Start(ctx); err != nil {
+			lifecycleManager := lifecycle.NewManager(cfg, logger, db, nil)
+			if err := lifecycleManager.Start(ctx); err != nil {
+				return err
+			}
+			reminderManager := reminders.NewManager(cfg, logger, db, nil)
+			if err := reminderManager.Start(ctx); err != nil {
+				_ = lifecycleManager.Stop(cfg.HTTPShutdownTimeout)
 				return err
 			}
 			defer func() {
-				if err := manager.Stop(cfg.HTTPShutdownTimeout); err != nil {
+				if err := reminderManager.Stop(cfg.HTTPShutdownTimeout); err != nil {
+					logger.Warn("reminder manager завершился по таймауту", "ошибка", err)
+					serveErr = errors.Join(serveErr, err)
+				}
+				if err := lifecycleManager.Stop(cfg.HTTPShutdownTimeout); err != nil {
 					logger.Warn("lifecycle manager завершился по таймауту", "ошибка", err)
 					serveErr = errors.Join(serveErr, err)
 				}
 			}()
 
-			server := httpserver.New(cfg, logger, manager)
+			server := httpserver.New(cfg, logger, reminderManager, reminderManager)
 			logger.Info("HTTP-сервер запускается", "адрес", cfg.Address())
 			return server.ListenAndServe(ctx)
 		},

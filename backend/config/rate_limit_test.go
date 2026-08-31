@@ -49,6 +49,7 @@ func TestNewConfigReadsRateLimitAndTrustedProxyOverridesFromEnvironment(t *testi
 	t.Setenv("SECRET_KEY_JWT", strings.Repeat("s", 32))
 	t.Setenv("JWT_KEY_ID", "test-primary")
 	t.Setenv("NOTIFY_SERVICE_TOKEN", "notify-service-test-token")
+	t.Setenv("NOTIFY_SERVICE_BASE_URL", "http://notify-service.test")
 
 	cfg := NewConfig()
 
@@ -65,6 +66,9 @@ func TestNewConfigReadsRateLimitAndTrustedProxyOverridesFromEnvironment(t *testi
 	if got, want := cfg.NotifyServiceToken, "notify-service-test-token"; got != want {
 		t.Fatalf("NotifyServiceToken = %q, want %q", got, want)
 	}
+	if got, want := cfg.NotifyServiceBaseURL, "http://notify-service.test"; got != want {
+		t.Fatalf("NotifyServiceBaseURL = %q, want %q", got, want)
+	}
 }
 
 func TestNewConfigReadsRateLimitOverridesSetThroughViper(t *testing.T) {
@@ -75,6 +79,7 @@ func TestNewConfigReadsRateLimitOverridesSetThroughViper(t *testing.T) {
 	viper.Set("SECRET_KEY_JWT", strings.Repeat("s", 32))
 	viper.Set("JWT_KEY_ID", "test-primary")
 	viper.Set("NOTIFY_SERVICE_TOKEN", "notify-service-test-token")
+	viper.Set("NOTIFY_SERVICE_BASE_URL", "http://notify-service.test")
 
 	cfg := NewConfig()
 
@@ -274,9 +279,11 @@ func TestDerivedRateLimitHashSecretIsDomainSeparated(t *testing.T) {
 
 func validConfigForTest(rateLimits RateLimitConfig) Config {
 	return Config{
-		JWTSecretKey:       strings.Repeat("s", 32),
-		JWTKeyID:           "test-primary",
-		NotifyServiceToken: "notify-service-test-token",
+		JWTSecretKey:             strings.Repeat("s", 32),
+		JWTKeyID:                 "test-primary",
+		NotifyServiceToken:       "notify-service-test-token",
+		NotifyServiceBaseURL:     "http://notify-service.test",
+		NotifyServiceHTTPTimeout: 5 * time.Second,
 		Auth: AuthConfig{
 			Issuer:          "friendSheep",
 			Audience:        "friendSheep-api",

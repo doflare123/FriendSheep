@@ -1,0 +1,9 @@
+{
+  "sequence": 126,
+  "messageId": "84bea6b7-ea88-4ece-bcd6-49538e9d0e58",
+  "schemaVersion": 1,
+  "intentType": "event_reminder",
+  "operation": "schedule_cancel",
+  "eventId": 42,
+  "occurredAt": "2026-08-30T13:00:00Z"
+}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"strings"
 	"time"
 
@@ -192,6 +193,8 @@ func applyConfigDefaults() {
 	viper.SetDefault("JWT_PREVIOUS_SECRET_KEY", "")
 	viper.SetDefault("JWT_PREVIOUS_KEY_ID", "")
 	viper.SetDefault("NOTIFY_SERVICE_TOKEN", "")
+	viper.SetDefault("NOTIFY_SERVICE_BASE_URL", "")
+	viper.SetDefault("NOTIFY_SERVICE_HTTP_TIMEOUT", "5s")
 	viper.SetDefault("JWT_ACCESS_TTL", "20m")
 	viper.SetDefault("AUTH_REFRESH_TTL", "720h")
 	viper.SetDefault("JWT_CLOCK_SKEW", "30s")
@@ -239,6 +242,16 @@ func (c *Config) NormalizeAndValidate() error {
 
 	if strings.TrimSpace(c.NotifyServiceToken) == "" {
 		errs = append(errs, fmt.Errorf("NOTIFY_SERVICE_TOKEN must not be empty"))
+	}
+	if strings.TrimSpace(c.NotifyServiceBaseURL) == "" {
+		errs = append(errs, fmt.Errorf("NOTIFY_SERVICE_BASE_URL must not be empty"))
+	} else if parsed, err := url.Parse(strings.TrimSpace(c.NotifyServiceBaseURL)); err != nil ||
+		(parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || parsed.User != nil ||
+		(parsed.Path != "" && parsed.Path != "/") || parsed.RawQuery != "" || parsed.Fragment != "" {
+		errs = append(errs, fmt.Errorf("NOTIFY_SERVICE_BASE_URL must be an HTTP(S) origin without credentials, path, query or fragment"))
+	}
+	if c.NotifyServiceHTTPTimeout <= 0 || c.NotifyServiceHTTPTimeout > 30*time.Second {
+		errs = append(errs, fmt.Errorf("NOTIFY_SERVICE_HTTP_TIMEOUT must be between 1ns and 30s"))
 	}
 	if len(strings.TrimSpace(c.JWTSecretKey)) < 32 {
 		errs = append(errs, fmt.Errorf("SECRET_KEY_JWT must contain at least 32 characters"))

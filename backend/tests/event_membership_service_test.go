@@ -92,6 +92,16 @@ type eventLifecycleScheduleOutboxStub struct {
 	entries []servicesevents.EventLifecycleScheduleOutboxInput
 }
 
+type eventReminderIntentOutboxStub struct {
+	err     error
+	entries []servicesevents.EventReminderIntentOutboxInput
+}
+
+func (s *eventReminderIntentOutboxStub) AppendEventReminderIntent(entry servicesevents.EventReminderIntentOutboxInput) error {
+	s.entries = append(s.entries, entry)
+	return s.err
+}
+
 func (s *eventLifecycleScheduleOutboxStub) AppendLifecycleScheduleEvent(entry servicesevents.EventLifecycleScheduleOutboxInput) error {
 	s.entries = append(s.entries, entry)
 	return s.err
@@ -111,6 +121,7 @@ type eventUnitOfWorkStub struct {
 	admin      servicesevents.EventAdminStore
 	audit      *eventAuditStoreStub
 	outbox     *eventLifecycleScheduleOutboxStub
+	reminders  *eventReminderIntentOutboxStub
 	err        error
 	ctx        context.Context
 	calls      int
@@ -125,12 +136,16 @@ func (u *eventUnitOfWorkStub) WithinTransaction(ctx context.Context, fn func(ser
 	if u.outbox == nil {
 		u.outbox = &eventLifecycleScheduleOutboxStub{}
 	}
+	if u.reminders == nil {
+		u.reminders = &eventReminderIntentOutboxStub{}
+	}
 	return fn(servicesevents.NewEventTransaction(servicesevents.EventTransactionStores{
 		MembershipStore: u.membership,
 		CommandStore:    u.commands,
 		AdminStore:      u.admin,
 		AuditStore:      u.audit,
 		ScheduleOutbox:  u.outbox,
+		ReminderOutbox:  u.reminders,
 	}))
 }
 
