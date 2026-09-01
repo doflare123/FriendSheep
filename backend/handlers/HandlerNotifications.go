@@ -25,6 +25,20 @@ func NewNotificationsHandler(inbox notifications.NotificationInbox) *Notificatio
 	return &NotificationsHandler{inbox: inbox}
 }
 
+// List возвращает страницу уведомлений текущего пользователя.
+// @Summary      Получить уведомления текущего пользователя
+// @Description  Возвращает уведомления только из inbox авторизованного пользователя с курсорной пагинацией и необязательным фильтром непрочитанных.
+// @Tags         Notifications
+// @Produce      json
+// @Security     BearerAuth
+// @Param        cursor  query     string  false  "Курсор следующей страницы"
+// @Param        limit   query     int     false  "Размер страницы (по умолчанию 20, максимум 100)"  minimum(1)  maximum(100)
+// @Param        unread  query     bool    false  "Вернуть только непрочитанные уведомления"
+// @Success      200     {object}  notifications.InboxPage
+// @Failure      400     {object}  dto.ErrorResponse
+// @Failure      401     {object}  dto.ErrorResponse
+// @Failure      500     {object}  dto.ErrorResponse
+// @Router       /api/v2/users/me/notifications [get]
 func (h *NotificationsHandler) List(c *gin.Context) {
 	userID, ok := authenticatedUserID(c)
 	if !ok {
@@ -57,6 +71,16 @@ func (h *NotificationsHandler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, page)
 }
 
+// UnreadCount возвращает число непрочитанных уведомлений текущего пользователя.
+// @Summary      Получить число непрочитанных уведомлений
+// @Description  Возвращает число непрочитанных уведомлений только для авторизованного пользователя.
+// @Tags         Notifications
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  notifications.UnreadCount
+// @Failure      401  {object}  dto.ErrorResponse
+// @Failure      500  {object}  dto.ErrorResponse
+// @Router       /api/v2/users/me/notifications/unread-count [get]
 func (h *NotificationsHandler) UnreadCount(c *gin.Context) {
 	userID, ok := authenticatedUserID(c)
 	if !ok {
@@ -71,6 +95,19 @@ func (h *NotificationsHandler) UnreadCount(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// MarkRead отмечает уведомление текущего пользователя как прочитанное.
+// @Summary      Отметить уведомление прочитанным
+// @Description  Идемпотентно отмечает принадлежащее авторизованному пользователю уведомление как прочитанное.
+// @Tags         Notifications
+// @Produce      json
+// @Security     BearerAuth
+// @Param        notificationId  path      string  true  "ID уведомления"
+// @Success      200             {object}  notifications.MarkReadResult
+// @Failure      400             {object}  dto.ErrorResponse
+// @Failure      401             {object}  dto.ErrorResponse
+// @Failure      404             {object}  dto.ErrorResponse
+// @Failure      500             {object}  dto.ErrorResponse
+// @Router       /api/v2/users/me/notifications/{notificationId}/read [patch]
 func (h *NotificationsHandler) MarkRead(c *gin.Context) {
 	userID, ok := authenticatedUserID(c)
 	if !ok {

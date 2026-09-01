@@ -20,7 +20,7 @@ type Worker struct {
 
 type workerStore interface {
 	ClaimDueJob(context.Context, time.Time, time.Duration) (*Job, error)
-	CompleteJob(context.Context, Job, RecipientSnapshot, time.Time) (int, error)
+	MaterializeJob(context.Context, Job, RecipientSnapshot, time.Time) (int, error)
 	RescheduleRetry(context.Context, Job, time.Time, string, time.Time) error
 	MarkFinal(context.Context, Job, string, string, time.Time) error
 }
@@ -107,7 +107,7 @@ func (w *Worker) ProcessNext(ctx context.Context) (bool, error) {
 			)
 			return true, nil
 		}
-		deliveredUsers, completeErr := w.store.CompleteJob(ctx, *job, snapshot, w.clock.Now())
+		materializedUsers, completeErr := w.store.MaterializeJob(ctx, *job, snapshot, w.clock.Now())
 		if completeErr != nil {
 			return true, w.handleFailure(ctx, *job, completeErr, duration)
 		}
@@ -117,7 +117,7 @@ func (w *Worker) ProcessNext(ctx context.Context) (bool, error) {
 			"event_id", job.EventID,
 			"source_sequence", job.SourceRevision,
 			"reminder_offset_minutes", job.ReminderOffsetMinutes,
-			"recipient_count", deliveredUsers,
+			"recipient_count", materializedUsers,
 			"outcome", StateCompleted,
 			"attempt", job.AttemptCount+1,
 			"duration_ms", duration.Milliseconds(),
@@ -138,17 +138,9 @@ func (w *Worker) handleFailure(ctx context.Context, job Job, err error, duration
 
 	clientErr := &ClientError{Code: ErrorCodeUnexpectedStatus, Retryable: true, Cause: err}
 	var typedClientErr *ClientError
-	var typedDeliveryErr *DeliveryError
 	switch {
 	case errors.As(err, &typedClientErr):
 		clientErr = typedClientErr
-	case errors.As(err, &typedDeliveryErr):
-		clientErr = &ClientError{
-			Code:      typedDeliveryErr.Code,
-			Retryable: typedDeliveryErr.Retryable,
-			Terminal:  typedDeliveryErr.Terminal,
-			Cause:     typedDeliveryErr.Cause,
-		}
 	}
 	if clientErr.Terminal {
 		if markErr := w.store.MarkFinal(ctx, job, StateTerminalFailed, clientErr.Code, w.clock.Now()); markErr != nil {

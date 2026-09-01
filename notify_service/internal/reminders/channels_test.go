@@ -3,7 +3,6 @@ package reminders
 import (
 	"context"
 	"testing"
-	"time"
 )
 
 type testDeliveryChannel struct {
@@ -12,8 +11,8 @@ type testDeliveryChannel struct {
 
 func (c testDeliveryChannel) Code() string { return c.code }
 
-func (c testDeliveryChannel) Deliver(_ context.Context, _ NotificationRecord, _ DeliveryWriter, _ time.Time) (DeliveryResult, error) {
-	return DeliveryResult{Status: DeliveryStatusDelivered, AttemptNumber: 1}, nil
+func (c testDeliveryChannel) Deliver(_ context.Context, _ DeliveryRequest) (DeliveryResult, error) {
+	return DeliveryResult{}, nil
 }
 
 func TestChannelRegistryAddsAdapterWithoutSchedulerChanges(t *testing.T) {

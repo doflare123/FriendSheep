@@ -30,7 +30,7 @@ func (s *workerStoreStub) ClaimDueJob(_ context.Context, _ time.Time, _ time.Dur
 	return s.job, s.claimErr
 }
 
-func (s *workerStoreStub) CompleteJob(_ context.Context, job Job, snapshot RecipientSnapshot, _ time.Time) (int, error) {
+func (s *workerStoreStub) MaterializeJob(_ context.Context, job Job, snapshot RecipientSnapshot, _ time.Time) (int, error) {
 	s.completeCall++
 	s.completeJob = job
 	s.completeSnap = snapshot
@@ -184,7 +184,7 @@ func TestWorkerSchedulesRetryForRetryableRecipientFailure(t *testing.T) {
 	}
 }
 
-func TestWorkerPersistsRetryForRetryableDeliveryFailure(t *testing.T) {
+func TestWorkerPersistsRetryForMaterializationFailure(t *testing.T) {
 	t.Parallel()
 
 	now := time.Date(2036, 8, 30, 14, 0, 0, 0, time.UTC)
@@ -198,7 +198,7 @@ func TestWorkerPersistsRetryForRetryableDeliveryFailure(t *testing.T) {
 	}
 	store := &workerStoreStub{
 		job:         &job,
-		completeErr: &DeliveryError{Code: "in_app_write_failed", Retryable: true},
+		completeErr: &ClientError{Code: "materialization_failed", Retryable: true},
 	}
 	worker := NewWorker(
 		discardReminderLogger(), store, &recipientClientStub{snapshot: snapshot}, fixedClock{now: now}, nil,
@@ -209,7 +209,7 @@ func TestWorkerPersistsRetryForRetryableDeliveryFailure(t *testing.T) {
 	if err != nil || !processed {
 		t.Fatalf("ProcessNext() = processed:%t error:%v", processed, err)
 	}
-	if store.completeCall != 1 || store.retryCalls != 1 || store.retryCode != "in_app_write_failed" {
+	if store.completeCall != 1 || store.retryCalls != 1 || store.retryCode != "materialization_failed" {
 		t.Fatalf("complete/retry/code = %d/%d/%q", store.completeCall, store.retryCalls, store.retryCode)
 	}
 	if store.finalCalls != 0 {
@@ -217,7 +217,7 @@ func TestWorkerPersistsRetryForRetryableDeliveryFailure(t *testing.T) {
 	}
 }
 
-func TestWorkerPersistsTerminalDeliveryFailure(t *testing.T) {
+func TestWorkerPersistsTerminalMaterializationFailure(t *testing.T) {
 	t.Parallel()
 
 	now := time.Date(2036, 8, 30, 14, 0, 0, 0, time.UTC)
@@ -231,7 +231,7 @@ func TestWorkerPersistsTerminalDeliveryFailure(t *testing.T) {
 	}
 	store := &workerStoreStub{
 		job:         &job,
-		completeErr: &DeliveryError{Code: "terminal_channel_error", Terminal: true},
+		completeErr: &ClientError{Code: "invalid_materialization", Terminal: true},
 	}
 	worker := NewWorker(
 		discardReminderLogger(), store, &recipientClientStub{snapshot: snapshot}, fixedClock{now: now}, nil,
@@ -242,7 +242,7 @@ func TestWorkerPersistsTerminalDeliveryFailure(t *testing.T) {
 	if err != nil || !processed {
 		t.Fatalf("ProcessNext() = processed:%t error:%v", processed, err)
 	}
-	if store.completeCall != 1 || store.finalCalls != 1 || store.finalState != StateTerminalFailed || store.finalCode != "terminal_channel_error" {
+	if store.completeCall != 1 || store.finalCalls != 1 || store.finalState != StateTerminalFailed || store.finalCode != "invalid_materialization" {
 		t.Fatalf("complete/final/state/code = %d/%d/%q/%q", store.completeCall, store.finalCalls, store.finalState, store.finalCode)
 	}
 	if store.retryCalls != 0 {

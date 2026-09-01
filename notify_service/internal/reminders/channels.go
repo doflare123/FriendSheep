@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
-	"time"
 )
 
 var channelCodePattern = regexp.MustCompile(`^[a-z][a-z0-9_]{1,63}$`)
 
 type DeliveryResult struct {
-	Status            string
-	AttemptNumber     int
 	ProviderMessageID string
-	ErrorCode         string
+}
+
+type DeliveryRequest struct {
+	TargetID       int64
+	Notification   NotificationRecord
+	IdempotencyKey string
 }
 
 type DeliveryError struct {
@@ -41,13 +43,9 @@ func (e *DeliveryError) Unwrap() error {
 	return e.Cause
 }
 
-type DeliveryWriter interface {
-	RecordDeliveredAttempt(context.Context, NotificationRecord, string, DeliveryResult, time.Time) error
-}
-
 type DeliveryChannel interface {
 	Code() string
-	Deliver(context.Context, NotificationRecord, DeliveryWriter, time.Time) (DeliveryResult, error)
+	Deliver(context.Context, DeliveryRequest) (DeliveryResult, error)
 }
 
 type ChannelRegistry struct {
@@ -92,22 +90,20 @@ func (r *ChannelRegistry) Resolve(codes []string) ([]DeliveryChannel, error) {
 	return resolved, nil
 }
 
+func (r *ChannelRegistry) Channel(code string) (DeliveryChannel, bool) {
+	if r == nil {
+		return nil, false
+	}
+	channel, ok := r.byCode[code]
+	return channel, ok
+}
+
 type InAppChannel struct{}
 
 func (InAppChannel) Code() string {
 	return ChannelCodeInApp
 }
 
-func (InAppChannel) Deliver(ctx context.Context, notification NotificationRecord, writer DeliveryWriter, now time.Time) (DeliveryResult, error) {
-	if writer == nil {
-		return DeliveryResult{}, &DeliveryError{Code: ErrorCodeUnexpectedStatus, Retryable: true, Cause: fmt.Errorf("delivery writer не инициализирован")}
-	}
-	result := DeliveryResult{
-		Status:        DeliveryStatusDelivered,
-		AttemptNumber: 1,
-	}
-	if err := writer.RecordDeliveredAttempt(ctx, notification, ChannelCodeInApp, result, now); err != nil {
-		return DeliveryResult{}, &DeliveryError{Code: ErrorCodeUnexpectedStatus, Retryable: true, Cause: err}
-	}
-	return result, nil
+func (InAppChannel) Deliver(context.Context, DeliveryRequest) (DeliveryResult, error) {
+	return DeliveryResult{}, nil
 }

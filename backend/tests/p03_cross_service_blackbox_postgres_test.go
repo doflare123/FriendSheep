@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,6 +27,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	_ "github.com/lib/pq"
 )
 
 func TestP03EventReminderCrossServiceBlackBoxPostgres(t *testing.T) {
@@ -143,6 +145,8 @@ func TestP03EventReminderCrossServiceBlackBoxPostgres(t *testing.T) {
 func startNotifyServiceForBlackBox(t *testing.T, dsn string, monolithURL string, token string) (string, func()) {
 	t.Helper()
 
+	resetNotifyServiceBlackBoxState(t, dsn)
+
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("reserve notify port: %v", err)
@@ -201,6 +205,37 @@ func startNotifyServiceForBlackBox(t *testing.T, dsn string, monolithURL string,
 		}
 	}
 	return fmt.Sprintf("http://127.0.0.1:%d", port), stop
+}
+
+func resetNotifyServiceBlackBoxState(t *testing.T, dsn string) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		t.Fatalf("open notify_service black-box postgres: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	if err := db.PingContext(ctx); err != nil {
+		t.Fatalf("ping notify_service black-box postgres: %v", err)
+	}
+
+	var databaseName string
+	if err := db.QueryRowContext(ctx, `SELECT current_database()`).Scan(&databaseName); err != nil {
+		t.Fatalf("read notify_service black-box database name: %v", err)
+	}
+	normalizedName := strings.ToLower(databaseName)
+	if !strings.Contains(normalizedName, "test") && !strings.HasSuffix(normalizedName, "_notif") {
+		t.Fatalf("отказ от очистки схемы notify_service в БД %q: имя должно содержать test или оканчиваться на _notif", databaseName)
+	}
+
+	// Очищаем только схему notify_service, чтобы повторный прогон не наследовал cursor/job/inbox состояние.
+	if _, err := db.ExecContext(ctx, `DROP SCHEMA IF EXISTS notify_service CASCADE`); err != nil {
+		t.Fatalf("reset notify_service black-box schema: %v", err)
+	}
 }
 
 func waitForBlackBoxReadiness(t *testing.T, notifyURL string) {

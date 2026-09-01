@@ -3,6 +3,7 @@ package lifecycle
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"reflect"
@@ -279,7 +280,7 @@ func TestValidateSourceBatchRejectsOrderingAndMalformedPayloads(t *testing.T) {
 func validScheduleEvent(sequence uint64, eventID uint64, operation string, now time.Time) ScheduleEvent {
 	item := ScheduleEvent{
 		Sequence:      sequence,
-		MessageID:     "00000000-0000-0000-0000-000000000042",
+		MessageID:     fmt.Sprintf("00000000-0000-0000-0000-%012x", sequence),
 		SchemaVersion: 1,
 		Operation:     operation,
 		EventID:       eventID,

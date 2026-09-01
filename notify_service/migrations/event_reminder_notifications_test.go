@@ -33,9 +33,17 @@ func TestEventReminderMigrationDefinesDurableInboxAndDeliveryState(t *testing.T)
 		"notify_service.notifications",
 		"idempotency_key text not null unique",
 		"idx_notifications_unread",
-		"notify_service.notification_delivery_attempts",
-		"unique (notification_id, channel_code, attempt_number)",
-		"idx_notification_delivery_attempts_delivered_once",
+		"notify_service.notification_delivery_targets",
+		"unique (notification_id, channel_code)",
+		"attempt_count integer not null default 0",
+		"next_attempt_at timestamptz null",
+		"lease_until timestamptz null",
+		"lease_token text null",
+		"last_error_code varchar(64) null",
+		"provider_message_id text null",
+		"state in ('pending', 'processing', 'retry_wait', 'delivered', 'terminal_failed')",
+		"idx_notification_delivery_targets_due",
+		"idx_notification_delivery_targets_lease",
 	}
 	for _, marker := range required {
 		if !strings.Contains(sql, marker) {

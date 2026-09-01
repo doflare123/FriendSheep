@@ -86,28 +86,39 @@ CREATE INDEX IF NOT EXISTS idx_notifications_unread
     ON notify_service.notifications (user_id, read_at, created_at DESC, id DESC)
     WHERE read_at IS NULL;
 
-CREATE TABLE IF NOT EXISTS notify_service.notification_delivery_attempts (
+CREATE TABLE IF NOT EXISTS notify_service.notification_delivery_targets (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     notification_id TEXT NOT NULL REFERENCES notify_service.notifications (id) ON DELETE CASCADE,
     channel_code VARCHAR(64) NOT NULL,
-    status VARCHAR(32) NOT NULL,
-    attempt_number INTEGER NOT NULL CHECK (attempt_number > 0),
+    state VARCHAR(32) NOT NULL,
+    attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+    next_attempt_at TIMESTAMPTZ NULL,
+    lease_until TIMESTAMPTZ NULL,
+    lease_token TEXT NULL,
+    last_error_code VARCHAR(64) NULL,
     provider_message_id TEXT NULL,
-    error_code VARCHAR(64) NULL,
+    idempotency_key TEXT NOT NULL UNIQUE,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,
     delivered_at TIMESTAMPTZ NULL,
-    next_attempt_at TIMESTAMPTZ NULL,
-    CONSTRAINT notification_delivery_attempts_unique_attempt UNIQUE (notification_id, channel_code, attempt_number),
-    CONSTRAINT notification_delivery_attempts_channel_check CHECK (channel_code ~ '^[a-z][a-z0-9_]{1,63}$'),
-    CONSTRAINT notification_delivery_attempts_status_check CHECK (
-        status IN ('pending', 'delivered', 'retry_wait', 'terminal_failed')
+    CONSTRAINT notification_delivery_targets_unique_channel UNIQUE (notification_id, channel_code),
+    CONSTRAINT notification_delivery_targets_channel_check CHECK (channel_code ~ '^[a-z][a-z0-9_]{1,63}$'),
+    CONSTRAINT notification_delivery_targets_state_check CHECK (
+        state IN ('pending', 'processing', 'retry_wait', 'delivered', 'terminal_failed')
+    ),
+    CONSTRAINT notification_delivery_targets_state_fields_check CHECK (
+        (state = 'pending' AND next_attempt_at IS NOT NULL AND lease_until IS NULL AND lease_token IS NULL AND delivered_at IS NULL)
+        OR (state = 'processing' AND next_attempt_at IS NULL AND lease_until IS NOT NULL AND lease_token IS NOT NULL AND delivered_at IS NULL)
+        OR (state = 'retry_wait' AND next_attempt_at IS NOT NULL AND lease_until IS NULL AND lease_token IS NULL AND delivered_at IS NULL)
+        OR (state = 'delivered' AND next_attempt_at IS NULL AND lease_until IS NULL AND lease_token IS NULL AND delivered_at IS NOT NULL)
+        OR (state = 'terminal_failed' AND next_attempt_at IS NULL AND lease_until IS NULL AND lease_token IS NULL AND delivered_at IS NULL)
     )
 );
 
-CREATE INDEX IF NOT EXISTS idx_notification_delivery_attempts_notification
-    ON notify_service.notification_delivery_attempts (notification_id, channel_code, attempt_number);
+CREATE INDEX IF NOT EXISTS idx_notification_delivery_targets_due
+    ON notify_service.notification_delivery_targets (state, next_attempt_at, id)
+    WHERE state IN ('pending', 'retry_wait');
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_delivery_attempts_delivered_once
-    ON notify_service.notification_delivery_attempts (notification_id, channel_code)
-    WHERE status = 'delivered';
+CREATE INDEX IF NOT EXISTS idx_notification_delivery_targets_lease
+    ON notify_service.notification_delivery_targets (lease_until, id)
+    WHERE state = 'processing';

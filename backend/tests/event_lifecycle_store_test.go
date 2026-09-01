@@ -183,10 +183,36 @@ func TestEventLifecycleConcurrentAdvanceUsesPostgresRowLock(t *testing.T) {
 func seedLifecycleStatus(t *testing.T, db *gorm.DB, name string) uint {
 	t.Helper()
 	var status eventmodels.Status
-	if err := db.Where("name = ?", name).FirstOrCreate(&status, eventmodels.Status{Name: name}).Error; err != nil {
+	err := db.Where("name = ?", name).First(&status).Error
+	if err == nil {
+		return status.ID
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf("seed lifecycle status %q: %v", name, err)
+	}
+
+	if err := syncLifecycleStatusSequence(db); err != nil {
+		t.Fatalf("sync lifecycle status sequence for %q: %v", name, err)
+	}
+
+	status = eventmodels.Status{Name: name}
+	if err := db.Create(&status).Error; err != nil {
 		t.Fatalf("seed lifecycle status %q: %v", name, err)
 	}
 	return status.ID
+}
+
+func syncLifecycleStatusSequence(db *gorm.DB) error {
+	if db.Dialector.Name() != "postgres" {
+		return nil
+	}
+
+	return db.Exec(`
+SELECT setval(
+	pg_get_serial_sequence('statuses', 'id'),
+	COALESCE((SELECT MAX(id) FROM statuses), 1),
+	EXISTS (SELECT 1 FROM statuses)
+)`).Error
 }
 
 func setLifecycleEvent(t *testing.T, db *gorm.DB, eventID, statusID uint, startTime, endTime time.Time) {

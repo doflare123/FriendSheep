@@ -107,6 +107,45 @@ func TestPublicNotificationsHandlerRejectsMissingAuthenticatedIdentity(t *testin
 	}
 }
 
+func TestRegisterNotificationRoutesProtectsEveryRouteWithAuthentication(t *testing.T) {
+	stub := &notificationInboxStub{}
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	authCalls := 0
+	auth := func(c *gin.Context) {
+		authCalls++
+		if c.GetHeader("Authorization") != "Bearer valid" {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		c.Set("userID", uint(7))
+		c.Next()
+	}
+	routes.RegisterNotificationRoutes(router, handlers.NewNotificationsHandler(stub), auth)
+
+	tests := []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodGet, path: "/api/v2/users/me/notifications"},
+		{method: http.MethodGet, path: "/api/v2/users/me/notifications/unread-count"},
+		{method: http.MethodPatch, path: "/api/v2/users/me/notifications/notification-1/read"},
+	}
+	for _, test := range tests {
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, httptest.NewRequest(test.method, test.path, nil))
+		if response.Code != http.StatusUnauthorized {
+			t.Fatalf("%s %s status = %d, want 401", test.method, test.path, response.Code)
+		}
+	}
+	if authCalls != len(tests) {
+		t.Fatalf("auth middleware calls = %d, want %d", authCalls, len(tests))
+	}
+	if stub.listCalls != 0 || stub.countCalls != 0 || stub.markReadCalls != 0 {
+		t.Fatalf("notification handler was called without auth: list=%d count=%d mark=%d", stub.listCalls, stub.countCalls, stub.markReadCalls)
+	}
+}
+
 func TestPublicNotificationsHandlerUsesCommonSanitizedErrors(t *testing.T) {
 	for _, test := range []struct {
 		name       string

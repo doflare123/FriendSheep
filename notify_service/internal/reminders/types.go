@@ -23,7 +23,11 @@ const (
 	NotificationKindEventReminder = "event_reminder"
 	ResourceTypeEvent             = "event"
 
-	DeliveryStatusDelivered = "delivered"
+	DeliveryStatePending        = "pending"
+	DeliveryStateProcessing     = "processing"
+	DeliveryStateRetryWait      = "retry_wait"
+	DeliveryStateDelivered      = "delivered"
+	DeliveryStateTerminalFailed = "terminal_failed"
 
 	ChannelCodeInApp = "in_app"
 
@@ -115,6 +119,21 @@ type NotificationRecord struct {
 	Payload               NotificationPayload `json:"payload"`
 	CreatedAt             time.Time           `json:"createdAt"`
 	ReadAt                *time.Time          `json:"readAt,omitempty"`
+}
+
+type DeliveryTarget struct {
+	ID                int64
+	NotificationID    string
+	ChannelCode       string
+	State             string
+	AttemptCount      int
+	NextAttemptAt     *time.Time
+	LeaseUntil        *time.Time
+	LeaseToken        string
+	LastErrorCode     string
+	ProviderMessageID string
+	IdempotencyKey    string
+	Notification      NotificationRecord
 }
 
 type NotificationPage struct {

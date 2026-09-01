@@ -88,6 +88,9 @@ func canonicalOffsets(offsets []int) ([]int, error) {
 		if offset <= 0 {
 			return nil, fmt.Errorf("reminderOffsetMinutes=%d должен быть положительным", offset)
 		}
+		if !isSupportedReminderOffset(offset) {
+			return nil, fmt.Errorf("reminderOffsetMinutes=%d не поддерживается текущей версией контракта", offset)
+		}
 		if _, exists := seen[offset]; exists {
 			return nil, fmt.Errorf("reminderOffsetMinutes=%d повторяется", offset)
 		}
@@ -96,6 +99,15 @@ func canonicalOffsets(offsets []int) ([]int, error) {
 	}
 	sort.Sort(sort.Reverse(sort.IntSlice(result)))
 	return result, nil
+}
+
+func isSupportedReminderOffset(offset int) bool {
+	switch offset {
+	case 1440, 360, 60:
+		return true
+	default:
+		return false
+	}
 }
 
 func buildOccurrences(start time.Time, offsets []int) ([]occurrence, error) {
@@ -137,6 +149,10 @@ func evaluateJobWindow(job Job, now time.Time) string {
 
 func notificationIDempotencyKey(job Job, userID uint64) string {
 	return fmt.Sprintf("%s:%d:%d:%d:%d", NotificationKindEventReminder, job.EventID, job.SourceRevision, job.ReminderOffsetMinutes, userID)
+}
+
+func deliveryIDempotencyKey(notificationID string, channelCode string) string {
+	return fmt.Sprintf("delivery:%s:%s", notificationID, channelCode)
 }
 
 func randomToken() (string, error) {

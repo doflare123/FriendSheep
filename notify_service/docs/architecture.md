@@ -1,4 +1,4 @@
-# Durable lifecycle scheduling P0.2b
+# Durable lifecycle scheduling P0.2b и event reminders P0.3a
 
 Последовательность запуска намеренно линейна:
 
@@ -6,9 +6,10 @@
 2. создать JSON-logger на `slog`;
 3. подключиться к PostgreSQL, принадлежащей `notify_service`;
 4. под advisory lock применить встроенные версионированные миграции;
-5. собрать application-слой без пользовательских delivery channels;
-6. создать lifecycle source client, poller и worker;
-7. запустить workers и HTTP server;
+5. собрать application-слои lifecycle и reminders, зарегистрировав для
+   reminders только `in_app` channel adapter;
+6. создать независимые source clients, pollers и workers;
+7. запустить оба manager и HTTP server;
 8. при `SIGINT`/`SIGTERM` отменить общий context, дождаться HTTP и активной
    worker-операции в пределах shutdown timeout, затем закрыть БД.
 
@@ -90,3 +91,82 @@ watermark остаётся follow-up, и до него source records нельз
 
 FCM остаётся полностью неинициализированным, пока отдельный срез device identity
 и FCM-доставки не определит владение, конфигурацию, хранение, retry и тесты.
+
+## Event reminder source consumer P0.3
+
+Reminder poller использует отдельный endpoint и отдельные cursor/receipts:
+
+`GET /internal/v1/notification-intents/event-reminders?after=<sequence>&limit=<limit>`
+
+Versioned `event_reminder` intent не содержит получателей. `schedule_upsert`
+содержит `eventId`, `startTime` и числовые offsets `[1440,360,60]`; sequence
+является schedule revision. `schedule_cancel` создаёт tombstone без Event FK.
+Batch и cursor применяются одной транзакцией, сообщения дедуплицируются по
+`source_name + message_id`, а более старый sequence не может воскресить
+перенесённое или отменённое расписание.
+
+Один upsert создаёт три строки с уникальностью
+`event_id + source_revision + reminder_offset_minutes`:
+
+- 1440: `due_at=T−24h`, окно до `T−6h`;
+- 360: `due_at=T−6h`, окно до `T−1h`;
+- 60: `due_at=T−1h`, окно до `T`.
+
+Jobs имеют состояния `scheduled`, `processing`, `retry_wait`, `completed`,
+`cancelled`, `superseded`, `skipped_missed_window`, `expired` и
+`terminal_failed`. Поздний worker пропускает завершившиеся окна, доставляет
+только текущее и не создаёт reminders после начала Event. Claim использует
+`FOR UPDATE SKIP LOCKED` и lease; HTTP recipient resolution выполняется вне DB
+transaction. Reschedule снимает старые незавершённые jobs, а cancel делает все
+предыдущие occurrences недоступными для claim.
+
+## Recipient resolution и inbox
+
+Перед delivery worker запрашивает текущий snapshot:
+
+`GET /internal/v1/event-reminders/{eventId}/recipients?reminderOffsetMinutes=<offset>`
+
+Монолит заново читает участников и применяет единый preference port. Поэтому
+вышедший участник исключается, а присоединившийся может получить оставшиеся
+occurrences. Default policy включает все три offset и только `in_app`.
+
+Логическая `Notification` не зависит от канала. Её idempotency key включает
+kind/event/revision/offset/user. После recipient resolution reminder worker в
+одной короткой транзакции создаёт notification, уникальные delivery targets по
+`notification_id + channel_code` и переводит job в `completed`. Это состояние
+означает durable materialization и больше не зависит от результатов внешней
+доставки. `in_app` target сразу получает `delivered` в этой же транзакции, потому
+что inbox уже является самой доставкой и не требует сетевого вызова.
+
+Остальные targets проходят независимо через `pending`, `processing`,
+`retry_wait`, `delivered` или `terminal_failed`. Отдельный dispatcher делает
+короткий claim через `FOR UPDATE SKIP LOCKED`, фиксирует lease и только после
+commit вызывает `DeliveryChannel.Deliver`. Результат сохраняет application-слой
+отдельной lease-token-операцией. Поэтому сбой одного канала не откатывает inbox,
+materialized reminder job или другой канал. Истёкший lease восстанавливает
+at-least-once dispatch с тем же сохранённым idempotency key; effectively-once
+внешняя доставка возможна только при поддержке этого ключа провайдером.
+
+Authoritative inbox доступен только через internal-token API. Публичный JWT
+проверяет монолит, вычисляет user ID и проксирует list/unread-count/mark-read.
+Ownership проверяется SQL-условием `notification.id + user_id`; повторный
+mark-read сохраняет первоначальный `read_at`.
+
+Retryable ошибки delivery получают persisted bounded exponential backoff на
+конкретном target. Неизвестный или терминально отказавший channel завершает
+только свой target безопасным error code. Удалённый Event и invalid recipient
+response по-прежнему терминально завершают reminder job до materialization. Logs
+содержат только технические идентификаторы, outcome, attempt, duration и error
+code.
+
+## Открытые release gates
+
+- PostgreSQL-only cursor serialization, `SKIP LOCKED`, lease recovery,
+  constraints и полный cross-process black-box подтверждены локально на
+  disposable database через `NOTIFY_SERVICE_TEST_POSTGRES_DSN` и
+  `FRIENDSHEEP_TEST_POSTGRES_DSN`; те же проверки должны стать обязательными в
+  CI/release job.
+- Notification outbox не очищается до появления authenticated ack/retention
+  watermark.
+- Первый production bootstrap монолита остаётся release gate до schema freeze и
+  создания clean PostgreSQL baseline.

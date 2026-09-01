@@ -61,6 +61,20 @@ func TestReminderIntentConsumerRejectsMalformedMessageID(t *testing.T) {
 	}
 }
 
+func TestReminderIntentConsumerRejectsUnsupportedOffset(t *testing.T) {
+	t.Parallel()
+
+	start := time.Date(2036, 9, 1, 18, 0, 0, 0, time.UTC)
+	item := ReminderIntent{
+		Sequence: 1, MessageID: "00000000-0000-0000-0000-000000000042", SchemaVersion: 1,
+		IntentType: IntentTypeEventReminder, Operation: OperationScheduleUpsert,
+		EventID: 42, StartTime: &start, ReminderOffsetMinutes: []int{1440, 360, 90}, OccurredAt: start.Add(-time.Hour),
+	}
+	if err := validateSourceBatch([]ReminderIntent{item}); err == nil {
+		t.Fatal("неподдерживаемый reminder offset неожиданно прошёл consumer validation")
+	}
+}
+
 func contractFixturesRoot(t *testing.T) string {
 	t.Helper()
 	_, currentFile, _, ok := runtime.Caller(0)

@@ -224,7 +224,7 @@ func TestStorePostgresSkipLockedLeaseAndCrashRecovery(t *testing.T) {
 	}
 }
 
-func TestStorePostgresCompleteJobPersistsInboxReadStateAndDeliveryAttempts(t *testing.T) {
+func TestStorePostgresMaterializeJobPersistsInboxReadStateAndDeliveryTargets(t *testing.T) {
 	db := requireReminderPostgres(t)
 	now := time.Date(2036, 8, 31, 18, 0, 0, 0, time.UTC)
 	source := uniqueReminderSource(t)
@@ -244,15 +244,15 @@ func TestStorePostgresCompleteJobPersistsInboxReadStateAndDeliveryAttempts(t *te
 		t.Fatalf("claim first reminder job = job:%#v error:%v", jobOne, err)
 	}
 	snapshotOne := snapshotForReminderJob(*jobOne)
-	deliveredOne, err := store.CompleteJob(context.Background(), *jobOne, snapshotOne, now)
+	deliveredOne, err := store.MaterializeJob(context.Background(), *jobOne, snapshotOne, now)
 	if err != nil {
 		t.Fatalf("complete first reminder job: %v", err)
 	}
 	if deliveredOne != 2 {
 		t.Fatalf("delivered users for first reminder job = %d, want 2", deliveredOne)
 	}
-	if _, err := store.CompleteJob(context.Background(), *jobOne, snapshotOne, now.Add(2*time.Second)); err == nil {
-		t.Fatal("repeated CompleteJob() with stale lease unexpectedly succeeded")
+	if _, err := store.MaterializeJob(context.Background(), *jobOne, snapshotOne, now.Add(2*time.Second)); err == nil {
+		t.Fatal("repeated MaterializeJob() with stale lease unexpectedly succeeded")
 	}
 
 	jobTwo, err := store.ClaimDueJob(context.Background(), now.Add(time.Second), 30*time.Second)
@@ -260,7 +260,7 @@ func TestStorePostgresCompleteJobPersistsInboxReadStateAndDeliveryAttempts(t *te
 		t.Fatalf("claim second reminder job = job:%#v error:%v", jobTwo, err)
 	}
 	snapshotTwo := snapshotForReminderJob(*jobTwo)
-	deliveredTwo, err := store.CompleteJob(context.Background(), *jobTwo, snapshotTwo, now.Add(time.Second))
+	deliveredTwo, err := store.MaterializeJob(context.Background(), *jobTwo, snapshotTwo, now.Add(time.Second))
 	if err != nil {
 		t.Fatalf("complete second reminder job: %v", err)
 	}
@@ -272,7 +272,7 @@ func TestStorePostgresCompleteJobPersistsInboxReadStateAndDeliveryAttempts(t *te
 	assertReminderJob(t, db, eventID2, 2, 60, StateCompleted, reminderTimePointer(now.Add(35*time.Minute)), reminderTimePointer(now.Add(-25*time.Minute)), reminderTimePointer(now.Add(35*time.Minute)), 0, nil, "")
 	assertNotificationCountForEvent(t, db, eventID, 2)
 	assertNotificationCountForEvent(t, db, eventID2, 1)
-	assertDeliveredAttemptCountForEvents(t, db, []uint64{eventID, eventID2}, 3)
+	assertDeliveredTargetCountForEvents(t, db, []uint64{eventID, eventID2}, 3)
 
 	pageOne, err := store.ListNotifications(context.Background(), 501, "", 1, false)
 	if err != nil {
@@ -337,7 +337,215 @@ func TestStorePostgresCompleteJobPersistsInboxReadStateAndDeliveryAttempts(t *te
 	}
 }
 
-func TestStorePostgresDeliveryRollbackBeforeJobAckIsSafelyReplayable(t *testing.T) {
+func TestStorePostgresMaterializationIsIdempotentAndChannelRunsOnlyInDispatcher(t *testing.T) {
+	db := requireReminderPostgres(t)
+	now := time.Date(2036, 9, 1, 12, 0, 0, 0, time.UTC)
+	source := uniqueReminderSource(t)
+	eventID := uniqueReminderEventID()
+	cleanupReminderFixture(t, db, source, eventID)
+
+	deliveryCalls := 0
+	externalChannel := dispatcherChannelStub{code: "external", deliver: func(context.Context, DeliveryRequest) (DeliveryResult, error) {
+		deliveryCalls++
+		return DeliveryResult{}, &DeliveryError{Code: "provider_rejected", Terminal: true}
+	}}
+	registry, err := NewChannelRegistry(InAppChannel{}, externalChannel)
+	if err != nil {
+		t.Fatalf("NewChannelRegistry(): %v", err)
+	}
+	store := NewStore(db, registry)
+	intent := validReminderIntent(1, eventID, OperationScheduleUpsert, reminderTimePointer(now.Add(30*time.Minute)), []int{60}, now)
+	if _, err := store.ApplySourceEvents(context.Background(), source, []ReminderIntent{intent}, now); err != nil {
+		t.Fatalf("seed materialization job: %v", err)
+	}
+	job, err := store.ClaimDueJob(context.Background(), now, 30*time.Second)
+	if err != nil || job == nil {
+		t.Fatalf("ClaimDueJob() = job:%#v error:%v", job, err)
+	}
+	snapshot := RecipientSnapshot{
+		EventID:               eventID,
+		Title:                 "Атомарный inbox",
+		StartTime:             *job.StartTime,
+		ReminderOffsetMinutes: 60,
+		Recipients:            []Recipient{{UserID: 701, Channels: []string{ChannelCodeInApp, "external", "external"}}},
+	}
+	if count, err := store.MaterializeJob(context.Background(), *job, snapshot, now); err != nil || count != 1 {
+		t.Fatalf("MaterializeJob() = count:%d error:%v", count, err)
+	}
+	if deliveryCalls != 0 {
+		t.Fatalf("channel вызван во время materialization: calls=%d", deliveryCalls)
+	}
+
+	job.LeaseToken = "replayed-materialization-lease"
+	if _, err := db.Exec(`
+		UPDATE notify_service.event_reminder_jobs
+		SET state = $2, lease_token = $3, lease_until = $4, updated_at = $5
+		WHERE id = $1
+	`, job.ID, StateProcessing, job.LeaseToken, now.Add(time.Minute), now.Add(time.Second)); err != nil {
+		t.Fatalf("prepare repeated materialization: %v", err)
+	}
+	if count, err := store.MaterializeJob(context.Background(), *job, snapshot, now.Add(time.Second)); err != nil || count != 1 {
+		t.Fatalf("repeated MaterializeJob() = count:%d error:%v", count, err)
+	}
+
+	var notificationID string
+	if err := db.QueryRow(`
+		SELECT id FROM notify_service.notifications
+		WHERE resource_type = $1 AND resource_id = $2 AND user_id = $3
+	`, ResourceTypeEvent, int64(eventID), int64(701)).Scan(&notificationID); err != nil {
+		t.Fatalf("load materialized notification: %v", err)
+	}
+	var targetCount int
+	if err := db.QueryRow(`
+		SELECT COUNT(*) FROM notify_service.notification_delivery_targets
+		WHERE notification_id = $1
+	`, notificationID).Scan(&targetCount); err != nil {
+		t.Fatalf("count delivery targets: %v", err)
+	}
+	if targetCount != 2 {
+		t.Fatalf("delivery target count after repeated materialization = %d, want 2", targetCount)
+	}
+	var inAppState string
+	if err := db.QueryRow(`
+		SELECT state FROM notify_service.notification_delivery_targets
+		WHERE notification_id = $1 AND channel_code = $2
+	`, notificationID, ChannelCodeInApp).Scan(&inAppState); err != nil || inAppState != DeliveryStateDelivered {
+		t.Fatalf("in_app target state = %q error:%v, want delivered", inAppState, err)
+	}
+
+	dispatcher := newTestDispatcherAt(t, store, now.Add(2*time.Second), externalChannel)
+	if processed, err := dispatcher.ProcessNext(context.Background()); !processed || err != nil {
+		t.Fatalf("dispatcher ProcessNext() = processed:%t error:%v", processed, err)
+	}
+	if deliveryCalls != 1 {
+		t.Fatalf("external channel calls after dispatcher = %d, want 1", deliveryCalls)
+	}
+	var externalState string
+	if err := db.QueryRow(`
+		SELECT state FROM notify_service.notification_delivery_targets
+		WHERE notification_id = $1 AND channel_code = 'external'
+	`, notificationID).Scan(&externalState); err != nil || externalState != DeliveryStateTerminalFailed {
+		t.Fatalf("external target state = %q error:%v, want terminal_failed", externalState, err)
+	}
+	assertNotificationCountForEvent(t, db, eventID, 1)
+}
+
+func TestStorePostgresDeliveryTargetSkipLockedAndLeaseRecovery(t *testing.T) {
+	db := requireReminderPostgres(t)
+	now := time.Date(2036, 9, 1, 12, 0, 0, 0, time.UTC)
+	source := uniqueReminderSource(t)
+	eventID := uniqueReminderEventID()
+	cleanupReminderFixture(t, db, source, eventID)
+
+	externalChannel := dispatcherChannelStub{code: "external", deliver: func(context.Context, DeliveryRequest) (DeliveryResult, error) {
+		return DeliveryResult{}, nil
+	}}
+	registry, err := NewChannelRegistry(externalChannel)
+	if err != nil {
+		t.Fatalf("NewChannelRegistry(): %v", err)
+	}
+	store := NewStore(db, registry)
+	intent := validReminderIntent(1, eventID, OperationScheduleUpsert, reminderTimePointer(now.Add(30*time.Minute)), []int{60}, now)
+	if _, err := store.ApplySourceEvents(context.Background(), source, []ReminderIntent{intent}, now); err != nil {
+		t.Fatalf("seed delivery targets: %v", err)
+	}
+	job, err := store.ClaimDueJob(context.Background(), now, 30*time.Second)
+	if err != nil || job == nil {
+		t.Fatalf("ClaimDueJob() = job:%#v error:%v", job, err)
+	}
+	snapshot := RecipientSnapshot{
+		EventID: eventID, Title: "Параллельная доставка", StartTime: *job.StartTime, ReminderOffsetMinutes: 60,
+		Recipients: []Recipient{
+			{UserID: 801, Channels: []string{"external"}},
+			{UserID: 802, Channels: []string{"external"}},
+		},
+	}
+	if count, err := store.MaterializeJob(context.Background(), *job, snapshot, now); err != nil || count != 2 {
+		t.Fatalf("MaterializeJob() = count:%d error:%v", count, err)
+	}
+
+	start := make(chan struct{})
+	claims := make(chan *DeliveryTarget, 2)
+	errorsChannel := make(chan error, 2)
+	var wg sync.WaitGroup
+	for range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			target, err := NewStore(db, registry).ClaimDeliveryTarget(context.Background(), now, 30*time.Second)
+			claims <- target
+			errorsChannel <- err
+		}()
+	}
+	close(start)
+	wg.Wait()
+	close(claims)
+	close(errorsChannel)
+	for err := range errorsChannel {
+		if err != nil {
+			t.Fatalf("concurrent ClaimDeliveryTarget() returned error: %v", err)
+		}
+	}
+	claimed := make([]*DeliveryTarget, 0, 2)
+	for target := range claims {
+		if target != nil {
+			claimed = append(claimed, target)
+		}
+	}
+	if len(claimed) != 2 || claimed[0].ID == claimed[1].ID {
+		t.Fatalf("claimed delivery targets = %#v, want two distinct targets", claimed)
+	}
+
+	if target, err := store.ClaimDeliveryTarget(context.Background(), now.Add(29*time.Second), 30*time.Second); err != nil || target != nil {
+		t.Fatalf("claim before lease expiry = target:%#v error:%v", target, err)
+	}
+	recovered, err := store.ClaimDeliveryTarget(context.Background(), now.Add(30*time.Second), 30*time.Second)
+	if err != nil || recovered == nil {
+		t.Fatalf("claim at lease expiry = target:%#v error:%v", recovered, err)
+	}
+	if recovered.ID != claimed[0].ID && recovered.ID != claimed[1].ID {
+		t.Fatalf("recovered unexpected target %#v", recovered)
+	}
+	originalToken := ""
+	for _, target := range claimed {
+		if target.ID == recovered.ID {
+			originalToken = target.LeaseToken
+		}
+	}
+	if recovered.LeaseToken == originalToken || recovered.IdempotencyKey == "" {
+		t.Fatalf("recovered target did not rotate lease or retain idempotency key: %#v", recovered)
+	}
+	if err := store.MarkDeliveryDelivered(
+		context.Background(),
+		*recovered,
+		DeliveryResult{ProviderMessageID: "provider-message-1"},
+		now.Add(31*time.Second),
+	); err != nil {
+		t.Fatalf("MarkDeliveryDelivered(recovered): %v", err)
+	}
+	var deliveredState, providerMessageID string
+	if err := db.QueryRow(`
+		SELECT state, COALESCE(provider_message_id, '')
+		FROM notify_service.notification_delivery_targets
+		WHERE id = $1
+	`, recovered.ID).Scan(&deliveredState, &providerMessageID); err != nil {
+		t.Fatalf("load delivered target result: %v", err)
+	}
+	if deliveredState != DeliveryStateDelivered || providerMessageID != "provider-message-1" {
+		t.Fatalf("persisted delivery result = state:%q provider:%q", deliveredState, providerMessageID)
+	}
+	for _, target := range claimed {
+		if target.ID == recovered.ID {
+			if err := store.MarkDeliveryDelivered(context.Background(), *target, DeliveryResult{}, now.Add(31*time.Second)); err == nil {
+				t.Fatal("stale delivery lease acknowledgement was silently accepted")
+			}
+			break
+		}
+	}
+}
+
+func TestStorePostgresMaterializationRollbackBeforeJobAckIsSafelyReplayable(t *testing.T) {
 	db := requireReminderPostgres(t)
 	now := time.Date(2036, 8, 31, 18, 0, 0, 0, time.UTC)
 	source := uniqueReminderSource(t)
@@ -387,18 +595,18 @@ func TestStorePostgresDeliveryRollbackBeforeJobAckIsSafelyReplayable(t *testing.
 		ReminderOffsetMinutes: 60,
 		Recipients:            []Recipient{{UserID: 601, Channels: []string{ChannelCodeInApp}}},
 	}
-	if _, err := store.CompleteJob(context.Background(), *job, snapshot, now); err == nil {
-		t.Fatal("CompleteJob() неожиданно зафиксировал транзакцию при ошибке job ack")
+	if _, err := store.MaterializeJob(context.Background(), *job, snapshot, now); err == nil {
+		t.Fatal("MaterializeJob() неожиданно зафиксировал транзакцию при ошибке job ack")
 	}
 	assertNotificationCountForEvent(t, db, eventID, 0)
-	assertDeliveredAttemptCountForEvents(t, db, []uint64{eventID}, 0)
+	assertDeliveredTargetCountForEvents(t, db, []uint64{eventID}, 0)
 
 	dropFailureInjection()
-	if delivered, err := store.CompleteJob(context.Background(), *job, snapshot, now.Add(time.Second)); err != nil || delivered != 1 {
-		t.Fatalf("replayed CompleteJob() = delivered:%d error:%v, want 1/nil", delivered, err)
+	if delivered, err := store.MaterializeJob(context.Background(), *job, snapshot, now.Add(time.Second)); err != nil || delivered != 1 {
+		t.Fatalf("replayed MaterializeJob() = delivered:%d error:%v, want 1/nil", delivered, err)
 	}
 	assertNotificationCountForEvent(t, db, eventID, 1)
-	assertDeliveredAttemptCountForEvents(t, db, []uint64{eventID}, 1)
+	assertDeliveredTargetCountForEvents(t, db, []uint64{eventID}, 1)
 
 	page, err := store.ListNotifications(context.Background(), 601, "", 10, false)
 	if err != nil || len(page.Items) != 1 || page.Items[0].Payload.SchemaVersion != 1 {
@@ -617,10 +825,10 @@ func assertNotificationCountForEvent(t *testing.T, db *sql.DB, eventID uint64, w
 	}
 }
 
-func assertDeliveredAttemptCountForEvents(t *testing.T, db *sql.DB, eventIDs []uint64, want int) {
+func assertDeliveredTargetCountForEvents(t *testing.T, db *sql.DB, eventIDs []uint64, want int) {
 	t.Helper()
 	if len(eventIDs) == 0 {
-		t.Fatal("eventIDs for delivered-attempt assertion are empty")
+		t.Fatal("eventIDs for delivered-target assertion are empty")
 	}
 	args := make([]any, 0, len(eventIDs)+1)
 	placeholders := make([]string, 0, len(eventIDs))
@@ -628,22 +836,22 @@ func assertDeliveredAttemptCountForEvents(t *testing.T, db *sql.DB, eventIDs []u
 		args = append(args, int64(eventID))
 		placeholders = append(placeholders, fmt.Sprintf("$%d", index+1))
 	}
-	args = append(args, DeliveryStatusDelivered)
+	args = append(args, DeliveryStateDelivered)
 	statusPlaceholder := fmt.Sprintf("$%d", len(args))
 	query := fmt.Sprintf(`
 		SELECT COUNT(*)
-		FROM notify_service.notification_delivery_attempts attempt
-		JOIN notify_service.notifications notification ON notification.id = attempt.notification_id
+		FROM notify_service.notification_delivery_targets target
+		JOIN notify_service.notifications notification ON notification.id = target.notification_id
 		WHERE notification.resource_type = '%s'
 		  AND notification.resource_id IN (%s)
-		  AND attempt.status = %s
+		  AND target.state = %s
 	`, ResourceTypeEvent, strings.Join(placeholders, ", "), statusPlaceholder)
 	var count int
 	if err := db.QueryRow(query, args...).Scan(&count); err != nil {
-		t.Fatalf("count delivered attempts: %v", err)
+		t.Fatalf("count delivered targets: %v", err)
 	}
 	if count != want {
-		t.Fatalf("delivered attempt count = %d, want %d", count, want)
+		t.Fatalf("delivered target count = %d, want %d", count, want)
 	}
 }
 

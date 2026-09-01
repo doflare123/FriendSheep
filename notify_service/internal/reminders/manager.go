@@ -13,10 +13,11 @@ import (
 )
 
 type Manager struct {
-	logger *slog.Logger
-	store  *Store
-	poller *Poller
-	worker *Worker
+	logger     *slog.Logger
+	store      *Store
+	poller     *Poller
+	worker     *Worker
+	dispatcher *Dispatcher
 
 	runCtx    context.Context
 	cancelRun context.CancelFunc
@@ -39,7 +40,8 @@ func NewManager(cfg config.Config, logger *slog.Logger, db *sql.DB, transport ht
 	store := NewStore(db, registry)
 	clock := SystemClock{}
 	delaySource := RealDelaySource{}
-	return &Manager{
+	workerBackoff := ExponentialBackoff{Min: cfg.WorkerRetryMinBackoff, Max: cfg.WorkerRetryMaxBackoff}
+	manager := &Manager{
 		logger: logger,
 		store:  store,
 		poller: NewPoller(
@@ -59,12 +61,23 @@ func NewManager(cfg config.Config, logger *slog.Logger, db *sql.DB, transport ht
 			client,
 			clock,
 			delaySource,
-			ExponentialBackoff{Min: cfg.WorkerRetryMinBackoff, Max: cfg.WorkerRetryMaxBackoff},
+			workerBackoff,
 			cfg.JobLeaseDuration,
 			cfg.WorkerScanInterval,
 		),
 		done: make(chan struct{}),
 	}
+	manager.dispatcher = NewDispatcher(
+		logger,
+		store,
+		registry,
+		clock,
+		delaySource,
+		workerBackoff,
+		cfg.JobLeaseDuration,
+		cfg.WorkerScanInterval,
+	)
+	return manager
 }
 
 func (m *Manager) Start(parent context.Context) error {
@@ -77,6 +90,10 @@ func (m *Manager) Start(parent context.Context) error {
 			m.startErr = errors.New("reminder manager store не инициализирован")
 			return
 		}
+		if m.poller == nil || m.worker == nil || m.dispatcher == nil {
+			m.startErr = errors.New("reminder manager workers не инициализированы")
+			return
+		}
 		runCtx, cancel := context.WithCancel(parent)
 		m.runCtx = runCtx
 		m.cancelRun = cancel
@@ -84,7 +101,7 @@ func (m *Manager) Start(parent context.Context) error {
 		go func() {
 			defer close(m.done)
 			var wg sync.WaitGroup
-			wg.Add(2)
+			wg.Add(3)
 			go func() {
 				defer wg.Done()
 				m.poller.Run(runCtx)
@@ -92,6 +109,10 @@ func (m *Manager) Start(parent context.Context) error {
 			go func() {
 				defer wg.Done()
 				m.worker.Run(runCtx)
+			}()
+			go func() {
+				defer wg.Done()
+				m.dispatcher.Run(runCtx)
 			}()
 			wg.Wait()
 		}()

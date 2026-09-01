@@ -971,6 +971,61 @@ definitions:
     - image
     - title
     type: object
+  notifications.EventReminderPayload:
+    properties:
+      eventId:
+        type: integer
+      schemaVersion:
+        type: integer
+      startTime:
+        type: string
+      title:
+        type: string
+    type: object
+  notifications.InboxNotification:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      kind:
+        type: string
+      payload:
+        $ref: '#/definitions/notifications.EventReminderPayload'
+      readAt:
+        type: string
+      reminderOffsetMinutes:
+        type: integer
+      resourceId:
+        type: integer
+      resourceType:
+        type: string
+      scheduleRevision:
+        type: integer
+    type: object
+  notifications.InboxPage:
+    properties:
+      hasMore:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/notifications.InboxNotification'
+        type: array
+      nextCursor:
+        type: string
+    type: object
+  notifications.MarkReadResult:
+    properties:
+      id:
+        type: string
+      readAt:
+        type: string
+    type: object
+  notifications.UnreadCount:
+    properties:
+      unreadCount:
+        type: integer
+    type: object
   register.ChangePasswordInput:
     properties:
       email:
@@ -2957,6 +3012,111 @@ paths:
       summary: Получить подписки пользователя на группы
       tags:
       - users
+  /api/v2/users/me/notifications:
+    get:
+      description: Возвращает уведомления только из inbox авторизованного пользователя
+        с курсорной пагинацией и необязательным фильтром непрочитанных.
+      parameters:
+      - description: Курсор следующей страницы
+        in: query
+        name: cursor
+        type: string
+      - description: Размер страницы (по умолчанию 20, максимум 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Вернуть только непрочитанные уведомления
+        in: query
+        name: unread
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notifications.InboxPage'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить уведомления текущего пользователя
+      tags:
+      - Notifications
+  /api/v2/users/me/notifications/{notificationId}/read:
+    patch:
+      description: Идемпотентно отмечает принадлежащее авторизованному пользователю
+        уведомление как прочитанное.
+      parameters:
+      - description: ID уведомления
+        in: path
+        name: notificationId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notifications.MarkReadResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отметить уведомление прочитанным
+      tags:
+      - Notifications
+  /api/v2/users/me/notifications/unread-count:
+    get:
+      description: Возвращает число непрочитанных уведомлений только для авторизованного
+        пользователя.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notifications.UnreadCount'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить число непрочитанных уведомлений
+      tags:
+      - Notifications
 securityDefinitions:
   BearerAuth:
     description: 'Введите токен в формате: Bearer <your_token>'

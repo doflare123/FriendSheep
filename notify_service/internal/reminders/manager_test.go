@@ -20,7 +20,7 @@ func (idleReminderStore) ClaimDueJob(context.Context, time.Time, time.Duration) 
 	return nil, nil
 }
 
-func (idleReminderStore) CompleteJob(context.Context, Job, RecipientSnapshot, time.Time) (int, error) {
+func (idleReminderStore) MaterializeJob(context.Context, Job, RecipientSnapshot, time.Time) (int, error) {
 	return 0, nil
 }
 
@@ -32,22 +32,43 @@ func (idleReminderStore) MarkFinal(context.Context, Job, string, string, time.Ti
 	return nil
 }
 
+func (idleReminderStore) ClaimDeliveryTarget(context.Context, time.Time, time.Duration) (*DeliveryTarget, error) {
+	return nil, nil
+}
+
+func (idleReminderStore) MarkDeliveryDelivered(context.Context, DeliveryTarget, DeliveryResult, time.Time) error {
+	return nil
+}
+
+func (idleReminderStore) RescheduleDelivery(context.Context, DeliveryTarget, time.Time, string, time.Time) error {
+	return nil
+}
+
+func (idleReminderStore) MarkDeliveryTerminal(context.Context, DeliveryTarget, string, time.Time) error {
+	return nil
+}
+
 type emptyReminderSource struct{}
 
 func (emptyReminderSource) ListReminderIntents(_ context.Context, after uint64, _ int) (IntentPage, error) {
 	return IntentPage{Items: []ReminderIntent{}, NextCursor: after}, nil
 }
 
-func TestReminderManagerStopsPollerAndWorkerAfterCancellation(t *testing.T) {
+func TestReminderManagerStopsPollerWorkerAndDispatcherAfterCancellation(t *testing.T) {
 	t.Parallel()
 
 	store := idleReminderStore{}
 	clock := fixedClock{now: time.Date(2036, 8, 31, 12, 0, 0, 0, time.UTC)}
+	registry, err := NewChannelRegistry(InAppChannel{})
+	if err != nil {
+		t.Fatalf("NewChannelRegistry(): %v", err)
+	}
 	manager := &Manager{
-		store:  &Store{},
-		poller: NewPoller(discardReminderLogger(), store, emptyReminderSource{}, clock, RealDelaySource{}, ExponentialBackoff{Min: time.Second, Max: time.Minute}, SourceName, 10, time.Hour),
-		worker: NewWorker(discardReminderLogger(), store, &recipientClientStub{}, clock, RealDelaySource{}, ExponentialBackoff{Min: time.Second, Max: time.Minute}, time.Minute, time.Hour),
-		done:   make(chan struct{}),
+		store:      &Store{},
+		poller:     NewPoller(discardReminderLogger(), store, emptyReminderSource{}, clock, RealDelaySource{}, ExponentialBackoff{Min: time.Second, Max: time.Minute}, SourceName, 10, time.Hour),
+		worker:     NewWorker(discardReminderLogger(), store, &recipientClientStub{}, clock, RealDelaySource{}, ExponentialBackoff{Min: time.Second, Max: time.Minute}, time.Minute, time.Hour),
+		dispatcher: NewDispatcher(discardReminderLogger(), store, registry, clock, RealDelaySource{}, ExponentialBackoff{Min: time.Second, Max: time.Minute}, time.Minute, time.Hour),
+		done:       make(chan struct{}),
 	}
 
 	if err := manager.Start(context.Background()); err != nil {

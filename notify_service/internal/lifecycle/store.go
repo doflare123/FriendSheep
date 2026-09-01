@@ -422,7 +422,7 @@ func loadJobForUpdate(ctx context.Context, tx *sql.Tx, eventID uint64) (Job, boo
 	row := tx.QueryRowContext(
 		ctx,
 		`SELECT id, event_id, source_sequence, source_message_id, start_time, end_time, state, next_action_at,
-		        attempt_count, next_attempt_at, lease_until, COALESCE(lease_token, ''), COALESCE(last_error_code, '')
+		        attempt_count, next_attempt_at, lease_until, COALESCE(lease_token::text, ''), COALESCE(last_error_code, '')
 		 FROM notify_service.event_lifecycle_jobs
 		 WHERE event_id = $1
 		 FOR UPDATE`,

@@ -16,10 +16,6 @@ type Store struct {
 	channels *ChannelRegistry
 }
 
-type txDeliveryWriter struct {
-	tx *sql.Tx
-}
-
 func NewStore(db *sql.DB, channels *ChannelRegistry) *Store {
 	return &Store{db: db, channels: channels}
 }
@@ -168,14 +164,14 @@ func (s *Store) ClaimDueJob(ctx context.Context, now time.Time, leaseDuration ti
 	return job, nil
 }
 
-func (s *Store) CompleteJob(ctx context.Context, job Job, snapshot RecipientSnapshot, now time.Time) (int, error) {
+func (s *Store) MaterializeJob(ctx context.Context, job Job, snapshot RecipientSnapshot, now time.Time) (int, error) {
 	if s == nil || s.channels == nil {
 		return 0, errors.New("reminder store channels не инициализирован")
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return 0, fmt.Errorf("не удалось начать транзакцию reminder delivery: %w", err)
+		return 0, fmt.Errorf("не удалось начать транзакцию reminder materialization: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
@@ -184,14 +180,14 @@ func (s *Store) CompleteJob(ctx context.Context, job Job, snapshot RecipientSnap
 		return 0, err
 	}
 	if !found {
-		return 0, fmt.Errorf("lease reminder job потерян до доставки")
+		return 0, fmt.Errorf("lease reminder job потерян до materialization")
 	}
 	if lockedJob.SourceRevision != job.SourceRevision || lockedJob.EventID != job.EventID || lockedJob.ReminderOffsetMinutes != job.ReminderOffsetMinutes {
 		return 0, fmt.Errorf("reminder job изменился до доставки")
 	}
 
 	seenUsers := make(map[uint64]struct{}, len(snapshot.Recipients))
-	deliveredUsers := 0
+	materializedUsers := 0
 	for _, recipient := range snapshot.Recipients {
 		if recipient.UserID == 0 {
 			return 0, &ClientError{Code: ErrorCodeMalformedResponse, Terminal: true, Cause: errors.New("recipient.userId=0")}
@@ -211,18 +207,13 @@ func (s *Store) CompleteJob(ctx context.Context, job Job, snapshot RecipientSnap
 		if err != nil {
 			return 0, err
 		}
-		writer := txDeliveryWriter{tx: tx}
 		for _, channel := range resolvedChannels {
-			result, err := channel.Deliver(ctx, notification, writer, now)
-			if err != nil {
+			if err := insertDeliveryTargetTx(ctx, tx, notification.ID, channel.Code(), now); err != nil {
 				return 0, err
-			}
-			if result.Status != DeliveryStatusDelivered {
-				return 0, &ClientError{Code: ErrorCodeUnexpectedStatus, Retryable: true, Cause: fmt.Errorf("channel %s вернул неподдерживаемый status %q", channel.Code(), result.Status)}
 			}
 		}
 		seenUsers[recipient.UserID] = struct{}{}
-		deliveredUsers++
+		materializedUsers++
 	}
 
 	result, execErr := tx.ExecContext(
@@ -241,14 +232,14 @@ func (s *Store) CompleteJob(ctx context.Context, job Job, snapshot RecipientSnap
 		StateCompleted,
 		now,
 	)
-	if err := checkRowsAffected(result, execErr, "завершить reminder job после доставки"); err != nil {
+	if err := checkRowsAffected(result, execErr, "завершить reminder job после materialization"); err != nil {
 		return 0, err
 	}
 
 	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("не удалось зафиксировать reminder delivery: %w", err)
+		return 0, fmt.Errorf("не удалось зафиксировать materialization reminder: %w", err)
 	}
-	return deliveredUsers, nil
+	return materializedUsers, nil
 }
 
 func (s *Store) RescheduleRetry(ctx context.Context, job Job, nextAttempt time.Time, errorCode string, now time.Time) error {
@@ -580,6 +571,41 @@ func insertNotificationTx(ctx context.Context, tx *sql.Tx, job Job, snapshot Rec
 	return record, nil
 }
 
+func insertDeliveryTargetTx(ctx context.Context, tx *sql.Tx, notificationID string, channelCode string, now time.Time) error {
+	state := DeliveryStatePending
+	var deliveredAt any
+	if channelCode == ChannelCodeInApp {
+		state = DeliveryStateDelivered
+		deliveredAt = now
+	}
+	_, err := tx.ExecContext(
+		ctx,
+		`INSERT INTO notify_service.notification_delivery_targets (
+			notification_id, channel_code, state, attempt_count, next_attempt_at, lease_until, lease_token,
+			last_error_code, provider_message_id, idempotency_key, created_at, updated_at, delivered_at
+		) VALUES ($1, $2, $3, 0, $4, NULL, NULL, NULL, NULL, $5, $6, $6, $7)
+		ON CONFLICT (notification_id, channel_code) DO NOTHING`,
+		notificationID,
+		channelCode,
+		state,
+		nextDeliveryAttemptAt(state, now),
+		deliveryIDempotencyKey(notificationID, channelCode),
+		now,
+		deliveredAt,
+	)
+	if err != nil {
+		return fmt.Errorf("не удалось сохранить delivery target: %w", err)
+	}
+	return nil
+}
+
+func nextDeliveryAttemptAt(state string, now time.Time) any {
+	if state == DeliveryStatePending {
+		return now
+	}
+	return nil
+}
+
 func loadJobByLeaseForUpdate(ctx context.Context, tx *sql.Tx, jobID int64, leaseToken string) (Job, bool, error) {
 	row := tx.QueryRowContext(
 		ctx,
@@ -806,31 +832,4 @@ func scanNotificationRecordRow(scanner interface{ Scan(...any) error }) (Notific
 		return NotificationRecord{}, false, fmt.Errorf("не удалось декодировать notification payload: %w", err)
 	}
 	return record, true, nil
-}
-
-func (w txDeliveryWriter) RecordDeliveredAttempt(ctx context.Context, notification NotificationRecord, channelCode string, result DeliveryResult, now time.Time) error {
-	if result.AttemptNumber <= 0 {
-		return errors.New("delivery attempt number должен быть положительным")
-	}
-	execResult, err := w.tx.ExecContext(
-		ctx,
-		`INSERT INTO notify_service.notification_delivery_attempts (
-			notification_id, channel_code, status, attempt_number, provider_message_id, error_code, created_at, updated_at, delivered_at, next_attempt_at
-		) VALUES ($1, $2, $3, $4, NULLIF($5, ''), NULLIF($6, ''), $7, $7, $7, NULL)
-		ON CONFLICT (notification_id, channel_code, attempt_number) DO NOTHING`,
-		notification.ID,
-		channelCode,
-		result.Status,
-		result.AttemptNumber,
-		result.ProviderMessageID,
-		result.ErrorCode,
-		now,
-	)
-	if err != nil {
-		return fmt.Errorf("не удалось сохранить delivery attempt: %w", err)
-	}
-	if _, err := execResult.RowsAffected(); err != nil {
-		return fmt.Errorf("не удалось подтвердить delivery attempt: %w", err)
-	}
-	return nil
 }

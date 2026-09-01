@@ -85,7 +85,7 @@ func TestMigratePostgresIsIdempotent(t *testing.T) {
 		"event_reminder_source_messages",
 		"event_reminder_jobs",
 		"notifications",
-		"notification_delivery_attempts",
+		"notification_delivery_targets",
 	} {
 		var exists bool
 		if err := db.QueryRowContext(ctx, `
