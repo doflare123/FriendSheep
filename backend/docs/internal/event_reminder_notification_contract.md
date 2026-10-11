@@ -28,6 +28,15 @@ scheduling but not reminder scheduling. Delete publishes a cancellation
 tombstone before deleting the event aggregate. The outbox has no Event foreign
 key and is not cleaned without a future acknowledgement/retention protocol.
 
+Оба outbox используют общий `pg_advisory_xact_lock(1179862864, 1)` в начале
+GORM event unit of work, до domain row locks и выдачи sequence. Блокировка
+удерживается до commit/rollback и сохраняет порядок публикации между экземплярами
+монолита: меньшая позиция не может закоммититься после уже видимой большей.
+Rollback может оставить gap, который читатель свободно пропускает. Обязательны
+стандартный `CACHE 1` последовательностей и публикация только через этот unit of
+work. Цена — сериализация его операций и обоих outbox. Полный порядок блокировок
+и ограничения описаны в `event_lifecycle_schedule_outbox_contract.md`.
+
 ## Recipient resolution
 
 `GET /internal/v1/event-reminders/{eventId}/recipients?reminderOffsetMinutes=360`
@@ -92,3 +101,19 @@ transaction, so no database transaction is held during HTTP.
 
 The detailed inbox/read transport is documented in
 `notification_inbox_contract.md`.
+
+## P0.3b: границы времени и размера ответа
+
+После recipient HTTP worker повторяет проверку окна. Окончательное решение
+принимается в materialization: `Clock.Now()` читается после `FOR UPDATE` job
+и проверок lease/state/revision, до первой записи notification. При равенстве
+`window_end_at` job атомарно получает `skipped_missed_window`, а при равенстве
+`start_time` или позже — `expired`; notifications/targets не создаются.
+Проверки cancel/supersede и актуальности snapshot сохраняются. Это точка допуска
+к materialization, а не гарантия завершения commit до временной границы.
+
+Оба source HTTP clients ограничены 1 MiB: максимальная страница v1 из 500
+записей фиксированной формы занимает менее 256 KiB. Чтение ограничено
+`limit + 1` байтами; превышение возвращает отдельную retryable ошибку
+`response_too_large`. Повреждённый JSON и превышение размера не приводят
+к применению частичного batch или продвижению cursor.

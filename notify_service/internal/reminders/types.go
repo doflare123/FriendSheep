@@ -38,6 +38,7 @@ const (
 	ErrorCodeInvalidChannel       = "invalid_recipient_channel"
 	ErrorCodeStaleSchedule        = "stale_schedule"
 	ErrorCodeMalformedResponse    = "malformed_response"
+	ErrorCodeResponseTooLarge     = "response_too_large"
 	ErrorCodeUnexpectedStatus     = "unexpected_status"
 	ErrorCodeNetwork              = "network_error"
 	ErrorCodeTimeout              = "timeout"

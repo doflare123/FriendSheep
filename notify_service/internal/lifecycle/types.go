@@ -28,6 +28,7 @@ const (
 	ErrorCodeInvalidEventID       = "invalid_event_id"
 	ErrorCodeInvalidLifecycle     = "invalid_event_lifecycle_state"
 	ErrorCodeMalformedResponse    = "malformed_response"
+	ErrorCodeResponseTooLarge     = "response_too_large"
 	ErrorCodeUnexpectedStatus     = "unexpected_status"
 	ErrorCodeNetwork              = "network_error"
 	ErrorCodeTimeout              = "timeout"

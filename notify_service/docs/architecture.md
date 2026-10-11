@@ -159,6 +159,38 @@ response по-прежнему терминально завершают reminde
 содержат только технические идентификаторы, outcome, attempt, duration и error
 code.
 
+## Надёжность pipeline P0.3b
+
+Монолит сериализует публикацию обоих outbox общим PostgreSQL transaction advisory
+lock `(1179862864, 1)`. Издатель получает его до domain locks и выдачи sequence,
+а PostgreSQL освобождает после commit/rollback. Поэтому читатель `sequence > cursor`
+не обгоняет ещё способную закоммититься меньшую позицию. Sequence сохраняют
+`CACHE 1`; gaps после rollback допустимы и не требуют ожидания. Цена минимального
+решения — сериализация операций текущего event Unit of Work, включая membership
+и admin. Процессные блокировки и общая база двух серверов не используются.
+
+Reminder worker повторно проверяет окно после recipient HTTP. Окончательная
+точка принятия решения — чтение `Clock.Now()` внутри materialization после
+получения `FOR UPDATE` job и проверок lease/state/revision, перед первой вставкой
+notification. Timestamp до ожидания блокировки не используется для этого решения.
+При `now >= start_time` результат `expired`; иначе при `now >= window_end_at`
+результат `skipped_missed_window`. Эти состояния фиксируются атомарно без
+notifications/targets. Cancel/supersede или смена lease делают старый job
+недоступным для materialization. Проверка snapshot start time сохраняется.
+Это проверка допуска к materialization: commit последующих записей может
+произойти после границы окна, и гарантия commit до границы не заявляется.
+HTTP и `DeliveryChannel` остаются вне транзакции.
+
+Оба source HTTP clients ограничивают response body величиной 1 MiB и читают
+не более `limit + 1` байт для явного распознавания превышения. Максимальная
+страница v1 из 500 записей фиксированной формы укладывается в 256 KiB:
+UUID 36 символов, числовые идентификаторы до 20 цифр, timestamps RFC3339Nano,
+фиксированные enum и три numeric offsets дают менее 512 байт на запись.
+Лимит оставляет запас для JSON envelope. При превышении возвращается отдельная
+retryable ошибка `response_too_large`; при повреждённом JSON —
+`malformed_response`. Частичная страница не передаётся в store и cursor не
+продвигается. Изменение формы source контракта требует пересмотра этой оценки.
+
 ## Открытые release gates
 
 - PostgreSQL-only cursor serialization, `SKIP LOCKED`, lease recovery,

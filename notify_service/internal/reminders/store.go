@@ -164,7 +164,7 @@ func (s *Store) ClaimDueJob(ctx context.Context, now time.Time, leaseDuration ti
 	return job, nil
 }
 
-func (s *Store) MaterializeJob(ctx context.Context, job Job, snapshot RecipientSnapshot, now time.Time) (int, error) {
+func (s *Store) MaterializeJob(ctx context.Context, job Job, snapshot RecipientSnapshot, clock Clock) (int, error) {
 	if s == nil || s.channels == nil {
 		return 0, errors.New("reminder store channels не инициализирован")
 	}
@@ -184,6 +184,30 @@ func (s *Store) MaterializeJob(ctx context.Context, job Job, snapshot RecipientS
 	}
 	if lockedJob.SourceRevision != job.SourceRevision || lockedJob.EventID != job.EventID || lockedJob.ReminderOffsetMinutes != job.ReminderOffsetMinutes {
 		return 0, fmt.Errorf("reminder job изменился до доставки")
+	}
+	// Точка решения по времени — после получения блокировки и проверки lease/revision.
+	// Часы читаются здесь, а не до ожидания блокировки или HTTP-запроса.
+	now := clock.Now()
+	finalState := evaluateJobWindow(lockedJob, now)
+	if finalState == StateExpired || finalState == StateSkippedMissedWindow {
+		result, execErr := tx.ExecContext(ctx, `UPDATE notify_service.event_reminder_jobs
+			SET state = $4, next_attempt_at = NULL, lease_until = NULL,
+			    lease_token = NULL, last_error_code = NULL, updated_at = $5
+			WHERE id = $1 AND lease_token = $2 AND state = $3`,
+			job.ID, job.LeaseToken, StateProcessing, finalState, now)
+		if err := checkRowsAffected(result, execErr, "завершить reminder job вне окна"); err != nil {
+			return 0, err
+		}
+		if err := tx.Commit(); err != nil {
+			return 0, fmt.Errorf("не удалось зафиксировать закрытое окно reminder: %w", err)
+		}
+		return 0, nil
+	}
+	if finalState != StateProcessing {
+		return 0, &ClientError{Code: ErrorCodeMalformedResponse, Terminal: true, Cause: errors.New("reminder job ещё не достиг окна materialization")}
+	}
+	if lockedJob.StartTime == nil || !snapshot.StartTime.Equal(*lockedJob.StartTime) {
+		return 0, &ClientError{Code: ErrorCodeStaleSchedule, Terminal: true}
 	}
 
 	seenUsers := make(map[uint64]struct{}, len(snapshot.Recipients))

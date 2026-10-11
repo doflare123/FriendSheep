@@ -20,7 +20,7 @@ type Worker struct {
 
 type workerStore interface {
 	ClaimDueJob(context.Context, time.Time, time.Duration) (*Job, error)
-	MaterializeJob(context.Context, Job, RecipientSnapshot, time.Time) (int, error)
+	MaterializeJob(context.Context, Job, RecipientSnapshot, Clock) (int, error)
 	RescheduleRetry(context.Context, Job, time.Time, string, time.Time) error
 	MarkFinal(context.Context, Job, string, string, time.Time) error
 }
@@ -93,6 +93,15 @@ func (w *Worker) ProcessNext(ctx context.Context) (bool, error) {
 	snapshot, err := w.client.ResolveRecipients(ctx, job.EventID, job.ReminderOffsetMinutes)
 	duration := w.clock.Now().Sub(started)
 	if err == nil {
+		windowState = evaluateJobWindow(*job, w.clock.Now())
+		if windowState == StateExpired || windowState == StateSkippedMissedWindow {
+			// Окончательное решение принимается повторно под блокировкой job.
+			_, completeErr := w.store.MaterializeJob(ctx, *job, snapshot, w.clock)
+			if completeErr != nil {
+				return true, w.handleFailure(ctx, *job, completeErr, duration)
+			}
+			return true, nil
+		}
 		if job.StartTime == nil || !snapshot.StartTime.Equal(*job.StartTime) {
 			if markErr := w.store.MarkFinal(ctx, *job, StateSuperseded, ErrorCodeStaleSchedule, w.clock.Now()); markErr != nil {
 				return true, markErr
@@ -107,7 +116,7 @@ func (w *Worker) ProcessNext(ctx context.Context) (bool, error) {
 			)
 			return true, nil
 		}
-		materializedUsers, completeErr := w.store.MaterializeJob(ctx, *job, snapshot, w.clock.Now())
+		materializedUsers, completeErr := w.store.MaterializeJob(ctx, *job, snapshot, w.clock)
 		if completeErr != nil {
 			return true, w.handleFailure(ctx, *job, completeErr, duration)
 		}
@@ -118,7 +127,6 @@ func (w *Worker) ProcessNext(ctx context.Context) (bool, error) {
 			"source_sequence", job.SourceRevision,
 			"reminder_offset_minutes", job.ReminderOffsetMinutes,
 			"recipient_count", materializedUsers,
-			"outcome", StateCompleted,
 			"attempt", job.AttemptCount+1,
 			"duration_ms", duration.Milliseconds(),
 		)

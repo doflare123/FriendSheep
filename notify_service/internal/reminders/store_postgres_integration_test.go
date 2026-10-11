@@ -244,14 +244,14 @@ func TestStorePostgresMaterializeJobPersistsInboxReadStateAndDeliveryTargets(t *
 		t.Fatalf("claim first reminder job = job:%#v error:%v", jobOne, err)
 	}
 	snapshotOne := snapshotForReminderJob(*jobOne)
-	deliveredOne, err := store.MaterializeJob(context.Background(), *jobOne, snapshotOne, now)
+	deliveredOne, err := store.MaterializeJob(context.Background(), *jobOne, snapshotOne, fixedClock{now: now})
 	if err != nil {
 		t.Fatalf("complete first reminder job: %v", err)
 	}
 	if deliveredOne != 2 {
 		t.Fatalf("delivered users for first reminder job = %d, want 2", deliveredOne)
 	}
-	if _, err := store.MaterializeJob(context.Background(), *jobOne, snapshotOne, now.Add(2*time.Second)); err == nil {
+	if _, err := store.MaterializeJob(context.Background(), *jobOne, snapshotOne, fixedClock{now: now.Add(2 * time.Second)}); err == nil {
 		t.Fatal("repeated MaterializeJob() with stale lease unexpectedly succeeded")
 	}
 
@@ -260,7 +260,7 @@ func TestStorePostgresMaterializeJobPersistsInboxReadStateAndDeliveryTargets(t *
 		t.Fatalf("claim second reminder job = job:%#v error:%v", jobTwo, err)
 	}
 	snapshotTwo := snapshotForReminderJob(*jobTwo)
-	deliveredTwo, err := store.MaterializeJob(context.Background(), *jobTwo, snapshotTwo, now.Add(time.Second))
+	deliveredTwo, err := store.MaterializeJob(context.Background(), *jobTwo, snapshotTwo, fixedClock{now: now.Add(time.Second)})
 	if err != nil {
 		t.Fatalf("complete second reminder job: %v", err)
 	}
@@ -369,7 +369,7 @@ func TestStorePostgresMaterializationIsIdempotentAndChannelRunsOnlyInDispatcher(
 		ReminderOffsetMinutes: 60,
 		Recipients:            []Recipient{{UserID: 701, Channels: []string{ChannelCodeInApp, "external", "external"}}},
 	}
-	if count, err := store.MaterializeJob(context.Background(), *job, snapshot, now); err != nil || count != 1 {
+	if count, err := store.MaterializeJob(context.Background(), *job, snapshot, fixedClock{now: now}); err != nil || count != 1 {
 		t.Fatalf("MaterializeJob() = count:%d error:%v", count, err)
 	}
 	if deliveryCalls != 0 {
@@ -384,7 +384,7 @@ func TestStorePostgresMaterializationIsIdempotentAndChannelRunsOnlyInDispatcher(
 	`, job.ID, StateProcessing, job.LeaseToken, now.Add(time.Minute), now.Add(time.Second)); err != nil {
 		t.Fatalf("prepare repeated materialization: %v", err)
 	}
-	if count, err := store.MaterializeJob(context.Background(), *job, snapshot, now.Add(time.Second)); err != nil || count != 1 {
+	if count, err := store.MaterializeJob(context.Background(), *job, snapshot, fixedClock{now: now.Add(time.Second)}); err != nil || count != 1 {
 		t.Fatalf("repeated MaterializeJob() = count:%d error:%v", count, err)
 	}
 
@@ -460,7 +460,7 @@ func TestStorePostgresDeliveryTargetSkipLockedAndLeaseRecovery(t *testing.T) {
 			{UserID: 802, Channels: []string{"external"}},
 		},
 	}
-	if count, err := store.MaterializeJob(context.Background(), *job, snapshot, now); err != nil || count != 2 {
+	if count, err := store.MaterializeJob(context.Background(), *job, snapshot, fixedClock{now: now}); err != nil || count != 2 {
 		t.Fatalf("MaterializeJob() = count:%d error:%v", count, err)
 	}
 
@@ -595,14 +595,14 @@ func TestStorePostgresMaterializationRollbackBeforeJobAckIsSafelyReplayable(t *t
 		ReminderOffsetMinutes: 60,
 		Recipients:            []Recipient{{UserID: 601, Channels: []string{ChannelCodeInApp}}},
 	}
-	if _, err := store.MaterializeJob(context.Background(), *job, snapshot, now); err == nil {
+	if _, err := store.MaterializeJob(context.Background(), *job, snapshot, fixedClock{now: now}); err == nil {
 		t.Fatal("MaterializeJob() неожиданно зафиксировал транзакцию при ошибке job ack")
 	}
 	assertNotificationCountForEvent(t, db, eventID, 0)
 	assertDeliveredTargetCountForEvents(t, db, []uint64{eventID}, 0)
 
 	dropFailureInjection()
-	if delivered, err := store.MaterializeJob(context.Background(), *job, snapshot, now.Add(time.Second)); err != nil || delivered != 1 {
+	if delivered, err := store.MaterializeJob(context.Background(), *job, snapshot, fixedClock{now: now.Add(time.Second)}); err != nil || delivered != 1 {
 		t.Fatalf("replayed MaterializeJob() = delivered:%d error:%v, want 1/nil", delivered, err)
 	}
 	assertNotificationCountForEvent(t, db, eventID, 1)

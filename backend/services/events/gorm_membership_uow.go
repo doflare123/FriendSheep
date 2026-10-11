@@ -50,6 +50,9 @@ func (uow *gormEventUnitOfWork) WithinTransaction(ctx context.Context, fn func(E
 	}
 
 	return uow.transactor.TransactionWithContext(ctx, func(tx repository.PostgresRepository) error {
+		if err := lockEventOutboxPublication(tx); err != nil {
+			return err
+		}
 		return fn(NewEventTransaction(EventTransactionStores{
 			MembershipStore: &gormEventMembershipStore{repo: tx},
 			CommandStore:    &gormEventCommandStore{repo: tx},

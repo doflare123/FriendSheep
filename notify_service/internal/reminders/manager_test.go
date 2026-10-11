@@ -20,7 +20,7 @@ func (idleReminderStore) ClaimDueJob(context.Context, time.Time, time.Duration) 
 	return nil, nil
 }
 
-func (idleReminderStore) MaterializeJob(context.Context, Job, RecipientSnapshot, time.Time) (int, error) {
+func (idleReminderStore) MaterializeJob(context.Context, Job, RecipientSnapshot, Clock) (int, error) {
 	return 0, nil
 }
 

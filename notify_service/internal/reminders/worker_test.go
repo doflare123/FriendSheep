@@ -30,7 +30,7 @@ func (s *workerStoreStub) ClaimDueJob(_ context.Context, _ time.Time, _ time.Dur
 	return s.job, s.claimErr
 }
 
-func (s *workerStoreStub) MaterializeJob(_ context.Context, job Job, snapshot RecipientSnapshot, _ time.Time) (int, error) {
+func (s *workerStoreStub) MaterializeJob(_ context.Context, job Job, snapshot RecipientSnapshot, _ Clock) (int, error) {
 	s.completeCall++
 	s.completeJob = job
 	s.completeSnap = snapshot

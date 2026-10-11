@@ -14,7 +14,8 @@ import (
 	"time"
 )
 
-const maxResponseBodyBytes int64 = 64 << 10
+// Лимит покрывает 500 записей v1 (менее 512 байт каждая) и JSON-обёртку.
+const maxResponseBodyBytes int64 = 1 << 20
 
 type sourceClient interface {
 	ListReminderIntents(context.Context, uint64, int) (IntentPage, error)
@@ -114,9 +115,12 @@ func (c *HTTPClient) doJSON(request *http.Request, target any) error {
 	}
 	defer response.Body.Close()
 
-	body, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBodyBytes))
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBodyBytes+1))
 	if err != nil {
 		return &ClientError{Code: ErrorCodeMalformedResponse, Retryable: true, Cause: err}
+	}
+	if int64(len(body)) > maxResponseBodyBytes {
+		return &ClientError{Code: ErrorCodeResponseTooLarge, Retryable: true}
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return classifyHTTPError(response.StatusCode, body)
