@@ -35,6 +35,8 @@ func TestLoadUsesSafeDefaults(t *testing.T) {
 	assertPositiveDuration(t, "DatabaseConnectTimeout", cfg.DatabaseConnectTimeout)
 	assertDuration(t, "DatabaseReadyTimeout", cfg.DatabaseReadyTimeout, 2*time.Second)
 	assertDuration(t, "MonolithHTTPTimeout", cfg.MonolithHTTPTimeout, 5*time.Second)
+	assertDuration(t, "StatisticsHTTPTimeout", cfg.StatisticsHTTPTimeout, 30*time.Second)
+	assertDuration(t, "StatisticsJobLeaseDuration", cfg.StatisticsJobLeaseDuration, 2*time.Minute)
 	assertDuration(t, "SourcePollInterval", cfg.SourcePollInterval, 5*time.Second)
 	assertDuration(t, "SourceRetryMinBackoff", cfg.SourceRetryMinBackoff, time.Second)
 	assertDuration(t, "SourceRetryMaxBackoff", cfg.SourceRetryMaxBackoff, 30*time.Second)
@@ -51,27 +53,29 @@ func TestLoadReadsExplicitEnvironment(t *testing.T) {
 	t.Parallel()
 
 	cfg, err := config.Load(mapEnvironment(map[string]string{
-		"NOTIFY_DATABASE_URL":             "postgresql://notify:secret@database:5432/notifications",
-		"NOTIFY_MONOLITH_BASE_URL":        "https://backend.internal",
-		"NOTIFY_SERVICE_TOKEN":            "notify-service-token",
-		"PORT":                            "9090",
-		"NOTIFY_LOG_LEVEL":                "debug",
-		"NOTIFY_HTTP_READ_TIMEOUT":        "2s",
-		"NOTIFY_HTTP_READ_HEADER_TIMEOUT": "3s",
-		"NOTIFY_HTTP_WRITE_TIMEOUT":       "4s",
-		"NOTIFY_HTTP_IDLE_TIMEOUT":        "5s",
-		"NOTIFY_HTTP_SHUTDOWN_TIMEOUT":    "6s",
-		"NOTIFY_DATABASE_CONNECT_TIMEOUT": "7s",
-		"NOTIFY_DATABASE_READY_TIMEOUT":   "8s",
-		"NOTIFY_MONOLITH_HTTP_TIMEOUT":    "9s",
-		"NOTIFY_SOURCE_POLL_INTERVAL":     "10s",
-		"NOTIFY_SOURCE_RETRY_MIN_BACKOFF": "11s",
-		"NOTIFY_SOURCE_RETRY_MAX_BACKOFF": "12s",
-		"NOTIFY_WORKER_SCAN_INTERVAL":     "13s",
-		"NOTIFY_WORKER_RETRY_MIN_BACKOFF": "14s",
-		"NOTIFY_WORKER_RETRY_MAX_BACKOFF": "15s",
-		"NOTIFY_JOB_LEASE_DURATION":       "16s",
-		"NOTIFY_SOURCE_BATCH_LIMIT":       "150",
+		"NOTIFY_DATABASE_URL":                  "postgresql://notify:secret@database:5432/notifications",
+		"NOTIFY_MONOLITH_BASE_URL":             "https://backend.internal",
+		"NOTIFY_SERVICE_TOKEN":                 "notify-service-token",
+		"PORT":                                 "9090",
+		"NOTIFY_LOG_LEVEL":                     "debug",
+		"NOTIFY_HTTP_READ_TIMEOUT":             "2s",
+		"NOTIFY_HTTP_READ_HEADER_TIMEOUT":      "3s",
+		"NOTIFY_HTTP_WRITE_TIMEOUT":            "4s",
+		"NOTIFY_HTTP_IDLE_TIMEOUT":             "5s",
+		"NOTIFY_HTTP_SHUTDOWN_TIMEOUT":         "6s",
+		"NOTIFY_DATABASE_CONNECT_TIMEOUT":      "7s",
+		"NOTIFY_DATABASE_READY_TIMEOUT":        "8s",
+		"NOTIFY_MONOLITH_HTTP_TIMEOUT":         "9s",
+		"NOTIFY_SOURCE_POLL_INTERVAL":          "10s",
+		"NOTIFY_SOURCE_RETRY_MIN_BACKOFF":      "11s",
+		"NOTIFY_SOURCE_RETRY_MAX_BACKOFF":      "12s",
+		"NOTIFY_WORKER_SCAN_INTERVAL":          "13s",
+		"NOTIFY_WORKER_RETRY_MIN_BACKOFF":      "14s",
+		"NOTIFY_WORKER_RETRY_MAX_BACKOFF":      "15s",
+		"NOTIFY_JOB_LEASE_DURATION":            "16s",
+		"NOTIFY_STATISTICS_HTTP_TIMEOUT":       "45s",
+		"NOTIFY_STATISTICS_JOB_LEASE_DURATION": "3m",
+		"NOTIFY_SOURCE_BATCH_LIMIT":            "150",
 	}))
 	if err != nil {
 		t.Fatalf("не удалось загрузить конфигурацию: %v", err)
@@ -98,6 +102,8 @@ func TestLoadReadsExplicitEnvironment(t *testing.T) {
 	assertDuration(t, "WorkerRetryMinBackoff", cfg.WorkerRetryMinBackoff, 14*time.Second)
 	assertDuration(t, "WorkerRetryMaxBackoff", cfg.WorkerRetryMaxBackoff, 15*time.Second)
 	assertDuration(t, "JobLeaseDuration", cfg.JobLeaseDuration, 16*time.Second)
+	assertDuration(t, "StatisticsHTTPTimeout", cfg.StatisticsHTTPTimeout, 45*time.Second)
+	assertDuration(t, "StatisticsJobLeaseDuration", cfg.StatisticsJobLeaseDuration, 3*time.Minute)
 	if cfg.SourceBatchLimit != 150 {
 		t.Errorf("SourceBatchLimit = %d, ожидалось 150", cfg.SourceBatchLimit)
 	}
@@ -154,6 +160,44 @@ func TestValidateRejectsEmptyDatabaseURL(t *testing.T) {
 
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("Validate() не вернул ошибку отсутствующего URL базы данных")
+	}
+}
+
+func TestStatisticsDurationsRejectInvalidValuesAndInsufficientLease(t *testing.T) {
+	t.Parallel()
+	for _, key := range []string{"NOTIFY_STATISTICS_HTTP_TIMEOUT", "NOTIFY_STATISTICS_JOB_LEASE_DURATION"} {
+		for _, value := range []string{"soon", "0s", "-1s"} {
+			t.Run(key+"="+value, func(t *testing.T) {
+				env := map[string]string{"NOTIFY_DATABASE_URL": validDatabaseURL(), "NOTIFY_MONOLITH_BASE_URL": validMonolithURL(), "NOTIFY_SERVICE_TOKEN": validInternalToken(), key: value}
+				if _, err := config.Load(mapEnvironment(env)); err == nil || !strings.Contains(err.Error(), key) {
+					t.Fatalf("некорректная длительность принята: %v", err)
+				}
+			})
+		}
+	}
+	for _, lease := range []string{"29s", "30s"} {
+		t.Run("lease="+lease, func(t *testing.T) {
+			env := map[string]string{"NOTIFY_DATABASE_URL": validDatabaseURL(), "NOTIFY_MONOLITH_BASE_URL": validMonolithURL(), "NOTIFY_SERVICE_TOKEN": validInternalToken(), "NOTIFY_STATISTICS_HTTP_TIMEOUT": "30s", "NOTIFY_STATISTICS_JOB_LEASE_DURATION": lease}
+			if _, err := config.Load(mapEnvironment(env)); err == nil || !strings.Contains(err.Error(), "NOTIFY_STATISTICS_JOB_LEASE_DURATION") {
+				t.Fatalf("недостаточный lease принят: %v", err)
+			}
+		})
+	}
+	for _, field := range []string{"timeout", "lease"} {
+		t.Run("Validate="+field, func(t *testing.T) {
+			cfg, err := config.Load(mapEnvironment(map[string]string{"NOTIFY_DATABASE_URL": validDatabaseURL(), "NOTIFY_MONOLITH_BASE_URL": validMonolithURL(), "NOTIFY_SERVICE_TOKEN": validInternalToken()}))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if field == "timeout" {
+				cfg.StatisticsHTTPTimeout = 0
+			} else {
+				cfg.StatisticsJobLeaseDuration = 0
+			}
+			if err := cfg.Validate(); err == nil {
+				t.Fatal("нулевая длительность принята через Validate")
+			}
+		})
 	}
 }
 

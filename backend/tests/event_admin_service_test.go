@@ -47,6 +47,8 @@ type eventAdminStoreStub struct {
 	role               string
 	findRoleErr        error
 	targetExists       bool
+	targetNotJoined    bool
+	participantErr     error
 	userExistsErr      error
 	removeErr          error
 	decrementErr       error
@@ -77,6 +79,11 @@ func (s *eventAdminStoreStub) UserExists(userID uint) (bool, error) {
 	s.calls = append(s.calls, "user_exists")
 	s.userExistsID = userID
 	return s.targetExists, s.userExistsErr
+}
+
+func (s *eventAdminStoreStub) IsParticipant(userID, eventID uint) (bool, error) {
+	s.calls = append(s.calls, "is_participant")
+	return !s.targetNotJoined, s.participantErr
 }
 
 func (s *eventAdminStoreStub) RemoveParticipant(userID uint, eventID uint) error {
@@ -349,7 +356,7 @@ func TestEventAdminServiceKickUserFromEventUsesTransactionalAdminStore(t *testin
 	if uow.calls != 1 || uow.ctx != ctx {
 		t.Fatalf("unit of work calls = %d, context preserved = %v", uow.calls, uow.ctx == ctx)
 	}
-	wantCalls := []string{"find_event", "find_group_role", "user_exists", "remove_participant", "decrement_participants"}
+	wantCalls := []string{"find_event", "find_group_role", "user_exists", "is_participant", "remove_participant", "decrement_participants"}
 	if !reflect.DeepEqual(adminStore.calls, wantCalls) {
 		t.Fatalf("admin store calls = %v, want %v", adminStore.calls, wantCalls)
 	}
@@ -465,6 +472,7 @@ func TestEventAdminServiceKickUserFromEventStopsOnDomainFailures(t *testing.T) {
 				"find_event",
 				"find_group_role",
 				"user_exists",
+				"is_participant",
 				"remove_participant",
 			},
 		},
@@ -478,6 +486,7 @@ func TestEventAdminServiceKickUserFromEventStopsOnDomainFailures(t *testing.T) {
 				"find_event",
 				"find_group_role",
 				"user_exists",
+				"is_participant",
 				"remove_participant",
 				"decrement_participants",
 			},

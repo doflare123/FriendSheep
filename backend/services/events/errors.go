@@ -16,4 +16,5 @@ var (
 	ErrEventLocationNotFound = errors.New("формат события не найден")
 	ErrAgeLimitNotFound      = errors.New("возрастное ограничение не найдено")
 	ErrEventAlreadyStarted   = errors.New("событие уже началось")
+	ErrEventAlreadyEnded     = errors.New("завершённое событие и его состав нельзя изменять")
 )

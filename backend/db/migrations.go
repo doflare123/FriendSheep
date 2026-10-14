@@ -7,6 +7,7 @@ import (
 	"friendship/models"
 	"friendship/models/events"
 	"friendship/models/groups"
+	statisticsmodels "friendship/models/statistics"
 	statsusers "friendship/models/stats_users"
 	"friendship/repository"
 	"os"
@@ -50,6 +51,11 @@ func bootstrapRegistrationModels() []interface{} {
 		&events.EventGenre{},
 		&events.EventLifecycleScheduleOutbox{},
 		&events.EventReminderIntentOutbox{},
+		&events.StatisticsTrigger{},
+		&statisticsmodels.UserAggregate{},
+		&statisticsmodels.UserPair{},
+		&statisticsmodels.ProcessedEvent{},
+		&statisticsmodels.Distribution{},
 		&statsusers.PopSessionType{},
 		&models.User{},
 		&models.StatsProcessedEvent{},

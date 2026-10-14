@@ -12,24 +12,26 @@ import (
 )
 
 const (
-	defaultPort                   = "8080"
-	defaultHTTPReadTimeout        = 5 * time.Second
-	defaultHTTPReadHeaderTimeout  = 5 * time.Second
-	defaultHTTPWriteTimeout       = 10 * time.Second
-	defaultHTTPIdleTimeout        = 60 * time.Second
-	defaultHTTPShutdownTimeout    = 10 * time.Second
-	defaultDatabaseConnectTimeout = 10 * time.Second
-	defaultDatabaseReadyTimeout   = 2 * time.Second
-	defaultMonolithHTTPTimeout    = 5 * time.Second
-	defaultSourcePollInterval     = 5 * time.Second
-	defaultSourceRetryMinBackoff  = 1 * time.Second
-	defaultSourceRetryMaxBackoff  = 30 * time.Second
-	defaultWorkerScanInterval     = 1 * time.Second
-	defaultWorkerRetryMinBackoff  = 1 * time.Second
-	defaultWorkerRetryMaxBackoff  = 5 * time.Minute
-	defaultJobLeaseDuration       = 30 * time.Second
-	defaultSourceBatchLimit       = 100
-	maxSourceBatchLimit           = 500
+	defaultPort                       = "8080"
+	defaultHTTPReadTimeout            = 5 * time.Second
+	defaultHTTPReadHeaderTimeout      = 5 * time.Second
+	defaultHTTPWriteTimeout           = 10 * time.Second
+	defaultHTTPIdleTimeout            = 60 * time.Second
+	defaultHTTPShutdownTimeout        = 10 * time.Second
+	defaultDatabaseConnectTimeout     = 10 * time.Second
+	defaultDatabaseReadyTimeout       = 2 * time.Second
+	defaultMonolithHTTPTimeout        = 5 * time.Second
+	defaultStatisticsHTTPTimeout      = 30 * time.Second
+	defaultStatisticsJobLeaseDuration = 2 * time.Minute
+	defaultSourcePollInterval         = 5 * time.Second
+	defaultSourceRetryMinBackoff      = 1 * time.Second
+	defaultSourceRetryMaxBackoff      = 30 * time.Second
+	defaultWorkerScanInterval         = 1 * time.Second
+	defaultWorkerRetryMinBackoff      = 1 * time.Second
+	defaultWorkerRetryMaxBackoff      = 5 * time.Minute
+	defaultJobLeaseDuration           = 30 * time.Second
+	defaultSourceBatchLimit           = 100
+	maxSourceBatchLimit               = 500
 )
 
 type Getenv func(string) string
@@ -37,27 +39,29 @@ type Getenv func(string) string
 // Config содержит только конфигурацию процесса. Секреты читаются из окружения
 // и никогда не включаются в ошибки валидации или журналы.
 type Config struct {
-	DatabaseURL            string
-	MonolithBaseURL        string
-	InternalToken          string
-	Port                   string
-	LogLevel               slog.Level
-	HTTPReadTimeout        time.Duration
-	HTTPReadHeaderTimeout  time.Duration
-	HTTPWriteTimeout       time.Duration
-	HTTPIdleTimeout        time.Duration
-	HTTPShutdownTimeout    time.Duration
-	DatabaseConnectTimeout time.Duration
-	DatabaseReadyTimeout   time.Duration
-	MonolithHTTPTimeout    time.Duration
-	SourcePollInterval     time.Duration
-	SourceRetryMinBackoff  time.Duration
-	SourceRetryMaxBackoff  time.Duration
-	WorkerScanInterval     time.Duration
-	WorkerRetryMinBackoff  time.Duration
-	WorkerRetryMaxBackoff  time.Duration
-	JobLeaseDuration       time.Duration
-	SourceBatchLimit       int
+	DatabaseURL                string
+	MonolithBaseURL            string
+	InternalToken              string
+	Port                       string
+	LogLevel                   slog.Level
+	HTTPReadTimeout            time.Duration
+	HTTPReadHeaderTimeout      time.Duration
+	HTTPWriteTimeout           time.Duration
+	HTTPIdleTimeout            time.Duration
+	HTTPShutdownTimeout        time.Duration
+	DatabaseConnectTimeout     time.Duration
+	DatabaseReadyTimeout       time.Duration
+	MonolithHTTPTimeout        time.Duration
+	StatisticsHTTPTimeout      time.Duration
+	StatisticsJobLeaseDuration time.Duration
+	SourcePollInterval         time.Duration
+	SourceRetryMinBackoff      time.Duration
+	SourceRetryMaxBackoff      time.Duration
+	WorkerScanInterval         time.Duration
+	WorkerRetryMinBackoff      time.Duration
+	WorkerRetryMaxBackoff      time.Duration
+	JobLeaseDuration           time.Duration
+	SourceBatchLimit           int
 }
 
 func LoadFromEnv() (Config, error) {
@@ -70,27 +74,29 @@ func Load(getenv Getenv) (Config, error) {
 	}
 
 	cfg := Config{
-		DatabaseURL:            strings.TrimSpace(getenv("NOTIFY_DATABASE_URL")),
-		MonolithBaseURL:        strings.TrimSpace(getenv("NOTIFY_MONOLITH_BASE_URL")),
-		InternalToken:          strings.TrimSpace(getenv("NOTIFY_SERVICE_TOKEN")),
-		Port:                   valueOrDefault(getenv("PORT"), defaultPort),
-		LogLevel:               slog.LevelInfo,
-		HTTPReadTimeout:        defaultHTTPReadTimeout,
-		HTTPReadHeaderTimeout:  defaultHTTPReadHeaderTimeout,
-		HTTPWriteTimeout:       defaultHTTPWriteTimeout,
-		HTTPIdleTimeout:        defaultHTTPIdleTimeout,
-		HTTPShutdownTimeout:    defaultHTTPShutdownTimeout,
-		DatabaseConnectTimeout: defaultDatabaseConnectTimeout,
-		DatabaseReadyTimeout:   defaultDatabaseReadyTimeout,
-		MonolithHTTPTimeout:    defaultMonolithHTTPTimeout,
-		SourcePollInterval:     defaultSourcePollInterval,
-		SourceRetryMinBackoff:  defaultSourceRetryMinBackoff,
-		SourceRetryMaxBackoff:  defaultSourceRetryMaxBackoff,
-		WorkerScanInterval:     defaultWorkerScanInterval,
-		WorkerRetryMinBackoff:  defaultWorkerRetryMinBackoff,
-		WorkerRetryMaxBackoff:  defaultWorkerRetryMaxBackoff,
-		JobLeaseDuration:       defaultJobLeaseDuration,
-		SourceBatchLimit:       defaultSourceBatchLimit,
+		DatabaseURL:                strings.TrimSpace(getenv("NOTIFY_DATABASE_URL")),
+		MonolithBaseURL:            strings.TrimSpace(getenv("NOTIFY_MONOLITH_BASE_URL")),
+		InternalToken:              strings.TrimSpace(getenv("NOTIFY_SERVICE_TOKEN")),
+		Port:                       valueOrDefault(getenv("PORT"), defaultPort),
+		LogLevel:                   slog.LevelInfo,
+		HTTPReadTimeout:            defaultHTTPReadTimeout,
+		HTTPReadHeaderTimeout:      defaultHTTPReadHeaderTimeout,
+		HTTPWriteTimeout:           defaultHTTPWriteTimeout,
+		HTTPIdleTimeout:            defaultHTTPIdleTimeout,
+		HTTPShutdownTimeout:        defaultHTTPShutdownTimeout,
+		DatabaseConnectTimeout:     defaultDatabaseConnectTimeout,
+		DatabaseReadyTimeout:       defaultDatabaseReadyTimeout,
+		MonolithHTTPTimeout:        defaultMonolithHTTPTimeout,
+		StatisticsHTTPTimeout:      defaultStatisticsHTTPTimeout,
+		StatisticsJobLeaseDuration: defaultStatisticsJobLeaseDuration,
+		SourcePollInterval:         defaultSourcePollInterval,
+		SourceRetryMinBackoff:      defaultSourceRetryMinBackoff,
+		SourceRetryMaxBackoff:      defaultSourceRetryMaxBackoff,
+		WorkerScanInterval:         defaultWorkerScanInterval,
+		WorkerRetryMinBackoff:      defaultWorkerRetryMinBackoff,
+		WorkerRetryMaxBackoff:      defaultWorkerRetryMaxBackoff,
+		JobLeaseDuration:           defaultJobLeaseDuration,
+		SourceBatchLimit:           defaultSourceBatchLimit,
 	}
 
 	if raw := strings.TrimSpace(getenv("NOTIFY_LOG_LEVEL")); raw != "" {
@@ -111,6 +117,8 @@ func Load(getenv Getenv) (Config, error) {
 		{"NOTIFY_DATABASE_CONNECT_TIMEOUT", &cfg.DatabaseConnectTimeout},
 		{"NOTIFY_DATABASE_READY_TIMEOUT", &cfg.DatabaseReadyTimeout},
 		{"NOTIFY_MONOLITH_HTTP_TIMEOUT", &cfg.MonolithHTTPTimeout},
+		{"NOTIFY_STATISTICS_HTTP_TIMEOUT", &cfg.StatisticsHTTPTimeout},
+		{"NOTIFY_STATISTICS_JOB_LEASE_DURATION", &cfg.StatisticsJobLeaseDuration},
 		{"NOTIFY_SOURCE_POLL_INTERVAL", &cfg.SourcePollInterval},
 		{"NOTIFY_SOURCE_RETRY_MIN_BACKOFF", &cfg.SourceRetryMinBackoff},
 		{"NOTIFY_SOURCE_RETRY_MAX_BACKOFF", &cfg.SourceRetryMaxBackoff},
@@ -186,21 +194,23 @@ func (c Config) Validate() error {
 	}
 
 	for name, value := range map[string]time.Duration{
-		"NOTIFY_HTTP_READ_TIMEOUT":        c.HTTPReadTimeout,
-		"NOTIFY_HTTP_READ_HEADER_TIMEOUT": c.HTTPReadHeaderTimeout,
-		"NOTIFY_HTTP_WRITE_TIMEOUT":       c.HTTPWriteTimeout,
-		"NOTIFY_HTTP_IDLE_TIMEOUT":        c.HTTPIdleTimeout,
-		"NOTIFY_HTTP_SHUTDOWN_TIMEOUT":    c.HTTPShutdownTimeout,
-		"NOTIFY_DATABASE_CONNECT_TIMEOUT": c.DatabaseConnectTimeout,
-		"NOTIFY_DATABASE_READY_TIMEOUT":   c.DatabaseReadyTimeout,
-		"NOTIFY_MONOLITH_HTTP_TIMEOUT":    c.MonolithHTTPTimeout,
-		"NOTIFY_SOURCE_POLL_INTERVAL":     c.SourcePollInterval,
-		"NOTIFY_SOURCE_RETRY_MIN_BACKOFF": c.SourceRetryMinBackoff,
-		"NOTIFY_SOURCE_RETRY_MAX_BACKOFF": c.SourceRetryMaxBackoff,
-		"NOTIFY_WORKER_SCAN_INTERVAL":     c.WorkerScanInterval,
-		"NOTIFY_WORKER_RETRY_MIN_BACKOFF": c.WorkerRetryMinBackoff,
-		"NOTIFY_WORKER_RETRY_MAX_BACKOFF": c.WorkerRetryMaxBackoff,
-		"NOTIFY_JOB_LEASE_DURATION":       c.JobLeaseDuration,
+		"NOTIFY_HTTP_READ_TIMEOUT":             c.HTTPReadTimeout,
+		"NOTIFY_HTTP_READ_HEADER_TIMEOUT":      c.HTTPReadHeaderTimeout,
+		"NOTIFY_HTTP_WRITE_TIMEOUT":            c.HTTPWriteTimeout,
+		"NOTIFY_HTTP_IDLE_TIMEOUT":             c.HTTPIdleTimeout,
+		"NOTIFY_HTTP_SHUTDOWN_TIMEOUT":         c.HTTPShutdownTimeout,
+		"NOTIFY_DATABASE_CONNECT_TIMEOUT":      c.DatabaseConnectTimeout,
+		"NOTIFY_DATABASE_READY_TIMEOUT":        c.DatabaseReadyTimeout,
+		"NOTIFY_MONOLITH_HTTP_TIMEOUT":         c.MonolithHTTPTimeout,
+		"NOTIFY_STATISTICS_HTTP_TIMEOUT":       c.StatisticsHTTPTimeout,
+		"NOTIFY_STATISTICS_JOB_LEASE_DURATION": c.StatisticsJobLeaseDuration,
+		"NOTIFY_SOURCE_POLL_INTERVAL":          c.SourcePollInterval,
+		"NOTIFY_SOURCE_RETRY_MIN_BACKOFF":      c.SourceRetryMinBackoff,
+		"NOTIFY_SOURCE_RETRY_MAX_BACKOFF":      c.SourceRetryMaxBackoff,
+		"NOTIFY_WORKER_SCAN_INTERVAL":          c.WorkerScanInterval,
+		"NOTIFY_WORKER_RETRY_MIN_BACKOFF":      c.WorkerRetryMinBackoff,
+		"NOTIFY_WORKER_RETRY_MAX_BACKOFF":      c.WorkerRetryMaxBackoff,
+		"NOTIFY_JOB_LEASE_DURATION":            c.JobLeaseDuration,
 	} {
 		if value <= 0 {
 			return fmt.Errorf("%s должен быть положительным", name)
@@ -214,6 +224,9 @@ func (c Config) Validate() error {
 	}
 	if c.JobLeaseDuration <= c.MonolithHTTPTimeout {
 		return errors.New("NOTIFY_JOB_LEASE_DURATION должен превышать NOTIFY_MONOLITH_HTTP_TIMEOUT")
+	}
+	if c.StatisticsJobLeaseDuration <= c.StatisticsHTTPTimeout {
+		return errors.New("NOTIFY_STATISTICS_JOB_LEASE_DURATION должен превышать NOTIFY_STATISTICS_HTTP_TIMEOUT")
 	}
 	if c.SourceBatchLimit < 1 {
 		return errors.New("NOTIFY_SOURCE_BATCH_LIMIT должен быть положительным")

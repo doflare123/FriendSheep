@@ -286,7 +286,7 @@ func TestEventMembershipServiceJoinEventPreservesMembershipErrorPrecedenceForSta
 }
 
 func TestEventMembershipServiceLeaveEventDelegatesToCleanUnitOfWork(t *testing.T) {
-	membership := &eventMembershipStoreStub{event: servicesevents.EventMembershipSnapshot{
+	membership := &eventMembershipStoreStub{participant: true, event: servicesevents.EventMembershipSnapshot{
 		ID:        77,
 		GroupID:   42,
 		CreatorID: 1,
@@ -305,7 +305,7 @@ func TestEventMembershipServiceLeaveEventDelegatesToCleanUnitOfWork(t *testing.T
 	if !left {
 		t.Fatal("LeaveEvent returned false")
 	}
-	wantCalls := []string{"find_event", "remove_participant", "decrement_participants"}
+	wantCalls := []string{"find_event", "is_participant", "remove_participant", "decrement_participants"}
 	if !reflect.DeepEqual(membership.calls, wantCalls) {
 		t.Fatalf("membership calls = %v, want %v", membership.calls, wantCalls)
 	}
@@ -346,6 +346,7 @@ func TestEventMembershipServiceIgnoresAuditFailures(t *testing.T) {
 				},
 				groupMember: true,
 				incremented: true,
+				participant: !test.join,
 			}
 			uow := &eventUnitOfWorkStub{membership: membership, audit: test.audit}
 			service := servicesevents.NewEventMembershipService(&testLogger{}, uow)

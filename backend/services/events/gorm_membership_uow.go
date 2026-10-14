@@ -14,6 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type eventRepositoryTransactor interface {
@@ -75,7 +76,7 @@ func isNilEventRepositoryTransactor(transactor eventRepositoryTransactor) bool {
 
 func (s *gormEventMembershipStore) FindEvent(eventID uint) (EventMembershipSnapshot, error) {
 	var event eventmodels.Event
-	if err := s.repo.Select("id", "group_id", "creator_id", "title", "start_time").First(&event, eventID).Error; err != nil {
+	if err := s.repo.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "group_id", "creator_id", "title", "start_time", "end_time").First(&event, eventID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return EventMembershipSnapshot{}, ErrEventNotFound
 		}
@@ -88,6 +89,7 @@ func (s *gormEventMembershipStore) FindEvent(eventID uint) (EventMembershipSnaps
 		CreatorID: event.CreatorID,
 		Title:     event.Title,
 		StartTime: event.StartTime,
+		EndTime:   event.EndTime,
 	}, nil
 }
 

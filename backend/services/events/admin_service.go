@@ -32,6 +32,7 @@ type EventAdminStore interface {
 	FindEvent(eventID uint) (EventAdminEventSnapshot, error)
 	FindGroupRole(actorID uint, groupID uint) (string, error)
 	UserExists(userID uint) (bool, error)
+	IsParticipant(userID uint, eventID uint) (bool, error)
 	RemoveParticipant(userID uint, eventID uint) error
 	DecrementParticipants(eventID uint) error
 }
@@ -47,6 +48,7 @@ type EventAdminEventSnapshot struct {
 	GroupID   uint
 	CreatorID uint
 	Title     string
+	EndTime   time.Time
 }
 
 type EventAdminDetailsView struct {
@@ -69,22 +71,31 @@ type eventAdminService struct {
 	logger     logger.Logger
 	reader     EventAdminReader
 	unitOfWork EventUnitOfWork
+	clock      Clock
 }
 
 type unsupportedEventAdminReader struct{}
 
 func NewEventAdminService(logger logger.Logger, reader EventAdminReader, unitOfWork EventUnitOfWork) EventAdminService {
+	return NewEventAdminServiceWithClock(logger, reader, unitOfWork, SystemClock{})
+}
+
+func NewEventAdminServiceWithClock(logger logger.Logger, reader EventAdminReader, unitOfWork EventUnitOfWork, clock Clock) EventAdminService {
 	if isNilEventAdminReader(reader) {
 		reader = unsupportedEventAdminReader{}
 	}
 	if unitOfWork == nil {
 		unitOfWork = unsupportedEventUnitOfWork{}
 	}
+	if clock == nil {
+		clock = SystemClock{}
+	}
 
 	return &eventAdminService{
 		logger:     logger,
 		reader:     reader,
 		unitOfWork: unitOfWork,
+		clock:      clock,
 	}
 }
 
@@ -184,6 +195,16 @@ func (s *eventAdminService) KickUserFromEvent(
 		if !targetExists {
 			return ErrUserNotFound
 		}
+		isParticipant, err := store.IsParticipant(targetUserID, eventID)
+		if err != nil {
+			return err
+		}
+		if !isParticipant {
+			return ErrNotJoined
+		}
+		if eventHasEnded(event.EndTime, s.clock.Now()) {
+			return ErrEventAlreadyEnded
+		}
 
 		if err := store.RemoveParticipant(targetUserID, eventID); err != nil {
 			return err
@@ -233,7 +254,7 @@ func (s *eventAdminService) recordAdminAudit(
 		TargetUserID: &targetUserID,
 		EntityID:     &entityID,
 		EntityName:   event.Title,
-		CreatedAt:    time.Now(),
+		CreatedAt:    s.clock.Now(),
 	}); err != nil {
 		s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 	}

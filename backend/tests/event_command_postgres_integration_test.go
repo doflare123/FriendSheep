@@ -123,6 +123,7 @@ func newPostgresEventCommandDB(t *testing.T, dsn string) *gorm.DB {
 		&eventmodels.EventGenre{},
 		&eventmodels.EventLifecycleScheduleOutbox{},
 		&eventmodels.EventReminderIntentOutbox{},
+		&eventmodels.StatisticsTrigger{},
 	); err != nil {
 		t.Fatalf("auto migrate event models in postgres test schema: %v", err)
 	}

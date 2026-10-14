@@ -188,6 +188,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
+                    },
+                    "409": {
+                        "description": "Мероприятие фактически завершено",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
                     }
                 }
             },
@@ -197,7 +203,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Удаляет событие. Доступно модераторам и администраторам группы.",
+                "description": "Удаляет событие до его фактического окончания. Доступно модераторам и администраторам группы.",
                 "produces": [
                     "application/json"
                 ],
@@ -236,6 +242,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Событие не найдено",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Мероприятие фактически завершено",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -302,6 +314,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Событие или пользователь не найдены",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Мероприятие фактически завершено",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -825,6 +843,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Участие не найдено",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Мероприятие фактически завершено",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -2907,6 +2931,43 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v2/users/me/statistics": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Учитывает состав завершённых мероприятий, а не физическое посещение. plannedMinutes — сумма запланированных минут; календарь UTC. Агрегаты обновляются асинхронно. lastUpdatedAt не гарантирует отсутствие backlog. При равных максимумах выбирается минимальный ID или ISO день недели. Сумма жанров может превышать число мероприятий.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Statistics"
+                ],
+                "summary": "Получить собственную статистику участия",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/statistics.View"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -4691,6 +4752,95 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "statistics.CountItem": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "statistics.MonthCount": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "month": {
+                    "type": "string"
+                }
+            }
+        },
+        "statistics.View": {
+            "type": "object",
+            "properties": {
+                "completedEvents": {
+                    "type": "integer"
+                },
+                "createdCompletedEvents": {
+                    "type": "integer"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statistics.CountItem"
+                    }
+                },
+                "lastUpdatedAt": {
+                    "type": "string"
+                },
+                "months": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statistics.MonthCount"
+                    }
+                },
+                "mostFrequentGenreId": {
+                    "type": "integer"
+                },
+                "mostFrequentTypeId": {
+                    "type": "integer"
+                },
+                "mostFrequentWeekday": {
+                    "type": "integer"
+                },
+                "plannedMinutes": {
+                    "type": "integer"
+                },
+                "timezone": {
+                    "type": "string"
+                },
+                "types": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statistics.CountItem"
+                    }
+                },
+                "uniquePeopleCount": {
+                    "type": "integer"
+                },
+                "weekdays": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statistics.WeekdayCount"
+                    }
+                }
+            }
+        },
+        "statistics.WeekdayCount": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "weekday": {
                     "type": "integer"
                 }
             }

@@ -13,6 +13,7 @@ import (
 	"friendship/models"
 	"friendship/models/events"
 	"friendship/models/groups"
+	statisticsmodels "friendship/models/statistics"
 	statsusers "friendship/models/stats_users"
 	"friendship/repository"
 
@@ -185,6 +186,11 @@ func TestBootstrapRegistrationSchemaMigratesExpectedModels(t *testing.T) {
 		reflect.TypeOf(&events.EventGenre{}),
 		reflect.TypeOf(&events.EventLifecycleScheduleOutbox{}),
 		reflect.TypeOf(&events.EventReminderIntentOutbox{}),
+		reflect.TypeOf(&events.StatisticsTrigger{}),
+		reflect.TypeOf(&statisticsmodels.UserAggregate{}),
+		reflect.TypeOf(&statisticsmodels.UserPair{}),
+		reflect.TypeOf(&statisticsmodels.ProcessedEvent{}),
+		reflect.TypeOf(&statisticsmodels.Distribution{}),
 		reflect.TypeOf(&statsusers.PopSessionType{}),
 		reflect.TypeOf(&models.User{}),
 		reflect.TypeOf(&models.StatsProcessedEvent{}),

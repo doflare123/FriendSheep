@@ -21,6 +21,12 @@ type gormEventAdminStore struct {
 var _ EventAdminReader = (*gormEventAdminStore)(nil)
 var _ EventAdminStore = (*gormEventAdminStore)(nil)
 
+func (s *gormEventAdminStore) IsParticipant(userID uint, eventID uint) (bool, error) {
+	var count int64
+	err := s.repo.Model(&eventmodels.EventsUser{}).Where("event_id = ? AND user_id = ?", eventID, userID).Count(&count).Error
+	return count > 0, err
+}
+
 func NewGORMEventAdminReader(repo repository.PostgresRepository) EventAdminReader {
 	if repo == nil {
 		return nil
@@ -133,7 +139,7 @@ func (s *gormEventAdminStore) FindEvent(eventID uint) (EventAdminEventSnapshot, 
 	err := s.repo.
 		Model(&eventmodels.Event{}).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Select("id", "group_id", "creator_id", "title").
+		Select("id", "group_id", "creator_id", "title", "end_time").
 		First(&event, eventID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -147,6 +153,7 @@ func (s *gormEventAdminStore) FindEvent(eventID uint) (EventAdminEventSnapshot, 
 		GroupID:   event.GroupID,
 		CreatorID: event.CreatorID,
 		Title:     event.Title,
+		EndTime:   event.EndTime,
 	}, nil
 }
 

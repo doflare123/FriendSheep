@@ -30,6 +30,11 @@ type lifecycleTransactionStub struct {
 	updatedEventID uint
 	updatedStatus  uint
 	updateCalls    int
+	publishCalls   int
+	publishErr     error
+	publishCtx     context.Context
+	publishedEvent uint
+	completedAt    time.Time
 }
 
 func (tx *lifecycleTransactionStub) LoadEventForUpdate(ctx context.Context, eventID uint) (servicesevents.EventLifecycleSnapshot, error) {
@@ -50,6 +55,14 @@ func (tx *lifecycleTransactionStub) UpdateEventStatus(ctx context.Context, event
 	tx.updatedStatus = statusID
 	tx.updateCalls++
 	return tx.updateErr
+}
+
+func (tx *lifecycleTransactionStub) PublishStatisticsTrigger(ctx context.Context, eventID uint, completedAt time.Time) error {
+	tx.publishCalls++
+	tx.publishCtx = ctx
+	tx.publishedEvent = eventID
+	tx.completedAt = completedAt
+	return tx.publishErr
 }
 
 type lifecycleStoreStub struct {
@@ -140,6 +153,16 @@ func TestEventLifecycleServiceDecisions(t *testing.T) {
 			if tt.wantApplied && (tx.resolveCtx != ctx || tx.updateCtx != ctx || tx.updatedEventID != 123) {
 				t.Fatal("transition lookup/update did not preserve context or event ID")
 			}
+			wantPublish := 0
+			if tt.wantApplied && tt.wantStatus == eventmodels.StatusCompleted {
+				wantPublish = 1
+			}
+			if tx.publishCalls != wantPublish {
+				t.Fatalf("statistics trigger calls = %d, want %d", tx.publishCalls, wantPublish)
+			}
+			if wantPublish == 1 && (tx.publishCtx != ctx || tx.publishedEvent != 123 || !tx.completedAt.Equal(tt.endTime)) {
+				t.Fatalf("statistics trigger context/event/end = %#v/%d/%s", tx.publishCtx, tx.publishedEvent, tx.completedAt)
+			}
 		})
 	}
 }
@@ -168,6 +191,10 @@ func TestEventLifecycleServiceErrorsCauseNoSuccessfulTransition(t *testing.T) {
 		{"target status missing", func(_ *lifecycleStoreStub, tx *lifecycleTransactionStub) { tx.statusIDs[eventmodels.StatusActive] = 0 }, servicesevents.ErrInvalidEventLifecycleState, 0},
 		{"status save failure rolls back result", func(_ *lifecycleStoreStub, tx *lifecycleTransactionStub) { tx.updateErr = updateFailure }, updateFailure, 1},
 		{"transaction failure", func(store *lifecycleStoreStub, _ *lifecycleTransactionStub) { store.err = storeFailure }, storeFailure, 0},
+		{"statistics publication failure", func(_ *lifecycleStoreStub, tx *lifecycleTransactionStub) {
+			tx.snapshot.EndTime = now
+			tx.publishErr = updateFailure
+		}, updateFailure, 1},
 	}
 
 	for _, tt := range tests {
@@ -191,9 +218,7 @@ func TestEventLifecycleServiceErrorsCauseNoSuccessfulTransition(t *testing.T) {
 	}
 }
 
-// This serializing fake proves application-level retry behavior without claiming
-// SQLite or an in-memory mutex proves PostgreSQL row-lock semantics. The separate
-// PostgreSQL integration test below owns that database-specific evidence.
+// Сериализующий fake проверяет retry приложения; PostgreSQL row locks проверяются отдельно.
 func TestEventLifecycleServiceConcurrentCallsApplyTransitionOnceWithSerializingStore(t *testing.T) {
 	now := time.Date(2036, 8, 15, 12, 0, 0, 0, time.UTC)
 	store := &serialLifecycleStore{
@@ -267,6 +292,10 @@ func (tx *serialLifecycleTx) UpdateEventStatus(_ context.Context, _ uint, status
 			break
 		}
 	}
+	return nil
+}
+
+func (tx *serialLifecycleTx) PublishStatisticsTrigger(context.Context, uint, time.Time) error {
 	return nil
 }
 

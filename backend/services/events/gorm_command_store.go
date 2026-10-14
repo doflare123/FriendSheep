@@ -34,6 +34,7 @@ func (s *gormEventCommandStore) FindEventForUpdate(eventID uint) (EventCommandSn
 		GroupID:      event.GroupID,
 		Title:        event.Title,
 		StartTime:    event.StartTime,
+		EndTime:      event.EndTime,
 		Duration:     event.Duration,
 		CurrentUsers: event.CurrentUsers,
 	}, nil

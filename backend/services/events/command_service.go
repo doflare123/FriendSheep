@@ -26,6 +26,7 @@ type EventCommandSnapshot struct {
 	GroupID      uint
 	Title        string
 	StartTime    time.Time
+	EndTime      time.Time
 	Duration     uint16
 	CurrentUsers uint16
 }
@@ -134,16 +135,25 @@ type EventCommandStore interface {
 type eventCommandService struct {
 	logger     logger.Logger
 	unitOfWork EventUnitOfWork
+	clock      Clock
 }
 
 func NewEventCommandService(logger logger.Logger, unitOfWork EventUnitOfWork) EventCommandService {
+	return NewEventCommandServiceWithClock(logger, unitOfWork, SystemClock{})
+}
+
+func NewEventCommandServiceWithClock(logger logger.Logger, unitOfWork EventUnitOfWork, clock Clock) EventCommandService {
 	if unitOfWork == nil {
 		unitOfWork = unsupportedEventUnitOfWork{}
+	}
+	if clock == nil {
+		clock = SystemClock{}
 	}
 
 	return &eventCommandService{
 		logger:     logger,
 		unitOfWork: unitOfWork,
+		clock:      clock,
 	}
 }
 
@@ -181,7 +191,7 @@ func (s *eventCommandService) CreateEvent(ctx context.Context, actorID uint, inp
 			return fmt.Errorf("%w: некоторые жанры не найдены", ErrInvalidGenres)
 		}
 
-		now := time.Now()
+		now := s.clock.Now()
 		endTime := input.StartTime.Add(time.Duration(input.Duration) * time.Minute)
 		eventID, err := store.CreateEvent(EventCreateRecord{
 			Title:           input.Title,
@@ -263,7 +273,10 @@ func (s *eventCommandService) UpdateEvent(ctx context.Context, actorID uint, eve
 			return ErrPermissionDenied
 		}
 
-		now := time.Now()
+		now := s.clock.Now()
+		if eventHasEnded(event.EndTime, now) {
+			return ErrEventAlreadyEnded
+		}
 		if now.After(event.StartTime) {
 			return ErrEventAlreadyStarted
 		}
@@ -400,7 +413,10 @@ func (s *eventCommandService) DeleteEvent(ctx context.Context, actorID uint, eve
 		if !groupmodels.HasCapability(role, groupmodels.CapabilityModerate) {
 			return ErrPermissionDenied
 		}
-		now := time.Now()
+		now := s.clock.Now()
+		if eventHasEnded(event.EndTime, now) {
+			return ErrEventAlreadyEnded
+		}
 		if err := appendLifecycleScheduleCancel(tx.LifecycleScheduleOutbox(), eventID, now); err != nil {
 			return err
 		}

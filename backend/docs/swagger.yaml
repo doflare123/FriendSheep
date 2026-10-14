@@ -1202,6 +1202,64 @@ definitions:
       total:
         type: integer
     type: object
+  statistics.CountItem:
+    properties:
+      count:
+        type: integer
+      id:
+        type: integer
+    type: object
+  statistics.MonthCount:
+    properties:
+      count:
+        type: integer
+      month:
+        type: string
+    type: object
+  statistics.View:
+    properties:
+      completedEvents:
+        type: integer
+      createdCompletedEvents:
+        type: integer
+      genres:
+        items:
+          $ref: '#/definitions/statistics.CountItem'
+        type: array
+      lastUpdatedAt:
+        type: string
+      months:
+        items:
+          $ref: '#/definitions/statistics.MonthCount'
+        type: array
+      mostFrequentGenreId:
+        type: integer
+      mostFrequentTypeId:
+        type: integer
+      mostFrequentWeekday:
+        type: integer
+      plannedMinutes:
+        type: integer
+      timezone:
+        type: string
+      types:
+        items:
+          $ref: '#/definitions/statistics.CountItem'
+        type: array
+      uniquePeopleCount:
+        type: integer
+      weekdays:
+        items:
+          $ref: '#/definitions/statistics.WeekdayCount'
+        type: array
+    type: object
+  statistics.WeekdayCount:
+    properties:
+      count:
+        type: integer
+      weekday:
+        type: integer
+    type: object
 info:
   contact: {}
 paths:
@@ -1245,7 +1303,8 @@ paths:
       - events_admin
   /api/v2/admin/events/{eventId}:
     delete:
-      description: Удаляет событие. Доступно модераторам и администраторам группы.
+      description: Удаляет событие до его фактического окончания. Доступно модераторам
+        и администраторам группы.
       parameters:
       - description: ID события
         in: path
@@ -1270,6 +1329,10 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Событие не найдено
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Мероприятие фактически завершено
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
@@ -1349,6 +1412,10 @@ paths:
           description: Событие не найдено
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Мероприятие фактически завершено
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Обновить событие
@@ -1391,6 +1458,10 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Событие или пользователь не найдены
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Мероприятие фактически завершено
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
@@ -1608,6 +1679,10 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Участие не найдено
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Мероприятие фактически завершено
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
@@ -3117,6 +3192,33 @@ paths:
       summary: Получить число непрочитанных уведомлений
       tags:
       - Notifications
+  /api/v2/users/me/statistics:
+    get:
+      description: Учитывает состав завершённых мероприятий, а не физическое посещение.
+        plannedMinutes — сумма запланированных минут; календарь UTC. Агрегаты обновляются
+        асинхронно. lastUpdatedAt не гарантирует отсутствие backlog. При равных максимумах
+        выбирается минимальный ID или ISO день недели. Сумма жанров может превышать
+        число мероприятий.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/statistics.View'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить собственную статистику участия
+      tags:
+      - Statistics
 securityDefinitions:
   BearerAuth:
     description: 'Введите токен в формате: Bearer <your_token>'

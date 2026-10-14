@@ -1,4 +1,4 @@
-# Durable lifecycle scheduling P0.2b и event reminders P0.3a
+# Durable lifecycle scheduling, event reminders и statistics P0.4
 
 Последовательность запуска намеренно линейна:
 
@@ -6,10 +6,10 @@
 2. создать JSON-logger на `slog`;
 3. подключиться к PostgreSQL, принадлежащей `notify_service`;
 4. под advisory lock применить встроенные версионированные миграции;
-5. собрать application-слои lifecycle и reminders, зарегистрировав для
+5. собрать application-слои lifecycle, reminders и statistics, зарегистрировав для
    reminders только `in_app` channel adapter;
 6. создать независимые source clients, pollers и workers;
-7. запустить оба manager и HTTP server;
+7. запустить три manager и HTTP server;
 8. при `SIGINT`/`SIGTERM` отменить общий context, дождаться HTTP и активной
    worker-операции в пределах shutdown timeout, затем закрыть БД.
 
@@ -190,6 +190,59 @@ UUID 36 символов, числовые идентификаторы до 20 
 retryable ошибка `response_too_large`; при повреждённом JSON —
 `malformed_response`. Частичная страница не передаётся в store и cursor не
 продвигается. Изменение формы source контракта требует пересмотра этой оценки.
+
+## Оркестрация статистики P0.4
+
+Отдельный `internal/statistics` poller получает
+`GET /internal/v1/statistics/triggers?afterSequence=N&limit=L`, а worker вызывает
+`POST /internal/v1/events/{eventId}/statistics/process`. Оба запроса используют
+`X-Internal-Token`, ограниченный HTTP timeout и запрет redirects. Statistics
+trigger v1 содержит только `sequence`, `schemaVersion=1`, `eventId`, `completedAt`;
+страница содержит `messages`, `nextCursor`, `hasMore`. Клиент читает не более
+1 MiB + 1 байта и проверяет положительные идентификаторы, схему, строго
+возрастающий sequence, начало после cursor, согласованный nextCursor и размер
+страницы до 500. Неверный ответ не поступает в store и не изменяет cursor.
+
+Миграция `000004_event_statistics.sql` создаёт собственные source cursors,
+receipts и jobs. Batch вместе с receipts и cursor фиксируется одной транзакцией
+под cursor `FOR UPDATE`. Job уникален по event ID: повторный trigger, backfill
+или переигранная страница не возвращают завершённый job к scheduled. Receipt
+идентифицируется парой `(source_name, sequence)`; aggregate idempotency остаётся
+на стороне монолита.
+
+Claim выполняется одним SQL statement с `FOR UPDATE SKIP LOCKED`; его commit
+предшествует HTTP. Lease token защищает отдельный ack/retry от устаревшего
+worker. `scheduled`, `processing` с истёкшим lease и `retry_wait` claim-ятся
+по `next_attempt_at`. `processed`/`already_processed` фиксируют `completed`,
+`missing` фиксирует терминальный `missing`; `not_completed` получает persisted
+retry. Ошибки сети, timeout, конфигурации, HTTP и malformed DTO получают
+ограниченный exponential backoff с jitter и без малого max attempts.
+HTTP 404 сам по себе не доказывает отсутствие события: терминальность задаёт
+явный authenticated result `missing`. `processedAt` обязателен только для
+двух успешных outcomes.
+
+Statistics manager использует общие настройки `NOTIFY_SOURCE_*` и
+`NOTIFY_WORKER_*`, но команда имеет отдельные
+`NOTIFY_STATISTICS_HTTP_TIMEOUT` (по умолчанию 30s) и
+`NOTIFY_STATISTICS_JOB_LEASE_DURATION` (по умолчанию 2m).
+Statistics lease обязан превышать свой HTTP timeout; source client сохраняет
+общий `NOTIFY_MONOLITH_HTTP_TIMEOUT` (5s). Lifecycle/reminder бюджеты не меняются.
+Один атомарный расчёт до 1000 участников создаёт до 999000 направленных пар;
+обработка такого события должна укладываться в HTTP бюджет с запасом на целевой
+инфраструктуре. Этот замер остаётся production release gate; увеличение timeout
+не заменяет проверку стоимости. Manager запускается после миграций вместе
+с остальными managers. Shutdown отменяет активные requests, дожидается обеих
+goroutines; незавершённый job восстанавливается после истечения lease. Потеря
+ответа после успешного commit монолита вызывает повтор той же команды, которая
+возвращает `already_processed`. После простоя отдельный cursor догоняет outbox,
+а bounded backfill монолита публикует triggers через тот же consumer path.
+На старте полного сканирования истории нет. Автоматическая очистка source,
+receipts и jobs пока отсутствует; retention требует отдельного ack-протокола.
+
+Statistics не меняет lifecycle/reminder payload, inbox или каналы доставки и не
+подключается к БД монолита. В монолите новый statistics outbox использует общий
+transaction advisory lock до event row locks и выдачи sequence, как текущие
+потоки P0.3b; межсерверные транзакции не создаются.
 
 ## Открытые release gates
 

@@ -106,6 +106,7 @@ func (h *eventsHandler) CreateEvent(c *gin.Context) {
 // @Failure      401      {object}  dto.ErrorResponse        "Требуется авторизация"
 // @Failure      403      {object}  dto.ErrorResponse        "Недостаточно прав"
 // @Failure      404      {object}  dto.ErrorResponse        "Событие не найдено"
+// @Failure      409      {object}  dto.ErrorResponse        "Мероприятие фактически завершено"
 // @Router       /api/v2/admin/events/{eventId} [put]
 func (h *eventsHandler) UpdateEvent(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -134,6 +135,8 @@ func (h *eventsHandler) UpdateEvent(c *gin.Context) {
 			utils.Forbidden(c, "Вы не состоите в группе")
 		case errors.Is(err, events.ErrEventAlreadyStarted):
 			utils.BadRequest(c, "Событие уже началось, изменение невозможно")
+		case errors.Is(err, events.ErrEventAlreadyEnded):
+			utils.JSONError(c, http.StatusConflict, err.Error())
 		case errors.Is(err, events.ErrInvalidEventUpdate):
 			utils.BadRequest(c, err.Error())
 		case errors.Is(err, events.ErrInvalidGenres):
@@ -157,7 +160,7 @@ func (h *eventsHandler) UpdateEvent(c *gin.Context) {
 
 // DeleteEvent godoc
 // @Summary      Удалить событие
-// @Description  Удаляет событие. Доступно модераторам и администраторам группы.
+// @Description  Удаляет событие до его фактического окончания. Доступно модераторам и администраторам группы.
 // @Tags         events_admin
 // @Produce      json
 // @Security     BearerAuth
@@ -166,6 +169,7 @@ func (h *eventsHandler) UpdateEvent(c *gin.Context) {
 // @Failure      401      {object}  dto.ErrorResponse "Требуется авторизация"
 // @Failure      403      {object}  dto.ErrorResponse "Недостаточно прав"
 // @Failure      404      {object}  dto.ErrorResponse "Событие не найдено"
+// @Failure      409      {object}  dto.ErrorResponse "Мероприятие фактически завершено"
 // @Router       /api/v2/admin/events/{eventId} [delete]
 func (h *eventsHandler) DeleteEvent(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -186,6 +190,8 @@ func (h *eventsHandler) DeleteEvent(c *gin.Context) {
 			utils.Forbidden(c, "Недостаточно прав")
 		case errors.Is(err, events.ErrNotGroupMember):
 			utils.Forbidden(c, "Вы не состоите в группе")
+		case errors.Is(err, events.ErrEventAlreadyEnded):
+			utils.JSONError(c, http.StatusConflict, err.Error())
 		default:
 			utils.InternalError(c, err.Error())
 		}
@@ -251,6 +257,7 @@ func (h *eventsHandler) GetEventDetailsForAdmin(c *gin.Context) {
 // @Failure      401      {object}  dto.ErrorResponse "Требуется авторизация"
 // @Failure      403      {object}  dto.ErrorResponse "Недостаточно прав"
 // @Failure      404      {object}  dto.ErrorResponse "Событие или пользователь не найдены"
+// @Failure      409      {object}  dto.ErrorResponse "Мероприятие фактически завершено"
 // @Router       /api/v2/admin/events/{eventId}/kick/{userId} [delete]
 func (h *eventsHandler) KickUserFromEvent(c *gin.Context) {
 	actorID := c.GetUint("userID")
@@ -284,6 +291,8 @@ func (h *eventsHandler) KickUserFromEvent(c *gin.Context) {
 			utils.BadRequest(c, "Нельзя исключить создателя события")
 		case errors.Is(err, events.ErrActorCantKickSelf):
 			utils.BadRequest(c, "Используйте выход из события")
+		case errors.Is(err, events.ErrEventAlreadyEnded):
+			utils.JSONError(c, http.StatusConflict, err.Error())
 		case errors.Is(err, events.ErrNotJoined):
 			utils.NotFound(c, "Пользователь не участвует в событии")
 		default:
@@ -477,6 +486,7 @@ func (h *eventsHandler) JoinEvent(c *gin.Context) {
 // @Failure      400      {object}  dto.ErrorResponse "Создатель не может покинуть событие"
 // @Failure      401      {object}  dto.ErrorResponse "Требуется авторизация"
 // @Failure      404      {object}  dto.ErrorResponse "Участие не найдено"
+// @Failure      409      {object}  dto.ErrorResponse "Мероприятие фактически завершено"
 // @Router       /api/v2/events/{eventId}/leave [post]
 func (h *eventsHandler) LeaveEvent(c *gin.Context) {
 	userID := c.GetUint("userID")
@@ -495,6 +505,8 @@ func (h *eventsHandler) LeaveEvent(c *gin.Context) {
 			utils.NotFound(c, "Событие не найдено")
 		case errors.Is(err, events.ErrCreatorCantLeave):
 			utils.BadRequest(c, "Создатель не может покинуть событие")
+		case errors.Is(err, events.ErrEventAlreadyEnded):
+			utils.JSONError(c, http.StatusConflict, err.Error())
 		case errors.Is(err, events.ErrNotJoined):
 			utils.NotFound(c, "Вы не присоединялись к этому событию")
 		default:

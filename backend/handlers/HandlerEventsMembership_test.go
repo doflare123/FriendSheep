@@ -16,6 +16,7 @@ import (
 type eventMembershipHandlerStub struct {
 	joinResult  bool
 	joinErr     error
+	leaveErr    error
 	joinCalls   int
 	lastUserID  uint
 	lastEventID uint
@@ -29,7 +30,7 @@ func (s *eventMembershipHandlerStub) JoinEvent(_ context.Context, userID uint, e
 }
 
 func (s *eventMembershipHandlerStub) LeaveEvent(context.Context, uint, uint) (bool, error) {
-	return false, nil
+	return false, s.leaveErr
 }
 
 func TestJoinEventMapsAlreadyStartedErrorToBadRequest(t *testing.T) {

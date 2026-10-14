@@ -143,9 +143,15 @@ func TestP03EventReminderCrossServiceBlackBoxPostgres(t *testing.T) {
 }
 
 func startNotifyServiceForBlackBox(t *testing.T, dsn string, monolithURL string, token string) (string, func()) {
+	return startNotifyServiceWithStateForBlackBox(t, dsn, monolithURL, token, true)
+}
+
+func startNotifyServiceWithStateForBlackBox(t *testing.T, dsn string, monolithURL string, token string, reset bool) (string, func()) {
 	t.Helper()
 
-	resetNotifyServiceBlackBoxState(t, dsn)
+	if reset {
+		resetNotifyServiceBlackBoxState(t, dsn)
+	}
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

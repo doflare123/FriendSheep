@@ -18,6 +18,7 @@ type EventMembershipSnapshot struct {
 	CreatorID uint
 	Title     string
 	StartTime time.Time
+	EndTime   time.Time
 }
 
 type EventAuditInput struct {

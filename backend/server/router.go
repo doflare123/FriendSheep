@@ -10,6 +10,7 @@ import (
 	"friendship/services/notifications"
 	"friendship/services/references"
 	"friendship/services/register"
+	"friendship/services/statistics"
 	"friendship/services/sub"
 	"friendship/utils"
 )
@@ -45,6 +46,11 @@ func (s *Server) initRouters() {
 	}
 	notificationH := handlers.NewNotificationsHandler(inboxClient)
 	routes.RegisterNotificationRoutes(s.engine, notificationH, jwtMiddleware.RequireAuth())
+	statisticsService := statistics.NewService(statistics.NewGORMStore(s.postgres))
+	statisticsTriggers := events.NewStatisticsTriggerService(events.NewGORMStatisticsTriggerReader(s.postgres), events.NewGORMStatisticsTriggerBackfiller(s.postgres))
+	statisticsH := handlers.NewStatisticsHandler(statisticsService, statisticsTriggers)
+	routes.RegisterStatisticsRoutes(s.engine, statisticsH, jwtMiddleware.RequireAuth())
+	routes.RegisterInternalStatisticsRoutes(s.engine, statisticsH, middlewares.NewInternalTokenMiddleware(s.cfg.NotifyServiceToken))
 
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(s.postgres)
 

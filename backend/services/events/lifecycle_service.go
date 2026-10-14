@@ -39,6 +39,7 @@ type EventLifecycleTransaction interface {
 	LoadEventForUpdate(ctx context.Context, eventID uint) (EventLifecycleSnapshot, error)
 	ResolveStatusID(ctx context.Context, statusName string) (uint, error)
 	UpdateEventStatus(ctx context.Context, eventID uint, statusID uint) error
+	PublishStatisticsTrigger(ctx context.Context, eventID uint, completedAt time.Time) error
 }
 
 type EventLifecycleStore interface {
@@ -115,6 +116,11 @@ func (s *eventLifecycleService) Advance(ctx context.Context, eventID uint) (Even
 		}
 		if err := tx.UpdateEventStatus(ctx, snapshot.ID, targetStatusID); err != nil {
 			return fmt.Errorf("update event lifecycle status: %w", err)
+		}
+		if targetStatus == eventmodels.StatusCompleted {
+			if err := tx.PublishStatisticsTrigger(ctx, snapshot.ID, snapshot.EndTime); err != nil {
+				return err
+			}
 		}
 		result.CurrentStatus = targetStatus
 		return nil

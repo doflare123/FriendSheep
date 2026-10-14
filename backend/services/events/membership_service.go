@@ -5,7 +5,6 @@ import (
 	"errors"
 	"friendship/logger"
 	groupmodels "friendship/models/groups"
-	"time"
 )
 
 var errEventMembershipStoreUnavailable = errors.New("хранилище участия в событиях не настроено")
@@ -18,16 +17,25 @@ type EventMembershipService interface {
 type eventMembershipService struct {
 	logger     logger.Logger
 	unitOfWork EventUnitOfWork
+	clock      Clock
 }
 
 func NewEventMembershipService(logger logger.Logger, unitOfWork EventUnitOfWork) EventMembershipService {
+	return NewEventMembershipServiceWithClock(logger, unitOfWork, SystemClock{})
+}
+
+func NewEventMembershipServiceWithClock(logger logger.Logger, unitOfWork EventUnitOfWork, clock Clock) EventMembershipService {
 	if unitOfWork == nil {
 		unitOfWork = unsupportedEventUnitOfWork{}
+	}
+	if clock == nil {
+		clock = SystemClock{}
 	}
 
 	return &eventMembershipService{
 		logger:     logger,
 		unitOfWork: unitOfWork,
+		clock:      clock,
 	}
 }
 
@@ -58,11 +66,11 @@ func (s *eventMembershipService) JoinEvent(ctx context.Context, userID uint, eve
 		if isParticipant {
 			return ErrAlreadyJoined
 		}
-		if !time.Now().Before(event.StartTime) {
+		if !s.clock.Now().Before(event.StartTime) {
 			return ErrEventAlreadyStarted
 		}
 
-		if err := membership.AddParticipant(userID, eventID, time.Now()); err != nil {
+		if err := membership.AddParticipant(userID, eventID, s.clock.Now()); err != nil {
 			return err
 		}
 
@@ -102,6 +110,16 @@ func (s *eventMembershipService) LeaveEvent(ctx context.Context, userID uint, ev
 		if event.CreatorID == userID {
 			return ErrCreatorCantLeave
 		}
+		isParticipant, err := membership.IsParticipant(userID, eventID)
+		if err != nil {
+			return err
+		}
+		if !isParticipant {
+			return ErrNotJoined
+		}
+		if eventHasEnded(event.EndTime, s.clock.Now()) {
+			return ErrEventAlreadyEnded
+		}
 
 		if err := membership.RemoveParticipant(userID, eventID); err != nil {
 			return err
@@ -138,7 +156,7 @@ func (s *eventMembershipService) recordMembershipAudit(audit EventAuditStore, ev
 		TargetUserID: &targetUserID,
 		EntityID:     &entityID,
 		EntityName:   event.Title,
-		CreatedAt:    time.Now(),
+		CreatedAt:    s.clock.Now(),
 	}); err != nil {
 		s.logger.Warn("Не удалось записать действие в журнал", "error", err)
 	}

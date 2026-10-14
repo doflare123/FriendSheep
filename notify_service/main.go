@@ -17,6 +17,7 @@ import (
 	"notify_service/internal/lifecycle"
 	"notify_service/internal/logging"
 	"notify_service/internal/reminders"
+	"notify_service/internal/statistics"
 )
 
 func main() {
@@ -72,7 +73,17 @@ func run() error {
 				_ = lifecycleManager.Stop(cfg.HTTPShutdownTimeout)
 				return err
 			}
+			statisticsManager := statistics.NewManager(cfg, logger, db, nil)
+			if err := statisticsManager.Start(ctx); err != nil {
+				_ = reminderManager.Stop(cfg.HTTPShutdownTimeout)
+				_ = lifecycleManager.Stop(cfg.HTTPShutdownTimeout)
+				return err
+			}
 			defer func() {
+				if err := statisticsManager.Stop(cfg.HTTPShutdownTimeout); err != nil {
+					logger.Warn("statistics manager завершился по таймауту", "ошибка", err)
+					serveErr = errors.Join(serveErr, err)
+				}
 				if err := reminderManager.Stop(cfg.HTTPShutdownTimeout); err != nil {
 					logger.Warn("reminder manager завершился по таймауту", "ошибка", err)
 					serveErr = errors.Join(serveErr, err)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	eventmodels "friendship/models/events"
 	"friendship/repository"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -25,8 +26,16 @@ func (s *gormEventLifecycleStore) WithinLifecycleTransaction(
 	fn func(EventLifecycleTransaction) error,
 ) error {
 	return s.repo.TransactionWithContext(ctx, func(tx repository.PostgresRepository) error {
+		if err := lockEventOutboxPublication(tx); err != nil {
+			return err
+		}
 		return fn(&gormEventLifecycleTransaction{repo: tx})
 	})
+}
+
+func (tx *gormEventLifecycleTransaction) PublishStatisticsTrigger(ctx context.Context, eventID uint, completedAt time.Time) error {
+	_, err := appendStatisticsTrigger(ctx, tx.repo, eventID, completedAt)
+	return err
 }
 
 type gormEventLifecycleTransaction struct {
