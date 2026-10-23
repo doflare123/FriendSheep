@@ -37,6 +37,8 @@ func TestLoadUsesSafeDefaults(t *testing.T) {
 	assertDuration(t, "MonolithHTTPTimeout", cfg.MonolithHTTPTimeout, 5*time.Second)
 	assertDuration(t, "StatisticsHTTPTimeout", cfg.StatisticsHTTPTimeout, 30*time.Second)
 	assertDuration(t, "StatisticsJobLeaseDuration", cfg.StatisticsJobLeaseDuration, 2*time.Minute)
+	assertDuration(t, "UniquePeopleHTTPTimeout", cfg.UniquePeopleHTTPTimeout, 35*time.Second)
+	assertDuration(t, "UniquePeoplePollInterval", cfg.UniquePeoplePollInterval, 5*time.Second)
 	assertDuration(t, "SourcePollInterval", cfg.SourcePollInterval, 5*time.Second)
 	assertDuration(t, "SourceRetryMinBackoff", cfg.SourceRetryMinBackoff, time.Second)
 	assertDuration(t, "SourceRetryMaxBackoff", cfg.SourceRetryMaxBackoff, 30*time.Second)
@@ -46,6 +48,9 @@ func TestLoadUsesSafeDefaults(t *testing.T) {
 	assertDuration(t, "JobLeaseDuration", cfg.JobLeaseDuration, 30*time.Second)
 	if cfg.SourceBatchLimit != 100 {
 		t.Fatalf("source batch limit = %d, want 100", cfg.SourceBatchLimit)
+	}
+	if cfg.UniquePeopleConcurrency != 1 {
+		t.Fatalf("unique people concurrency = %d, want 1", cfg.UniquePeopleConcurrency)
 	}
 }
 
@@ -76,6 +81,9 @@ func TestLoadReadsExplicitEnvironment(t *testing.T) {
 		"NOTIFY_STATISTICS_HTTP_TIMEOUT":       "45s",
 		"NOTIFY_STATISTICS_JOB_LEASE_DURATION": "3m",
 		"NOTIFY_SOURCE_BATCH_LIMIT":            "150",
+		"NOTIFY_UNIQUE_PEOPLE_HTTP_TIMEOUT":    "46s",
+		"NOTIFY_UNIQUE_PEOPLE_POLL_INTERVAL":   "17s",
+		"NOTIFY_UNIQUE_PEOPLE_CONCURRENCY":     "4",
 	}))
 	if err != nil {
 		t.Fatalf("не удалось загрузить конфигурацию: %v", err)
@@ -104,8 +112,13 @@ func TestLoadReadsExplicitEnvironment(t *testing.T) {
 	assertDuration(t, "JobLeaseDuration", cfg.JobLeaseDuration, 16*time.Second)
 	assertDuration(t, "StatisticsHTTPTimeout", cfg.StatisticsHTTPTimeout, 45*time.Second)
 	assertDuration(t, "StatisticsJobLeaseDuration", cfg.StatisticsJobLeaseDuration, 3*time.Minute)
+	assertDuration(t, "UniquePeopleHTTPTimeout", cfg.UniquePeopleHTTPTimeout, 46*time.Second)
+	assertDuration(t, "UniquePeoplePollInterval", cfg.UniquePeoplePollInterval, 17*time.Second)
 	if cfg.SourceBatchLimit != 150 {
 		t.Errorf("SourceBatchLimit = %d, ожидалось 150", cfg.SourceBatchLimit)
+	}
+	if cfg.UniquePeopleConcurrency != 4 {
+		t.Errorf("UniquePeopleConcurrency = %d, ожидалось 4", cfg.UniquePeopleConcurrency)
 	}
 }
 
@@ -132,6 +145,8 @@ func TestLoadRejectsInvalidConfiguration(t *testing.T) {
 		{name: "source retry minimum exceeds maximum", env: map[string]string{"NOTIFY_DATABASE_URL": validDatabaseURL(), "NOTIFY_MONOLITH_BASE_URL": validMonolithURL(), "NOTIFY_SERVICE_TOKEN": validInternalToken(), "NOTIFY_SOURCE_RETRY_MIN_BACKOFF": "2m", "NOTIFY_SOURCE_RETRY_MAX_BACKOFF": "1m"}},
 		{name: "worker retry minimum exceeds maximum", env: map[string]string{"NOTIFY_DATABASE_URL": validDatabaseURL(), "NOTIFY_MONOLITH_BASE_URL": validMonolithURL(), "NOTIFY_SERVICE_TOKEN": validInternalToken(), "NOTIFY_WORKER_RETRY_MIN_BACKOFF": "2m", "NOTIFY_WORKER_RETRY_MAX_BACKOFF": "1m"}},
 		{name: "job lease does not cover monolith request", env: map[string]string{"NOTIFY_DATABASE_URL": validDatabaseURL(), "NOTIFY_MONOLITH_BASE_URL": validMonolithURL(), "NOTIFY_SERVICE_TOKEN": validInternalToken(), "NOTIFY_MONOLITH_HTTP_TIMEOUT": "10s", "NOTIFY_JOB_LEASE_DURATION": "10s"}},
+		{name: "unique people concurrency is zero", env: map[string]string{"NOTIFY_DATABASE_URL": validDatabaseURL(), "NOTIFY_MONOLITH_BASE_URL": validMonolithURL(), "NOTIFY_SERVICE_TOKEN": validInternalToken(), "NOTIFY_UNIQUE_PEOPLE_CONCURRENCY": "0"}},
+		{name: "unique people concurrency exceeds maximum", env: map[string]string{"NOTIFY_DATABASE_URL": validDatabaseURL(), "NOTIFY_MONOLITH_BASE_URL": validMonolithURL(), "NOTIFY_SERVICE_TOKEN": validInternalToken(), "NOTIFY_UNIQUE_PEOPLE_CONCURRENCY": "9"}},
 	}
 
 	for _, test := range tests {
@@ -142,6 +157,29 @@ func TestLoadRejectsInvalidConfiguration(t *testing.T) {
 				t.Fatal("Load() не вернул ошибку валидации")
 			}
 		})
+	}
+}
+
+func TestUniquePeopleConfigurationRejectsInvalidValues(t *testing.T) {
+	t.Parallel()
+	base := map[string]string{
+		"NOTIFY_DATABASE_URL":      validDatabaseURL(),
+		"NOTIFY_MONOLITH_BASE_URL": validMonolithURL(),
+		"NOTIFY_SERVICE_TOKEN":     validInternalToken(),
+	}
+	for _, key := range []string{"NOTIFY_UNIQUE_PEOPLE_HTTP_TIMEOUT", "NOTIFY_UNIQUE_PEOPLE_POLL_INTERVAL"} {
+		for _, value := range []string{"soon", "0s", "-1s"} {
+			t.Run(key+"="+value, func(t *testing.T) {
+				env := make(map[string]string, len(base)+1)
+				for baseKey, baseValue := range base {
+					env[baseKey] = baseValue
+				}
+				env[key] = value
+				if _, err := config.Load(mapEnvironment(env)); err == nil || !strings.Contains(err.Error(), key) {
+					t.Fatalf("некорректное значение принято: %v", err)
+				}
+			})
+		}
 	}
 }
 

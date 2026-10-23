@@ -16,13 +16,29 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type gormStore struct{ repo repository.PostgresRepository }
-type gormTransaction struct{ db *gorm.DB }
+type gormStore struct {
+	repo          repository.PostgresRepository
+	initialSpread time.Duration
+}
+type gormTransaction struct {
+	db            *gorm.DB
+	initialSpread time.Duration
+}
 
-func NewGORMStore(repo repository.PostgresRepository) Store { return &gormStore{repo: repo} }
+func NewGORMStore(repo repository.PostgresRepository) Store {
+	return NewGORMStoreWithUniquePeopleConfig(repo, DefaultUniquePeopleConfig())
+}
+
+func NewGORMStoreWithUniquePeopleConfig(repo repository.PostgresRepository, config UniquePeopleConfig) Store {
+	spread := config.InitialSpread
+	if spread <= 0 {
+		spread = DefaultUniquePeopleConfig().InitialSpread
+	}
+	return &gormStore{repo: repo, initialSpread: spread}
+}
 func (s *gormStore) WithinTransaction(ctx context.Context, fn func(Transaction) error) error {
 	return s.repo.TransactionWithContext(ctx, func(repo repository.PostgresRepository) error {
-		return fn(&gormTransaction{db: repo.Model(nil).WithContext(ctx)})
+		return fn(&gormTransaction{db: repo.Model(nil).WithContext(ctx), initialSpread: s.initialSpread})
 	})
 }
 func (tx *gormTransaction) LoadEvent(ctx context.Context, id uint) (Snapshot, error) {
@@ -89,12 +105,11 @@ func (tx *gormTransaction) Apply(ctx context.Context, c Contribution, now time.T
 	if err := db.Model(&statmodels.UserAggregate{}).Where("user_id = ?", c.CreatorID).Updates(map[string]any{"created_completed_events": gorm.Expr("created_completed_events + 1"), "updated_at": updatedAt}).Error; err != nil {
 		return false, err
 	}
-	newPairs, err := tx.insertPairs(c)
-	if err != nil {
-		return false, err
-	}
 	for _, id := range c.Participants {
-		if err := db.Model(&statmodels.UserAggregate{}).Where("user_id = ?", id).Updates(map[string]any{"completed_events": gorm.Expr("completed_events + 1"), "planned_minutes": gorm.Expr("planned_minutes + ?", c.DurationMinutes), "unique_people_count": gorm.Expr("unique_people_count + ?", newPairs[id]), "updated_at": updatedAt}).Error; err != nil {
+		if err := db.Model(&statmodels.UserAggregate{}).Where("user_id = ?", id).Updates(map[string]any{"completed_events": gorm.Expr("completed_events + 1"), "planned_minutes": gorm.Expr("planned_minutes + ?", c.DurationMinutes), "updated_at": updatedAt}).Error; err != nil {
+			return false, err
+		}
+		if err := markUniquePeopleDirty(db, id, now, tx.initialSpread); err != nil {
 			return false, err
 		}
 		items := []statmodels.Distribution{{UserID: id, Kind: "type", Key: numericKey(c.TypeID), Count: 1}, {UserID: id, Kind: "month", Key: c.Month, Count: 1}, {UserID: id, Kind: "weekday", Key: strconv.Itoa(c.Weekday), Count: 1}}
@@ -109,54 +124,27 @@ func (tx *gormTransaction) Apply(ctx context.Context, c Contribution, now time.T
 	}
 	return true, nil
 }
-func (tx *gormTransaction) insertPairs(c Contribution) (map[uint]int64, error) {
-	counts := make(map[uint]int64, len(c.Participants))
-	db := tx.db
-	if db.Dialector.Name() == "postgres" {
-		// Квадратичный набор остаётся в PostgreSQL; в память возвращаются только N счётчиков.
-		var rows []struct {
-			UserID uint
-			Count  int64
-		}
-		err := db.Raw(`WITH inserted AS (
-			INSERT INTO participation_statistics_pairs (user_id, encountered_user_id)
-			SELECT a.user_id, b.user_id FROM events_users a JOIN events_users b ON a.event_id=b.event_id
-			WHERE a.event_id=? AND a.user_id<>b.user_id ORDER BY a.user_id,b.user_id
-			ON CONFLICT (user_id,encountered_user_id) DO NOTHING RETURNING user_id
-		) SELECT user_id,COUNT(*) AS count FROM inserted GROUP BY user_id`, c.EventID).Scan(&rows).Error
-		for _, row := range rows {
-			counts[row.UserID] = row.Count
-		}
-		return counts, err
+
+func markUniquePeopleDirty(db *gorm.DB, userID uint, now time.Time, spread time.Duration) error {
+	job := statmodels.UniquePeopleJob{UserID: userID, NextAttemptAt: now}
+	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&job).Error; err != nil {
+		return err
 	}
-	// SQLite используется для функциональных тестов; размер каждой вставки ограничен.
-	for _, id := range c.Participants {
-		batch := make([]statmodels.UserPair, 0, 200)
-		flush := func() error {
-			if len(batch) == 0 {
-				return nil
-			}
-			result := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&batch)
-			counts[id] += result.RowsAffected
-			batch = batch[:0]
-			return result.Error
-		}
-		for _, other := range c.Participants {
-			if id == other {
-				continue
-			}
-			batch = append(batch, statmodels.UserPair{UserID: id, EncounteredUserID: other})
-			if len(batch) == 200 {
-				if err := flush(); err != nil {
-					return nil, err
-				}
-			}
-		}
-		if err := flush(); err != nil {
-			return nil, err
-		}
+	if err := db.Clauses(clause.Locking{Strength: "UPDATE"}).First(&job, "user_id = ?", userID).Error; err != nil {
+		return err
 	}
-	return counts, nil
+	wasFresh := job.RequestedGeneration == job.AppliedGeneration
+	nextGeneration := job.RequestedGeneration + 1
+	updates := map[string]any{"requested_generation": nextGeneration}
+	if job.LeaseToken != nil {
+		if job.FollowupDirtySince == nil {
+			updates["followup_dirty_since"] = now
+		}
+	} else if wasFresh || job.DirtySince == nil {
+		updates["dirty_since"] = now
+		updates["next_attempt_at"] = now.Add(uniquePeopleSpreadOffset(userID, nextGeneration, spread))
+	}
+	return db.Model(&statmodels.UniquePeopleJob{}).Where("user_id = ?", userID).Updates(updates).Error
 }
 func (s *gormStore) Read(ctx context.Context, userID uint) (View, error) {
 	view := emptyView()
@@ -178,7 +166,20 @@ func (s *gormStore) Read(ctx context.Context, userID uint) (View, error) {
 		view.PlannedMinutes = row.PlannedMinutes
 		view.CreatedCompletedEvents = row.CreatedCompletedEvents
 		view.UniquePeopleCount = row.UniquePeopleCount
+		view.UniquePeopleCalculatedAt = row.UniquePeopleCalculatedAt
 		view.LastUpdatedAt = &row.UpdatedAt
+		var job statmodels.UniquePeopleJob
+		jobErr := tx.First(&job, "user_id = ?", userID).Error
+		if jobErr != nil && !errors.Is(jobErr, gorm.ErrRecordNotFound) {
+			return jobErr
+		}
+		if row.UniquePeopleCount == nil || row.UniquePeopleCalculatedAt == nil {
+			view.UniquePeopleStatus = UniquePeopleStatusNotCalculated
+		} else if jobErr == nil && job.RequestedGeneration > job.AppliedGeneration {
+			view.UniquePeopleStatus = UniquePeopleStatusPending
+		} else {
+			view.UniquePeopleStatus = UniquePeopleStatusFresh
+		}
 		var items []statmodels.Distribution
 		if err := tx.Where("user_id = ?", userID).Order("kind ASC, key ASC").Find(&items).Error; err != nil {
 			return err

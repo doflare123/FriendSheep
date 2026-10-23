@@ -65,27 +65,24 @@ func TestParticipationStatisticsConcurrentOverlappingJobsPostgres(t *testing.T) 
 	}
 	for _, id := range []uint{2, 3} {
 		view, err := service.Read(ctx, id)
-		if err != nil || view.CompletedEvents != 2 || view.PlannedMinutes != 80 || view.UniquePeopleCount != 2 || len(view.Genres) != 1 || view.Genres[0].Count != 2 || len(view.Types) != 1 || view.Types[0].Count != 2 {
+		if err != nil || view.CompletedEvents != 2 || view.PlannedMinutes != 80 || view.UniquePeopleCount != nil || len(view.Genres) != 1 || view.Genres[0].Count != 2 || len(view.Types) != 1 || view.Types[0].Count != 2 {
 			t.Fatalf("overlapping user %d view/error=%#v/%v", id, view, err)
 		}
 	}
 	view, err := service.Read(ctx, 4)
-	if err != nil || view.CompletedEvents != 1 || view.PlannedMinutes != 45 || view.UniquePeopleCount != 2 {
+	if err != nil || view.CompletedEvents != 1 || view.PlannedMinutes != 45 || view.UniquePeopleCount != nil {
 		t.Fatalf("user4 view/error=%#v/%v", view, err)
 	}
 	creator, err := service.Read(ctx, 1)
-	if err != nil || creator.CompletedEvents != 0 || creator.CreatedCompletedEvents != 2 || creator.UniquePeopleCount != 0 {
+	if err != nil || creator.CompletedEvents != 0 || creator.CreatedCompletedEvents != 2 || creator.UniquePeopleCount != nil {
 		t.Fatalf("creator view/error=%#v/%v", creator, err)
 	}
-	var pairs, processed int64
-	if err := db.Model(&statmodels.UserPair{}).Count(&pairs).Error; err != nil {
-		t.Fatal(err)
-	}
+	var processed int64
 	if err := db.Model(&statmodels.ProcessedEvent{}).Count(&processed).Error; err != nil {
 		t.Fatal(err)
 	}
-	if pairs != 6 || processed != 2 {
-		t.Fatalf("pairs/processed=%d/%d", pairs, processed)
+	if processed != 2 {
+		t.Fatalf("processed=%d", processed)
 	}
 }
 
@@ -102,7 +99,7 @@ func TestParticipationStatisticsRollbackAndRetryPostgres(t *testing.T) {
 	if _, err := service.Process(context.Background(), id); err == nil {
 		t.Fatal("неуспешная транзакция принята")
 	}
-	for _, model := range []any{&statmodels.UserAggregate{}, &statmodels.UserPair{}, &statmodels.ProcessedEvent{}, &statmodels.Distribution{}} {
+	for _, model := range []any{&statmodels.UserAggregate{}, &statmodels.UniquePeopleJob{}, &statmodels.ProcessedEvent{}, &statmodels.Distribution{}} {
 		var count int64
 		if err := db.Model(model).Count(&count).Error; err != nil || count != 0 {
 			t.Fatalf("rollback %T count/error=%d/%v", model, count, err)
@@ -267,13 +264,9 @@ func TestParticipationStatisticsMaximumEventPostgres(t *testing.T) {
 	if err != nil || result.Outcome != "processed" {
 		t.Fatalf("max process/error=%#v/%v", result, err)
 	}
-	var pairs int64
-	if err := db.Model(&statmodels.UserPair{}).Count(&pairs).Error; err != nil || pairs != count*(count-1) {
-		t.Fatalf("max pairs/error=%d/%v", pairs, err)
-	}
 	for _, userID := range []uint{1, 500, 1000} {
 		view, err := service.Read(context.Background(), userID)
-		if err != nil || view.UniquePeopleCount != count-1 || view.CompletedEvents != 1 || view.PlannedMinutes != 60 {
+		if err != nil || view.UniquePeopleCount != nil || view.CompletedEvents != 1 || view.PlannedMinutes != 60 {
 			t.Fatalf("max user %d view/error=%#v/%v", userID, view, err)
 		}
 	}
@@ -318,19 +311,16 @@ func TestParticipationStatisticsHistorySurvivesGroupOperationsPostgres(t *testin
 	for _, userID := range []uint{2, 3} {
 		assertEventParticipantExists(t, db, id, userID, true)
 		view, err := service.Read(context.Background(), userID)
-		if err != nil || view.CompletedEvents != 1 || view.PlannedMinutes != 60 || view.UniquePeopleCount != 1 {
+		if err != nil || view.CompletedEvents != 1 || view.PlannedMinutes != 60 || view.UniquePeopleCount != nil {
 			t.Fatalf("retained user %d view/error=%#v/%v", userID, view, err)
 		}
 	}
-	var processed, pairs int64
+	var processed int64
 	if err := db.Model(&statmodels.ProcessedEvent{}).Count(&processed).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Model(&statmodels.UserPair{}).Count(&pairs).Error; err != nil {
-		t.Fatal(err)
-	}
-	if processed != 1 || pairs != 2 {
-		t.Fatalf("retained processed/pairs=%d/%d", processed, pairs)
+	if processed != 1 {
+		t.Fatalf("retained processed=%d", processed)
 	}
 }
 
@@ -366,5 +356,80 @@ func TestParticipationStatisticsLastUpdatedDoesNotMoveBackwardsPostgres(t *testi
 		if err != nil || view.LastUpdatedAt == nil || !view.LastUpdatedAt.Equal(latest) {
 			t.Fatalf("monotonic user%d view/error=%#v/%v", id, view, err)
 		}
+	}
+}
+
+func TestUniquePeoplePostgresCountsDistinctProcessedHistory(t *testing.T) {
+	db := newPostgresEventCommandDB(t, statisticsPostgresDSN(t))
+	groupID, aggregateService := statisticsFixture(t, db)
+	seedEventUser(t, db, 5)
+	start := time.Now().UTC().Add(-3 * time.Hour)
+	for _, eventID := range []uint{
+		seedStatisticsEvent(t, db, groupID, 1, 1, start, 30, []uint{2, 3, 4}, nil),
+		seedStatisticsEvent(t, db, groupID, 1, 1, start, 30, []uint{2, 3}, nil),
+		seedStatisticsEvent(t, db, groupID, 1, 1, start, 30, []uint{2, 5}, nil),
+	} {
+		if _, err := aggregateService.Process(context.Background(), eventID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	now := time.Now().UTC().Add(19 * time.Hour)
+	config := stats.DefaultUniquePeopleConfig()
+	config.ClaimBatch, config.Concurrency = 8, 8
+	uniqueService := stats.NewUniquePeopleService(stats.NewGORMUniquePeopleStore(&testPostgresRepository{db: db}), config, func() time.Time { return now })
+	claims, err := uniqueService.Claim(context.Background(), 8)
+	if err != nil || len(claims.Jobs) != 4 {
+		t.Fatalf("claims=%+v err=%v", claims, err)
+	}
+	for _, claim := range claims.Jobs {
+		if _, err := uniqueService.Execute(context.Background(), claim); err != nil {
+			t.Fatalf("execute user %d: %v", claim.UserID, err)
+		}
+	}
+	view, err := aggregateService.Read(context.Background(), 2)
+	if err != nil || view.UniquePeopleCount == nil || *view.UniquePeopleCount != 3 || view.UniquePeopleStatus != stats.UniquePeopleStatusFresh || view.UniquePeopleCalculatedAt == nil {
+		t.Fatalf("view=%+v err=%v", view, err)
+	}
+	var pairsTable *string
+	if err := db.Raw("SELECT to_regclass('participation_statistics_pairs')").Scan(&pairsTable).Error; err != nil || pairsTable != nil {
+		t.Fatalf("legacy pairs table=%v err=%v", pairsTable, err)
+	}
+}
+
+func TestUniquePeoplePostgresConcurrentClaimsShareDeploymentCapacity(t *testing.T) {
+	db := newPostgresEventCommandDB(t, statisticsPostgresDSN(t))
+	groupID, aggregateService := statisticsFixture(t, db)
+	for _, eventID := range []uint{
+		seedStatisticsEvent(t, db, groupID, 1, 1, time.Now().UTC().Add(-2*time.Hour), 15, []uint{2, 3}, nil),
+		seedStatisticsEvent(t, db, groupID, 1, 1, time.Now().UTC().Add(-2*time.Hour), 15, []uint{4, 2}, nil),
+	} {
+		if _, err := aggregateService.Process(context.Background(), eventID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	now := time.Now().UTC().Add(19 * time.Hour)
+	config := stats.DefaultUniquePeopleConfig()
+	config.ClaimBatch, config.Concurrency = 8, 1
+	start := make(chan struct{})
+	claims := make(chan stats.UniquePeopleClaims, 2)
+	errs := make(chan error, 2)
+	for range 2 {
+		go func() {
+			<-start
+			result, err := stats.NewUniquePeopleService(stats.NewGORMUniquePeopleStore(&testPostgresRepository{db: db}), config, func() time.Time { return now }).Claim(context.Background(), 8)
+			claims <- result
+			errs <- err
+		}()
+	}
+	close(start)
+	var total int
+	for range 2 {
+		if err := <-errs; err != nil {
+			t.Fatal(err)
+		}
+		total += len((<-claims).Jobs)
+	}
+	if total != 1 {
+		t.Fatalf("claims=%d, want one global lease", total)
 	}
 }

@@ -188,7 +188,7 @@ func TestBootstrapRegistrationSchemaMigratesExpectedModels(t *testing.T) {
 		reflect.TypeOf(&events.EventReminderIntentOutbox{}),
 		reflect.TypeOf(&events.StatisticsTrigger{}),
 		reflect.TypeOf(&statisticsmodels.UserAggregate{}),
-		reflect.TypeOf(&statisticsmodels.UserPair{}),
+		reflect.TypeOf(&statisticsmodels.UniquePeopleJob{}),
 		reflect.TypeOf(&statisticsmodels.ProcessedEvent{}),
 		reflect.TypeOf(&statisticsmodels.Distribution{}),
 		reflect.TypeOf(&statsusers.PopSessionType{}),

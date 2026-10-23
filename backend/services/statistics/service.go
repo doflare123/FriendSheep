@@ -23,19 +23,21 @@ type WeekdayCount struct {
 	Count   int64 `json:"count"`
 }
 type View struct {
-	CompletedEvents        int64          `json:"completedEvents"`
-	PlannedMinutes         int64          `json:"plannedMinutes"`
-	CreatedCompletedEvents int64          `json:"createdCompletedEvents"`
-	UniquePeopleCount      int64          `json:"uniquePeopleCount"`
-	Types                  []CountItem    `json:"types"`
-	Genres                 []CountItem    `json:"genres"`
-	Months                 []MonthCount   `json:"months"`
-	Weekdays               []WeekdayCount `json:"weekdays"`
-	MostFrequentTypeID     *uint          `json:"mostFrequentTypeId"`
-	MostFrequentGenreID    *uint          `json:"mostFrequentGenreId"`
-	MostFrequentWeekday    *int           `json:"mostFrequentWeekday"`
-	Timezone               string         `json:"timezone"`
-	LastUpdatedAt          *time.Time     `json:"lastUpdatedAt"`
+	CompletedEvents          int64          `json:"completedEvents"`
+	PlannedMinutes           int64          `json:"plannedMinutes"`
+	CreatedCompletedEvents   int64          `json:"createdCompletedEvents"`
+	UniquePeopleCount        *int64         `json:"uniquePeopleCount" extensions:"x-nullable"`
+	UniquePeopleStatus       string         `json:"uniquePeopleStatus" enums:"not_calculated,pending,fresh"`
+	UniquePeopleCalculatedAt *time.Time     `json:"uniquePeopleCalculatedAt" extensions:"x-nullable"`
+	Types                    []CountItem    `json:"types"`
+	Genres                   []CountItem    `json:"genres"`
+	Months                   []MonthCount   `json:"months"`
+	Weekdays                 []WeekdayCount `json:"weekdays"`
+	MostFrequentTypeID       *uint          `json:"mostFrequentTypeId"`
+	MostFrequentGenreID      *uint          `json:"mostFrequentGenreId"`
+	MostFrequentWeekday      *int           `json:"mostFrequentWeekday"`
+	Timezone                 string         `json:"timezone"`
+	LastUpdatedAt            *time.Time     `json:"lastUpdatedAt"`
 }
 type ProcessResult struct {
 	EventID     uint       `json:"eventId"`
@@ -124,6 +126,6 @@ func (s *Service) Process(ctx context.Context, eventID uint) (ProcessResult, err
 	return result, nil
 }
 func emptyView() View {
-	return View{Types: []CountItem{}, Genres: []CountItem{}, Months: []MonthCount{}, Weekdays: []WeekdayCount{}, Timezone: "UTC"}
+	return View{UniquePeopleStatus: UniquePeopleStatusNotCalculated, Types: []CountItem{}, Genres: []CountItem{}, Months: []MonthCount{}, Weekdays: []WeekdayCount{}, Timezone: "UTC"}
 }
 func numericKey(id uint) string { return strconv.FormatUint(uint64(id), 10) }

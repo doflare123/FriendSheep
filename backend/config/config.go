@@ -12,21 +12,22 @@ import (
 )
 
 type Config struct {
-	AppEnv                     string          `mapstructure:"APP_ENV"`
-	EnableStartupSQLMigrations bool            `mapstructure:"ENABLE_STARTUP_SQL_MIGRATIONS"`
-	ServerPort                 string          `mapstructure:"PORT"`
-	JWTSecretKey               string          `mapstructure:"SECRET_KEY_JWT"`
-	JWTKeyID                   string          `mapstructure:"JWT_KEY_ID"`
-	JWTPreviousSecretKey       string          `mapstructure:"JWT_PREVIOUS_SECRET_KEY"`
-	JWTPreviousKeyID           string          `mapstructure:"JWT_PREVIOUS_KEY_ID"`
-	NotifyServiceToken         string          `mapstructure:"NOTIFY_SERVICE_TOKEN"`
-	NotifyServiceBaseURL       string          `mapstructure:"NOTIFY_SERVICE_BASE_URL"`
-	NotifyServiceHTTPTimeout   time.Duration   `mapstructure:"NOTIFY_SERVICE_HTTP_TIMEOUT"`
-	Auth                       AuthConfig      `mapstructure:",squash"`
-	LogLevel                   string          `mapstructure:"LOG_LEVEL"`
-	HTTP                       HTTPConfig      `mapstructure:",squash"`
-	RateLimit                  RateLimitConfig `mapstructure:",squash"`
-	Email                      EmailConfig     `mapstructure:",squash"`
+	AppEnv                     string             `mapstructure:"APP_ENV"`
+	EnableStartupSQLMigrations bool               `mapstructure:"ENABLE_STARTUP_SQL_MIGRATIONS"`
+	ServerPort                 string             `mapstructure:"PORT"`
+	JWTSecretKey               string             `mapstructure:"SECRET_KEY_JWT"`
+	JWTKeyID                   string             `mapstructure:"JWT_KEY_ID"`
+	JWTPreviousSecretKey       string             `mapstructure:"JWT_PREVIOUS_SECRET_KEY"`
+	JWTPreviousKeyID           string             `mapstructure:"JWT_PREVIOUS_KEY_ID"`
+	NotifyServiceToken         string             `mapstructure:"NOTIFY_SERVICE_TOKEN"`
+	NotifyServiceBaseURL       string             `mapstructure:"NOTIFY_SERVICE_BASE_URL"`
+	NotifyServiceHTTPTimeout   time.Duration      `mapstructure:"NOTIFY_SERVICE_HTTP_TIMEOUT"`
+	UniquePeople               UniquePeopleConfig `mapstructure:",squash"`
+	Auth                       AuthConfig         `mapstructure:",squash"`
+	LogLevel                   string             `mapstructure:"LOG_LEVEL"`
+	HTTP                       HTTPConfig         `mapstructure:",squash"`
+	RateLimit                  RateLimitConfig    `mapstructure:",squash"`
+	Email                      EmailConfig        `mapstructure:",squash"`
 
 	Postgres PostgresConfig `mapstructure:",squash"`
 	Mongo    MongoConfig    `mapstructure:",squash"`

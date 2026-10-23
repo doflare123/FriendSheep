@@ -46,11 +46,20 @@ func (s *Server) initRouters() {
 	}
 	notificationH := handlers.NewNotificationsHandler(inboxClient)
 	routes.RegisterNotificationRoutes(s.engine, notificationH, jwtMiddleware.RequireAuth())
-	statisticsService := statistics.NewService(statistics.NewGORMStore(s.postgres))
+	uniqueConfig := statistics.DefaultUniquePeopleConfig()
+	uniqueConfig.ClaimBatch = s.cfg.UniquePeople.ClaimBatch
+	uniqueConfig.Concurrency = s.cfg.UniquePeople.Concurrency
+	uniqueConfig.QueryTimeout = s.cfg.UniquePeople.QueryTimeout
+	uniqueConfig.LeaseDuration = s.cfg.UniquePeople.LeaseDuration
+	uniqueConfig.RetryBase = s.cfg.UniquePeople.RetryBase
+	uniqueConfig.RetryMax = s.cfg.UniquePeople.RetryMax
+	statisticsService := statistics.NewService(statistics.NewGORMStoreWithUniquePeopleConfig(s.postgres, uniqueConfig))
 	statisticsTriggers := events.NewStatisticsTriggerService(events.NewGORMStatisticsTriggerReader(s.postgres), events.NewGORMStatisticsTriggerBackfiller(s.postgres))
 	statisticsH := handlers.NewStatisticsHandler(statisticsService, statisticsTriggers)
 	routes.RegisterStatisticsRoutes(s.engine, statisticsH, jwtMiddleware.RequireAuth())
 	routes.RegisterInternalStatisticsRoutes(s.engine, statisticsH, middlewares.NewInternalTokenMiddleware(s.cfg.NotifyServiceToken))
+	uniqueService := statistics.NewUniquePeopleService(statistics.NewGORMUniquePeopleStore(s.postgres), uniqueConfig, nil)
+	routes.RegisterInternalUniquePeopleRoutes(s.engine, handlers.NewUniquePeopleHandler(uniqueService), middlewares.NewInternalTokenMiddleware(s.cfg.NotifyServiceToken))
 
 	groupRoleMiddleware := middlewares.NewGroupRoleMiddleware(s.postgres)
 

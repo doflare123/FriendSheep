@@ -17,7 +17,7 @@ import (
 
 func migrateParticipationStatistics(t *testing.T, db *gorm.DB) {
 	t.Helper()
-	if err := db.AutoMigrate(&statmodels.UserAggregate{}, &statmodels.UserPair{}, &statmodels.ProcessedEvent{}, &statmodels.Distribution{}); err != nil {
+	if err := db.AutoMigrate(&statmodels.UserAggregate{}, &statmodels.UniquePeopleJob{}, &statmodels.ProcessedEvent{}, &statmodels.Distribution{}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -55,7 +55,7 @@ func statisticsFixture(t *testing.T, db *gorm.DB) (uint, *stats.Service) {
 	return groupID, stats.NewService(stats.NewGORMStore(&testPostgresRepository{db: db}))
 }
 
-func TestParticipationStatisticsAccumulatesPairsAndAllTimeContributions(t *testing.T) {
+func TestParticipationStatisticsMarksUniquePeopleDirtyAndKeepsAllTimeContributions(t *testing.T) {
 	db := newEventsServiceDB(t)
 	groupID, service := statisticsFixture(t, db)
 	genre1 := seedEventGenre(t, db, "Стратегия")
@@ -83,7 +83,7 @@ func TestParticipationStatisticsAccumulatesPairsAndAllTimeContributions(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	if view.CompletedEvents != 3 || view.PlannedMinutes != 240 || view.CreatedCompletedEvents != 1 || view.UniquePeopleCount != 2 || view.Timezone != "UTC" || view.LastUpdatedAt == nil {
+	if view.CompletedEvents != 3 || view.PlannedMinutes != 240 || view.CreatedCompletedEvents != 1 || view.UniquePeopleCount != nil || view.UniquePeopleStatus != stats.UniquePeopleStatusNotCalculated || view.Timezone != "UTC" || view.LastUpdatedAt == nil {
 		t.Fatalf("view = %#v", view)
 	}
 	if !reflect.DeepEqual(view.Types, []stats.CountItem{{ID: 1, Count: 2}, {ID: 2, Count: 1}}) ||
@@ -96,27 +96,24 @@ func TestParticipationStatisticsAccumulatesPairsAndAllTimeContributions(t *testi
 		t.Fatalf("maxima = %#v", view)
 	}
 	creator, err := service.Read(context.Background(), 1)
-	if err != nil || creator.CreatedCompletedEvents != 2 || creator.CompletedEvents != 0 || creator.PlannedMinutes != 0 || creator.UniquePeopleCount != 0 || len(creator.Types) != 0 {
+	if err != nil || creator.CreatedCompletedEvents != 2 || creator.CompletedEvents != 0 || creator.PlannedMinutes != 0 || creator.UniquePeopleCount != nil || len(creator.Types) != 0 {
 		t.Fatalf("creator without membership = %#v, error=%v", creator, err)
 	}
 	for _, userID := range []uint{3, 4} {
 		participant, err := service.Read(context.Background(), userID)
-		if err != nil || participant.UniquePeopleCount != 2 {
+		if err != nil || participant.UniquePeopleCount != nil || participant.UniquePeopleStatus != stats.UniquePeopleStatusNotCalculated {
 			t.Fatalf("participant %d = %#v, error=%v", userID, participant, err)
 		}
 	}
-	var pairs, selfPairs, processed int64
-	if err := db.Model(&statmodels.UserPair{}).Count(&pairs).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Model(&statmodels.UserPair{}).Where("user_id = encountered_user_id").Count(&selfPairs).Error; err != nil {
-		t.Fatal(err)
-	}
+	var processed, jobs int64
 	if err := db.Model(&statmodels.ProcessedEvent{}).Count(&processed).Error; err != nil {
 		t.Fatal(err)
 	}
-	if pairs != 6 || selfPairs != 0 || processed != 3 {
-		t.Fatalf("pairs/self/processed = %d/%d/%d", pairs, selfPairs, processed)
+	if err := db.Model(&statmodels.UniquePeopleJob{}).Count(&jobs).Error; err != nil {
+		t.Fatal(err)
+	}
+	if jobs != 3 || processed != 3 {
+		t.Fatalf("jobs/processed = %d/%d", jobs, processed)
 	}
 }
 
@@ -135,7 +132,7 @@ func TestParticipationStatisticsTiesAndReadUsesOnlyAggregates(t *testing.T) {
 	}
 	if err := db.Callback().Query().Before("gorm:query").Register("reject_statistics_history_scan", func(tx *gorm.DB) {
 		switch tx.Statement.Table {
-		case "events", "events_users", "event_genres", "participation_statistics_pairs":
+		case "events", "events_users", "event_genres":
 			tx.AddError(errors.New("read endpoint попытался пересчитать историю"))
 		}
 	}); err != nil {
@@ -151,7 +148,7 @@ func TestParticipationStatisticsEmptyHistoryAndNotCompleted(t *testing.T) {
 	db := newEventsServiceDB(t)
 	groupID, service := statisticsFixture(t, db)
 	view, err := service.Read(context.Background(), 2)
-	if err != nil || view.CompletedEvents != 0 || view.PlannedMinutes != 0 || view.CreatedCompletedEvents != 0 || view.UniquePeopleCount != 0 || view.LastUpdatedAt != nil || view.MostFrequentTypeID != nil || view.MostFrequentGenreID != nil || view.MostFrequentWeekday != nil || view.Timezone != "UTC" {
+	if err != nil || view.CompletedEvents != 0 || view.PlannedMinutes != 0 || view.CreatedCompletedEvents != 0 || view.UniquePeopleCount != nil || view.LastUpdatedAt != nil || view.MostFrequentTypeID != nil || view.MostFrequentGenreID != nil || view.MostFrequentWeekday != nil || view.Timezone != "UTC" {
 		t.Fatalf("empty view/error = %#v/%v", view, err)
 	}
 	if view.Types == nil || view.Genres == nil || view.Months == nil || view.Weekdays == nil || len(view.Types)+len(view.Genres)+len(view.Months)+len(view.Weekdays) != 0 {
@@ -192,7 +189,7 @@ func TestParticipationStatisticsRollbackLeavesNoPartialFacts(t *testing.T) {
 	if err == nil || !reflect.DeepEqual(result, stats.ProcessResult{}) {
 		t.Fatalf("failed process = %#v/%v", result, err)
 	}
-	for _, model := range []any{&statmodels.UserAggregate{}, &statmodels.UserPair{}, &statmodels.ProcessedEvent{}, &statmodels.Distribution{}} {
+	for _, model := range []any{&statmodels.UserAggregate{}, &statmodels.UniquePeopleJob{}, &statmodels.ProcessedEvent{}, &statmodels.Distribution{}} {
 		var count int64
 		if err := db.Model(model).Count(&count).Error; err != nil || count != 0 {
 			t.Fatalf("rollback %T count/error = %d/%v", model, count, err)
@@ -203,11 +200,5 @@ func TestParticipationStatisticsRollbackLeavesNoPartialFacts(t *testing.T) {
 	}
 	if result, err := service.Process(context.Background(), eventID); err != nil || result.Outcome != "processed" {
 		t.Fatalf("retry result/error = %#v/%v", result, err)
-	}
-	if err := db.Create(&statmodels.UserPair{UserID: 2, EncounteredUserID: 2}).Error; err == nil {
-		t.Fatal("DB приняла пару с самим собой")
-	}
-	if err := db.Create(&statmodels.UserPair{UserID: 2, EncounteredUserID: 3}).Error; err == nil {
-		t.Fatal("DB приняла повторную направленную пару")
 	}
 }

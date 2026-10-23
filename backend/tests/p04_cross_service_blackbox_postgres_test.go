@@ -99,7 +99,7 @@ func TestP04StatisticsDowntimeLostResponseBackfillCrossServiceBlackBoxPostgres(t
 	}()
 	waitForBlackBoxReadiness(t, notifyURL)
 	first := waitForBlackBoxStatistics(t, publicRouter, jwtToken, 1)
-	if first.PlannedMinutes != 30 || first.UniquePeopleCount != 1 {
+	if first.PlannedMinutes != 30 || first.UniquePeopleCount != nil || first.UniquePeopleStatus != statistics.UniquePeopleStatusNotCalculated {
 		t.Fatalf("first contribution=%#v", first)
 	}
 	assertBlackBoxStatisticsJobs(t, notifyDSN, 1)
@@ -127,7 +127,7 @@ func TestP04StatisticsDowntimeLostResponseBackfillCrossServiceBlackBoxPostgres(t
 	defer stopSecond()
 	waitForBlackBoxReadiness(t, notifyURL)
 	final := waitForBlackBoxStatistics(t, publicRouter, jwtToken, 3)
-	if final.PlannedMinutes != 135 || final.UniquePeopleCount != 2 || final.CreatedCompletedEvents != 0 || final.Timezone != "UTC" {
+	if final.PlannedMinutes != 135 || final.UniquePeopleCount != nil || final.UniquePeopleStatus != statistics.UniquePeopleStatusNotCalculated || final.CreatedCompletedEvents != 0 || final.Timezone != "UTC" {
 		t.Fatalf("recovered aggregates=%#v", final)
 	}
 	assertBlackBoxStatisticsJobs(t, notifyDSN, 3)

@@ -2939,7 +2939,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Учитывает состав завершённых мероприятий, а не физическое посещение. plannedMinutes — сумма запланированных минут; календарь UTC. Агрегаты обновляются асинхронно. lastUpdatedAt не гарантирует отсутствие backlog. При равных максимумах выбирается минимальный ID или ISO день недели. Сумма жанров может превышать число мероприятий.",
+                "description": "Учитывает состав завершённых мероприятий, а не физическое посещение. plannedMinutes — сумма запланированных минут; календарь UTC. uniquePeopleCount — сохранённый точный distinct только учтённой истории, null до первого расчёта. uniquePeopleStatus: not_calculated, pending, fresh; uniquePeopleCalculatedAt — отдельное время успешного расчёта. Пересчёт eventual consistent с целевым окном до 24 часов при штатной доступности и достаточной мощности; fresh означает отсутствие известных необработанных изменений, но не отсутствие P0.4 backlog. lastUpdatedAt относится к обычным агрегатам. При равных максимумах выбирается минимальный ID или ISO день недели. Сумма жанров может превышать число мероприятий.",
                 "produces": [
                     "application/json"
                 ],
@@ -4823,8 +4823,21 @@ const docTemplate = `{
                         "$ref": "#/definitions/statistics.CountItem"
                     }
                 },
+                "uniquePeopleCalculatedAt": {
+                    "type": "string",
+                    "x-nullable": true
+                },
                 "uniquePeopleCount": {
-                    "type": "integer"
+                    "type": "integer",
+                    "x-nullable": true
+                },
+                "uniquePeopleStatus": {
+                    "type": "string",
+                    "enum": [
+                        "not_calculated",
+                        "pending",
+                        "fresh"
+                    ]
                 },
                 "weekdays": {
                     "type": "array",

@@ -18,6 +18,7 @@ import (
 	"notify_service/internal/logging"
 	"notify_service/internal/reminders"
 	"notify_service/internal/statistics"
+	"notify_service/internal/uniquepeople"
 )
 
 func main() {
@@ -79,7 +80,18 @@ func run() error {
 				_ = lifecycleManager.Stop(cfg.HTTPShutdownTimeout)
 				return err
 			}
+			uniquePeopleManager := uniquepeople.NewManager(cfg, logger, nil)
+			if err := uniquePeopleManager.Start(ctx); err != nil {
+				_ = statisticsManager.Stop(cfg.HTTPShutdownTimeout)
+				_ = reminderManager.Stop(cfg.HTTPShutdownTimeout)
+				_ = lifecycleManager.Stop(cfg.HTTPShutdownTimeout)
+				return err
+			}
 			defer func() {
+				if err := uniquePeopleManager.Stop(cfg.HTTPShutdownTimeout); err != nil {
+					logger.Warn("unique people manager завершился по таймауту", "ошибка", err)
+					serveErr = errors.Join(serveErr, err)
+				}
 				if err := statisticsManager.Stop(cfg.HTTPShutdownTimeout); err != nil {
 					logger.Warn("statistics manager завершился по таймауту", "ошибка", err)
 					serveErr = errors.Join(serveErr, err)

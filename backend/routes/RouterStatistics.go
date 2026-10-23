@@ -17,3 +17,12 @@ func RegisterInternalStatisticsRoutes(router *gin.Engine, handler *handlers.Stat
 	group.POST("/statistics/backfill", handler.Backfill)
 	group.POST("/events/:eventId/statistics/process", handler.Process)
 }
+
+func RegisterInternalUniquePeopleRoutes(router *gin.Engine, handler *handlers.UniquePeopleHandler, internalAuth gin.HandlerFunc) {
+	group := router.Group("/internal/v1/statistics/unique-people")
+	group.Use(internalAuth)
+	group.POST("/claim", handler.Claim)
+	group.POST("/execute", handler.Execute)
+	group.POST("/backfill", handler.Backfill)
+	group.GET("/metrics", handler.Metrics)
+}

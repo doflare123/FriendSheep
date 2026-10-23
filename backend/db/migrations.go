@@ -53,7 +53,7 @@ func bootstrapRegistrationModels() []interface{} {
 		&events.EventReminderIntentOutbox{},
 		&events.StatisticsTrigger{},
 		&statisticsmodels.UserAggregate{},
-		&statisticsmodels.UserPair{},
+		&statisticsmodels.UniquePeopleJob{},
 		&statisticsmodels.ProcessedEvent{},
 		&statisticsmodels.Distribution{},
 		&statsusers.PopSessionType{},

@@ -185,6 +185,7 @@ func (c RateLimitConfig) PolicyCatalog() map[string]RateLimitPolicyQuota {
 }
 
 func applyConfigDefaults() {
+	applyUniquePeopleDefaults()
 	defaults := DefaultRateLimitConfig()
 	viper.SetDefault("SECRET_KEY_JWT", "")
 	viper.SetDefault("JWT_ISSUER", "friendSheep")
@@ -239,6 +240,12 @@ func applyConfigDefaults() {
 
 func (c *Config) NormalizeAndValidate() error {
 	var errs []error
+	if c.UniquePeople == (UniquePeopleConfig{}) {
+		c.UniquePeople = DefaultUniquePeopleConfig()
+	}
+	if err := c.UniquePeople.Validate(); err != nil {
+		errs = append(errs, err)
+	}
 
 	if strings.TrimSpace(c.NotifyServiceToken) == "" {
 		errs = append(errs, fmt.Errorf("NOTIFY_SERVICE_TOKEN must not be empty"))

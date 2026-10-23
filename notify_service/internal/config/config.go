@@ -23,6 +23,10 @@ const (
 	defaultMonolithHTTPTimeout        = 5 * time.Second
 	defaultStatisticsHTTPTimeout      = 30 * time.Second
 	defaultStatisticsJobLeaseDuration = 2 * time.Minute
+	defaultUniquePeopleHTTPTimeout    = 35 * time.Second
+	defaultUniquePeoplePollInterval   = 5 * time.Second
+	defaultUniquePeopleConcurrency    = 1
+	maxUniquePeopleConcurrency        = 8
 	defaultSourcePollInterval         = 5 * time.Second
 	defaultSourceRetryMinBackoff      = 1 * time.Second
 	defaultSourceRetryMaxBackoff      = 30 * time.Second
@@ -54,6 +58,9 @@ type Config struct {
 	MonolithHTTPTimeout        time.Duration
 	StatisticsHTTPTimeout      time.Duration
 	StatisticsJobLeaseDuration time.Duration
+	UniquePeopleHTTPTimeout    time.Duration
+	UniquePeoplePollInterval   time.Duration
+	UniquePeopleConcurrency    int
 	SourcePollInterval         time.Duration
 	SourceRetryMinBackoff      time.Duration
 	SourceRetryMaxBackoff      time.Duration
@@ -89,6 +96,9 @@ func Load(getenv Getenv) (Config, error) {
 		MonolithHTTPTimeout:        defaultMonolithHTTPTimeout,
 		StatisticsHTTPTimeout:      defaultStatisticsHTTPTimeout,
 		StatisticsJobLeaseDuration: defaultStatisticsJobLeaseDuration,
+		UniquePeopleHTTPTimeout:    defaultUniquePeopleHTTPTimeout,
+		UniquePeoplePollInterval:   defaultUniquePeoplePollInterval,
+		UniquePeopleConcurrency:    defaultUniquePeopleConcurrency,
 		SourcePollInterval:         defaultSourcePollInterval,
 		SourceRetryMinBackoff:      defaultSourceRetryMinBackoff,
 		SourceRetryMaxBackoff:      defaultSourceRetryMaxBackoff,
@@ -119,6 +129,8 @@ func Load(getenv Getenv) (Config, error) {
 		{"NOTIFY_MONOLITH_HTTP_TIMEOUT", &cfg.MonolithHTTPTimeout},
 		{"NOTIFY_STATISTICS_HTTP_TIMEOUT", &cfg.StatisticsHTTPTimeout},
 		{"NOTIFY_STATISTICS_JOB_LEASE_DURATION", &cfg.StatisticsJobLeaseDuration},
+		{"NOTIFY_UNIQUE_PEOPLE_HTTP_TIMEOUT", &cfg.UniquePeopleHTTPTimeout},
+		{"NOTIFY_UNIQUE_PEOPLE_POLL_INTERVAL", &cfg.UniquePeoplePollInterval},
 		{"NOTIFY_SOURCE_POLL_INTERVAL", &cfg.SourcePollInterval},
 		{"NOTIFY_SOURCE_RETRY_MIN_BACKOFF", &cfg.SourceRetryMinBackoff},
 		{"NOTIFY_SOURCE_RETRY_MAX_BACKOFF", &cfg.SourceRetryMaxBackoff},
@@ -144,6 +156,7 @@ func Load(getenv Getenv) (Config, error) {
 		target *int
 	}{
 		{"NOTIFY_SOURCE_BATCH_LIMIT", &cfg.SourceBatchLimit},
+		{"NOTIFY_UNIQUE_PEOPLE_CONCURRENCY", &cfg.UniquePeopleConcurrency},
 	}
 	for _, item := range ints {
 		raw := strings.TrimSpace(getenv(item.key))
@@ -204,6 +217,8 @@ func (c Config) Validate() error {
 		"NOTIFY_MONOLITH_HTTP_TIMEOUT":         c.MonolithHTTPTimeout,
 		"NOTIFY_STATISTICS_HTTP_TIMEOUT":       c.StatisticsHTTPTimeout,
 		"NOTIFY_STATISTICS_JOB_LEASE_DURATION": c.StatisticsJobLeaseDuration,
+		"NOTIFY_UNIQUE_PEOPLE_HTTP_TIMEOUT":    c.UniquePeopleHTTPTimeout,
+		"NOTIFY_UNIQUE_PEOPLE_POLL_INTERVAL":   c.UniquePeoplePollInterval,
 		"NOTIFY_SOURCE_POLL_INTERVAL":          c.SourcePollInterval,
 		"NOTIFY_SOURCE_RETRY_MIN_BACKOFF":      c.SourceRetryMinBackoff,
 		"NOTIFY_SOURCE_RETRY_MAX_BACKOFF":      c.SourceRetryMaxBackoff,
@@ -233,6 +248,9 @@ func (c Config) Validate() error {
 	}
 	if c.SourceBatchLimit > maxSourceBatchLimit {
 		return fmt.Errorf("NOTIFY_SOURCE_BATCH_LIMIT не должен превышать %d", maxSourceBatchLimit)
+	}
+	if c.UniquePeopleConcurrency < 1 || c.UniquePeopleConcurrency > maxUniquePeopleConcurrency {
+		return fmt.Errorf("NOTIFY_UNIQUE_PEOPLE_CONCURRENCY должен быть от 1 до %d", maxUniquePeopleConcurrency)
 	}
 	return nil
 }
