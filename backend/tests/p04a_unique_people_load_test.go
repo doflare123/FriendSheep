@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -59,6 +58,7 @@ func (s *p04aLoadSamples) snapshot() map[string]any {
 }
 
 func runP04aLoad(t *testing.T, n, history int, overlap string) {
+	caseStarted := time.Now().UTC()
 	db := newPostgresEventCommandDB(t, statisticsPostgresDSN(t))
 	groupID, _ := statisticsFixture(t, db)
 	repo := &testPostgresRepository{db: db}
@@ -71,8 +71,10 @@ func runP04aLoad(t *testing.T, n, history int, overlap string) {
 		cohorts = 1
 	}
 	people := cohorts * n
+	maxHistory := history
 	if overlap == "partial" {
 		people = n/2 + cohorts*n/2
+		maxHistory = cohorts * history
 	}
 	exec := func(query string, args ...any) {
 		t.Helper()
@@ -178,7 +180,7 @@ func runP04aLoad(t *testing.T, n, history int, overlap string) {
 		return wg
 	}
 	baseline := &p04aLoadSamples{}
-	baselineCtx, baselineCancel := context.WithTimeout(context.Background(), time.Second)
+	baselineCtx, baselineCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	measure(baselineCtx, baseline).Wait()
 	baselineCancel()
 	loaded := &p04aLoadSamples{}
@@ -205,6 +207,10 @@ func runP04aLoad(t *testing.T, n, history int, overlap string) {
 		}
 	}
 	processDuration := time.Since(startProcess)
+	var pendingClaimPlan []string
+	if err = db.Raw(`EXPLAIN (ANALYZE, BUFFERS) SELECT user_id FROM participation_statistics_unique_people_jobs WHERE requested_generation>applied_generation AND next_attempt_at<=CURRENT_TIMESTAMP AND lease_token IS NULL ORDER BY dirty_since,next_attempt_at,user_id LIMIT 1`).Scan(&pendingClaimPlan).Error; err != nil {
+		t.Fatal(err)
+	}
 	startDrain := time.Now()
 	done := 0
 	for {
@@ -228,9 +234,13 @@ func runP04aLoad(t *testing.T, n, history int, overlap string) {
 				t.Fatalf("execute=%+v/%v", result, err)
 			}
 			done++
+			if done%500 == 0 {
+				t.Logf("пересчитано %d/%d, elapsed=%s", done, people, time.Since(startDrain).Round(time.Millisecond))
+			}
 		}
 	}
 	drainDuration := time.Since(startDrain)
+	workloadEnded := time.Now().UTC()
 	after := p04aLoadResource(db)
 	loadedCancel()
 	loadedWG.Wait()
@@ -260,7 +270,7 @@ func runP04aLoad(t *testing.T, n, history int, overlap string) {
 	if err = db.Raw(`EXPLAIN (ANALYZE, BUFFERS) SELECT user_id FROM participation_statistics_unique_people_jobs WHERE requested_generation>applied_generation AND next_attempt_at<=CURRENT_TIMESTAMP AND lease_token IS NULL ORDER BY dirty_since,next_attempt_at,user_id LIMIT 1`).Scan(&claimPlan).Error; err != nil {
 		t.Fatal(err)
 	}
-	result := map[string]any{"case": t.Name(), "go": runtime.Version(), "cpus": runtime.NumCPU(), "os": runtime.GOOS, "fsync": fsync, "synchronous_commit": synchronous, "participants_per_event": n, "history_per_cohort": history, "cohorts": cohorts, "users": people, "new_events": 6, "process_6_events_ms": processDuration.Milliseconds(), "drain_ms": drainDuration.Milliseconds(), "calculations": done, "calculations_per_second": float64(done) / drainDuration.Seconds(), "baseline_http": baseline.snapshot(), "loaded_http": loaded.snapshot(), "db_before": before, "db_after": after, "pool": sqlDB.Stats(), "single_plan": single, "batch8_plan": batch, "claim_plan": claimPlan, "limitations": "История загружена SQL с processed markers; шесть новых мероприятий проходят реальный P0.4 service. HTTP использует реальные Gin handlers/services/БД, но подменяет проверку JWT. Catch-up насыщенный без 5s polling, concurrency=1; не SLA."}
+	result := map[string]any{"case": t.Name(), "case_started_at": caseStarted, "workload_started_at": startProcess.UTC(), "drain_started_at": startDrain.UTC(), "workload_ended_at": workloadEnded, "go": runtime.Version(), "cpus": runtime.NumCPU(), "os": runtime.GOOS, "fsync": fsync, "synchronous_commit": synchronous, "participants_per_event": n, "history_per_cohort": history, "max_history_per_user": maxHistory, "cohorts": cohorts, "users": people, "new_events": 6, "process_6_events_ms": processDuration.Milliseconds(), "drain_ms": drainDuration.Milliseconds(), "calculations": done, "calculations_per_second": float64(done) / drainDuration.Seconds(), "baseline_http": baseline.snapshot(), "loaded_http": loaded.snapshot(), "db_before": before, "db_after": after, "db_after_plans": p04aLoadResource(db), "pool": sqlDB.Stats(), "single_plan": single, "batch8_plan": batch, "claim_plan": claimPlan, "pending_claim_plan": pendingClaimPlan, "default_polling_wait_ms_estimate": (int64(people) - 1) * 5000, "default_polling_total_ms_estimate": drainDuration.Milliseconds() + (int64(people)-1)*5000, "limitations": "История загружена SQL с processed markers; шесть новых мероприятий проходят реальный P0.4 service. HTTP использует реальные Gin handlers/services/БД, но подменяет проверку JWT. Catch-up насыщенный без 5s polling, concurrency=1; default polling estimate — арифметическая оценка пауз, не измеренное время реального worker и не SLA. В partial общая половина пользователей имеет 6×history мероприятий; остальные history."}
 	body, _ := json.MarshalIndent(result, "", "  ")
 	t.Log(string(body))
 	if directory := os.Getenv("P04A_LOAD_OUTPUT_DIR"); directory != "" {
@@ -277,7 +287,7 @@ func runP04aLoad(t *testing.T, n, history int, overlap string) {
 func p04aLoadResource(db *gorm.DB) map[string]any {
 	result := map[string]any{}
 	var rows []map[string]any
-	if err := db.Raw(`SELECT pg_total_relation_size('events_users') AS membership_bytes,pg_total_relation_size('participation_statistics_unique_people_jobs') AS queue_bytes,pg_total_relation_size('participation_statistics_users') AS aggregate_bytes,(SELECT COUNT(*) FROM pg_stat_activity WHERE datname=current_database()) AS connections,(SELECT COUNT(*) FROM pg_locks WHERE NOT granted) AS waiting_locks`).Scan(&rows).Error; err == nil && len(rows) > 0 {
+	if err := db.Raw(`SELECT pg_total_relation_size('events_users') AS membership_bytes,pg_total_relation_size('participation_statistics_unique_people_jobs') AS queue_bytes,pg_total_relation_size('participation_statistics_users') AS aggregate_bytes,(SELECT COUNT(*) FROM pg_stat_activity WHERE datname=current_database()) AS connections,(SELECT COUNT(*) FROM pg_locks WHERE NOT granted AND database=(SELECT oid FROM pg_database WHERE datname=current_database())) AS waiting_locks`).Scan(&rows).Error; err == nil && len(rows) > 0 {
 		result = rows[0]
 	}
 	var resources []map[string]any
@@ -286,8 +296,6 @@ func p04aLoadResource(db *gorm.DB) map[string]any {
 			result[key] = value
 		}
 	}
-	result["scope"] = "Снимок общей test database; при параллельных suites ресурсы могут включать их работу."
+	result["scope"] = "Отдельная disposable load database; pg_stat_database счётчики накоплены между cases, смотреть разность снимков."
 	return result
 }
-
-var _ = strings.Builder{}

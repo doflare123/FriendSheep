@@ -175,6 +175,8 @@ func (s *gormStore) Read(ctx context.Context, userID uint) (View, error) {
 		}
 		if row.UniquePeopleCount == nil || row.UniquePeopleCalculatedAt == nil {
 			view.UniquePeopleStatus = UniquePeopleStatusNotCalculated
+			view.UniquePeopleCount = nil
+			view.UniquePeopleCalculatedAt = nil
 		} else if jobErr == nil && job.RequestedGeneration > job.AppliedGeneration {
 			view.UniquePeopleStatus = UniquePeopleStatusPending
 		} else {

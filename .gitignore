@@ -17,3 +17,4 @@ notify_service/.env
 .env
 notify_service/firebase-credentials.json
 /backend/.cache
+/backend/docs/internal

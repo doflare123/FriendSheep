@@ -107,6 +107,7 @@ func newPostgresGroupServiceDB(t *testing.T, dsn string) *gorm.DB {
 	if err != nil {
 		t.Fatalf("get postgres admin sql db: %v", err)
 	}
+	t.Cleanup(func() { _ = adminSQL.Close() })
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if err := adminSQL.PingContext(ctx); err != nil {
@@ -117,6 +118,9 @@ func newPostgresGroupServiceDB(t *testing.T, dsn string) *gorm.DB {
 	if err := adminDB.Exec(`CREATE SCHEMA "` + schemaName + `"`).Error; err != nil {
 		t.Fatalf("create postgres test schema: %v", err)
 	}
+	t.Cleanup(func() {
+		_ = adminDB.Exec(`DROP SCHEMA IF EXISTS "` + schemaName + `" CASCADE`).Error
+	})
 
 	scopedDSN := withSearchPath(dsn, schemaName)
 	db, err := gorm.Open(postgres.Open(scopedDSN), &gorm.Config{
@@ -126,9 +130,12 @@ func newPostgresGroupServiceDB(t *testing.T, dsn string) *gorm.DB {
 		t.Fatalf("open postgres schema connection: %v", err)
 	}
 
-	t.Cleanup(func() {
-		_ = adminDB.Exec(`DROP SCHEMA IF EXISTS "` + schemaName + `" CASCADE`).Error
-	})
+	scopedSQL, err := db.DB()
+	if err != nil {
+		t.Fatalf("get postgres scoped sql db: %v", err)
+	}
+	// Пулы закрываются до удаления схемы, затем закрывается административное соединение.
+	t.Cleanup(func() { _ = scopedSQL.Close() })
 
 	if err := db.AutoMigrate(
 		&models.User{},

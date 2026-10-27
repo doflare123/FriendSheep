@@ -117,12 +117,13 @@ func (s *gormUniquePeopleStore) CompletedResult(ctx context.Context, claim Uniqu
 	return completedUniquePeopleExecution(job), nil
 }
 
-func (s *gormUniquePeopleStore) Calculate(ctx context.Context, claim UniquePeopleClaim, concurrency int) (UniquePeopleCalculation, error) {
+func (s *gormUniquePeopleStore) Calculate(ctx context.Context, claim UniquePeopleClaim, concurrency int, now time.Time) (UniquePeopleCalculation, error) {
 	started := time.Now()
 	db := s.repo.Model(nil).WithContext(ctx)
 	options := &sql.TxOptions{}
 	if db.Dialector.Name() == "postgres" {
 		options.Isolation = sql.LevelRepeatableRead
+		options.ReadOnly = true
 	}
 	var calculation UniquePeopleCalculation
 	err := db.Transaction(func(tx *gorm.DB) error {
@@ -151,7 +152,7 @@ func (s *gormUniquePeopleStore) Calculate(ctx context.Context, claim UniquePeopl
 		}
 
 		var job statmodels.UniquePeopleJob
-		err := tx.First(&job, "user_id = ? AND lease_token = ? AND lease_generation = ? AND lease_expires_at > CURRENT_TIMESTAMP", claim.UserID, claim.LeaseToken, claim.RequestedGeneration).Error
+		err := tx.First(&job, "user_id = ? AND lease_token = ? AND lease_generation = ? AND lease_expires_at > ?", claim.UserID, claim.LeaseToken, claim.RequestedGeneration, now).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrUniquePeopleStaleLease
 		}
@@ -174,12 +175,11 @@ func (s *gormUniquePeopleStore) Complete(ctx context.Context, claim UniquePeople
 	db := s.repo.Model(nil).WithContext(ctx)
 	result := staleUniquePeopleExecution(claim)
 	err := db.Transaction(func(tx *gorm.DB) error {
-		initialNow := clock().UTC()
-		aggregate := statmodels.UserAggregate{UserID: claim.UserID, UpdatedAt: initialNow}
-		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&aggregate).Error; err != nil {
-			return err
-		}
+		var aggregate statmodels.UserAggregate
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&aggregate, "user_id = ?", claim.UserID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return fmt.Errorf("агрегат пользователя %d для unique people не найден: %w", claim.UserID, err)
+			}
 			return err
 		}
 		var job statmodels.UniquePeopleJob
@@ -240,7 +240,7 @@ func (s *gormUniquePeopleStore) Complete(ctx context.Context, claim UniquePeople
 	return result, err
 }
 
-func (s *gormUniquePeopleStore) Retry(ctx context.Context, claim UniquePeopleClaim, now time.Time, timedOut bool, config UniquePeopleConfig) (UniquePeopleExecution, error) {
+func (s *gormUniquePeopleStore) Retry(ctx context.Context, claim UniquePeopleClaim, clock func() time.Time, timedOut bool, config UniquePeopleConfig) (UniquePeopleExecution, error) {
 	db := s.repo.Model(nil).WithContext(ctx)
 	result := staleUniquePeopleExecution(claim)
 	err := db.Transaction(func(tx *gorm.DB) error {
@@ -255,6 +255,7 @@ func (s *gormUniquePeopleStore) Retry(ctx context.Context, claim UniquePeopleCla
 			result = *completedUniquePeopleExecution(job)
 			return nil
 		}
+		now := clock().UTC()
 		if job.LeaseToken == nil || *job.LeaseToken != claim.LeaseToken || job.LeaseGeneration != claim.RequestedGeneration || job.LeaseExpiresAt == nil || !job.LeaseExpiresAt.After(now) {
 			return nil
 		}

@@ -107,9 +107,9 @@ type UniquePeopleCalculation struct {
 type UniquePeopleStore interface {
 	Claim(context.Context, time.Time, int, time.Duration, UniquePeopleConfig) ([]UniquePeopleClaim, error)
 	CompletedResult(context.Context, UniquePeopleClaim) (*UniquePeopleExecution, error)
-	Calculate(context.Context, UniquePeopleClaim, int) (UniquePeopleCalculation, error)
+	Calculate(context.Context, UniquePeopleClaim, int, time.Time) (UniquePeopleCalculation, error)
 	Complete(context.Context, UniquePeopleClaim, UniquePeopleCalculation, func() time.Time, UniquePeopleConfig) (UniquePeopleExecution, error)
-	Retry(context.Context, UniquePeopleClaim, time.Time, bool, UniquePeopleConfig) (UniquePeopleExecution, error)
+	Retry(context.Context, UniquePeopleClaim, func() time.Time, bool, UniquePeopleConfig) (UniquePeopleExecution, error)
 	Backfill(context.Context, uint, int, time.Time, time.Duration) (UniquePeopleBackfillResult, error)
 	Metrics(context.Context, time.Time, time.Duration) (UniquePeopleMetrics, error)
 }
@@ -156,7 +156,7 @@ func (s *UniquePeopleService) Execute(ctx context.Context, claim UniquePeopleCla
 	}
 
 	queryCtx, cancel := context.WithTimeout(ctx, s.config.QueryTimeout)
-	calculation, err := s.store.Calculate(queryCtx, claim, s.config.Concurrency)
+	calculation, err := s.store.Calculate(queryCtx, claim, s.config.Concurrency, s.clock().UTC())
 	queryContextErr := queryCtx.Err()
 	cancel()
 	if errors.Is(err, ErrUniquePeopleStaleLease) {
@@ -169,9 +169,8 @@ func (s *UniquePeopleService) Execute(ctx context.Context, claim UniquePeopleCla
 		if ctx.Err() != nil {
 			return UniquePeopleExecution{}, ctx.Err()
 		}
-		now := s.clock().UTC()
 		timedOut := errors.Is(err, context.DeadlineExceeded) || errors.Is(queryContextErr, context.DeadlineExceeded)
-		return s.store.Retry(ctx, claim, now, timedOut, s.config)
+		return s.store.Retry(ctx, claim, s.clock, timedOut, s.config)
 	}
 	return s.store.Complete(ctx, claim, calculation, s.clock, s.config)
 }

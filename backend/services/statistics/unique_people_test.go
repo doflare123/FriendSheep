@@ -32,7 +32,7 @@ func (s *uniquePeopleStoreStub) CompletedResult(context.Context, UniquePeopleCla
 	return nil, nil
 }
 
-func (s *uniquePeopleStoreStub) Calculate(ctx context.Context, _ UniquePeopleClaim, _ int) (UniquePeopleCalculation, error) {
+func (s *uniquePeopleStoreStub) Calculate(ctx context.Context, _ UniquePeopleClaim, _ int, _ time.Time) (UniquePeopleCalculation, error) {
 	s.calculateCtx = ctx
 	return s.calculation, nil
 }
@@ -46,7 +46,7 @@ func (s *uniquePeopleStoreStub) Complete(_ context.Context, claim UniquePeopleCl
 	return UniquePeopleExecution{SchemaVersion: UniquePeopleSchemaVersion, UserID: claim.UserID, AppliedGeneration: calculation.Generation, Outcome: UniquePeopleOutcomeApplied, Count: &count, CalculatedAt: &now}, nil
 }
 
-func (s *uniquePeopleStoreStub) Retry(context.Context, UniquePeopleClaim, time.Time, bool, UniquePeopleConfig) (UniquePeopleExecution, error) {
+func (s *uniquePeopleStoreStub) Retry(context.Context, UniquePeopleClaim, func() time.Time, bool, UniquePeopleConfig) (UniquePeopleExecution, error) {
 	return UniquePeopleExecution{}, nil
 }
 

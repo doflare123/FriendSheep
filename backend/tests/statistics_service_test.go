@@ -202,3 +202,27 @@ func TestParticipationStatisticsRollbackLeavesNoPartialFacts(t *testing.T) {
 		t.Fatalf("retry result/error = %#v/%v", result, err)
 	}
 }
+
+func TestParticipationStatisticsHidesUnconfirmedUniquePeopleResult(t *testing.T) {
+	for _, variant := range []string{"legacy_count_without_calculation_time", "calculation_time_without_count"} {
+		t.Run(variant, func(t *testing.T) {
+			db := newEventsServiceDB(t)
+			_, service := statisticsFixture(t, db)
+			updated := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+			zero := int64(0)
+			row := statmodels.UserAggregate{UserID: 2, CompletedEvents: 7, PlannedMinutes: 420, UpdatedAt: updated}
+			if variant == "legacy_count_without_calculation_time" {
+				row.UniquePeopleCount = &zero
+			} else {
+				row.UniquePeopleCalculatedAt = &updated
+			}
+			if err := db.Create(&row).Error; err != nil {
+				t.Fatal(err)
+			}
+			view, err := service.Read(context.Background(), 2)
+			if err != nil || view.UniquePeopleCount != nil || view.UniquePeopleCalculatedAt != nil || view.UniquePeopleStatus != stats.UniquePeopleStatusNotCalculated || view.CompletedEvents != 7 || view.PlannedMinutes != 420 || view.LastUpdatedAt == nil || !view.LastUpdatedAt.Equal(updated) {
+				t.Fatalf("unconfirmed view=%+v err=%v", view, err)
+			}
+		})
+	}
+}
