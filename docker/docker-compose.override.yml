@@ -1,48 +1,106 @@
+# Только локальная разработка: все значения заданы, файлы .env не нужны.
 services:
   backend:
     build:
       context: ../backend
       dockerfile: Dockerfile.dev
-    ports:
-      - "8080:8080"
     environment:
-      - ../.env
+      APP_ENV: DEV
+      PORT: "8080"
+      GIN_MODE: debug
+      LOG_LEVEL: info
+      ENABLE_STARTUP_SQL_MIGRATIONS: "false"
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: local-backend-password
+      DB_NAME: FriendSheep
+      MONGO_URI: mongodb://FriendSheep:local-mongo-password@mongo:27017/?authSource=admin
+      MONGO_DB: FriendSheep
+      REDIS_ADDR: redis:6379
+      REDIS_PASS: ""
+      REDIS_DB: "0"
+      SECRET_KEY_JWT: local-development-jwt-secret-at-least-32-characters
+      NOTIFY_SERVICE_TOKEN: local-development-internal-notify-token
+      NOTIFY_SERVICE_BASE_URL: http://notify_service:8080
+      NOTIFY_SERVICE_HTTP_TIMEOUT: 5s
+      # Внешние SMTP/S3 не подключены: локальный запуск не использует настоящие ключи.
+      SMTP_EMAIL: noreply@friendsheep.test
+      SMTP_USERNAME: local
+      SMTP_PASSWORD: local
+      SMTP_HOST: localhost
+      SMTP_PORT: "1025"
+      S3_ACCESS_KEY: local
+      S3_SECRET_KEY: local
+      S3_ENDPOINT: http://localhost:9000
+      S3_REGION: us-east-1
+      S3_CONTID: local
+      S3_BUCKET: friendsheep
+      MAX_IMAGE_SIZE: "10485760"
+    ports:
+      - "127.0.0.1:8080:8080"
     depends_on:
-      - redis
-      - mongo
-      - db
+      db:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/api/v2/references"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    stop_grace_period: 30s
     restart: unless-stopped
+    networks: [appnet]
+
+  notify_db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: notify_user
+      POSTGRES_PASSWORD: local-notify-password
+      POSTGRES_DB: notify_service
+    ports:
+      - "127.0.0.1:15433:5432"
     volumes:
-      - ../backend:/app  # Монтируем весь код
-      - /app/tmp        # Исключаем tmp директорию из синхронизации
-    networks:
-      - appnet
-  telegram-bot:
-    build:
-      context: ../bot
-      dockerfile: Dockerfile
-    environment:
-      - ../.env
-    ports:
-    - "3000:3000"
+      - notify_postgres_dev_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notify_user -d notify_service"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
     restart: unless-stopped
-    depends_on:
-      - backend
-    networks:
-      - appnet
+    networks: [appnet]
+
   notify_service:
     build:
       context: ../notify_service
       dockerfile: Dockerfile
     environment:
-      NOTIFY_DATABASE_URL: "${NOTIFY_DATABASE_URL:?задайте отдельный NOTIFY_DATABASE_URL для notify_service}"
+      PORT: "8080"
+      NOTIFY_DATABASE_URL: postgres://notify_user:local-notify-password@notify_db:5432/notify_service?sslmode=disable
+      NOTIFY_MONOLITH_BASE_URL: http://backend:8080
+      NOTIFY_SERVICE_TOKEN: local-development-internal-notify-token
+      NOTIFY_LOG_LEVEL: info
     ports:
-    - "8083:8080"
+      - "127.0.0.1:8083:8080"
+    depends_on:
+      notify_db:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    stop_grace_period: 30s
     restart: unless-stopped
-    networks:
-      - appnet
+    networks: [appnet]
 
-
-networks:
-  appnet:
-    driver: bridge
+volumes:
+  notify_postgres_dev_data:

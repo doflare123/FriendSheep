@@ -193,6 +193,7 @@ func TestBootstrapRegistrationSchemaMigratesExpectedModels(t *testing.T) {
 		reflect.TypeOf(&statisticsmodels.Distribution{}),
 		reflect.TypeOf(&statsusers.PopSessionType{}),
 		reflect.TypeOf(&models.User{}),
+		reflect.TypeOf(&models.UserPrivacy{}),
 		reflect.TypeOf(&models.StatsProcessedEvent{}),
 		reflect.TypeOf(&models.DaysWeek{}),
 		reflect.TypeOf(&models.Category{}),

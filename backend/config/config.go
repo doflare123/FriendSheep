@@ -4,7 +4,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"log"
+	"reflect"
 	"strings"
 	"time"
 
@@ -93,10 +95,21 @@ type Upload struct {
 }
 
 func NewConfig() *Config {
+	cfg, err := LoadConfig()
+	if err != nil {
+		log.Fatalf("Error config: %v", err)
+	}
+	return cfg
+}
+
+func LoadConfig() (*Config, error) {
 	viper.SetConfigFile(".env")
 	viper.SetConfigType("env")
 	viper.AutomaticEnv()
 	applyConfigDefaults()
+	if err := bindConfigEnvironment(reflect.TypeOf(Config{})); err != nil {
+		return nil, err
+	}
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
@@ -106,11 +119,50 @@ func NewConfig() *Config {
 
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {
-		log.Fatalf("Error config: %v", err)
+		return nil, fmt.Errorf("разбор конфигурации: %w", err)
 	}
 	if err := cfg.NormalizeAndValidate(); err != nil {
-		log.Fatalf("Error config: %v", err)
+		return nil, err
 	}
 
-	return &cfg
+	return &cfg, nil
+}
+
+func bindConfigEnvironment(configType reflect.Type) error {
+	if configType.Kind() == reflect.Pointer {
+		configType = configType.Elem()
+	}
+	if configType.Kind() != reflect.Struct {
+		return fmt.Errorf("тип конфигурации должен быть структурой, получено %s", configType.Kind())
+	}
+
+	for i := 0; i < configType.NumField(); i++ {
+		field := configType.Field(i)
+		parts := strings.Split(field.Tag.Get("mapstructure"), ",")
+		name := parts[0]
+		if name == "-" {
+			continue
+		}
+
+		squashed := false
+		for _, option := range parts[1:] {
+			if option == "squash" {
+				squashed = true
+				break
+			}
+		}
+		if squashed {
+			if err := bindConfigEnvironment(field.Type); err != nil {
+				return fmt.Errorf("привязка окружения для %s: %w", field.Name, err)
+			}
+			continue
+		}
+		if name == "" {
+			continue
+		}
+		if err := viper.BindEnv(name); err != nil {
+			return fmt.Errorf("привязка переменной окружения %s: %w", name, err)
+		}
+	}
+	return nil
 }

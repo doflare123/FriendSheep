@@ -58,6 +58,7 @@ func bootstrapRegistrationModels() []interface{} {
 		&statisticsmodels.Distribution{},
 		&statsusers.PopSessionType{},
 		&models.User{},
+		&models.UserPrivacy{},
 		&models.StatsProcessedEvent{},
 		&models.DaysWeek{},
 		&models.Category{},

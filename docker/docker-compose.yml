@@ -1,67 +1,83 @@
+# Локальная инфраструктура. docker-compose.override.yml добавляет оба Go-сервера.
 services:
   redis:
-    image: "redis:alpine"
+    image: redis:7.4-alpine
     ports:
-      - "6666:6666"
+      - "127.0.0.1:6666:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
-    networks:
-      - appnet
+    networks: [appnet]
 
   mongo:
-    image: mongo
-    restart: always
-    ports:
-      - "27017:27017"
+    image: mongo:8.0
     environment:
       MONGO_INITDB_ROOT_USERNAME: FriendSheep
-      MONGO_INITDB_ROOT_PASSWORD: password
-    volumes:
-      - mongo_data:/data/db
-    networks:
-      - appnet
-
-  mongo-express:
-    image: mongo-express
-    restart: always
+      MONGO_INITDB_ROOT_PASSWORD: local-mongo-password
     ports:
-      - "8081:8081"
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: FriendSheep
-      ME_CONFIG_MONGODB_ADMINPASSWORD: password
-      ME_CONFIG_MONGODB_URL: mongodb://FriendSheep:password@mongo:27017/
-      ME_CONFIG_BASICAUTH: false
-    depends_on:
-      - mongo
-    networks:
-      - appnet
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo_dev_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+    restart: unless-stopped
+    networks: [appnet]
 
   db:
-    image: postgres
-    restart: always
-    ports:
-      - "5432:5432"
+    image: postgres:18-alpine
     environment:
-      POSTGRES_PASSWORD: password
       POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: local-backend-password
       POSTGRES_DB: FriendSheep
+    ports:
+      - "127.0.0.1:15432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
-    networks:
-      - appnet
+      - postgres_dev_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d FriendSheep"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    restart: unless-stopped
+    networks: [appnet]
 
   adminer:
-    image: adminer
-    restart: always
+    image: adminer:5
+    environment:
+      ADMINER_DEFAULT_SERVER: db
     ports:
-      - "8082:8080"
+      - "127.0.0.1:8082:8080"
     depends_on:
-      - db
-    networks:
-      - appnet
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [appnet]
+
+  mongo-express:
+    image: mongo-express:1
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://FriendSheep:local-mongo-password@mongo:27017/
+      ME_CONFIG_BASICAUTH: "false"
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [appnet]
 
 volumes:
-  mongo_data:
-  postgres_data:
+  # Новые локальные тома сохраняют прежние postgres_data/mongo_data нетронутыми.
+  mongo_dev_data:
+  postgres_dev_data:
 
 networks:
   appnet:

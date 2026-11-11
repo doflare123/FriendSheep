@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -15,6 +15,7 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /app
 COPY --from=builder /out/server ./server
 COPY --from=builder /out/migrate-rollout ./migrate-rollout
+COPY --from=builder /app/db/data ./db/data
 COPY --from=builder /app/migration ./migration
 EXPOSE 8080
 CMD ["./server"]

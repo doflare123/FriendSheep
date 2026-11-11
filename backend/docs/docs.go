@@ -2667,6 +2667,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v2/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Личность определяется проверенным JWT. Приватность не ограничивает владельцу доступ к компактной статистике; полная статистика доступна отдельно через /api/v2/users/me/statistics.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Получить собственный профиль",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/users.Profile"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v2/users/me/groups/managed": {
             "get": {
                 "security": [
@@ -2932,6 +2975,110 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v2/users/me/privacy": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Отсутствующая запись означает open с полным набором компактных показателей.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Получить свои настройки приватности",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/users.Privacy"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Допустимы mode (open/closed/custom) и visibleStatistics. Массив полностью заменяет выбор для custom; [] скрывает все показатели. Пропущенные поля сохраняются. null, неизвестные поля, повторы показателей и пустой запрос запрещены. open показывает все показатели независимо от сохранённого выбора; closed закрывает профиль для других.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Изменить свои настройки приватности",
+                "parameters": [
+                    {
+                        "description": "Изменяемые настройки",
+                        "name": "privacy",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/users.PrivacyPatch"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/users.Privacy"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v2/users/me/statistics": {
             "get": {
                 "security": [
@@ -2956,6 +3103,70 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/users/{identifier}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Положительное число означает ID, строка с @ — уникальный us, включая числовой. Ноль и остальные форматы запрещены. Владелец определяется по устойчивому ID. Чужой closed-профиль возвращает 403; open показывает компактную статистику, custom — только выбранные поля. Планы и история не возвращаются.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Получить профиль по ID или уникальному us",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Положительный ID или @us",
+                        "name": "identifier",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/users.Profile"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -4857,6 +5068,156 @@ const docTemplate = `{
                     "type": "integer"
                 }
             }
+        },
+        "users.CompactStatistics": {
+            "type": "object",
+            "properties": {
+                "completedEvents": {
+                    "type": "integer"
+                },
+                "createdCompletedEvents": {
+                    "type": "integer"
+                },
+                "mostFrequentGenreId": {
+                    "type": "integer",
+                    "x-nullable": true
+                },
+                "mostFrequentTypeId": {
+                    "type": "integer",
+                    "x-nullable": true
+                },
+                "mostFrequentWeekday": {
+                    "type": "integer",
+                    "x-nullable": true
+                },
+                "plannedMinutes": {
+                    "type": "integer"
+                },
+                "uniquePeopleCalculatedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "x-nullable": true
+                },
+                "uniquePeopleCount": {
+                    "type": "integer",
+                    "x-nullable": true
+                },
+                "uniquePeopleStatus": {
+                    "type": "string"
+                }
+            }
+        },
+        "users.Privacy": {
+            "type": "object",
+            "properties": {
+                "mode": {
+                    "enum": [
+                        "open",
+                        "closed",
+                        "custom"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/users.PrivacyMode"
+                        }
+                    ]
+                },
+                "visibleStatistics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/users.StatisticField"
+                    }
+                }
+            }
+        },
+        "users.PrivacyMode": {
+            "type": "string",
+            "enum": [
+                "open",
+                "closed",
+                "custom"
+            ],
+            "x-enum-varnames": [
+                "PrivacyModeOpen",
+                "PrivacyModeClosed",
+                "PrivacyModeCustom"
+            ]
+        },
+        "users.PrivacyPatch": {
+            "type": "object",
+            "properties": {
+                "mode": {
+                    "enum": [
+                        "open",
+                        "closed",
+                        "custom"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/users.PrivacyMode"
+                        }
+                    ]
+                },
+                "visibleStatistics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/users.StatisticField"
+                    }
+                }
+            }
+        },
+        "users.Profile": {
+            "type": "object",
+            "properties": {
+                "dataRegister": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "isOwner": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "statistics": {
+                    "$ref": "#/definitions/users.CompactStatistics"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "us": {
+                    "type": "string"
+                },
+                "verified": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "users.StatisticField": {
+            "type": "string",
+            "enum": [
+                "completedEvents",
+                "plannedMinutes",
+                "createdCompletedEvents",
+                "uniquePeopleCount",
+                "mostFrequentTypeId",
+                "mostFrequentGenreId",
+                "mostFrequentWeekday"
+            ],
+            "x-enum-varnames": [
+                "StatisticCompletedEvents",
+                "StatisticPlannedMinutes",
+                "StatisticCreatedCompletedEvents",
+                "StatisticUniquePeopleCount",
+                "StatisticMostFrequentTypeID",
+                "StatisticMostFrequentGenreID",
+                "StatisticMostFrequentWeekday"
+            ]
         }
     },
     "securityDefinitions": {

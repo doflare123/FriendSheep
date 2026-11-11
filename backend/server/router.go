@@ -12,6 +12,7 @@ import (
 	"friendship/services/register"
 	"friendship/services/statistics"
 	"friendship/services/sub"
+	"friendship/services/users"
 	"friendship/utils"
 )
 
@@ -54,6 +55,8 @@ func (s *Server) initRouters() {
 	uniqueConfig.RetryBase = s.cfg.UniquePeople.RetryBase
 	uniqueConfig.RetryMax = s.cfg.UniquePeople.RetryMax
 	statisticsService := statistics.NewService(statistics.NewGORMStoreWithUniquePeopleConfig(s.postgres, uniqueConfig))
+	profileService := users.NewProfileService(users.NewGORMProfileStore(s.postgres), statisticsService)
+	routes.RegisterUserProfileRoutes(s.engine, handlers.NewUserProfileHandler(profileService), jwtMiddleware.RequireAuth())
 	statisticsTriggers := events.NewStatisticsTriggerService(events.NewGORMStatisticsTriggerReader(s.postgres), events.NewGORMStatisticsTriggerBackfiller(s.postgres))
 	statisticsH := handlers.NewStatisticsHandler(statisticsService, statisticsTriggers)
 	routes.RegisterStatisticsRoutes(s.engine, statisticsH, jwtMiddleware.RequireAuth())

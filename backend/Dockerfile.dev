@@ -1,17 +1,28 @@
-FROM golang:1.25-alpine
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# Устанавливаем Air
-RUN go install github.com/air-verse/air@latest
-
-# Копируем go.mod и go.sum для кеширования зависимостей
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Копируем конфигурацию Air
-COPY .air.toml ./
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/server .
+
+FROM alpine:3.20
+
+RUN apk add --no-cache ca-certificates \
+    && addgroup -S friendship \
+    && adduser -S friendship -G friendship \
+    && mkdir -p /app/logs \
+    && chown friendship:friendship /app/logs
+
+WORKDIR /app
+COPY --from=builder /out/server ./server
+COPY --from=builder /app/db/data ./db/data
+COPY --from=builder /app/migration ./migration
+
+USER friendship
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "go test ./... && air"]
+CMD ["./server"]
