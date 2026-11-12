@@ -15,6 +15,10 @@ func (UserPrivacy) TableName() string { return "user_privacies" }
 func (privacy *UserPrivacy) BeforeCreate(_ *gorm.DB) error {
 	if privacy.VisibleStatistics == nil {
 		privacy.VisibleStatistics = []string{
+			"films",
+			"games",
+			"tableGames",
+			"other",
 			"completedEvents",
 			"plannedMinutes",
 			"createdCompletedEvents",

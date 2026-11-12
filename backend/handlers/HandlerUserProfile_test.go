@@ -21,6 +21,7 @@ type userProfileApplicationStub struct {
 	viewerID  uint
 	target    users.Target
 	patch     users.PrivacyPatch
+	tiles     users.TileSettings
 	profiles  int
 	privacies int
 	patches   int
@@ -43,6 +44,17 @@ func (s *userProfileApplicationStub) PatchPrivacy(_ context.Context, userID uint
 	s.viewerID, s.patch = userID, patch
 	s.patches++
 	return users.Privacy{}, s.err
+}
+
+func (s *userProfileApplicationStub) GetTileSettings(_ context.Context, userID uint) (users.TileSettings, error) {
+	s.viewerID = userID
+	return s.tiles, s.err
+}
+
+func (s *userProfileApplicationStub) ReplaceTileSettings(_ context.Context, userID uint, settings users.TileSettings) (users.TileSettings, error) {
+	s.viewerID, s.tiles = userID, settings
+	s.patches++
+	return s.tiles, s.err
 }
 
 func TestUserProfileHandlerRejectsInvalidIdentifierBeforeService(t *testing.T) {
@@ -86,6 +98,33 @@ func TestUserProfileHandlerUsesOnlyAuthenticatedViewerAndStrictPrivacyPatch(t *t
 	router.ServeHTTP(response, request)
 	if response.Code != http.StatusOK || application.patches != 1 || application.viewerID != 7 || application.patch.Mode == nil || application.patch.VisibleStatistics == nil {
 		t.Fatalf("valid patch response/call = %d/%#v, body=%s", response.Code, application, response.Body.String())
+	}
+}
+
+func TestUserProfileHandlerReplacesTileSettingsStrictly(t *testing.T) {
+	application := &userProfileApplicationStub{}
+	router := newUserProfileTestRouter(application, 7)
+	for _, body := range []string{"{}", `{"tiles":null}`, `{"tiles":[],"userId":9}`} {
+		response := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodPut, "/api/v2/users/me/statistics/tiles", strings.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		router.ServeHTTP(response, request)
+		if response.Code != http.StatusBadRequest || application.patches != 0 {
+			t.Fatalf("body %s response/calls = %d/%d, want 400/0; body=%s", body, response.Code, application.patches, response.Body.String())
+		}
+	}
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPut, "/api/v2/users/me/statistics/tiles", strings.NewReader(`{"tiles":["games","films"]}`))
+	request.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || application.patches != 1 || application.viewerID != 7 || len(application.tiles.Tiles) != 2 || application.tiles.Tiles[0] != users.TileGames || application.tiles.Tiles[1] != users.TileFilms {
+		t.Fatalf("valid replacement response/application = %d/%#v, body=%s", response.Code, application, response.Body.String())
+	}
+
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v2/users/me/statistics/tiles?userId=9", nil))
+	if response.Code != http.StatusOK || application.viewerID != 7 {
+		t.Fatalf("tile settings response/application = %d/%#v", response.Code, application)
 	}
 }
 

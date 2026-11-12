@@ -13,4 +13,6 @@ func RegisterUserProfileRoutes(router *gin.Engine, handler *handlers.UserProfile
 	group.GET("/:identifier", handler.GetProfile)
 	group.GET("/me/privacy", handler.GetPrivacy)
 	group.PATCH("/me/privacy", handler.PatchPrivacy)
+	group.GET("/me/statistics/tiles", handler.GetTileSettings)
+	group.PUT("/me/statistics/tiles", handler.ReplaceTileSettings)
 }

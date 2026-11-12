@@ -37,17 +37,11 @@ func (s *gormRegistrationStore) CreateUser(ctx context.Context, input UserBootst
 			return fmt.Errorf("ошибка создания пользователя: %w", err)
 		}
 
-		defaultTiles := statsusers.SettingTile{
-			UserID:      user.ID,
-			Count_films: true,
-			Count_games: true,
-			Count_table: true,
-			Count_other: false,
-			Count_all:   true,
-			Spent_time:  false,
-		}
-		if err := tx.Model(&statsusers.SettingTile{}).WithContext(ctx).Create(&defaultTiles).Error; err != nil {
-			return fmt.Errorf("не удалось создать настройки тайлов: %w", err)
+		// Выбор плиток создаётся вместе с пользователем: ошибка любого этапа
+		// регистрации откатывает и профиль, и его начальное оформление.
+		defaultTiles := models.UserStatisticTiles{UserID: user.ID}
+		if err := tx.Model(&models.UserStatisticTiles{}).WithContext(ctx).Create(&defaultTiles).Error; err != nil {
+			return fmt.Errorf("не удалось создать настройки плиток: %w", err)
 		}
 
 		statsUser := statsusers.SessionStats_users{UserID: user.ID}

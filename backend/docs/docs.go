@@ -3116,6 +3116,110 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v2/users/me/statistics/tiles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Настройка оформления хранится отдельно от приватности. Без сохранённой настройки порядок: films, games, tableGames, completedEvents. Значения плиток возвращаются в профиле; этот запрос читает только настройку.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Получить выбранные плитки статистики",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/users.TileSettings"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "От нуля до четырёх разных ключей. Порядок значим; [] убирает блок. null, пропущенное tiles, неизвестные поля и повторные ключи запрещены. Настройка не меняет privacy. Для других пользователей скрытые показатели исключаются из блока без замены другими плитками. plannedMinutes возвращается в минутах; неизвестные значения остаются null.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Заменить выбор и порядок плиток статистики",
+                "parameters": [
+                    {
+                        "description": "Полный выбор плиток в нужном порядке",
+                        "name": "settings",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/users.TileSettings"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/users.TileSettings"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v2/users/{identifier}": {
             "get": {
                 "security": [
@@ -5190,6 +5294,12 @@ const docTemplate = `{
                 "status": {
                     "type": "string"
                 },
+                "tiles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/users.StatisticTile"
+                    }
+                },
                 "us": {
                     "type": "string"
                 },
@@ -5207,7 +5317,11 @@ const docTemplate = `{
                 "uniquePeopleCount",
                 "mostFrequentTypeId",
                 "mostFrequentGenreId",
-                "mostFrequentWeekday"
+                "mostFrequentWeekday",
+                "films",
+                "games",
+                "tableGames",
+                "other"
             ],
             "x-enum-varnames": [
                 "StatisticCompletedEvents",
@@ -5216,8 +5330,118 @@ const docTemplate = `{
                 "StatisticUniquePeopleCount",
                 "StatisticMostFrequentTypeID",
                 "StatisticMostFrequentGenreID",
-                "StatisticMostFrequentWeekday"
+                "StatisticMostFrequentWeekday",
+                "StatisticFilms",
+                "StatisticGames",
+                "StatisticTableGames",
+                "StatisticOther"
             ]
+        },
+        "users.StatisticTile": {
+            "type": "object",
+            "properties": {
+                "calculatedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "x-nullable": true
+                },
+                "key": {
+                    "enum": [
+                        "films",
+                        "games",
+                        "tableGames",
+                        "other",
+                        "completedEvents",
+                        "plannedMinutes",
+                        "createdCompletedEvents",
+                        "uniquePeopleCount",
+                        "mostFrequentTypeId",
+                        "mostFrequentGenreId",
+                        "mostFrequentWeekday"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/users.TileKey"
+                        }
+                    ]
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "not_calculated",
+                        "pending",
+                        "fresh"
+                    ]
+                },
+                "unit": {
+                    "type": "string",
+                    "enum": [
+                        "minutes"
+                    ]
+                },
+                "value": {
+                    "type": "integer",
+                    "x-nullable": true
+                }
+            }
+        },
+        "users.TileKey": {
+            "type": "string",
+            "enum": [
+                "films",
+                "games",
+                "tableGames",
+                "other",
+                "completedEvents",
+                "plannedMinutes",
+                "createdCompletedEvents",
+                "uniquePeopleCount",
+                "mostFrequentTypeId",
+                "mostFrequentGenreId",
+                "mostFrequentWeekday"
+            ],
+            "x-enum-varnames": [
+                "TileFilms",
+                "TileGames",
+                "TileTableGames",
+                "TileOther",
+                "TileCompletedEvents",
+                "TilePlannedMinutes",
+                "TileCreatedCompletedEvents",
+                "TileUniquePeopleCount",
+                "TileMostFrequentTypeID",
+                "TileMostFrequentGenreID",
+                "TileMostFrequentWeekday"
+            ]
+        },
+        "users.TileSettings": {
+            "type": "object",
+            "required": [
+                "tiles"
+            ],
+            "properties": {
+                "tiles": {
+                    "type": "array",
+                    "maxItems": 4,
+                    "uniqueItems": true,
+                    "items": {
+                        "enum": [
+                            "films",
+                            "games",
+                            "tableGames",
+                            "other",
+                            "completedEvents",
+                            "plannedMinutes",
+                            "createdCompletedEvents",
+                            "uniquePeopleCount",
+                            "mostFrequentTypeId",
+                            "mostFrequentGenreId",
+                            "mostFrequentWeekday"
+                        ],
+                        "$ref": "#/definitions/users.TileKey"
+                    }
+                }
+            }
         }
     },
     "securityDefinitions": {

@@ -35,7 +35,6 @@ package routes
 // 		UserInfGroup.PUT("/invites/:id/approve", handlers.ApproveInvite)
 // 		UserInfGroup.PUT("/invites/:id/reject", handlers.RejectInvite)
 // 		UserInfGroup.PATCH("/user/profile", handlers.UpdateUserProfile)
-// 		UserInfGroup.PATCH("/tiles", handlers.ChangeTilesPattern)
 // 		UserInfGroup.DELETE("/delete", handlers.DeleteAccount)
 // 		// UserInfGroup.GET("/:us", handlers.GettingUserId)
 // 	}

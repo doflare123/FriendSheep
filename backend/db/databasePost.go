@@ -31,7 +31,7 @@ func InitDatabase() error {
 	}
 	db.AutoMigrate(&news.News{}, &news.ContentNews{}, &news.Comments{})
 	db.AutoMigrate(&statsusers.SideStats_users{}, &statsusers.SessionStats_users{}, &statsusers.SessionsStatsGenres_users{},
-		&statsusers.Genre{}, statsusers.PopSessionType{}, statsusers.SettingTile{})
+		&statsusers.Genre{}, statsusers.PopSessionType{}, &models.UserStatisticTiles{})
 	db.AutoMigrate(&models.User{}, models.StatsProcessedEvent{},
 		&groups.Group{}, &groups.GroupContact{}, &groups.GroupGroupCategory{}, &models.Category{}, &groups.GroupUsers{}, &groups.GroupJoinRequest{}, &groups.GroupJoinInvite{},
 	)

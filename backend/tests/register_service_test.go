@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -337,7 +338,18 @@ func TestRegisterServiceCreateUserCreatesDefaultsAndDeletesSession(t *testing.T)
 		t.Fatalf("users count = %d, want 1", usersCount)
 	}
 
-	assertCount(t, db, &statsusers.SettingTile{}, 1)
+	assertCount(t, db, &models.UserStatisticTiles{}, 1)
+	var registeredUser models.User
+	if err := db.Where("email = ?", "user@example.com").First(&registeredUser).Error; err != nil {
+		t.Fatalf("load registered user: %v", err)
+	}
+	var tiles models.UserStatisticTiles
+	if err := db.First(&tiles, "user_id = ?", registeredUser.ID).Error; err != nil {
+		t.Fatalf("load default statistic tiles: %v", err)
+	}
+	if !reflect.DeepEqual(tiles.SelectedKeys, models.DefaultUserStatisticTileKeys()) {
+		t.Fatalf("default statistic tiles = %#v, want %#v", tiles.SelectedKeys, models.DefaultUserStatisticTileKeys())
+	}
 	assertCount(t, db, &statsusers.SessionStats_users{}, 1)
 	assertCount(t, db, &statsusers.SideStats_users{}, 1)
 	if len(notifier.welcomeCalls) != 1 {
@@ -458,7 +470,7 @@ func TestGORMRegistrationStoreMapsDuplicateAndKeepsBootstrapAtomic(t *testing.T)
 	}
 
 	assertCount(t, db, &models.User{}, 1)
-	assertCount(t, db, &statsusers.SettingTile{}, 1)
+	assertCount(t, db, &models.UserStatisticTiles{}, 1)
 	assertCount(t, db, &statsusers.SessionStats_users{}, 1)
 	assertCount(t, db, &statsusers.SideStats_users{}, 1)
 }
@@ -491,7 +503,7 @@ func TestGORMRegistrationStoreRollsBackWhenDefaultCreationFails(t *testing.T) {
 	}
 
 	assertCount(t, db, &models.User{}, 0)
-	assertCount(t, db, &statsusers.SettingTile{}, 0)
+	assertCount(t, db, &models.UserStatisticTiles{}, 0)
 	assertCount(t, db, &statsusers.SessionStats_users{}, 0)
 	assertCount(t, db, &statsusers.SideStats_users{}, 0)
 }
@@ -525,7 +537,7 @@ func TestGORMRegistrationStoreRollsBackWhenContextIsCanceledAfterLastInsert(t *t
 	}
 
 	assertCount(t, db, &models.User{}, 0)
-	assertCount(t, db, &statsusers.SettingTile{}, 0)
+	assertCount(t, db, &models.UserStatisticTiles{}, 0)
 	assertCount(t, db, &statsusers.SessionStats_users{}, 0)
 	assertCount(t, db, &statsusers.SideStats_users{}, 0)
 }
@@ -563,7 +575,7 @@ func TestRegisterServiceCreateUserRejectsResetPasswordSessionWithoutSideEffects(
 	}
 
 	assertCount(t, db, &models.User{}, 0)
-	assertCount(t, db, &statsusers.SettingTile{}, 0)
+	assertCount(t, db, &models.UserStatisticTiles{}, 0)
 	assertCount(t, db, &statsusers.SessionStats_users{}, 0)
 	assertCount(t, db, &statsusers.SideStats_users{}, 0)
 	if len(notifier.welcomeCalls) != 0 {
@@ -606,7 +618,7 @@ func TestRegisterServiceCreateUserRejectsEmailMismatchWithoutSideEffects(t *test
 	}
 
 	assertCount(t, db, &models.User{}, 0)
-	assertCount(t, db, &statsusers.SettingTile{}, 0)
+	assertCount(t, db, &models.UserStatisticTiles{}, 0)
 	assertCount(t, db, &statsusers.SessionStats_users{}, 0)
 	assertCount(t, db, &statsusers.SideStats_users{}, 0)
 	if len(notifier.welcomeCalls) != 0 {
@@ -917,7 +929,7 @@ func newRegisterDB(t *testing.T) *gorm.DB {
 	if err := db.AutoMigrate(
 		&models.User{},
 		&models.DaysWeek{},
-		&statsusers.SettingTile{},
+		&models.UserStatisticTiles{},
 		&statsusers.SessionStats_users{},
 		&statsusers.SideStats_users{},
 	); err != nil {

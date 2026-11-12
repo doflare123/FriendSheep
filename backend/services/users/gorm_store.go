@@ -7,6 +7,7 @@ import (
 
 	"friendship/models"
 	"friendship/repository"
+	"friendship/services/references"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -77,7 +78,7 @@ func (s *gormProfileStore) PatchPrivacy(ctx context.Context, userID uint, patch 
 		}
 		if normalized.VisibleStatistics != nil {
 			effective.VisibleStatistics = append([]StatisticField(nil), (*normalized.VisibleStatistics)...)
-			encoded, err := json.Marshal(statisticFieldsToStrings(*normalized.VisibleStatistics))
+			encoded, err := json.Marshal(keysToStrings(*normalized.VisibleStatistics))
 			if err != nil {
 				return err
 			}
@@ -86,7 +87,7 @@ func (s *gormProfileStore) PatchPrivacy(ctx context.Context, userID uint, patch 
 		row := models.UserPrivacy{
 			UserID:            userID,
 			Mode:              string(effective.Mode),
-			VisibleStatistics: statisticFieldsToStrings(effective.VisibleStatistics),
+			VisibleStatistics: keysToStrings(effective.VisibleStatistics),
 		}
 		upsert := tx.Model(&models.UserPrivacy{}).WithContext(ctx).Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_id"}},
@@ -100,6 +101,63 @@ func (s *gormProfileStore) PatchPrivacy(ctx context.Context, userID uint, patch 
 	})
 	if err != nil {
 		return Privacy{}, err
+	}
+	return result, nil
+}
+
+func (s *gormProfileStore) GetTileSettings(ctx context.Context, userID uint) (TileSettings, error) {
+	if err := ensureUser(ctx, s.repo, userID); err != nil {
+		return TileSettings{}, err
+	}
+	return readTileSettings(ctx, s.repo, userID)
+}
+
+func (s *gormProfileStore) ReplaceTileSettings(ctx context.Context, userID uint, settings TileSettings) (TileSettings, error) {
+	normalized, err := normalizeTileSettings(settings)
+	if err != nil {
+		return TileSettings{}, err
+	}
+	var result TileSettings
+	err = s.repo.TransactionWithContext(ctx, func(tx repository.PostgresRepository) error {
+		if err := ensureUser(ctx, tx, userID); err != nil {
+			return err
+		}
+		encoded, err := json.Marshal(keysToStrings(normalized.Tiles))
+		if err != nil {
+			return err
+		}
+		row := models.UserStatisticTiles{UserID: userID, SelectedKeys: keysToStrings(normalized.Tiles)}
+		// Upsert и чтение результата держатся в одной транзакции, чтобы PUT вернул своё состояние.
+		upsert := tx.Model(&models.UserStatisticTiles{}).WithContext(ctx).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_id"}},
+			DoUpdates: clause.Assignments(map[string]any{"selected_keys": string(encoded)}),
+		}).Create(&row)
+		if upsert.Error != nil {
+			return upsert.Error
+		}
+		result, err = readTileSettings(ctx, tx, userID)
+		return err
+	})
+	if err != nil {
+		return TileSettings{}, err
+	}
+	return result, nil
+}
+
+func (s *gormProfileStore) FindEventTypesByNames(ctx context.Context, names []string) ([]references.ReferenceItem, error) {
+	if len(names) == 0 {
+		return []references.ReferenceItem{}, nil
+	}
+	var categories []models.Category
+	if err := s.repo.Model(&models.Category{}).WithContext(ctx).
+		Select("id", "name").
+		Where("name IN ?", names).
+		Find(&categories).Error; err != nil {
+		return nil, err
+	}
+	result := make([]references.ReferenceItem, len(categories))
+	for i, category := range categories {
+		result[i] = references.ReferenceItem{ID: category.ID, Name: category.Name}
 	}
 	return result, nil
 }
@@ -145,10 +203,29 @@ func readPrivacy(ctx context.Context, repo repository.PostgresRepository, userID
 	return privacy, nil
 }
 
-func statisticFieldsToStrings(fields []StatisticField) []string {
-	result := make([]string, len(fields))
-	for i, field := range fields {
-		result[i] = string(field)
+func readTileSettings(ctx context.Context, repo repository.PostgresRepository, userID uint) (TileSettings, error) {
+	var row models.UserStatisticTiles
+	err := repo.Model(&models.UserStatisticTiles{}).WithContext(ctx).First(&row, "user_id = ?", userID).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return DefaultTileSettings(), nil
+	}
+	if err != nil {
+		return TileSettings{}, err
+	}
+	if row.SelectedKeys == nil {
+		return TileSettings{}, ErrInvalidTileSettings
+	}
+	settings := TileSettings{Tiles: make([]TileKey, len(row.SelectedKeys))}
+	for i, key := range row.SelectedKeys {
+		settings.Tiles[i] = TileKey(key)
+	}
+	return normalizeTileSettings(settings)
+}
+
+func keysToStrings[K ~string](keys []K) []string {
+	result := make([]string, len(keys))
+	for i, key := range keys {
+		result[i] = string(key)
 	}
 	return result
 }

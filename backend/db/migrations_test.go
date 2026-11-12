@@ -208,7 +208,7 @@ func TestBootstrapRegistrationSchemaMigratesExpectedModels(t *testing.T) {
 		reflect.TypeOf(&groups.GroupActionType{}),
 		reflect.TypeOf(&groups.GroupActionLog{}),
 		reflect.TypeOf(&statsusers.Genre{}),
-		reflect.TypeOf(&statsusers.SettingTile{}),
+		reflect.TypeOf(&models.UserStatisticTiles{}),
 		reflect.TypeOf(&statsusers.SessionStats_users{}),
 		reflect.TypeOf(&statsusers.SideStats_users{}),
 	}
@@ -255,7 +255,7 @@ func TestBootstrapRegistrationSchemaCreatesRegistrationTables(t *testing.T) {
 		&groups.GroupActionType{},
 		&groups.GroupActionLog{},
 		&statsusers.Genre{},
-		&statsusers.SettingTile{},
+		&models.UserStatisticTiles{},
 		&statsusers.SessionStats_users{},
 		&statsusers.SideStats_users{},
 	} {

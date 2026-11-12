@@ -23,7 +23,6 @@ type InformationAboutUser struct {
 	RecentSessions   []SessionInfo `json:"recent_sessions"`
 	PopularGenres    []GenreStats  `json:"popular_genres"`
 	UserStats        UserStatsInfo `json:"user_stats"`
-	Tiles            []string      `json:"tiles"`
 }
 
 type SessionInfo struct {
@@ -81,31 +80,6 @@ func GetInfAboutUser(email string) (*InformationAboutUser, error) {
 		return nil, err
 	}
 
-	var tiles statsusers.SettingTile
-	if err := database.Where("user_id = ?", user.ID).First(&tiles).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
-	}
-
-	var enabledTiles []string
-	if tiles.Count_films {
-		enabledTiles = append(enabledTiles, "count_films")
-	}
-	if tiles.Count_games {
-		enabledTiles = append(enabledTiles, "count_games")
-	}
-	if tiles.Count_table {
-		enabledTiles = append(enabledTiles, "count_table")
-	}
-	if tiles.Count_other {
-		enabledTiles = append(enabledTiles, "count_other")
-	}
-	if tiles.Count_all {
-		enabledTiles = append(enabledTiles, "count_all")
-	}
-	if tiles.Spent_time {
-		enabledTiles = append(enabledTiles, "spent_time")
-	}
-
 	upcomingSessions, err := getUpcomingSessions(database, user.ID)
 	if err != nil {
 		return nil, err
@@ -137,7 +111,6 @@ func GetInfAboutUser(email string) (*InformationAboutUser, error) {
 		RecentSessions:   recentSessions,
 		PopularGenres:    popularGenres,
 		UserStats:        userStats,
-		Tiles:            enabledTiles,
 	}
 
 	return result, nil
@@ -155,31 +128,6 @@ func GetInfAboutAnotherUser(email string) (*InformationAboutUser, error) {
 			return nil, nil
 		}
 		return nil, err
-	}
-
-	var tiles statsusers.SettingTile
-	if err := database.Where("user_id = ?", user.ID).First(&tiles).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
-	}
-
-	var enabledTiles []string
-	if tiles.Count_films {
-		enabledTiles = append(enabledTiles, "count_films")
-	}
-	if tiles.Count_games {
-		enabledTiles = append(enabledTiles, "count_games")
-	}
-	if tiles.Count_table {
-		enabledTiles = append(enabledTiles, "count_table")
-	}
-	if tiles.Count_other {
-		enabledTiles = append(enabledTiles, "count_other")
-	}
-	if tiles.Count_all {
-		enabledTiles = append(enabledTiles, "count_all")
-	}
-	if tiles.Spent_time {
-		enabledTiles = append(enabledTiles, "spent_time")
 	}
 
 	upcomingSessions, err := getUpcomingSessions(database, user.ID)
@@ -213,7 +161,6 @@ func GetInfAboutAnotherUser(email string) (*InformationAboutUser, error) {
 		// RecentSessions:   recentSessions,
 		PopularGenres: popularGenres,
 		UserStats:     userStats,
-		Tiles:         enabledTiles,
 	}
 
 	return result, nil

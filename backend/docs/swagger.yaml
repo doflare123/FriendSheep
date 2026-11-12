@@ -1351,6 +1351,10 @@ definitions:
         $ref: '#/definitions/users.CompactStatistics'
       status:
         type: string
+      tiles:
+        items:
+          $ref: '#/definitions/users.StatisticTile'
+        type: array
       us:
         type: string
       verified:
@@ -1365,6 +1369,10 @@ definitions:
     - mostFrequentTypeId
     - mostFrequentGenreId
     - mostFrequentWeekday
+    - films
+    - games
+    - tableGames
+    - other
     type: string
     x-enum-varnames:
     - StatisticCompletedEvents
@@ -1374,6 +1382,94 @@ definitions:
     - StatisticMostFrequentTypeID
     - StatisticMostFrequentGenreID
     - StatisticMostFrequentWeekday
+    - StatisticFilms
+    - StatisticGames
+    - StatisticTableGames
+    - StatisticOther
+  users.StatisticTile:
+    properties:
+      calculatedAt:
+        format: date-time
+        type: string
+        x-nullable: true
+      key:
+        allOf:
+        - $ref: '#/definitions/users.TileKey'
+        enum:
+        - films
+        - games
+        - tableGames
+        - other
+        - completedEvents
+        - plannedMinutes
+        - createdCompletedEvents
+        - uniquePeopleCount
+        - mostFrequentTypeId
+        - mostFrequentGenreId
+        - mostFrequentWeekday
+      status:
+        enum:
+        - not_calculated
+        - pending
+        - fresh
+        type: string
+      unit:
+        enum:
+        - minutes
+        type: string
+      value:
+        type: integer
+        x-nullable: true
+    type: object
+  users.TileKey:
+    enum:
+    - films
+    - games
+    - tableGames
+    - other
+    - completedEvents
+    - plannedMinutes
+    - createdCompletedEvents
+    - uniquePeopleCount
+    - mostFrequentTypeId
+    - mostFrequentGenreId
+    - mostFrequentWeekday
+    type: string
+    x-enum-varnames:
+    - TileFilms
+    - TileGames
+    - TileTableGames
+    - TileOther
+    - TileCompletedEvents
+    - TilePlannedMinutes
+    - TileCreatedCompletedEvents
+    - TileUniquePeopleCount
+    - TileMostFrequentTypeID
+    - TileMostFrequentGenreID
+    - TileMostFrequentWeekday
+  users.TileSettings:
+    properties:
+      tiles:
+        items:
+          $ref: '#/definitions/users.TileKey'
+          enum:
+          - films
+          - games
+          - tableGames
+          - other
+          - completedEvents
+          - plannedMinutes
+          - createdCompletedEvents
+          - uniquePeopleCount
+          - mostFrequentTypeId
+          - mostFrequentGenreId
+          - mostFrequentWeekday
+        maxItems: 4
+        type: array
+        uniqueItems: true
+    required:
+    - tiles
+    type: object
 info:
   contact: {}
 paths:
@@ -3481,6 +3577,78 @@ paths:
       summary: Получить собственную статистику участия
       tags:
       - Statistics
+  /api/v2/users/me/statistics/tiles:
+    get:
+      description: 'Настройка оформления хранится отдельно от приватности. Без сохранённой
+        настройки порядок: films, games, tableGames, completedEvents. Значения плиток
+        возвращаются в профиле; этот запрос читает только настройку.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.TileSettings'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить выбранные плитки статистики
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: От нуля до четырёх разных ключей. Порядок значим; [] убирает блок.
+        null, пропущенное tiles, неизвестные поля и повторные ключи запрещены. Настройка
+        не меняет privacy. Для других пользователей скрытые показатели исключаются
+        из блока без замены другими плитками. plannedMinutes возвращается в минутах;
+        неизвестные значения остаются null.
+      parameters:
+      - description: Полный выбор плиток в нужном порядке
+        in: body
+        name: settings
+        required: true
+        schema:
+          $ref: '#/definitions/users.TileSettings'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.TileSettings'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Заменить выбор и порядок плиток статистики
+      tags:
+      - Users
 securityDefinitions:
   BearerAuth:
     description: 'Введите токен в формате: Bearer <your_token>'

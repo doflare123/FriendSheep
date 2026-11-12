@@ -80,9 +80,17 @@ const (
 	StatisticMostFrequentTypeID     StatisticField = "mostFrequentTypeId"
 	StatisticMostFrequentGenreID    StatisticField = "mostFrequentGenreId"
 	StatisticMostFrequentWeekday    StatisticField = "mostFrequentWeekday"
+	StatisticFilms                  StatisticField = "films"
+	StatisticGames                  StatisticField = "games"
+	StatisticTableGames             StatisticField = "tableGames"
+	StatisticOther                  StatisticField = "other"
 )
 
 var allStatisticFields = []StatisticField{
+	StatisticFilms,
+	StatisticGames,
+	StatisticTableGames,
+	StatisticOther,
 	StatisticCompletedEvents,
 	StatisticPlannedMinutes,
 	StatisticCreatedCompletedEvents,
@@ -122,6 +130,7 @@ type UserRecord struct {
 }
 
 type ProfileStore interface {
+	TileSettingsStore
 	FindUser(context.Context, Target) (UserRecord, error)
 	GetPrivacy(context.Context, uint) (Privacy, error)
 	PatchPrivacy(context.Context, uint, PrivacyPatch) (Privacy, error)
@@ -163,6 +172,7 @@ type Profile struct {
 	Verified     bool               `json:"verified"`
 	IsOwner      bool               `json:"isOwner"`
 	Statistics   *CompactStatistics `json:"statistics,omitempty"`
+	Tiles        []StatisticTile    `json:"tiles"`
 }
 
 type ProfileService struct {
@@ -204,8 +214,22 @@ func (s *ProfileService) GetProfile(ctx context.Context, viewerID uint, target T
 		Verified:     user.VerifiedUser,
 		IsOwner:      isOwner,
 		Statistics:   &CompactStatistics{},
+		Tiles:        []StatisticTile{},
 	}
 	if len(visible) == 0 {
+		return profile, nil
+	}
+	// Один набор видимости управляет и компактной статистикой, и плитками профиля.
+	settings, err := s.store.GetTileSettings(ctx, user.ID)
+	if err != nil {
+		return Profile{}, err
+	}
+	visibleSet := make(map[StatisticField]struct{}, len(visible))
+	for _, field := range visible {
+		visibleSet[field] = struct{}{}
+	}
+	selectedTiles := visibleSelectedTiles(settings, visibleSet)
+	if !compactStatisticsRequested(visibleSet) && len(selectedTiles) == 0 {
 		return profile, nil
 	}
 	if s.statistics == nil {
@@ -215,7 +239,12 @@ func (s *ProfileService) GetProfile(ctx context.Context, viewerID uint, target T
 	if err != nil {
 		return Profile{}, err
 	}
+	// Компактные поля и плитки строятся из одного сохранённого среза статистики.
 	profile.Statistics = compactStatistics(view, visible)
+	profile.Tiles, err = s.statisticTiles(ctx, view, selectedTiles)
+	if err != nil {
+		return Profile{}, err
+	}
 	return profile, nil
 }
 

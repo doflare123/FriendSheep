@@ -73,7 +73,7 @@ func bootstrapRegistrationModels() []interface{} {
 		&groups.GroupActionType{},
 		&groups.GroupActionLog{},
 		&statsusers.Genre{},
-		&statsusers.SettingTile{},
+		&models.UserStatisticTiles{},
 		&statsusers.SessionStats_users{},
 		&statsusers.SideStats_users{},
 	}
