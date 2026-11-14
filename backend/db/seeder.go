@@ -91,6 +91,9 @@ func Seeder(db repository.PostgresRepository) []error {
 	if err := seedGenresFromJSON(db, "db/data/genres.json"); err != nil {
 		errs = append(errs, fmt.Errorf("ошибка при заполнении жанров: %w", err))
 	}
+	if err := seedRussianCities(db); err != nil {
+		errs = append(errs, fmt.Errorf("ошибка при заполнении городов России: %w", err))
+	}
 
 	if len(errs) > 0 {
 		return errs

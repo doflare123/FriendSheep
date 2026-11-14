@@ -20,7 +20,8 @@ type User struct {
 	Status       string
 	TelegramID   *string    `gorm:"default:null"`
 	Birthday     *time.Time `gorm:"type:date;default:null"`
-	City         *string    `gorm:"default:null"`
+	CityID       *uint      `gorm:"default:null;index"`
+	City         *City      `gorm:"foreignKey:CityID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

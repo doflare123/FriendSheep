@@ -57,6 +57,7 @@ func bootstrapRegistrationModels() []interface{} {
 		&statisticsmodels.ProcessedEvent{},
 		&statisticsmodels.Distribution{},
 		&statsusers.PopSessionType{},
+		&models.City{},
 		&models.User{},
 		&models.UserPrivacy{},
 		&models.StatsProcessedEvent{},

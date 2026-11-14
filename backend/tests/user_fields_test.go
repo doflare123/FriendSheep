@@ -29,8 +29,8 @@ func TestUserOptionalBirthdayAndCityPersist(t *testing.T) {
 	if err := db.Exec("PRAGMA foreign_keys = ON").Error; err != nil {
 		t.Fatalf("enable foreign keys: %v", err)
 	}
-	if err := db.AutoMigrate(&models.User{}); err != nil {
-		t.Fatalf("migrate users: %v", err)
+	if err := db.AutoMigrate(&models.City{}, &models.User{}); err != nil {
+		t.Fatalf("migrate cities and users: %v", err)
 	}
 
 	parsedSchema, err := schema.Parse(&models.User{}, &sync.Map{}, schema.NamingStrategy{})
@@ -53,30 +53,41 @@ func TestUserOptionalBirthdayAndCityPersist(t *testing.T) {
 	if err := db.First(&readWithoutOptionalFields, withoutOptionalFields.ID).Error; err != nil {
 		t.Fatalf("read user without optional fields: %v", err)
 	}
-	if readWithoutOptionalFields.Birthday != nil || readWithoutOptionalFields.City != nil {
-		t.Fatalf("optional defaults = birthday %v, city %v; want NULL values", readWithoutOptionalFields.Birthday, readWithoutOptionalFields.City)
+	if readWithoutOptionalFields.Birthday != nil || readWithoutOptionalFields.CityID != nil {
+		t.Fatalf("optional defaults = birthday %v, city ID %v; want NULL values", readWithoutOptionalFields.Birthday, readWithoutOptionalFields.CityID)
 	}
 
+	city := models.City{Name: "Калининград", Region: "Калининградская обл", FIASID: "df679824-5d6a-4a2d-a2d4-5b1e8a13fd57"}
+	if err := db.Create(&city).Error; err != nil {
+		t.Fatalf("create city: %v", err)
+	}
 	birthday := time.Date(2001, time.February, 3, 0, 0, 0, 0, time.UTC)
-	emptyCity := ""
-	withOptionalFields := models.User{Name: "With optional fields", Password: "Password123!", Us: "with-optional-fields", Email: "with-optional-fields@example.com", Birthday: &birthday, City: &emptyCity}
+	withOptionalFields := models.User{Name: "With optional fields", Password: "Password123!", Us: "with-optional-fields", Email: "with-optional-fields@example.com", Birthday: &birthday, CityID: &city.ID}
 	if err := db.Create(&withOptionalFields).Error; err != nil {
 		t.Fatalf("create user with optional fields: %v", err)
 	}
 	var readWithOptionalFields models.User
+	if err := db.Preload("City").First(&readWithOptionalFields, withOptionalFields.ID).Error; err != nil {
+		t.Fatalf("read user with city: %v", err)
+	}
+	if readWithOptionalFields.Birthday == nil || readWithOptionalFields.Birthday.Format(time.DateOnly) != birthday.Format(time.DateOnly) || readWithOptionalFields.CityID == nil || *readWithOptionalFields.CityID != city.ID || readWithOptionalFields.City == nil || readWithOptionalFields.City.FIASID != city.FIASID {
+		t.Fatalf("optional roundtrip = birthday %v, city ID %v, city %#v; want %s and %d", readWithOptionalFields.Birthday, readWithOptionalFields.CityID, readWithOptionalFields.City, birthday.Format(time.DateOnly), city.ID)
+	}
+
+	unknownCityID := city.ID + 1000
+	invalidCityUser := models.User{Name: "Invalid city", Password: "Password123!", Us: "invalid-city", Email: "invalid-city@example.com", CityID: &unknownCityID}
+	if err := db.Create(&invalidCityUser).Error; err == nil {
+		t.Fatal("create user with unknown city succeeded, want foreign-key error")
+	}
+
+	if err := db.Delete(&city).Error; err != nil {
+		t.Fatalf("delete city: %v", err)
+	}
+	readWithOptionalFields = models.User{}
 	if err := db.First(&readWithOptionalFields, withOptionalFields.ID).Error; err != nil {
-		t.Fatalf("read user with optional fields: %v", err)
+		t.Fatalf("read user after city deletion: %v", err)
 	}
-	if readWithOptionalFields.Birthday == nil || readWithOptionalFields.Birthday.Format(time.DateOnly) != birthday.Format(time.DateOnly) || readWithOptionalFields.City == nil || *readWithOptionalFields.City != "" {
-		t.Fatalf("optional roundtrip = birthday %v, city %v; want %s and empty city", readWithOptionalFields.Birthday, readWithOptionalFields.City, birthday.Format(time.DateOnly))
-	}
-	if err := db.Model(&withOptionalFields).Update("city", "Калининград").Error; err != nil {
-		t.Fatalf("update city: %v", err)
-	}
-	if err := db.First(&readWithOptionalFields, withOptionalFields.ID).Error; err != nil {
-		t.Fatalf("read updated city: %v", err)
-	}
-	if readWithOptionalFields.City == nil || *readWithOptionalFields.City != "Калининград" {
-		t.Fatalf("city = %v, want Калининград", readWithOptionalFields.City)
+	if readWithOptionalFields.CityID != nil {
+		t.Fatalf("city ID after city deletion = %v, want NULL", readWithOptionalFields.CityID)
 	}
 }
