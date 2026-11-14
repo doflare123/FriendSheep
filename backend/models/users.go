@@ -18,7 +18,9 @@ type User struct {
 	VerifiedUser bool   `gorm:"default:false"`
 	Role         string `gorm:"default:user"`
 	Status       string
-	TelegramID   *string `gorm:"default:null"`
+	TelegramID   *string    `gorm:"default:null"`
+	Birthday     *time.Time `gorm:"type:date;default:null"`
+	City         *string    `gorm:"default:null"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
