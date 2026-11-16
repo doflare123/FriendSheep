@@ -16,11 +16,16 @@ type referenceStoreStub struct {
 	loadErr       error
 	searchPage    references.GenreSearchPage
 	searchErr     error
+	cityPage      references.CitySearchPage
+	cityErr       error
 	loadCalls     int
 	searchCalls   int
+	cityCalls     int
 	loadContext   context.Context
 	searchContext context.Context
 	searchQuery   references.GenreSearchQuery
+	cityContext   context.Context
+	cityQuery     references.CitySearchQuery
 }
 
 func (s *referenceStoreStub) LoadReferences(ctx context.Context) (references.ReferenceSnapshot, error) {
@@ -34,6 +39,13 @@ func (s *referenceStoreStub) SearchGenres(ctx context.Context, query references.
 	s.searchContext = ctx
 	s.searchQuery = query
 	return s.searchPage, s.searchErr
+}
+
+func (s *referenceStoreStub) SearchCities(ctx context.Context, query references.CitySearchQuery) (references.CitySearchPage, error) {
+	s.cityCalls++
+	s.cityContext = ctx
+	s.cityQuery = query
+	return s.cityPage, s.cityErr
 }
 
 func TestReferenceServiceGetReferencesDelegatesContextAndMapsGeneralSnapshot(t *testing.T) {
@@ -246,6 +258,77 @@ func TestReferenceServiceSearchGenresPropagatesStoreError(t *testing.T) {
 	}
 	if !errors.Is(err, storeErr) {
 		t.Fatalf("err = %v, want store error", err)
+	}
+}
+
+func TestReferenceServiceSearchCitiesNormalizesDelegatesAndMapsPage(t *testing.T) {
+	store := &referenceStoreStub{cityPage: references.CitySearchPage{
+		Items: []references.CityReferenceItem{
+			{ID: 11, Name: "Советск", Region: "Калининградская обл"},
+			{ID: 12, Name: "Советск", Region: "Кировская обл"},
+		},
+		Total: 5,
+	}}
+	service := references.NewReferenceService(store)
+	ctx := context.WithValue(context.Background(), referenceServiceContextKey{}, "cities")
+
+	result, err := service.SearchCities(ctx, references.CitySearchInput{Query: "  Совет  ", Page: 2, Limit: 2})
+
+	if err != nil {
+		t.Fatalf("SearchCities returned error: %v", err)
+	}
+	if store.cityCalls != 1 || store.cityContext.Value(referenceServiceContextKey{}) != "cities" {
+		t.Fatalf("city store call = %d, context = %v; want one call with request context", store.cityCalls, store.cityContext)
+	}
+	if store.cityQuery != (references.CitySearchQuery{Query: "Совет", Page: 2, Limit: 2}) {
+		t.Fatalf("city query = %#v, want trimmed query and pagination", store.cityQuery)
+	}
+	if result == nil || result.Total != 5 || result.Page != 2 || result.Limit != 2 || !result.HasMore || len(result.Items) != 2 {
+		t.Fatalf("city result = %#v, want complete paginated page", result)
+	}
+	if result.Items[0].ID != 11 || result.Items[0].Name != "Советск" || result.Items[0].Region != "Калининградская обл" ||
+		result.Items[1].ID != 12 || result.Items[1].Region != "Кировская обл" {
+		t.Fatalf("city items = %#v, want mapped cities including regions", result.Items)
+	}
+}
+
+func TestReferenceServiceSearchCitiesDefaultsAndValidation(t *testing.T) {
+	t.Run("defaults and empty page", func(t *testing.T) {
+		store := &referenceStoreStub{}
+		result, err := references.NewReferenceService(store).SearchCities(context.Background(), references.CitySearchInput{})
+		if err != nil {
+			t.Fatalf("SearchCities returned error: %v", err)
+		}
+		if store.cityQuery != (references.CitySearchQuery{Page: references.DefaultCityPage, Limit: references.DefaultCityLimit}) ||
+			result == nil || result.Items == nil || len(result.Items) != 0 || result.Total != 0 || result.Page != references.DefaultCityPage || result.Limit != references.DefaultCityLimit || result.HasMore {
+			t.Fatalf("city defaults = query %#v result %#v", store.cityQuery, result)
+		}
+	})
+
+	for _, tt := range []struct {
+		name  string
+		input references.CitySearchInput
+		want  error
+	}{
+		{name: "invalid page", input: references.CitySearchInput{Page: -1, Limit: 10}, want: references.ErrInvalidCityPage},
+		{name: "invalid limit", input: references.CitySearchInput{Page: 1, Limit: references.MaxCityLimit + 1}, want: references.ErrInvalidCityLimit},
+		{name: "offset overflow", input: references.CitySearchInput{Page: math.MaxInt, Limit: references.MaxCityLimit}, want: references.ErrInvalidCityPage},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &referenceStoreStub{}
+			result, err := references.NewReferenceService(store).SearchCities(context.Background(), tt.input)
+			if result != nil || !errors.Is(err, tt.want) || store.cityCalls != 0 {
+				t.Fatalf("result = %#v, err = %v, calls = %d; want nil, %v, 0", result, err, store.cityCalls, tt.want)
+			}
+		})
+	}
+}
+
+func TestReferenceServiceSearchCitiesPropagatesStoreError(t *testing.T) {
+	storeErr := errors.New("city storage failed")
+	result, err := references.NewReferenceService(&referenceStoreStub{cityErr: storeErr}).SearchCities(context.Background(), references.CitySearchInput{Page: 1, Limit: 10})
+	if result != nil || !errors.Is(err, storeErr) {
+		t.Fatalf("result = %#v, err = %v; want nil and store error", result, err)
 	}
 }
 

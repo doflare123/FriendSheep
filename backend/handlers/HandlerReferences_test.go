@@ -21,11 +21,16 @@ type referencesHandlerServiceStub struct {
 	referencesErr    error
 	searchResult     *dto.GenreSearchResponseDto
 	searchErr        error
+	cityResult       *dto.CitySearchResponseDto
+	cityErr          error
 	referencesCalls  int
 	searchCalls      int
+	cityCalls        int
 	referencesCtx    context.Context
 	searchCtx        context.Context
 	searchInput      references.GenreSearchInput
+	cityCtx          context.Context
+	cityInput        references.CitySearchInput
 }
 
 func (s *referencesHandlerServiceStub) GetReferences(ctx context.Context) (*dto.ReferencesDto, error) {
@@ -39,6 +44,13 @@ func (s *referencesHandlerServiceStub) SearchGenres(ctx context.Context, input r
 	s.searchCtx = ctx
 	s.searchInput = input
 	return s.searchResult, s.searchErr
+}
+
+func (s *referencesHandlerServiceStub) SearchCities(ctx context.Context, input references.CitySearchInput) (*dto.CitySearchResponseDto, error) {
+	s.cityCalls++
+	s.cityCtx = ctx
+	s.cityInput = input
+	return s.cityResult, s.cityErr
 }
 
 func TestReferencesHandlerGetReferencesPassesContextAndOmitsGenres(t *testing.T) {
@@ -70,6 +82,9 @@ func TestReferencesHandlerGetReferencesPassesContextAndOmitsGenres(t *testing.T)
 	}
 	if _, exists := response["genres"]; exists {
 		t.Fatalf("general references response still contains genres: %s", recorder.Body.String())
+	}
+	if _, exists := response["cities"]; exists {
+		t.Fatalf("general references response still contains cities: %s", recorder.Body.String())
 	}
 	if _, exists := response["eventTypes"]; !exists {
 		t.Fatalf("general references response is missing eventTypes: %s", recorder.Body.String())
@@ -221,6 +236,64 @@ func TestReferencesHandlerSearchGenresMapsServiceErrors(t *testing.T) {
 			assertReferencesHandlerError(t, recorder, tt.wantStatus, tt.serviceErr.Error())
 		})
 	}
+}
+
+func TestReferencesHandlerSearchCitiesPassesInputAndMapsResponse(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	stub := &referencesHandlerServiceStub{cityResult: &dto.CitySearchResponseDto{
+		Items: []dto.CityReferenceItemDto{{ID: 8, Name: "Советск", Region: "Калининградская обл"}},
+		Total: 1, Page: 2, Limit: 10,
+	}}
+	handler := NewReferencesHandler(stub)
+	recorder, ctx := newReferencesHandlerContext(t, "/api/v2/references/cities?q=%20%D0%A1%D0%BE%D0%B2%D0%B5%D1%82%20&page=2&limit=10")
+	requestCtx := context.WithValue(ctx.Request.Context(), referencesHandlerContextKey{}, "cities")
+	ctx.Request = ctx.Request.WithContext(requestCtx)
+
+	handler.SearchCities(ctx)
+
+	if recorder.Code != http.StatusOK || stub.cityCalls != 1 || stub.cityCtx.Value(referencesHandlerContextKey{}) != "cities" ||
+		stub.cityInput != (references.CitySearchInput{Query: "Совет", Page: 2, Limit: 10}) {
+		t.Fatalf("status = %d, calls = %d, input = %#v", recorder.Code, stub.cityCalls, stub.cityInput)
+	}
+	var response map[string]json.RawMessage
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode city response: %v", err)
+	}
+	var items []map[string]json.RawMessage
+	if err := json.Unmarshal(response["items"], &items); err != nil {
+		t.Fatalf("decode city items: %v", err)
+	}
+	if len(items) != 1 || len(items[0]) != 3 || items[0]["id"] == nil || items[0]["name"] == nil || items[0]["region"] == nil {
+		t.Fatalf("public city item = %#v, want only id, name and region", items)
+	}
+	var payload dto.CitySearchResponseDto
+	if err := json.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode city payload: %v", err)
+	}
+	if len(payload.Items) != 1 || payload.Items[0].ID != 8 || payload.Items[0].Name != "Советск" || payload.Items[0].Region != "Калининградская обл" || payload.Total != 1 || payload.Page != 2 || payload.Limit != 10 || payload.HasMore {
+		t.Fatalf("city payload = %#v", payload)
+	}
+}
+
+func TestReferencesHandlerSearchCitiesRejectsInvalidPaginationAndMapsErrors(t *testing.T) {
+	for _, query := range []string{"page=0", "page=bad", "limit=0", "limit=101", "limit=bad"} {
+		t.Run(query, func(t *testing.T) {
+			gin.SetMode(gin.TestMode)
+			stub := &referencesHandlerServiceStub{}
+			recorder, ctx := newReferencesHandlerContext(t, "/api/v2/references/cities?"+query)
+			NewReferencesHandler(stub).SearchCities(ctx)
+			assertReferencesHandlerError(t, recorder, http.StatusBadRequest, "")
+			if stub.cityCalls != 0 {
+				t.Fatalf("SearchCities calls = %d, want 0", stub.cityCalls)
+			}
+		})
+	}
+
+	gin.SetMode(gin.TestMode)
+	stub := &referencesHandlerServiceStub{cityErr: errors.New("city storage failed")}
+	recorder, ctx := newReferencesHandlerContext(t, "/api/v2/references/cities?page=1&limit=10")
+	NewReferencesHandler(stub).SearchCities(ctx)
+	assertReferencesHandlerError(t, recorder, http.StatusInternalServerError, "city storage failed")
 }
 
 func newReferencesHandlerContext(t *testing.T, target string) (*httptest.ResponseRecorder, *gin.Context) {

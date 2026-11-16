@@ -70,6 +70,30 @@ definitions:
       updated_at:
         type: string
     type: object
+  dto.CityReferenceItemDto:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      region:
+        type: string
+    type: object
+  dto.CitySearchResponseDto:
+    properties:
+      hasMore:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/dto.CityReferenceItemDto'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
   dto.ContactDto:
     properties:
       link:
@@ -877,6 +901,17 @@ definitions:
     - email
     - password
     type: object
+  models.City:
+    properties:
+      fiasid:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      region:
+        type: string
+    type: object
   models.SessionRegResponse:
     properties:
       session_id:
@@ -884,6 +919,12 @@ definitions:
     type: object
   models.User:
     properties:
+      birthday:
+        type: string
+      city:
+        $ref: '#/definitions/models.City'
+      cityID:
+        type: integer
       createdAt:
         type: string
       email:
@@ -2960,8 +3001,8 @@ paths:
       - groups
   /api/v2/references:
     get:
-      description: Возвращает общие справочники групп и событий. Жанры доступны отдельно
-        через GET /api/v2/references/genres.
+      description: Возвращает общие справочники групп и событий. Жанры и города доступны
+        отдельными маршрутами.
       produces:
       - application/json
       responses:
@@ -2974,6 +3015,47 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Получить справочники
+      tags:
+      - references
+  /api/v2/references/cities:
+    get:
+      description: 'Возвращает id, name и region города с регистронезависимым поиском
+        по буквальной подстроке названия и пагинацией. Символы %, _ и ! в q считаются
+        обычными символами. Порядок: name ASC, region ASC, id ASC.'
+      parameters:
+      - description: Подстрока названия города
+        in: query
+        name: q
+        type: string
+      - default: 1
+        description: Номер страницы
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 50
+        description: Размер страницы
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Страница городов
+          schema:
+            $ref: '#/definitions/dto.CitySearchResponseDto'
+        "400":
+          description: Некорректные параметры пагинации
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Получить города
       tags:
       - references
   /api/v2/references/genres:

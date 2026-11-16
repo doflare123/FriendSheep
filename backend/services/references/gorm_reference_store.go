@@ -93,6 +93,43 @@ func (s *gormReferenceStore) SearchGenres(ctx context.Context, query GenreSearch
 	}, nil
 }
 
+func (s *gormReferenceStore) SearchCities(ctx context.Context, query CitySearchQuery) (CitySearchPage, error) {
+	ctx = normalizeReferenceContext(ctx)
+	db := s.repo.Model(&models.City{}).WithContext(ctx)
+
+	if query.Query != "" {
+		pattern := "%" + escapeLikePattern(query.Query) + "%"
+		db = db.Where("LOWER(name) LIKE LOWER(?) ESCAPE '!'", pattern)
+	}
+
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		return CitySearchPage{}, fmt.Errorf("ошибка подсчёта городов: %w", err)
+	}
+
+	var cities []models.City
+	offset := (query.Page - 1) * query.Limit
+	if err := db.
+		Select("id", "name", "region").
+		Order("name ASC, region ASC, id ASC").
+		Offset(offset).
+		Limit(query.Limit).
+		Find(&cities).Error; err != nil {
+		return CitySearchPage{}, fmt.Errorf("ошибка получения городов: %w", err)
+	}
+
+	return CitySearchPage{
+		Items: cityReferenceItemsFromModels(cities),
+		Total: total,
+	}, nil
+}
+
+func escapeLikePattern(value string) string {
+	value = strings.ReplaceAll(value, "!", "!!")
+	value = strings.ReplaceAll(value, "%", "!%")
+	return strings.ReplaceAll(value, "_", "!_")
+}
+
 func normalizeReferenceContext(ctx context.Context) context.Context {
 	if ctx == nil {
 		return context.Background()
@@ -136,6 +173,18 @@ func referenceItemsFromGenres(items []eventmodels.Genre) []ReferenceItem {
 	result := make([]ReferenceItem, 0, len(items))
 	for _, item := range items {
 		result = append(result, ReferenceItem{ID: item.ID, Name: item.Name})
+	}
+	return result
+}
+
+func cityReferenceItemsFromModels(items []models.City) []CityReferenceItem {
+	result := make([]CityReferenceItem, 0, len(items))
+	for _, item := range items {
+		result = append(result, CityReferenceItem{
+			ID:     item.ID,
+			Name:   item.Name,
+			Region: item.Region,
+		})
 	}
 	return result
 }

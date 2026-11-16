@@ -80,6 +80,76 @@ func TestGORMReferenceStoreSearchGenresReturnsEmptyPageWithTotal(t *testing.T) {
 	}
 }
 
+func TestGORMReferenceStoreSearchCitiesPaginatesOrdersAndEscapesWildcards(t *testing.T) {
+	db := newEventsServiceDB(t)
+	for _, city := range []models.City{
+		{ID: 40, Name: "Alfa_1", Region: "Север", FIASID: "00000000-0000-0000-0000-000000000040"},
+		{ID: 50, Name: "Alfa_1", Region: "Север", FIASID: "00000000-0000-0000-0000-000000000050"},
+		{ID: 30, Name: "Alfa_1", Region: "Юг", FIASID: "00000000-0000-0000-0000-000000000030"},
+		{ID: 20, Name: "AlfaX1", Region: "Запад", FIASID: "00000000-0000-0000-0000-000000000020"},
+		{ID: 10, Name: "100% Город", Region: "Восток", FIASID: "00000000-0000-0000-0000-000000000010"},
+		{ID: 15, Name: "Bang! Город", Region: "Центр", FIASID: "00000000-0000-0000-0000-000000000015"},
+	} {
+		if err := db.Create(&city).Error; err != nil {
+			t.Fatalf("seed city %q: %v", city.Name, err)
+		}
+	}
+	service := references.NewReferenceService(references.NewGORMReferenceStore(&testPostgresRepository{db: db}))
+
+	underscore, err := service.SearchCities(context.Background(), references.CitySearchInput{Query: "_", Page: 1, Limit: 1})
+	if err != nil {
+		t.Fatalf("SearchCities underscore returned error: %v", err)
+	}
+	if underscore.Total != 3 || len(underscore.Items) != 1 || !underscore.HasMore || underscore.Items[0].ID != 40 || underscore.Items[0].Region != "Север" {
+		t.Fatalf("underscore first page = %#v, want first literal underscore match", underscore)
+	}
+	second, err := service.SearchCities(context.Background(), references.CitySearchInput{Query: "_", Page: 2, Limit: 1})
+	if err != nil || second.Total != 3 || len(second.Items) != 1 || second.Items[0].ID != 50 || !second.HasMore {
+		t.Fatalf("underscore second page/error = %#v/%v, want ID tiebreaker", second, err)
+	}
+	third, err := service.SearchCities(context.Background(), references.CitySearchInput{Query: "_", Page: 3, Limit: 1})
+	if err != nil || third.Total != 3 || len(third.Items) != 1 || third.Items[0].ID != 30 || third.HasMore {
+		t.Fatalf("underscore third page/error = %#v/%v, want final region-ordered match", third, err)
+	}
+	outOfRange, err := service.SearchCities(context.Background(), references.CitySearchInput{Query: "_", Page: 4, Limit: 1})
+	if err != nil || outOfRange.Total != 3 || outOfRange.Items == nil || len(outOfRange.Items) != 0 || outOfRange.HasMore {
+		t.Fatalf("underscore out-of-range page/error = %#v/%v, want empty page with total", outOfRange, err)
+	}
+
+	percent, err := service.SearchCities(context.Background(), references.CitySearchInput{Query: "%", Page: 1, Limit: 10})
+	if err != nil {
+		t.Fatalf("SearchCities percent returned error: %v", err)
+	}
+	if percent.Total != 1 || len(percent.Items) != 1 || percent.Items[0].ID != 10 {
+		t.Fatalf("percent page = %#v, want only literal percent match", percent)
+	}
+
+	escaped, err := service.SearchCities(context.Background(), references.CitySearchInput{Query: "!", Page: 1, Limit: 10})
+	if err != nil || escaped.Total != 1 || len(escaped.Items) != 1 || escaped.Items[0].ID != 15 {
+		t.Fatalf("escaped bang page/error = %#v/%v, want literal bang match", escaped, err)
+	}
+
+	empty, err := service.SearchCities(context.Background(), references.CitySearchInput{Query: "missing", Page: 1, Limit: 10})
+	if err != nil {
+		t.Fatalf("SearchCities empty page returned error: %v", err)
+	}
+	if empty.Items == nil || len(empty.Items) != 0 || empty.Total != 0 || empty.HasMore {
+		t.Fatalf("empty page = %#v, want non-nil empty page", empty)
+	}
+}
+
+func TestGORMReferenceStoreSearchCitiesPreservesCanceledContext(t *testing.T) {
+	db := newEventsServiceDB(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	service := references.NewReferenceService(references.NewGORMReferenceStore(&testPostgresRepository{db: db}))
+
+	result, err := service.SearchCities(ctx, references.CitySearchInput{Page: 1, Limit: 10})
+	if result != nil || err == nil {
+		t.Fatalf("result = %#v, err = %v; want canceled-context error", result, err)
+	}
+}
+
 func TestGORMReferenceStoreGetReferencesReturnsGeneralCollections(t *testing.T) {
 	db := newEventsServiceDB(t)
 	if err := db.Create(&models.Category{ID: 101, Name: "Games"}).Error; err != nil {

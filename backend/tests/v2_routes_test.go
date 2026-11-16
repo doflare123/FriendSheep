@@ -119,6 +119,11 @@ func (h *referencesRouteHandlerStub) SearchGenres(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+func (h *referencesRouteHandlerStub) SearchCities(c *gin.Context) {
+	h.called = "cities"
+	c.Status(http.StatusNoContent)
+}
+
 type popularEventsRouteHandlerStub struct {
 	called bool
 }
@@ -308,6 +313,7 @@ func TestRegisterReferencesRoutesExposePublicEndpoints(t *testing.T) {
 	}{
 		{name: "all references", path: "/api/v2/references", wantCalled: "references"},
 		{name: "genre search", path: "/api/v2/references/genres?q=board&page=2&limit=10", wantCalled: "genres"},
+		{name: "city search", path: "/api/v2/references/cities?q=%D1%81%D0%BE%D0%B2%D0%B5%D1%82&page=2&limit=10", wantCalled: "cities"},
 	}
 
 	for _, tt := range tests {

@@ -21,7 +21,9 @@ func TestReferenceContractsAreDeclaredInDedicatedPackage(t *testing.T) {
 		"type ReferenceStore interface",
 		"GetReferences(ctx context.Context)",
 		"SearchGenres(ctx context.Context",
+		"SearchCities(ctx context.Context",
 		"type GenreSearchInput struct",
+		"type CitySearchInput struct",
 		"NewReferenceService(",
 		"NewGORMReferenceStore(",
 	} {
@@ -156,6 +158,20 @@ func TestGeneralReferenceContractsExcludeGenres(t *testing.T) {
 	}
 }
 
+func TestGeneralReferenceContractsExcludeCities(t *testing.T) {
+	referencesDTOType := reflect.TypeOf(dto.ReferencesDto{})
+	for index := 0; index < referencesDTOType.NumField(); index++ {
+		field := referencesDTOType.Field(index)
+		if strings.EqualFold(field.Name, "Cities") || strings.Split(field.Tag.Get("json"), ",")[0] == "cities" {
+			t.Fatalf("ReferencesDto exposes cities through %s", field.Name)
+		}
+	}
+	snapshotType := reflect.TypeOf(references.ReferenceSnapshot{})
+	if _, exists := snapshotType.FieldByName("Cities"); exists {
+		t.Fatal("ReferenceSnapshot exposes cities in the general response")
+	}
+}
+
 func TestGenreSearchResponseContractRemainsDedicatedAndPaginated(t *testing.T) {
 	responseType := reflect.TypeOf(dto.GenreSearchResponseDto{})
 	wantFields := map[string]string{
@@ -176,6 +192,34 @@ func TestGenreSearchResponseContractRemainsDedicatedAndPaginated(t *testing.T) {
 		}
 		if got := strings.Split(field.Tag.Get("json"), ",")[0]; got != wantJSONName {
 			t.Fatalf("%s json tag = %q, want %q", fieldName, got, wantJSONName)
+		}
+	}
+}
+
+func TestCitySearchResponseContractIsDedicatedAndDoesNotExposeFIAS(t *testing.T) {
+	itemType := reflect.TypeOf(dto.CityReferenceItemDto{})
+	if itemType.NumField() != 3 {
+		t.Fatalf("CityReferenceItemDto has %d fields, want id, name and region", itemType.NumField())
+	}
+	for fieldName, wantJSONName := range map[string]string{"ID": "id", "Name": "name", "Region": "region"} {
+		field, exists := itemType.FieldByName(fieldName)
+		if !exists || strings.Split(field.Tag.Get("json"), ",")[0] != wantJSONName {
+			t.Fatalf("CityReferenceItemDto.%s contract is invalid", fieldName)
+		}
+	}
+	if _, exists := itemType.FieldByName("FIASID"); exists {
+		t.Fatal("CityReferenceItemDto exposes FIASID")
+	}
+
+	responseType := reflect.TypeOf(dto.CitySearchResponseDto{})
+	wantResponseFields := map[string]string{"Items": "items", "Total": "total", "Page": "page", "Limit": "limit", "HasMore": "hasMore"}
+	if responseType.NumField() != len(wantResponseFields) {
+		t.Fatalf("CitySearchResponseDto has %d fields, want %d", responseType.NumField(), len(wantResponseFields))
+	}
+	for fieldName, wantJSONName := range wantResponseFields {
+		field, exists := responseType.FieldByName(fieldName)
+		if !exists || strings.Split(field.Tag.Get("json"), ",")[0] != wantJSONName {
+			t.Fatalf("CitySearchResponseDto.%s contract is invalid", fieldName)
 		}
 	}
 }

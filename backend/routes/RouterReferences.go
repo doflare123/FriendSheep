@@ -11,5 +11,6 @@ func RegisterReferencesRoutes(router *gin.Engine, referencesHandler handlers.Ref
 	{
 		referencesGroup.GET("", referencesHandler.GetReferences)
 		referencesGroup.GET("/genres", referencesHandler.SearchGenres)
+		referencesGroup.GET("/cities", referencesHandler.SearchCities)
 	}
 }

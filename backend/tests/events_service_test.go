@@ -1254,6 +1254,7 @@ func newEventsServiceDB(t *testing.T) *gorm.DB {
 	}
 
 	if err := db.AutoMigrate(
+		&models.City{},
 		&models.User{},
 		&models.Category{},
 		&groupmodels.Group{},

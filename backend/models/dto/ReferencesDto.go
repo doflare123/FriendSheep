@@ -27,3 +27,17 @@ type GenreSearchResponseDto struct {
 	Limit   int                `json:"limit"`
 	HasMore bool               `json:"hasMore"`
 }
+
+type CityReferenceItemDto struct {
+	ID     uint   `json:"id"`
+	Name   string `json:"name"`
+	Region string `json:"region"`
+}
+
+type CitySearchResponseDto struct {
+	Items   []CityReferenceItemDto `json:"items"`
+	Total   int64                  `json:"total"`
+	Page    int                    `json:"page"`
+	Limit   int                    `json:"limit"`
+	HasMore bool                   `json:"hasMore"`
+}

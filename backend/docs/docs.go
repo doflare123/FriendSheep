@@ -2265,7 +2265,7 @@ const docTemplate = `{
         },
         "/api/v2/references": {
             "get": {
-                "description": "Возвращает общие справочники групп и событий. Жанры доступны отдельно через GET /api/v2/references/genres.",
+                "description": "Возвращает общие справочники групп и событий. Жанры и города доступны отдельными маршрутами.",
                 "produces": [
                     "application/json"
                 ],
@@ -2278,6 +2278,63 @@ const docTemplate = `{
                         "description": "Справочники",
                         "schema": {
                             "$ref": "#/definitions/dto.ReferencesDto"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v2/references/cities": {
+            "get": {
+                "description": "Возвращает id, name и region города с регистронезависимым поиском по буквальной подстроке названия и пагинацией. Символы %, _ и ! в q считаются обычными символами. Порядок: name ASC, region ASC, id ASC.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "references"
+                ],
+                "summary": "Получить города",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Подстрока названия города",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Номер страницы",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Размер страницы",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Страница городов",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CitySearchResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные параметры пагинации",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
@@ -3391,6 +3448,43 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.CityReferenceItemDto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CitySearchResponseDto": {
+            "type": "object",
+            "properties": {
+                "hasMore": {
+                    "type": "boolean"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CityReferenceItemDto"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -4581,6 +4675,23 @@ const docTemplate = `{
                 }
             }
         },
+        "models.City": {
+            "type": "object",
+            "properties": {
+                "fiasid": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            }
+        },
         "models.SessionRegResponse": {
             "type": "object",
             "properties": {
@@ -4598,6 +4709,15 @@ const docTemplate = `{
                 "us"
             ],
             "properties": {
+                "birthday": {
+                    "type": "string"
+                },
+                "city": {
+                    "$ref": "#/definitions/models.City"
+                },
+                "cityID": {
+                    "type": "integer"
+                },
                 "createdAt": {
                     "type": "string"
                 },

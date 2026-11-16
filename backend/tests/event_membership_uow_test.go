@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"testing"
@@ -170,6 +171,22 @@ func TestGORMEventUnitOfWorkRollsBackLeaveWhenCounterUpdateFails(t *testing.T) {
 
 func TestGORMEventUnitOfWorkRollsBackLateContextCancellation(t *testing.T) {
 	db := newEventsServiceDB(t)
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("get sqlite database: %v", err)
+	}
+	keepalive, err := sqlDB.Conn(context.Background())
+	if err != nil {
+		t.Fatalf("open sqlite keepalive connection: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = keepalive.Close()
+		_ = sqlDB.Close()
+	})
+	if err := db.Exec("PRAGMA foreign_keys = ON").Error; err != nil {
+		t.Fatalf("enable foreign keys on transaction connection: %v", err)
+	}
+
 	uow := servicesevents.NewGORMEventUnitOfWork(&testPostgresRepository{db: db})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -191,7 +208,7 @@ func TestGORMEventUnitOfWorkRollsBackLateContextCancellation(t *testing.T) {
 		_ = db.Callback().Update().Remove(callbackName)
 	})
 
-	err := uow.WithinTransaction(ctx, func(tx servicesevents.EventTransaction) error {
+	err = uow.WithinTransaction(ctx, func(tx servicesevents.EventTransaction) error {
 		store := tx.Membership()
 		if err := store.AddParticipant(2, eventID, time.Now()); err != nil {
 			return err
@@ -205,8 +222,10 @@ func TestGORMEventUnitOfWorkRollsBackLateContextCancellation(t *testing.T) {
 		}
 		return nil
 	})
-	if !errors.Is(err, context.Canceled) {
-		t.Fatalf("transaction err = %v, want context.Canceled", err)
+	// После отмены контекста database/sql может вернуть sql.ErrTxDone,
+	// если rollback успел завершиться до проверки состояния транзакции.
+	if !errors.Is(ctx.Err(), context.Canceled) || (!errors.Is(err, context.Canceled) && !errors.Is(err, sql.ErrTxDone)) {
+		t.Fatalf("transaction err/context = %v/%v, want cancellation or sql.ErrTxDone after cancellation", err, ctx.Err())
 	}
 	assertEventParticipantExists(t, db, eventID, 2, false)
 	assertEventCurrentUsers(t, db, eventID, 1)
