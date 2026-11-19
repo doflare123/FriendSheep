@@ -355,6 +355,100 @@ func TestRegisterServiceCreateUserCreatesDefaultsAndDeletesSession(t *testing.T)
 	if len(notifier.welcomeCalls) != 1 {
 		t.Fatalf("welcome emails = %d, want 1", len(notifier.welcomeCalls))
 	}
+	if registeredUser.Birthday != nil || registeredUser.CityID != nil {
+		t.Fatalf("optional registration fields = birthday %v, city ID %v; want NULL values", registeredUser.Birthday, registeredUser.CityID)
+	}
+}
+
+func TestRegisterServiceCreateUserPersistsOptionalBirthdayAndCity(t *testing.T) {
+	db := newRegisterDB(t)
+	city := models.City{Name: "Калининград", Region: "Калининградская область", FIASID: "11111111-1111-1111-1111-111111111111"}
+	if err := db.Create(&city).Error; err != nil {
+		t.Fatalf("create city: %v", err)
+	}
+	store := newFakeSessionStore()
+	store.sessions["verified-session"] = &session.Session{
+		IsVerified: true,
+		Type:       models.SessionTypeRegister,
+		Extra:      map[string]string{"email": "user@example.com"},
+	}
+	birthday := "2001-02-03"
+	cityID := city.ID
+	service := newRegisterServiceForTest(t, store, register.NewGORMRegistrationStore(&testPostgresRepository{db: db}), &fakeRegistrationEmailSender{})
+
+	if _, err := service.CreateUser(context.Background(), register.CreateUserInput{
+		Name: "Valid User", Password: "Password123!", Email: "user@example.com", SessionID: "verified-session", Birthday: &birthday, CityID: &cityID,
+	}); err != nil {
+		t.Fatalf("CreateUser returned error: %v", err)
+	}
+
+	var registeredUser models.User
+	if err := db.Where("email = ?", "user@example.com").First(&registeredUser).Error; err != nil {
+		t.Fatalf("load registered user: %v", err)
+	}
+	if registeredUser.Birthday == nil || registeredUser.Birthday.Format(time.DateOnly) != birthday {
+		t.Fatalf("birthday = %v, want %s", registeredUser.Birthday, birthday)
+	}
+	if registeredUser.CityID == nil || *registeredUser.CityID != city.ID {
+		t.Fatalf("city ID = %v, want %d", registeredUser.CityID, city.ID)
+	}
+}
+
+func TestRegisterServiceCreateUserRejectsInvalidOptionalProfileFieldsBeforeStore(t *testing.T) {
+	invalidBirthday := "03-02-2001"
+	emptyBirthday := ""
+	invalidCalendarBirthday := "2001-02-29"
+	zeroYearBirthday := "0000-01-01"
+	zeroCityID := uint(0)
+	futureBirthday := time.Now().UTC().AddDate(0, 0, 1).Format(time.DateOnly)
+
+	for name, input := range map[string]register.CreateUserInput{
+		"invalid birthday":          {Birthday: &invalidBirthday},
+		"empty birthday":            {Birthday: &emptyBirthday},
+		"invalid calendar birthday": {Birthday: &invalidCalendarBirthday},
+		"zero-year birthday":        {Birthday: &zeroYearBirthday},
+		"future birthday":           {Birthday: &futureBirthday},
+		"zero city ID":              {CityID: &zeroCityID},
+	} {
+		t.Run(name, func(t *testing.T) {
+			sessions := newFakeSessionStore()
+			sessions.sessions["verified-session"] = &session.Session{IsVerified: true, Type: models.SessionTypeRegister, Extra: map[string]string{"email": "user@example.com"}}
+			registrationStore := &fakeRegistrationStore{}
+			service := newRegisterServiceForTest(t, sessions, registrationStore, &fakeRegistrationEmailSender{})
+			input.Name = "Valid User"
+			input.Password = "Password123!"
+			input.Email = "user@example.com"
+			input.SessionID = "verified-session"
+
+			_, err := service.CreateUser(context.Background(), input)
+			if !errors.Is(err, register.ErrInvalidBirthday) && !errors.Is(err, register.ErrInvalidCityID) {
+				t.Fatalf("CreateUser err = %v, want optional profile validation error", err)
+			}
+			if len(registrationStore.createCalls) != 0 {
+				t.Fatalf("CreateUser store calls = %d, want 0", len(registrationStore.createCalls))
+			}
+			if sessions.deleted["verified-session"] {
+				t.Fatal("verified session was deleted after invalid optional profile input")
+			}
+		})
+	}
+}
+
+func TestGORMRegistrationStoreRejectsUnknownCityAtomically(t *testing.T) {
+	db := newRegisterDB(t)
+	unknownCityID := uint(999)
+	registrationStore := register.NewGORMRegistrationStore(&testPostgresRepository{db: db})
+
+	_, err := registrationStore.CreateUser(context.Background(), register.UserBootstrap{
+		Name: "Unknown City", HashedPassword: mustHashPassword(t, "Password123!"), Email: "unknown-city@example.com", Username: "unknown-city", CityID: &unknownCityID,
+	})
+	if !errors.Is(err, register.ErrCityNotFound) {
+		t.Fatalf("CreateUser err = %v, want ErrCityNotFound", err)
+	}
+	assertCount(t, db, &models.User{}, 0)
+	assertCount(t, db, &models.UserStatisticTiles{}, 0)
+	assertCount(t, db, &statsusers.SessionStats_users{}, 0)
+	assertCount(t, db, &statsusers.SideStats_users{}, 0)
 }
 
 func TestRegisterServiceCreateUserDelegatesAtomicBootstrapToStore(t *testing.T) {
@@ -927,6 +1021,7 @@ func newRegisterDB(t *testing.T) *gorm.DB {
 	}
 
 	if err := db.AutoMigrate(
+		&models.City{},
 		&models.User{},
 		&models.DaysWeek{},
 		&models.UserStatisticTiles{},

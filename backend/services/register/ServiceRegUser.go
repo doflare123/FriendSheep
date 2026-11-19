@@ -16,10 +16,12 @@ import (
 )
 
 type CreateUserInput struct {
-	Name      string `json:"name"       binding:"required,username,min=5,max=40"`
-	Password  string `json:"password"   binding:"required,password"`
-	Email     string `json:"email"      binding:"required,email"`
-	SessionID string `json:"session_id" binding:"required"`
+	Name      string  `json:"name"       binding:"required,username,min=5,max=40"`
+	Password  string  `json:"password"   binding:"required,password"`
+	Email     string  `json:"email"      binding:"required,email"`
+	SessionID string  `json:"session_id" binding:"required"`
+	Birthday  *string `json:"birthday" format:"date" example:"2001-02-03" extensions:"x-nullable"`
+	CityID    *uint   `json:"cityId" minimum:"1" extensions:"x-nullable"`
 }
 
 type VerifySessionInput struct {
@@ -43,6 +45,9 @@ var (
 	ErrTooManyAttempts      = errors.New("превышено количество попыток ввода кода, сессия удалена")
 	ErrUserAlreadyExists    = errors.New("пользователь с таким email уже существует")
 	ErrUserNotFound         = errors.New("пользователь не найден")
+	ErrInvalidBirthday      = errors.New("дата рождения должна быть в формате YYYY-MM-DD и не может быть в будущем")
+	ErrInvalidCityID        = errors.New("идентификатор города должен быть больше нуля")
+	ErrCityNotFound         = errors.New("город не найден")
 )
 
 type RegService interface {
@@ -116,6 +121,14 @@ func NewRegisterSrvWithEmailSender(
 }
 
 func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dto.AuthResponse, error) {
+	birthday, err := parseOptionalBirthday(input.Birthday)
+	if err != nil {
+		return nil, err
+	}
+	if input.CityID != nil && *input.CityID == 0 {
+		return nil, ErrInvalidCityID
+	}
+
 	sess, err := s.redis.GetSession(ctx, input.SessionID)
 	if err != nil {
 		s.logger.Error("Не удалось получить сессию", "sessionID", input.SessionID, "error", err)
@@ -141,6 +154,8 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 		HashedPassword: hashPass,
 		Email:          boundEmail,
 		Username:       us,
+		Birthday:       birthday,
+		CityID:         input.CityID,
 	})
 
 	if err != nil {
@@ -169,6 +184,18 @@ func (s *regService) CreateUser(ctx context.Context, input CreateUserInput) (*dt
 	s.logger.Info("Пользователь автоматически авторизован после регистрации", "userID", user.ID)
 
 	return &authResponse, nil
+}
+
+func parseOptionalBirthday(value *string) (*time.Time, error) {
+	if value == nil {
+		return nil, nil
+	}
+
+	birthday, err := time.Parse(time.DateOnly, *value)
+	if err != nil || birthday.Year() < 1 || birthday.After(time.Now().UTC()) {
+		return nil, ErrInvalidBirthday
+	}
+	return &birthday, nil
 }
 
 func (s *regService) CreateSessionRegister(ctx context.Context, email, type_ses string) (*models.SessionRegResponse, error) {

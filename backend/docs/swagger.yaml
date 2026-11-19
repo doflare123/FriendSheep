@@ -1082,6 +1082,15 @@ definitions:
     type: object
   register.CreateUserInput:
     properties:
+      birthday:
+        example: "2001-02-03"
+        format: date
+        type: string
+        x-nullable: true
+      cityId:
+        minimum: 1
+        type: integer
+        x-nullable: true
       email:
         type: string
       name:

@@ -136,6 +136,10 @@ func (h *regHandler) CreateUser(c *gin.Context) {
 			utils.Forbidden(c, "Email не совпадает с подтвержденной сессией")
 		case errors.Is(err, register.ErrUserAlreadyExists):
 			utils.JSONError(c, http.StatusConflict, "Пользователь с таким email уже существует")
+		case errors.Is(err, register.ErrInvalidBirthday),
+			errors.Is(err, register.ErrInvalidCityID),
+			errors.Is(err, register.ErrCityNotFound):
+			utils.BadRequest(c, err.Error())
 		default:
 			utils.InternalError(c, "Внутренняя ошибка сервера")
 		}

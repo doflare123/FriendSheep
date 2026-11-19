@@ -27,9 +27,21 @@ func (s *gormRegistrationStore) CreateUser(ctx context.Context, input UserBootst
 		Password: input.HashedPassword,
 		Email:    input.Email,
 		Us:       input.Username,
+		Birthday: input.Birthday,
+		CityID:   input.CityID,
 	}
 
 	err := s.db.TransactionWithContext(ctx, func(tx repository.PostgresRepository) error {
+		if input.CityID != nil {
+			var city models.City
+			if err := tx.Model(&models.City{}).WithContext(ctx).Select("id").First(&city, *input.CityID).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return ErrCityNotFound
+				}
+				return fmt.Errorf("ошибка проверки города: %w", err)
+			}
+		}
+
 		if err := tx.Model(&models.User{}).WithContext(ctx).Create(&user).Error; err != nil {
 			if isRegistrationUniqueViolation(err) {
 				return ErrUserAlreadyExists

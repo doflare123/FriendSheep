@@ -4955,6 +4955,17 @@ const docTemplate = `{
                 "session_id"
             ],
             "properties": {
+                "birthday": {
+                    "type": "string",
+                    "format": "date",
+                    "x-nullable": true,
+                    "example": "2001-02-03"
+                },
+                "cityId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "x-nullable": true
+                },
                 "email": {
                     "type": "string"
                 },

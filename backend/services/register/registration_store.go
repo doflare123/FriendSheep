@@ -1,6 +1,9 @@
 package register
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // UserBootstrap содержит данные, необходимые для создания зарегистрированного
 // пользователя. Модели хранения остаются за границей RegistrationStore.
@@ -9,6 +12,8 @@ type UserBootstrap struct {
 	HashedPassword string
 	Email          string
 	Username       string
+	Birthday       *time.Time
+	CityID         *uint
 }
 
 // RegisteredUser содержит данные пользователя, нужные сценарию регистрации
