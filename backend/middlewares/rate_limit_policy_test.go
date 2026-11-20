@@ -115,6 +115,7 @@ func TestAuthenticatedRateLimitPoliciesCoverImportantActiveRoutes(t *testing.T) 
 		wantName string
 	}{
 		{name: "image upload", method: http.MethodPost, path: "/api/v2/sub/UploadImg", wantName: "image-upload-user"},
+		{name: "profile image upload", method: http.MethodPut, path: "/api/v2/users/me/profile/image", wantName: "image-upload-user"},
 		{name: "group create", method: http.MethodPost, path: "/api/v2/groups", wantName: "group-create-user"},
 		{name: "event create", method: http.MethodPost, path: "/api/v2/admin/events", wantName: "event-create-user"},
 		{name: "group join", method: http.MethodPost, path: "/api/v2/groups/:groupId/join", wantName: "membership-change-user"},

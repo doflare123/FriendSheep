@@ -11,6 +11,7 @@ import (
 	"friendship/middlewares"
 	"friendship/repository"
 	event "friendship/services/events"
+	"friendship/services/users"
 	session "friendship/sessions"
 	"friendship/validator"
 	"log"
@@ -30,6 +31,7 @@ type Server struct {
 	logger               logger.Logger
 	postgres             repository.PostgresRepository
 	S3                   storage.S3Storage
+	profileImages        users.ProfileImageStore
 	mongo                repository.MongoRepository
 	redis                repository.RedisRepository
 	sessionStore         session.SessionStore
@@ -87,6 +89,14 @@ func discoverStartupMigrationAssets(appEnv string, discover func() (bool, error)
 
 func InitServer() (*Server, error) {
 	conf := config.NewConfig()
+	var profileImages users.ProfileImageStore
+	if conf.S3.Enabled {
+		adapter, err := storage.NewSelectelProfileStorage(conf.S3)
+		if err != nil {
+			return nil, err
+		}
+		profileImages = adapter
+	}
 	logger, err := logger.NewZapLogger()
 	if err != nil {
 		log.Fatal(err)
@@ -269,6 +279,7 @@ func InitServer() (*Server, error) {
 		logger:               logger,
 		postgres:             postgres,
 		S3:                   s3_storege,
+		profileImages:        profileImages,
 		mongo:                mongo,
 		redis:                redis,
 		sessionStore:         sessionStore,

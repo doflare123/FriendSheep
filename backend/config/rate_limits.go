@@ -240,6 +240,9 @@ func applyConfigDefaults() {
 
 func (c *Config) NormalizeAndValidate() error {
 	var errs []error
+	if err := c.NormalizeProfileStorage(); err != nil {
+		errs = append(errs, err)
+	}
 	if c.UniquePeople == (UniquePeopleConfig{}) {
 		c.UniquePeople = DefaultUniquePeopleConfig()
 	}

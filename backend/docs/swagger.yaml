@@ -1347,6 +1347,36 @@ definitions:
       uniquePeopleStatus:
         type: string
     type: object
+  users.EditableCity:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      region:
+        type: string
+    type: object
+  users.EditableProfile:
+    properties:
+      birthday:
+        format: date
+        type: string
+        x-nullable: true
+      city:
+        allOf:
+        - $ref: '#/definitions/users.EditableCity'
+        x-nullable: true
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      us:
+        type: string
+    type: object
   users.Privacy:
     properties:
       mode:
@@ -1409,6 +1439,22 @@ definitions:
         type: string
       verified:
         type: boolean
+    type: object
+  users.ProfilePatch:
+    properties:
+      birthday:
+        format: date
+        type: string
+        x-nullable: true
+      cityId:
+        type: integer
+        x-nullable: true
+      name:
+        type: string
+      status:
+        type: string
+      us:
+        type: string
     type: object
   users.StatisticField:
     enum:
@@ -3635,6 +3681,158 @@ paths:
       security:
       - BearerAuth: []
       summary: Изменить свои настройки приватности
+      tags:
+      - Users
+  /api/v2/users/me/profile:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.EditableProfile'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить данные для редактирования профиля
+      tags:
+      - Users
+    patch:
+      consumes:
+      - application/json
+      description: 'Имя 1–100 символов, us 3–32 ASCII буквы/цифры/подчёркивания (нижний
+        регистр, необязательный @), статус до 500 символов. birthday: YYYY-MM-DD от
+        1900-01-01 до сегодня UTC; null очищает. cityId: существующий положительный
+        ID города; null очищает. Пропущенные поля сохраняются. Неизвестные и повторные
+        поля, пустой объект и null для имени/us/статуса запрещены. Аватар изменяется
+        отдельным запросом.'
+      parameters:
+      - description: Изменяемые данные
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/users.ProfilePatch'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.EditableProfile'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Изменить информацию своего профиля
+      tags:
+      - Users
+  /api/v2/users/me/profile/image:
+    delete:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.EditableProfile'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить аватар своего профиля
+      tags:
+      - Users
+    put:
+      consumes:
+      - multipart/form-data
+      description: Ровно один файл image в multipart/form-data. JPEG, PNG или WebP
+        до 5 MiB и 4096×4096 пикселей; формат проверяется по содержимому. Остальные
+        поля запрещены.
+      parameters:
+      - description: Аватар
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.EditableProfile'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Загрузить аватар своего профиля
       tags:
       - Users
   /api/v2/users/me/statistics:

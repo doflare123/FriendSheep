@@ -8,22 +8,25 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+const DefaultUserImage = "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+
 type User struct {
-	ID           uint   `gorm:"primaryKey;autoIncrement"`
-	Name         string `gorm:"not null" validate:"required"`
-	Password     string `gorm:"not null" validate:"required,password"`
-	Us           string `gorm:"uniqueIndex;not null" validate:"required"`
-	Email        string `gorm:"uniqueIndex;not null" validate:"required,email"`
-	Image        string `gorm:"default:https://cdn-icons-png.flaticon.com/512/149/149071.png"`
-	VerifiedUser bool   `gorm:"default:false"`
-	Role         string `gorm:"default:user"`
-	Status       string
-	TelegramID   *string    `gorm:"default:null"`
-	Birthday     *time.Time `gorm:"type:date;default:null"`
-	CityID       *uint      `gorm:"default:null;index"`
-	City         *City      `gorm:"foreignKey:CityID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID             uint   `gorm:"primaryKey;autoIncrement"`
+	Name           string `gorm:"not null" validate:"required"`
+	Password       string `gorm:"not null" validate:"required,password"`
+	Us             string `gorm:"not null;uniqueIndex:idx_users_us_lower,expression:lower(us)" validate:"required"`
+	Email          string `gorm:"uniqueIndex;not null" validate:"required,email"`
+	Image          string `gorm:"default:https://cdn-icons-png.flaticon.com/512/149/149071.png"`
+	ImageObjectKey string `json:"-" gorm:"size:512"`
+	VerifiedUser   bool   `gorm:"default:false"`
+	Role           string `gorm:"default:user"`
+	Status         string
+	TelegramID     *string    `gorm:"default:null"`
+	Birthday       *time.Time `gorm:"type:date;default:null"`
+	CityID         *uint      `gorm:"default:null;index"`
+	City           *City      `gorm:"foreignKey:CityID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 func ValidateUser(user *User) error {

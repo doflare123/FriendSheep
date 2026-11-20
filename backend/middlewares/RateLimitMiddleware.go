@@ -295,7 +295,8 @@ func authenticatedRateLimitPolicies(method, path string) []rateLimitPolicy {
 func authenticatedRateLimitPoliciesWithCatalog(method, path string, catalog rateLimitCatalog) []rateLimitPolicy {
 	key := method + " " + path
 	switch key {
-	case http.MethodPost + " /api/v2/sub/UploadImg":
+	case http.MethodPost + " /api/v2/sub/UploadImg",
+		http.MethodPut + " /api/v2/users/me/profile/image":
 		return []rateLimitPolicy{userPolicy(catalog, "image-upload-user")}
 	case http.MethodPost + " /api/v2/groups":
 		return []rateLimitPolicy{userPolicy(catalog, "group-create-user")}

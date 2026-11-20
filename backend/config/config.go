@@ -82,12 +82,15 @@ type RedisConfig struct {
 }
 
 type S3Storage struct {
-	AccessKey   string `mapstructure:"S3_ACCESS_KEY"`
-	SecretKey   string `mapstructure:"S3_SECRET_KEY"`
-	Endpoint    string `mapstructure:"S3_ENDPOINT"`
-	Region      string `mapstructure:"S3_REGION"`
-	ContainerId string `mapstructure:"S3_CONTID"`
-	Bucket      string `mapstructure:"S3_BUCKET"`
+	Enabled       bool          `mapstructure:"S3_ENABLED"`
+	PublicBaseURL string        `mapstructure:"S3_PUBLIC_BASE_URL"`
+	HTTPTimeout   time.Duration `mapstructure:"S3_HTTP_TIMEOUT"`
+	AccessKey     string        `mapstructure:"S3_ACCESS_KEY"`
+	SecretKey     string        `mapstructure:"S3_SECRET_KEY"`
+	Endpoint      string        `mapstructure:"S3_ENDPOINT"`
+	Region        string        `mapstructure:"S3_REGION"`
+	ContainerId   string        `mapstructure:"S3_CONTID"`
+	Bucket        string        `mapstructure:"S3_BUCKET"`
 }
 
 type Upload struct {

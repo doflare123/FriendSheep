@@ -57,6 +57,8 @@ func (s *Server) initRouters() {
 	statisticsService := statistics.NewService(statistics.NewGORMStoreWithUniquePeopleConfig(s.postgres, uniqueConfig))
 	profileService := users.NewProfileService(users.NewGORMProfileStore(s.postgres), statisticsService)
 	routes.RegisterUserProfileRoutes(s.engine, handlers.NewUserProfileHandler(profileService), jwtMiddleware.RequireAuth())
+	editService := users.NewEditService(users.NewGORMEditStore(s.postgres), s.profileImages)
+	routes.RegisterUserEditRoutes(s.engine, handlers.NewUserEditHandler(editService), jwtMiddleware.RequireAuth())
 	statisticsTriggers := events.NewStatisticsTriggerService(events.NewGORMStatisticsTriggerReader(s.postgres), events.NewGORMStatisticsTriggerBackfiller(s.postgres))
 	statisticsH := handlers.NewStatisticsHandler(statisticsService, statisticsTriggers)
 	routes.RegisterStatisticsRoutes(s.engine, statisticsH, jwtMiddleware.RequireAuth())
