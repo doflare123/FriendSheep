@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"friendship/models"
 	"friendship/services/users"
@@ -105,6 +106,41 @@ func TestUserEditPostgresConcurrency(t *testing.T) {
 		}
 		if profile.Name != name || profile.Status != status {
 			t.Fatalf("profile name/status = %q/%q, want %q/%q", profile.Name, profile.Status, name, status)
+		}
+	})
+
+	t.Run("concurrent first birthday set permits exactly one value", func(t *testing.T) {
+		user := createEditableUserPostgres(t, db, "birthday_race_user", "birthday-race@example.test")
+		first := users.Date{Time: time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC)}
+		second := users.Date{Time: time.Date(2000, 2, 2, 0, 0, 0, 0, time.UTC)}
+		start := make(chan struct{})
+		results := make(chan error, 2)
+		for _, birthday := range []users.Date{first, second} {
+			go func(value users.Date) {
+				<-start
+				_, err := store.Patch(context.Background(), user.ID, users.ProfilePatch{Birthday: users.OptionalDate{Set: true, Value: &value}})
+				results <- err
+			}(birthday)
+		}
+		close(start)
+
+		var succeeded, denied int
+		for range 2 {
+			switch err := <-results; {
+			case err == nil:
+				succeeded++
+			case errors.Is(err, users.ErrBirthdayChangeDenied):
+				denied++
+			default:
+				t.Fatalf("конкурентная установка даты рождения: %v", err)
+			}
+		}
+		if succeeded != 1 || denied != 1 {
+			t.Fatalf("конкурентная установка успех/отказ = %d/%d, ожидалось 1/1", succeeded, denied)
+		}
+		profile, err := store.GetOwn(context.Background(), user.ID)
+		if err != nil || profile.Birthday == nil || (!profile.Birthday.Time.Equal(first.Time) && !profile.Birthday.Time.Equal(second.Time)) {
+			t.Fatalf("сохранённая дата рождения = %#v/%v", profile.Birthday, err)
 		}
 	})
 

@@ -37,6 +37,12 @@ func (s *gormEditStore) Patch(ctx context.Context, userID uint, patch ProfilePat
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).WithContext(ctx).First(&user, userID).Error; err != nil {
 			return mapEditUserError(err)
 		}
+		if user.Birthday != nil && patch.Birthday.Set {
+			if !patch.hasChangesBesidesBirthday() {
+				return ErrBirthdayChangeDenied
+			}
+			patch.Birthday = OptionalDate{}
+		}
 		if patch.CityID.Set && patch.CityID.Value != nil {
 			var city models.City
 			if err := tx.Model(&models.City{}).WithContext(ctx).Select("id").First(&city, *patch.CityID.Value).Error; err != nil {

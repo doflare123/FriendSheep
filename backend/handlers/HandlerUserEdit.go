@@ -47,7 +47,7 @@ func (h *UserEditHandler) GetOwn(c *gin.Context) {
 
 // Patch изменяет только явно переданные поля собственного профиля.
 // @Summary Изменить информацию своего профиля
-// @Description Имя 1–100 символов, us 3–32 ASCII буквы/цифры/подчёркивания (нижний регистр, необязательный @), статус до 500 символов. birthday: YYYY-MM-DD от 1900-01-01 до сегодня UTC; null очищает. cityId: существующий положительный ID города; null очищает. Пропущенные поля сохраняются. Неизвестные и повторные поля, пустой объект и null для имени/us/статуса запрещены. Аватар изменяется отдельным запросом.
+// @Description Имя 1–100 символов, us 3–32 ASCII буквы/цифры/подчёркивания (нижний регистр, необязательный @), статус до 500 символов. birthday: YYYY-MM-DD от 1900-01-01 до сегодня UTC; null допустим только до первой установки. Установленная дата рождения самостоятельно не изменяется: запрос только с birthday отклоняется, а в смешанном запросе поле игнорируется. cityId: существующий положительный ID города; null очищает. Пропущенные поля сохраняются. Неизвестные и повторные поля, пустой объект и null для имени/us/статуса запрещены. Аватар изменяется отдельным запросом.
 // @Tags Users
 // @Accept json
 // @Produce json
@@ -56,6 +56,7 @@ func (h *UserEditHandler) GetOwn(c *gin.Context) {
 // @Success 200 {object} users.EditableProfile
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
 // @Failure 404 {object} dto.ErrorResponse
 // @Failure 409 {object} dto.ErrorResponse
 // @Failure 413 {object} dto.ErrorResponse
@@ -170,6 +171,8 @@ func handleUserEditError(c *gin.Context, err error) {
 		utils.BadRequest(c, "city_not_found", utils.WithMessage("Город не найден"))
 	case errors.Is(err, users.ErrUsTaken):
 		utils.JSONError(c, http.StatusConflict, "us_taken", utils.WithMessage("Этот адрес пользователя уже занят"))
+	case errors.Is(err, users.ErrBirthdayChangeDenied):
+		utils.JSONError(c, http.StatusForbidden, "birthday_change_denied", utils.WithMessage("Дата рождения уже установлена и может быть изменена только администрацией сервиса"))
 	case errors.Is(err, users.ErrInvalidImage):
 		utils.BadRequest(c, "invalid_profile_image", utils.WithMessage("Требуется корректный JPEG, PNG или WebP до 4096×4096 пикселей"))
 	case errors.Is(err, users.ErrImageTooLarge):

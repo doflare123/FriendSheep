@@ -161,7 +161,7 @@ func TestEditServiceDeletesOnlyPersistedImageKey(t *testing.T) {
 	}
 }
 
-func TestGORMEditStorePreservesFieldsAndRollsBackMissingCity(t *testing.T) {
+func TestGORMEditStoreLocksBirthdayAfterFirstSet(t *testing.T) {
 	db := newProfileStoreDB(t)
 	if err := db.AutoMigrate(&models.City{}); err != nil {
 		t.Fatal(err)
@@ -185,8 +185,22 @@ func TestGORMEditStorePreservesFieldsAndRollsBackMissingCity(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := store.GetOwn(context.Background(), user.ID)
-	if err != nil || got.Name != name || got.Birthday != nil || got.City != nil || got.Status != "old" {
-		t.Fatalf("cleared profile/error = %#v/%v", got, err)
+	if err != nil || got.Name != name || got.Birthday == nil || !got.Birthday.Time.Equal(birthday) || got.City != nil || got.Status != "old" {
+		t.Fatalf("смешанное обновление сохранило неверный профиль: %#v/%v", got, err)
+	}
+	changedBirthday := users.Date{Time: time.Date(1999, 1, 2, 0, 0, 0, 0, time.UTC)}
+	if _, err := store.Patch(context.Background(), user.ID, users.ProfilePatch{Birthday: users.OptionalDate{Set: true, Value: &changedBirthday}}); !errors.Is(err, users.ErrBirthdayChangeDenied) {
+		t.Fatalf("изменение установленной даты рождения: %v", err)
+	}
+	if _, err := store.Patch(context.Background(), user.ID, users.ProfilePatch{Birthday: users.OptionalDate{Set: true}}); !errors.Is(err, users.ErrBirthdayChangeDenied) {
+		t.Fatalf("очистка установленной даты рождения: %v", err)
+	}
+	if _, err := store.Patch(context.Background(), user.ID, users.ProfilePatch{Birthday: users.OptionalDate{Set: true, Value: &users.Date{Time: birthday}}}); !errors.Is(err, users.ErrBirthdayChangeDenied) {
+		t.Fatalf("повторная установка той же даты рождения: %v", err)
+	}
+	got, err = store.GetOwn(context.Background(), user.ID)
+	if err != nil || got.Birthday == nil || !got.Birthday.Time.Equal(birthday) {
+		t.Fatalf("дата рождения изменилась после отказа: %#v/%v", got, err)
 	}
 	missing := uint(999)
 	changed := "must not persist"
@@ -200,6 +214,20 @@ func TestGORMEditStorePreservesFieldsAndRollsBackMissingCity(t *testing.T) {
 	conflict := "TAKEN"
 	if _, err := store.Patch(context.Background(), user.ID, users.ProfilePatch{Us: &conflict}); !errors.Is(err, users.ErrUsTaken) {
 		t.Fatalf("case-insensitive us conflict = %v", err)
+	}
+}
+
+func TestGORMEditStoreAllowsFirstBirthdaySet(t *testing.T) {
+	db := newProfileStoreDB(t)
+	user := models.User{ID: 73, Name: "Alice", Password: "Password123!", Us: "alice-first-birthday", Email: "alice-first-birthday@example.com"}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatal(err)
+	}
+	store := users.NewGORMEditStore(&testPostgresRepository{db: db})
+	birthday := users.Date{Time: time.Date(2001, 3, 4, 0, 0, 0, 0, time.UTC)}
+	got, err := store.Patch(context.Background(), user.ID, users.ProfilePatch{Birthday: users.OptionalDate{Set: true, Value: &birthday}})
+	if err != nil || got.Birthday == nil || !got.Birthday.Time.Equal(birthday.Time) {
+		t.Fatalf("первая установка даты рождения: %#v/%v", got, err)
 	}
 }
 

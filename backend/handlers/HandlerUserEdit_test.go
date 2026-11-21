@@ -83,6 +83,13 @@ func TestUserEditHandlerUsesAuthenticatedUserAndMapsErrors(t *testing.T) {
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("city error status = %d; body=%s", response.Code, response.Body.String())
 	}
+	app.err = users.ErrBirthdayChangeDenied
+	response = httptest.NewRecorder()
+	request = httptest.NewRequest(http.MethodPatch, "/api/v2/users/me/profile", bytes.NewBufferString(`{"birthday":"2000-01-02"}`))
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), `"error":"birthday_change_denied"`) {
+		t.Fatalf("birthday denial status/body = %d/%s", response.Code, response.Body.String())
+	}
 	app.err = nil
 	response = httptest.NewRecorder()
 	request = httptest.NewRequest(http.MethodPatch, "/api/v2/users/me/profile", bytes.NewBufferString(`{"status":"`+strings.Repeat("x", 9000)+`"}`))

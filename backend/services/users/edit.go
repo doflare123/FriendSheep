@@ -28,6 +28,7 @@ var (
 	ErrInvalidProfile          = errors.New("некорректные данные профиля")
 	ErrCityNotFound            = errors.New("город не найден")
 	ErrUsTaken                 = errors.New("адрес пользователя уже занят")
+	ErrBirthdayChangeDenied    = errors.New("дата рождения уже установлена")
 	ErrInvalidImage            = errors.New("некорректное изображение профиля")
 	ErrImageTooLarge           = errors.New("изображение профиля слишком большое")
 	ErrImageStorageUnavailable = errors.New("хранилище изображений недоступно")
@@ -56,6 +57,10 @@ type ProfilePatch struct {
 	Status   *string        `json:"status,omitempty"`
 	Birthday OptionalDate   `json:"birthday,omitempty" swaggertype:"string" format:"date" extensions:"x-nullable"`
 	CityID   OptionalCityID `json:"cityId,omitempty" swaggertype:"integer" extensions:"x-nullable"`
+}
+
+func (p ProfilePatch) hasChangesBesidesBirthday() bool {
+	return p.Name != nil || p.Us != nil || p.Status != nil || p.CityID.Set
 }
 
 func (p *ProfilePatch) UnmarshalJSON(data []byte) error {
