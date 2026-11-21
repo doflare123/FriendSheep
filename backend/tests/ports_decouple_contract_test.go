@@ -19,6 +19,14 @@ import (
 
 type eventReadStoreContractStub struct{}
 
+func (eventReadStoreContractStub) FindEventViewer(context.Context, uint) (servicesevents.EventViewerProfile, error) {
+	return servicesevents.EventViewerProfile{}, nil
+}
+
+func (eventReadStoreContractStub) ListEventCities(context.Context) ([]servicesevents.EventDiscoveryCity, error) {
+	return []servicesevents.EventDiscoveryCity{}, nil
+}
+
 func (eventReadStoreContractStub) SearchEvents(context.Context, servicesevents.EventSearchQuery) (servicesevents.EventSearchPageView, error) {
 	return servicesevents.EventSearchPageView{}, nil
 }

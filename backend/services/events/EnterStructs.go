@@ -22,6 +22,10 @@ type CreateEventInput struct {
 
 	// Опциональные поля
 	Address      string                 `json:"address,omitempty"`
+	CityID       *uint                  `json:"cityId,omitempty" binding:"omitempty,gt=0" minimum:"1"`
+	Link         string                 `json:"link,omitempty"`
+	Latitude     *float64               `json:"latitude,omitempty"`
+	Longitude    *float64               `json:"longitude,omitempty"`
 	Country      string                 `json:"country,omitempty"`
 	AgeLimitID   uint                   `json:"ageLimit" binding:"required"`
 	Year         *int                   `json:"year,omitempty"`
@@ -42,11 +46,19 @@ type UpdateEventInput struct {
 
 	// Опциональные поля
 	Address      *string                 `json:"address,omitempty" binding:"omitempty,max=500"`
+	CityID       *uint                   `json:"cityId,omitempty" binding:"omitempty,gt=0" minimum:"1"`
+	Link         *string                 `json:"link,omitempty"`
+	Latitude     *float64                `json:"latitude,omitempty"`
+	Longitude    *float64                `json:"longitude,omitempty"`
 	Country      *string                 `json:"country,omitempty" binding:"omitempty,max=100"`
 	AgeLimit     *uint                   `json:"ageLimit,omitempty" binding:"omitempty,gt=0" minimum:"1"`
 	Year         *int                    `json:"year,omitempty"`
 	Notes        *string                 `json:"notes,omitempty"`
 	CustomFields *map[string]interface{} `json:"customFields,omitempty"`
+
+	CityIDSet    bool `json:"-"`
+	LatitudeSet  bool `json:"-"`
+	LongitudeSet bool `json:"-"`
 }
 
 func (input *CreateEventInput) UnmarshalJSON(data []byte) error {
@@ -62,6 +74,10 @@ func (input *CreateEventInput) UnmarshalJSON(data []byte) error {
 		MaxUsers     uint16                 `json:"maxUsers"`
 		Genres       []uint                 `json:"genres"`
 		Address      string                 `json:"address,omitempty"`
+		CityID       *uint                  `json:"cityId,omitempty"`
+		Link         string                 `json:"link,omitempty"`
+		Latitude     *float64               `json:"latitude,omitempty"`
+		Longitude    *float64               `json:"longitude,omitempty"`
 		Country      string                 `json:"country,omitempty"`
 		AgeLimitID   uint                   `json:"ageLimit"`
 		Year         *int                   `json:"year,omitempty"`
@@ -90,6 +106,10 @@ func (input *CreateEventInput) UnmarshalJSON(data []byte) error {
 	input.MaxUsers = raw.MaxUsers
 	input.Genres = raw.Genres
 	input.Address = raw.Address
+	input.CityID = raw.CityID
+	input.Link = raw.Link
+	input.Latitude = raw.Latitude
+	input.Longitude = raw.Longitude
 	input.Country = raw.Country
 	input.AgeLimitID = raw.AgeLimitID
 	input.Year = raw.Year
@@ -111,6 +131,10 @@ func (input *UpdateEventInput) UnmarshalJSON(data []byte) error {
 		MaxUsers     *uint16                 `json:"maxUsers,omitempty"`
 		Genres       []uint                  `json:"genres,omitempty"`
 		Address      *string                 `json:"address,omitempty"`
+		CityID       *uint                   `json:"cityId,omitempty"`
+		Link         *string                 `json:"link,omitempty"`
+		Latitude     *float64                `json:"latitude,omitempty"`
+		Longitude    *float64                `json:"longitude,omitempty"`
 		Country      *string                 `json:"country,omitempty"`
 		AgeLimit     *uint                   `json:"ageLimit,omitempty"`
 		Year         *int                    `json:"year,omitempty"`
@@ -145,11 +169,23 @@ func (input *UpdateEventInput) UnmarshalJSON(data []byte) error {
 	input.MaxUsers = raw.MaxUsers
 	input.Genres = raw.Genres
 	input.Address = raw.Address
+	input.CityID = raw.CityID
+	input.Link = raw.Link
+	input.Latitude = raw.Latitude
+	input.Longitude = raw.Longitude
 	input.Country = raw.Country
 	input.AgeLimit = raw.AgeLimit
 	input.Year = raw.Year
 	input.Notes = raw.Notes
 	input.CustomFields = raw.CustomFields
+
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	_, input.CityIDSet = fields["cityId"]
+	_, input.LatitudeSet = fields["latitude"]
+	_, input.LongitudeSet = fields["longitude"]
 
 	return nil
 }

@@ -18,6 +18,8 @@ type EventReadService interface {
 }
 
 type EventReadStore interface {
+	FindEventViewer(ctx context.Context, userID uint) (EventViewerProfile, error)
+	ListEventCities(ctx context.Context) ([]EventDiscoveryCity, error)
 	SearchEvents(ctx context.Context, query EventSearchQuery) (EventSearchPageView, error)
 	GetGroupEvents(ctx context.Context, query EventGroupEventsQuery) (EventGroupEventsView, error)
 	GetEventDetails(ctx context.Context, query EventDetailsQuery) (EventDetailsView, error)
@@ -26,19 +28,36 @@ type EventReadStore interface {
 type eventReadService struct {
 	logger logger.Logger
 	store  EventReadStore
+	clock  Clock
 }
 
 type unsupportedEventReadStore struct{}
 
 func NewEventReadService(logger logger.Logger, store EventReadStore) EventReadService {
+	return NewEventReadServiceWithClock(logger, store, SystemClock{})
+}
+
+func NewEventReadServiceWithClock(logger logger.Logger, store EventReadStore, clock Clock) EventReadService {
 	if isNilEventReadStore(store) {
 		store = unsupportedEventReadStore{}
+	}
+	if clock == nil {
+		clock = SystemClock{}
 	}
 
 	return &eventReadService{
 		logger: logger,
 		store:  store,
+		clock:  clock,
 	}
+}
+
+func (unsupportedEventReadStore) FindEventViewer(context.Context, uint) (EventViewerProfile, error) {
+	return EventViewerProfile{}, errEventReadStoreUnavailable
+}
+
+func (unsupportedEventReadStore) ListEventCities(context.Context) ([]EventDiscoveryCity, error) {
+	return nil, errEventReadStoreUnavailable
 }
 
 func isNilEventReadStore(store EventReadStore) bool {
@@ -68,6 +87,22 @@ func (s *eventReadService) SearchEvents(ctx context.Context, userID uint, input 
 	if input.OnlySubscriptionNews && userID == 0 {
 		return emptyEventSearchResponse(input.Page, input.Limit), nil
 	}
+	profile := EventViewerProfile{}
+	if userID != 0 {
+		var err error
+		profile, err = s.store.FindEventViewer(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var preferredCities []uint
+	if input.CityID == nil && input.City == "" && profile.CityID != nil && !input.OnlySubscriptionNews {
+		cities, err := s.store.ListEventCities(ctx)
+		if err != nil {
+			return nil, err
+		}
+		preferredCities = rankEventCities(*profile.CityID, cities)
+	}
 
 	page, err := s.store.SearchEvents(ctx, EventSearchQuery{
 		ViewerID:             userID,
@@ -82,6 +117,9 @@ func (s *eventReadService) SearchEvents(ctx context.Context, userID uint, input 
 		LocationTypes:        append([]string(nil), input.LocationTypes...),
 		ExcludeLocationTypes: append([]string(nil), input.ExcludeLocationTypes...),
 		City:                 input.City,
+		CityID:               input.CityID,
+		AllowedAgeLimits:     allowedEventAgeLimits(profile.Birthday, s.clock.Now()),
+		PreferredCityIDs:     preferredCities,
 		DateFrom:             input.DateFrom,
 		DateTo:               input.DateTo,
 		HasFreeSlots:         input.HasFreeSlots,
@@ -106,9 +144,18 @@ func (s *eventReadService) SearchEvents(ctx context.Context, userID uint, input 
 }
 
 func (s *eventReadService) GetGroupEvents(ctx context.Context, actorID uint, groupID uint) ([]dto.EventSearchItemDto, error) {
+	profile := EventViewerProfile{}
+	if actorID != 0 {
+		var err error
+		profile, err = s.store.FindEventViewer(ctx, actorID)
+		if err != nil {
+			return nil, err
+		}
+	}
 	view, err := s.store.GetGroupEvents(ctx, EventGroupEventsQuery{
-		ViewerID: actorID,
-		GroupID:  groupID,
+		ViewerID:         actorID,
+		GroupID:          groupID,
+		AllowedAgeLimits: allowedEventAgeLimits(profile.Birthday, s.clock.Now()),
 	})
 	if err != nil {
 		s.logger.Error("Не удалось получить события группы", "groupID", groupID, "actorID", actorID, "error", err)
@@ -203,6 +250,11 @@ func eventFullViewToDTO(view EventFullView) *dto.EventFullDto {
 			Verified: view.Creator.Verified,
 		},
 		Address:      view.Address,
+		CityID:       view.CityID,
+		City:         view.City,
+		Link:         view.Link,
+		Latitude:     view.Latitude,
+		Longitude:    view.Longitude,
 		Country:      view.Country,
 		AgeLimit:     view.AgeLimit,
 		Year:         view.Year,

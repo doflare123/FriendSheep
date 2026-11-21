@@ -34,6 +34,14 @@ func TestGORMPopularEventsStoreFiltersRanksLimitsAndLoadsOwnerMetadata(t *testin
 	tiedHigherUsersID := seedNamedPopularEvent(t, db, publicGroupID, 701, "Tied with more users", 8, 10)
 	tiedLowerUsersID := seedNamedPopularEvent(t, db, publicGroupID, 701, "Tied with fewer users", 4, 5)
 	seedNamedPopularEvent(t, db, publicGroupID, 701, "Below limit", 2, 10)
+	adultAge := eventmodels.AgeLimit{Name: "18+"}
+	if err := db.Where("name = ?", adultAge.Name).FirstOrCreate(&adultAge).Error; err != nil {
+		t.Fatalf("create adult age limit: %v", err)
+	}
+	adultID := seedNamedPopularEvent(t, db, publicGroupID, 701, "Adult with highest occupancy", 100, 100)
+	if err := db.Model(&eventmodels.Event{}).Where("id = ?", adultID).Update("age_limit_id", adultAge.ID).Error; err != nil {
+		t.Fatalf("mark adult event: %v", err)
+	}
 
 	seedNamedPopularEvent(t, db, privateGroupID, 702, "Private", 10, 10)
 	pastID := seedNamedPopularEvent(t, db, publicGroupID, 701, "Past", 10, 10)
@@ -85,7 +93,7 @@ func TestGORMPopularEventsStoreFiltersRanksLimitsAndLoadsOwnerMetadata(t *testin
 		if records[index].Group.ID != publicGroupID || records[index].Group.Name != "Public Popular Group" ||
 			records[index].Group.Image != "https://example.com/group.png" ||
 			records[index].EventType != "Game" || records[index].LocationType != "Offline" ||
-			records[index].AgeLimit != "18+" || records[index].Status != "Набор" ||
+			records[index].AgeLimit != "12+" || records[index].Status != "Набор" ||
 			records[index].StartTime.IsZero() || records[index].Subscribed {
 			t.Fatalf("record %d shared search fields = %#v", index, records[index].PopularEventView)
 		}

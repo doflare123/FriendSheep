@@ -14,15 +14,21 @@ import (
 type popularEventsServiceContextKey struct{}
 
 type popularEventsStoreStub struct {
-	mu      sync.Mutex
-	records []servicesevents.PopularEventRecord
-	err     error
-	calls   int
-	ctx     context.Context
-	now     time.Time
-	limit   int
-	callCh  chan struct{}
-	release <-chan struct{}
+	viewer    servicesevents.EventViewerProfile
+	viewerErr error
+	mu        sync.Mutex
+	records   []servicesevents.PopularEventRecord
+	err       error
+	calls     int
+	ctx       context.Context
+	now       time.Time
+	limit     int
+	callCh    chan struct{}
+	release   <-chan struct{}
+}
+
+func (s *popularEventsStoreStub) FindPopularEventsViewer(ctx context.Context, viewerID uint) (servicesevents.EventViewerProfile, error) {
+	return s.viewer, s.viewerErr
 }
 
 func (s *popularEventsStoreStub) ListTopPopularEvents(ctx context.Context, now time.Time, limit int) ([]servicesevents.PopularEventRecord, error) {
@@ -275,8 +281,8 @@ func TestPopularEventsServiceCacheMissRefreshesSynchronouslyAndReturnsStoredSnap
 		t.Fatalf("ranking call = calls:%d ctx:%v now:%v limit:%d", storeCalls, storeCtx, storeNow, limit)
 	}
 	getCalls, getCtxs, getKeys, setCalls := cache.callsSnapshot()
-	if getCalls != 6 {
-		t.Fatalf("cache get calls = %d, want 6 (miss, locked recheck, v3/v2/legacy previous IDs, post-refresh read)", getCalls)
+	if getCalls != 7 {
+		t.Fatalf("cache get calls = %d, want 7 (miss, locked recheck, v4/v3/v2/legacy previous IDs, post-refresh read)", getCalls)
 	}
 	if len(setCalls) != 1 {
 		t.Fatalf("cache set calls = %d, want 1", len(setCalls))
@@ -287,9 +293,12 @@ func TestPopularEventsServiceCacheMissRefreshesSynchronouslyAndReturnsStoredSnap
 		}
 		wantKey := servicesevents.PopularEventsCacheKey
 		if index == 3 {
-			wantKey = "popular_events:v2:top10"
+			wantKey = "popular_events:v3:top10"
 		}
 		if index == 4 {
+			wantKey = "popular_events:v2:top10"
+		}
+		if index == 5 {
 			wantKey = "popular_events:top10"
 		}
 		if getKeys[index] != wantKey {
@@ -501,7 +510,7 @@ func TestPopularEventsServiceUpdateCacheWritesExactSnapshotTTLAndNotifications(t
 	}
 }
 
-func TestPopularEventsServiceUsesPreviousCacheIDsDuringV3Cutover(t *testing.T) {
+func TestPopularEventsServiceUsesPreviousCacheIDsDuringV4Cutover(t *testing.T) {
 	now := time.Date(2034, 6, 7, 8, 9, 10, 0, time.UTC)
 	previous := servicesevents.PopularEventsSnapshot{
 		Events: []servicesevents.PopularEventView{{ID: 81}},
@@ -514,14 +523,19 @@ func TestPopularEventsServiceUsesPreviousCacheIDsDuringV3Cutover(t *testing.T) {
 		wantGetKeys []string
 	}{
 		{
+			name:        "v3 snapshot",
+			fallbackKey: "popular_events:v3:top10",
+			wantGetKeys: []string{servicesevents.PopularEventsCacheKey, "popular_events:v3:top10"},
+		},
+		{
 			name:        "v2 snapshot",
 			fallbackKey: "popular_events:v2:top10",
-			wantGetKeys: []string{"popular_events:v3:top10", "popular_events:v2:top10"},
+			wantGetKeys: []string{servicesevents.PopularEventsCacheKey, "popular_events:v3:top10", "popular_events:v2:top10"},
 		},
 		{
 			name:        "legacy snapshot",
 			fallbackKey: "popular_events:top10",
-			wantGetKeys: []string{"popular_events:v3:top10", "popular_events:v2:top10", "popular_events:top10"},
+			wantGetKeys: []string{servicesevents.PopularEventsCacheKey, "popular_events:v3:top10", "popular_events:v2:top10", "popular_events:top10"},
 		},
 	}
 
@@ -544,7 +558,7 @@ func TestPopularEventsServiceUsesPreviousCacheIDsDuringV3Cutover(t *testing.T) {
 
 			select {
 			case <-notifier.callCh:
-				t.Fatalf("event from %s was notified again during v3 cache cutover", tt.fallbackKey)
+				t.Fatalf("event from %s was notified again during v4 cache cutover", tt.fallbackKey)
 			case <-time.After(50 * time.Millisecond):
 			}
 
@@ -553,7 +567,7 @@ func TestPopularEventsServiceUsesPreviousCacheIDsDuringV3Cutover(t *testing.T) {
 				t.Fatalf("cache get keys = %#v, want %#v", getKeys, tt.wantGetKeys)
 			}
 			if len(setCalls) != 1 || setCalls[0].key != servicesevents.PopularEventsCacheKey {
-				t.Fatalf("cache set calls = %#v, want one v3 write", setCalls)
+				t.Fatalf("cache set calls = %#v, want one v4 write", setCalls)
 			}
 		})
 	}

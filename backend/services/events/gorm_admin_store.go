@@ -102,6 +102,7 @@ func (s *gormEventAdminStore) LoadDetails(
 		Preload("EventLocation").
 		Preload("Status").
 		Preload("Group").
+		Preload("City").
 		Preload("Creator").
 		Preload("AgeLimit").
 		Preload("Genres.Genre").

@@ -25,11 +25,16 @@ type EventFullDto struct {
 	Creator EventCreatorDto `json:"creator"`
 
 	// Дополнительная информация
-	Address  string `json:"address"`
-	Country  string `json:"country"`
-	AgeLimit string `json:"ageLimit"`
-	Year     *int   `json:"year,omitempty"`
-	Notes    string `json:"notes"`
+	CityID    *uint    `json:"cityId,omitempty"`
+	City      string   `json:"city,omitempty"`
+	Address   string   `json:"address,omitempty"`
+	Link      string   `json:"link,omitempty"`
+	Latitude  *float64 `json:"latitude,omitempty"`
+	Longitude *float64 `json:"longitude,omitempty"`
+	Country   string   `json:"country,omitempty"`
+	AgeLimit  string   `json:"ageLimit"`
+	Year      *int     `json:"year,omitempty"`
+	Notes     string   `json:"notes"`
 
 	// Произвольные поля
 	CustomFields map[string]interface{} `json:"customFields"`

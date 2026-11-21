@@ -29,6 +29,14 @@ type EventCommandSnapshot struct {
 	EndTime      time.Time
 	Duration     uint16
 	CurrentUsers uint16
+	LocationID   uint
+	LocationName string
+	CityID       *uint
+	Address      string
+	Link         string
+	Latitude     *float64
+	Longitude    *float64
+	Country      string
 }
 
 type EventCreateRecord struct {
@@ -46,6 +54,10 @@ type EventCreateRecord struct {
 	ImageURL        string
 	StatusID        uint
 	Address         string
+	CityID          *uint
+	Link            string
+	Latitude        *float64
+	Longitude       *float64
 	Country         string
 	AgeLimitID      uint
 	Year            *int
@@ -56,24 +68,29 @@ type EventCreateRecord struct {
 }
 
 type EventUpdateRecord struct {
-	EventID       uint
-	Title         *string
-	Description   *string
-	EventTypeID   *uint
-	LocationID    *uint
-	ImageURL      *string
-	StartTime     *time.Time
-	EndTime       *time.Time
-	Duration      *uint16
-	MaxUsers      *uint16
-	Address       *string
-	Country       *string
-	AgeLimitID    *uint
-	Year          *int
-	Notes         *string
-	CustomFields  *map[string]interface{}
-	ReplaceGenres bool
-	GenreIDs      []uint
+	EventID            uint
+	Title              *string
+	Description        *string
+	EventTypeID        *uint
+	LocationID         *uint
+	ImageURL           *string
+	StartTime          *time.Time
+	EndTime            *time.Time
+	Duration           *uint16
+	MaxUsers           *uint16
+	Address            *string
+	LocationDetailsSet bool
+	CityID             *uint
+	Link               string
+	Latitude           *float64
+	Longitude          *float64
+	Country            *string
+	AgeLimitID         *uint
+	Year               *int
+	Notes              *string
+	CustomFields       *map[string]interface{}
+	ReplaceGenres      bool
+	GenreIDs           []uint
 }
 
 type EventCommandGroupView struct {
@@ -108,6 +125,11 @@ type EventCommandView struct {
 	Genres       []string
 	Creator      EventCommandCreatorView
 	Address      string
+	CityID       *uint
+	CityName     string
+	Link         string
+	Latitude     *float64
+	Longitude    *float64
 	Country      string
 	AgeLimit     string
 	Year         *int
@@ -120,6 +142,7 @@ type EventCommandView struct {
 }
 
 type EventCommandStore interface {
+	eventCommandLocationStore
 	FindEventForUpdate(eventID uint) (EventCommandSnapshot, error)
 	FindGroupRole(actorID uint, groupID uint) (string, error)
 	EventTypeExists(eventTypeID uint) (bool, error)
@@ -130,6 +153,11 @@ type EventCommandStore interface {
 	UpdateEvent(record EventUpdateRecord) error
 	DeleteEventAggregate(eventID uint) error
 	LoadEventResult(eventID uint, actorID uint) (EventCommandView, error)
+}
+
+type eventCommandLocationStore interface {
+	FindEventLocationName(locationID uint) (string, bool, error)
+	CityExists(cityID uint) (bool, error)
 }
 
 type eventCommandService struct {
@@ -173,6 +201,11 @@ func (s *eventCommandService) CreateEvent(ctx context.Context, actorID uint, inp
 			return ErrPermissionDenied
 		}
 
+		locationDetails, err := resolveCreateEventLocation(store, input)
+		if err != nil {
+			return err
+		}
+
 		if err := validateEventGenreCount(input.Genres); err != nil {
 			return err
 		}
@@ -193,7 +226,7 @@ func (s *eventCommandService) CreateEvent(ctx context.Context, actorID uint, inp
 
 		now := s.clock.Now()
 		endTime := input.StartTime.Add(time.Duration(input.Duration) * time.Minute)
-		eventID, err := store.CreateEvent(EventCreateRecord{
+		createRecord := EventCreateRecord{
 			Title:           input.Title,
 			Description:     input.Description,
 			GroupID:         input.GroupID,
@@ -208,6 +241,10 @@ func (s *eventCommandService) CreateEvent(ctx context.Context, actorID uint, inp
 			ImageURL:        input.ImageURL,
 			StatusID:        1,
 			Address:         input.Address,
+			CityID:          input.CityID,
+			Link:            input.Link,
+			Latitude:        input.Latitude,
+			Longitude:       input.Longitude,
 			Country:         input.Country,
 			AgeLimitID:      input.AgeLimitID,
 			Year:            input.Year,
@@ -215,7 +252,14 @@ func (s *eventCommandService) CreateEvent(ctx context.Context, actorID uint, inp
 			CustomFields:    input.CustomFields,
 			GenreIDs:        append([]uint(nil), input.Genres...),
 			CreatorJoinedAt: now,
-		})
+		}
+		createRecord.CityID = locationDetails.CityID
+		createRecord.Address = locationDetails.Address
+		createRecord.Link = locationDetails.Link
+		createRecord.Latitude = locationDetails.Latitude
+		createRecord.Longitude = locationDetails.Longitude
+		createRecord.Country = locationDetails.Country
+		eventID, err := store.CreateEvent(createRecord)
 		if err != nil {
 			return err
 		}
@@ -304,6 +348,10 @@ func (s *eventCommandService) UpdateEvent(ctx context.Context, actorID uint, eve
 				return ErrEventLocationNotFound
 			}
 		}
+		locationDetails, err := resolveUpdatedEventLocation(store, event, input)
+		if err != nil {
+			return err
+		}
 		if input.AgeLimit != nil {
 			exists, err := store.AgeLimitExists(*input.AgeLimit)
 			if err != nil {
@@ -342,6 +390,13 @@ func (s *eventCommandService) UpdateEvent(ctx context.Context, actorID uint, eve
 			ReplaceGenres: input.Genres != nil,
 			GenreIDs:      append([]uint(nil), input.Genres...),
 		}
+		update.LocationDetailsSet = true
+		update.CityID = locationDetails.CityID
+		update.Address = stringPointer(locationDetails.Address)
+		update.Link = locationDetails.Link
+		update.Latitude = locationDetails.Latitude
+		update.Longitude = locationDetails.Longitude
+		update.Country = stringPointer(locationDetails.Country)
 		update.EndTime = calculateUpdatedEventEndTime(event, input)
 		if err := store.UpdateEvent(update); err != nil {
 			return err
@@ -576,7 +631,12 @@ func eventCommandViewToDTO(view EventCommandView) *dto.EventFullDto {
 			Image:    view.Creator.Image,
 			Verified: view.Creator.Verified,
 		},
+		CityID:       view.CityID,
+		City:         view.CityName,
 		Address:      view.Address,
+		Link:         view.Link,
+		Latitude:     view.Latitude,
+		Longitude:    view.Longitude,
 		Country:      view.Country,
 		AgeLimit:     view.AgeLimit,
 		Year:         view.Year,

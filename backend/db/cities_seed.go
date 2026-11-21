@@ -6,6 +6,8 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"math"
+	"strconv"
 	"strings"
 
 	"friendship/models"
@@ -33,7 +35,7 @@ func seedRussianCities(db repository.PostgresRepository) error {
 	return db.Transaction(func(tx repository.PostgresRepository) error {
 		result := tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "fias_id"}},
-			DoUpdates: clause.AssignmentColumns([]string{"name", "region"}),
+			DoUpdates: clause.AssignmentColumns([]string{"name", "region", "latitude", "longitude"}),
 		}).CreateInBatches(cities, citySeedBatchSize)
 		if result.Error != nil {
 			return fmt.Errorf("не удалось сохранить справочник: %w", result.Error)
@@ -92,6 +94,8 @@ type cityCSVColumns struct {
 	settlementType int
 	settlement     int
 	fiasID         int
+	latitude       int
+	longitude      int
 	minimumLength  int
 }
 
@@ -101,7 +105,7 @@ func requiredCityColumns(header []string) (cityCSVColumns, error) {
 		indexes[strings.TrimSpace(name)] = index
 	}
 
-	required := []string{"country", "region_type", "region", "area_type", "area", "city", "settlement_type", "settlement", "fias_id"}
+	required := []string{"country", "region_type", "region", "area_type", "area", "city", "settlement_type", "settlement", "fias_id", "geo_lat", "geo_lon"}
 	for _, name := range required {
 		if _, exists := indexes[name]; !exists {
 			return cityCSVColumns{}, fmt.Errorf("в CSV отсутствует обязательная колонка %q", name)
@@ -124,6 +128,8 @@ func requiredCityColumns(header []string) (cityCSVColumns, error) {
 		settlementType: indexes["settlement_type"],
 		settlement:     indexes["settlement"],
 		fiasID:         indexes["fias_id"],
+		latitude:       indexes["geo_lat"],
+		longitude:      indexes["geo_lon"],
 		minimumLength:  maximumIndex + 1,
 	}, nil
 }
@@ -165,7 +171,34 @@ func cityFromCSVRecord(record []string, columns cityCSVColumns) (models.City, er
 		return models.City{}, fmt.Errorf("fias_id %q длиннее 36 символов", fiasID)
 	}
 
-	return models.City{Name: name, Region: region, FIASID: fiasID}, nil
+	latitude, longitude, err := parseCityCoordinates(record[columns.latitude], record[columns.longitude])
+	if err != nil {
+		return models.City{}, err
+	}
+
+	return models.City{Name: name, Region: region, FIASID: fiasID, Latitude: latitude, Longitude: longitude}, nil
+}
+
+func parseCityCoordinates(rawLatitude, rawLongitude string) (*float64, *float64, error) {
+	rawLatitude = strings.TrimSpace(rawLatitude)
+	rawLongitude = strings.TrimSpace(rawLongitude)
+	if rawLatitude == "" && rawLongitude == "" {
+		return nil, nil, nil
+	}
+	if rawLatitude == "" || rawLongitude == "" {
+		return nil, nil, fmt.Errorf("координаты города должны быть заданы парой")
+	}
+
+	latitude, err := strconv.ParseFloat(rawLatitude, 64)
+	if err != nil || math.IsNaN(latitude) || math.IsInf(latitude, 0) || latitude < -90 || latitude > 90 {
+		return nil, nil, fmt.Errorf("некорректная широта %q", rawLatitude)
+	}
+	longitude, err := strconv.ParseFloat(rawLongitude, 64)
+	if err != nil || math.IsNaN(longitude) || math.IsInf(longitude, 0) || longitude < -180 || longitude > 180 {
+		return nil, nil, fmt.Errorf("некорректная долгота %q", rawLongitude)
+	}
+
+	return &latitude, &longitude, nil
 }
 
 func formatCityRegion(name, regionType string) string {

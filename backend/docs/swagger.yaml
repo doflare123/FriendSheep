@@ -124,7 +124,6 @@ definitions:
   dto.EventAdminDto:
     properties:
       address:
-        description: Дополнительная информация
         type: string
       ageLimit:
         type: string
@@ -132,6 +131,11 @@ definitions:
         items:
           $ref: '#/definitions/dto.EventAdminParticipantDto'
         type: array
+      city:
+        type: string
+      cityId:
+        description: Дополнительная информация
+        type: integer
       country:
         type: string
       createdAt:
@@ -169,8 +173,14 @@ definitions:
         type: string
       isCreator:
         type: boolean
+      latitude:
+        type: number
+      link:
+        type: string
       location:
         type: integer
+      longitude:
+        type: number
       maxUsers:
         type: integer
       notes:
@@ -221,10 +231,14 @@ definitions:
   dto.EventFullDto:
     properties:
       address:
-        description: Дополнительная информация
         type: string
       ageLimit:
         type: string
+      city:
+        type: string
+      cityId:
+        description: Дополнительная информация
+        type: integer
       country:
         type: string
       createdAt:
@@ -262,8 +276,14 @@ definitions:
         type: string
       isCreator:
         type: boolean
+      latitude:
+        type: number
+      link:
+        type: string
       location:
         type: integer
+      longitude:
+        type: number
       maxUsers:
         type: integer
       notes:
@@ -597,6 +617,9 @@ definitions:
         type: string
       ageLimit:
         type: integer
+      cityId:
+        minimum: 1
+        type: integer
       country:
         type: string
       customFields:
@@ -622,8 +645,14 @@ definitions:
         type: integer
       imageUrl:
         type: string
+      latitude:
+        type: number
+      link:
+        type: string
       locationId:
         type: integer
+      longitude:
+        type: number
       maxUsers:
         maximum: 1000
         minimum: 2
@@ -660,6 +689,9 @@ definitions:
       ageLimit:
         minimum: 1
         type: integer
+      cityId:
+        minimum: 1
+        type: integer
       country:
         maxLength: 100
         type: string
@@ -691,9 +723,15 @@ definitions:
         description: Если передано, должно содержать абсолютный URL со схемой и хостом.
         format: uri
         type: string
+      latitude:
+        type: number
+      link:
+        type: string
       locationId:
         minimum: 1
         type: integer
+      longitude:
+        type: number
       maxUsers:
         maximum: 1000
         minimum: 2
@@ -907,6 +945,10 @@ definitions:
         type: string
       id:
         type: integer
+      latitude:
+        type: number
+      longitude:
+        type: number
       name:
         type: string
       region:
@@ -1575,6 +1617,7 @@ paths:
       - application/json
       description: |-
         Справочные значения берите из GET /api/v2/references: eventTypeId -> eventTypes[].id, locationId -> locations[].id, ageLimit -> ageLimits[].id. Поле status передавать не нужно, при создании ставится "Набор".
+        Для онлайн-формата обязателен link (HTTP(S) URL). Для офлайн-формата обязательны cityId из /api/v2/references/cities и address; latitude/longitude необязательны и задаются парой. Поля другого формата запрещены.
         Создает новое событие в группе. Доступно модераторам и администраторам группы.
       parameters:
       - description: Данные события
@@ -1682,7 +1725,9 @@ paths:
     put:
       consumes:
       - application/json
-      description: Обновляет событие. Доступно модераторам и администраторам группы.
+      description: |-
+        Обновляет событие. Доступно модераторам и администраторам группы.
+        Проверяется итоговое место проведения. При смене формата несовместимые поля очищаются; онлайн требует link, офлайн — cityId/address. Парные latitude:null и longitude:null удаляют координаты.
       parameters:
       - description: ID события
         in: path
@@ -2000,7 +2045,9 @@ paths:
     get:
       consumes:
       - application/json
-      description: Возвращает топ-10 самых популярных событий
+      description: |-
+        Возвращает публичный топ-10 популярных событий с маркировками 0+, 6+ и 12+. Персонализированный поиск доступен через /api/v2/events/search.
+        При JWT пользователя младше 12 лет исключается также 12+; результат может содержать меньше 10 событий.
       produces:
       - application/json
       responses:
@@ -2019,6 +2066,8 @@ paths:
     get:
       description: |-
         Публичный поиск событий с фильтрами, исключениями и пагинацией. События приватных групп видны только участникам этих групп. Если передать JWT, дополнительно доступны события приватных групп пользователя и режим feed=subscription_news.
+        Возраст определяется из профиля на текущий день UTC: без даты рождения максимум 12+, младше 12 только 0+/6+, младше 16 максимум 12+, младше 18 максимум 16+. Ограничение применяется до подсчёта и пагинации.
+        Явный cityId ограничивает выдачу городом мероприятия. Иначе офлайн-события идут из города профиля, затем по расстоянию между городами; без города — по числу участников и вместимости. Онлайн-события идут после офлайн. Лента подписок сохраняет порядок по дате создания.
         Поддерживаются алиасы query: q/query, categoryIds/categoryId/categories, genreIds/genreId/genres, pageSize/limit, dateFrom/from, dateTo/to, locationType/locationTypes/type, excludeLocationType/excludeLocationTypes/excludeType, feed=subscription_news/subscription-news/новинки подписок.
       parameters:
       - description: Поиск по названию/описанию события и названию группы
@@ -2079,10 +2128,15 @@ paths:
         in: query
         name: excludeLocationType
         type: string
-      - description: Город проведения
+      - description: Устаревший фильтр по точному названию города; используйте cityId
+          для различения одноимённых городов
         in: query
         name: city
         type: string
+      - description: ID города проведения из справочника; нельзя совмещать с city
+        in: query
+        name: cityId
+        type: integer
       - description: Дата/время начала от, RFC3339 или YYYY-MM-DD
         in: query
         name: dateFrom

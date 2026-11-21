@@ -69,6 +69,9 @@ func TestSeederFillsReferenceTables(t *testing.T) {
 	if kaliningrad.Name != "Калининград" || kaliningrad.Region != "Калининградская обл" {
 		t.Fatalf("Kaliningrad = %#v, want its snapshot values", kaliningrad)
 	}
+	if kaliningrad.Latitude == nil || kaliningrad.Longitude == nil || *kaliningrad.Latitude != 54.7074702 || *kaliningrad.Longitude != 20.5073241 {
+		t.Fatalf("координаты Калининграда = %#v, ожидались значения встроенного CSV", kaliningrad)
+	}
 
 	var moscow models.City
 	if err := gormDB.Where("fias_id = ?", "0c5b2444-70a0-4932-980c-b4dc0d3f02b5").First(&moscow).Error; err != nil {
@@ -107,7 +110,9 @@ func TestSeederFillsReferenceTables(t *testing.T) {
 	if err := gormDB.Create(&user).Error; err != nil {
 		t.Fatalf("create user with seeded city: %v", err)
 	}
-	if err := gormDB.Model(&models.City{}).Where("id = ?", kaliningrad.ID).Update("name", "Неактуальное имя").Error; err != nil {
+	if err := gormDB.Model(&models.City{}).Where("id = ?", kaliningrad.ID).Updates(map[string]interface{}{
+		"name": "Неактуальное имя", "latitude": 0, "longitude": 0,
+	}).Error; err != nil {
 		t.Fatalf("modify city before repeat seed: %v", err)
 	}
 	if errs := db.Seeder(&testPostgresRepository{db: gormDB}); len(errs) > 0 {
@@ -119,6 +124,9 @@ func TestSeederFillsReferenceTables(t *testing.T) {
 	}
 	if kaliningrad.ID != stableKaliningradID || kaliningrad.Name != "Калининград" {
 		t.Fatalf("Kaliningrad after repeat seed = %#v, want stable ID and restored snapshot name", kaliningrad)
+	}
+	if kaliningrad.Latitude == nil || kaliningrad.Longitude == nil || *kaliningrad.Latitude != 54.7074702 || *kaliningrad.Longitude != 20.5073241 {
+		t.Fatalf("повторное заполнение не восстановило координаты: %#v", kaliningrad)
 	}
 	var readUser models.User
 	if err := gormDB.First(&readUser, user.ID).Error; err != nil {

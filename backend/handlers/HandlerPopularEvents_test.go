@@ -24,10 +24,14 @@ type popularEventsHandlerServiceStub struct {
 	calls    int
 }
 
-func (s *popularEventsHandlerServiceStub) GetPopularEvents(ctx context.Context) (*events.PopularEventsSnapshot, error) {
+func (s *popularEventsHandlerServiceStub) GetPopularEventsForViewer(ctx context.Context, viewerID uint) (*events.PopularEventsSnapshot, error) {
 	s.calls++
 	s.ctx = ctx
 	return s.snapshot, s.err
+}
+
+func (s *popularEventsHandlerServiceStub) GetPopularEvents(ctx context.Context) (*events.PopularEventsSnapshot, error) {
+	return s.GetPopularEventsForViewer(ctx, 0)
 }
 
 func (s *popularEventsHandlerServiceStub) UpdateCache(context.Context) error {

@@ -14,7 +14,7 @@ type PopularEventsHandler interface {
 }
 
 type popularEventsReader interface {
-	GetPopularEvents(ctx context.Context) (*events.PopularEventsSnapshot, error)
+	GetPopularEventsForViewer(ctx context.Context, viewerID uint) (*events.PopularEventsSnapshot, error)
 }
 
 type popularEventsHandler struct {
@@ -29,7 +29,8 @@ func NewPopularEventsHandler(srv popularEventsReader) PopularEventsHandler {
 
 // GetPopularEvents godoc
 // @Summary      Получить популярные события
-// @Description  Возвращает топ-10 самых популярных событий
+// @Description  Возвращает публичный топ-10 популярных событий с маркировками 0+, 6+ и 12+. Персонализированный поиск доступен через /api/v2/events/search.
+// @Description  При JWT пользователя младше 12 лет исключается также 12+; результат может содержать меньше 10 событий.
 // @Tags         events
 // @Accept       json
 // @Produce      json
@@ -37,7 +38,9 @@ func NewPopularEventsHandler(srv popularEventsReader) PopularEventsHandler {
 // @Failure      500   {object}  dto.ErrorResponse    "Ошибка сервера"
 // @Router       /api/v2/events/popular [get]
 func (h *popularEventsHandler) GetPopularEvents(c *gin.Context) {
-	snapshot, err := h.srv.GetPopularEvents(c.Request.Context())
+	viewerID, _ := c.Get("userID")
+	id, _ := viewerID.(uint)
+	snapshot, err := h.srv.GetPopularEventsForViewer(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Error:   "internal_error",

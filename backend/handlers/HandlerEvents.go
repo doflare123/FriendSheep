@@ -52,6 +52,7 @@ func NewEventsHandler(dependencies EventsHandlerDependencies) EventsHandler {
 // CreateEvent godoc
 // @Summary      Создать событие
 // @Description  Справочные значения берите из GET /api/v2/references: eventTypeId -> eventTypes[].id, locationId -> locations[].id, ageLimit -> ageLimits[].id. Поле status передавать не нужно, при создании ставится "Набор".
+// @Description  Для онлайн-формата обязателен link (HTTP(S) URL). Для офлайн-формата обязательны cityId из /api/v2/references/cities и address; latitude/longitude необязательны и задаются парой. Поля другого формата запрещены.
 // @Description  Создает новое событие в группе. Доступно модераторам и администраторам группы.
 // @Tags         events_admin
 // @Accept       json
@@ -81,6 +82,8 @@ func (h *eventsHandler) CreateEvent(c *gin.Context) {
 			utils.Forbidden(c, "Вы не состоите в группе")
 		case errors.Is(err, events.ErrInvalidGenres):
 			utils.BadRequest(c, err.Error())
+		case errors.Is(err, events.ErrInvalidEventUpdate), errors.Is(err, events.ErrEventLocationNotFound), errors.Is(err, events.ErrEventTypeNotFound):
+			utils.BadRequest(c, err.Error())
 		case errors.Is(err, events.ErrAgeLimitNotFound):
 			utils.BadRequest(c, "Возрастное ограничение не найдено")
 		default:
@@ -95,6 +98,7 @@ func (h *eventsHandler) CreateEvent(c *gin.Context) {
 // UpdateEvent godoc
 // @Summary      Обновить событие
 // @Description  Обновляет событие. Доступно модераторам и администраторам группы.
+// @Description  Проверяется итоговое место проведения. При смене формата несовместимые поля очищаются; онлайн требует link, офлайн — cityId/address. Парные latitude:null и longitude:null удаляют координаты.
 // @Tags         events_admin
 // @Accept       json
 // @Produce      json
@@ -347,6 +351,8 @@ func (h *eventsHandler) GetGroupEvents(c *gin.Context) {
 // SearchEvents godoc
 // @Summary      Поиск событий
 // @Description  Публичный поиск событий с фильтрами, исключениями и пагинацией. События приватных групп видны только участникам этих групп. Если передать JWT, дополнительно доступны события приватных групп пользователя и режим feed=subscription_news.
+// @Description  Возраст определяется из профиля на текущий день UTC: без даты рождения максимум 12+, младше 12 только 0+/6+, младше 16 максимум 12+, младше 18 максимум 16+. Ограничение применяется до подсчёта и пагинации.
+// @Description  Явный cityId ограничивает выдачу городом мероприятия. Иначе офлайн-события идут из города профиля, затем по расстоянию между городами; без города — по числу участников и вместимости. Онлайн-события идут после офлайн. Лента подписок сохраняет порядок по дате создания.
 // @Description  Поддерживаются алиасы query: q/query, categoryIds/categoryId/categories, genreIds/genreId/genres, pageSize/limit, dateFrom/from, dateTo/to, locationType/locationTypes/type, excludeLocationType/excludeLocationTypes/excludeType, feed=subscription_news/subscription-news/новинки подписок.
 // @Tags         events
 // @Produce      json
@@ -360,7 +366,8 @@ func (h *eventsHandler) GetGroupEvents(c *gin.Context) {
 // @Param        excludeEventTypeIds query []int false "ID типов событий для исключения, повтором или CSV"
 // @Param        locationType query string false "online/offline"
 // @Param        excludeLocationType query string false "online/offline для исключения"
-// @Param        city query string false "Город проведения"
+// @Param        city query string false "Устаревший фильтр по точному названию города; используйте cityId для различения одноимённых городов"
+// @Param        cityId query int false "ID города проведения из справочника; нельзя совмещать с city"
 // @Param        dateFrom query string false "Дата/время начала от, RFC3339 или YYYY-MM-DD"
 // @Param        dateTo query string false "Дата/время начала до, RFC3339 или YYYY-MM-DD"
 // @Param        hasFreeSlots query bool false "true - только со свободными местами, false - только заполненные"
@@ -562,6 +569,13 @@ func bindEventSearchQuery(c *gin.Context) (events.EventSearchInput, error) {
 	input.LocationTypes = collectQueryValues(c, "locationTypes", "locationType", "type")
 	input.ExcludeLocationTypes = collectQueryValues(c, "excludeLocationTypes", "excludeLocationType", "excludeType")
 	input.City = firstQuery(c, "city")
+	input.CityID, err = parseOptionalUintQuery(c, "cityId")
+	if err != nil {
+		return input, err
+	}
+	if input.CityID != nil && strings.TrimSpace(input.City) != "" {
+		return input, errors.New("Передайте только один параметр: cityId или city")
+	}
 
 	input.DateFrom, err = parseOptionalTimeQuery(c, false, "dateFrom", "from")
 	if err != nil {

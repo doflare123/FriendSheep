@@ -19,6 +19,7 @@ type EventSearchInput struct {
 	LocationTypes        []string
 	ExcludeLocationTypes []string
 	City                 string
+	CityID               *uint
 	DateFrom             *time.Time
 	DateTo               *time.Time
 	HasFreeSlots         *bool
@@ -40,6 +41,9 @@ type EventSearchQuery struct {
 	LocationTypes        []string
 	ExcludeLocationTypes []string
 	City                 string
+	CityID               *uint
+	AllowedAgeLimits     []string
+	PreferredCityIDs     []uint
 	DateFrom             *time.Time
 	DateTo               *time.Time
 	HasFreeSlots         *bool
@@ -49,8 +53,9 @@ type EventSearchQuery struct {
 }
 
 type EventGroupEventsQuery struct {
-	ViewerID uint
-	GroupID  uint
+	ViewerID         uint
+	GroupID          uint
+	AllowedAgeLimits []string
 }
 
 type EventDetailsQuery struct {
@@ -61,6 +66,18 @@ type EventDetailsQuery struct {
 type EventSearchPageView struct {
 	Total int64
 	Items []EventSearchItemView
+}
+
+type EventViewerProfile struct {
+	Birthday *time.Time
+	CityID   *uint
+}
+
+type EventDiscoveryCity struct {
+	ID        uint
+	Name      string
+	Latitude  *float64
+	Longitude *float64
 }
 
 type EventSearchItemView struct {
@@ -128,6 +145,11 @@ type EventFullView struct {
 	Genres           []string
 	Creator          EventReadCreatorView
 	Address          string
+	CityID           *uint
+	City             string
+	Link             string
+	Latitude         *float64
+	Longitude        *float64
 	Country          string
 	AgeLimit         string
 	Year             *int

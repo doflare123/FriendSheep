@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	PopularEventsCacheKey         = "popular_events:v3:top10"
-	previousPopularEventsCacheKey = "popular_events:v2:top10"
+	PopularEventsCacheKey         = "popular_events:v4:public12:top10"
+	previousPopularEventsCacheKey = "popular_events:v3:top10"
+	olderPopularEventsCacheKey    = "popular_events:v2:top10"
 	legacyPopularEventsCacheKey   = "popular_events:top10"
 	CacheExpiration               = 6 * time.Hour
 	TopEventsLimit                = 10
@@ -111,6 +112,34 @@ func (s *popularEventsService) GetPopularEvents(ctx context.Context) (*PopularEv
 	return &result, nil
 }
 
+func (s *popularEventsService) GetPopularEventsForViewer(ctx context.Context, viewerID uint) (*PopularEventsSnapshot, error) {
+	profile := EventViewerProfile{}
+	if viewerID != 0 {
+		var err error
+		profile, err = s.store.FindPopularEventsViewer(ctx, viewerID)
+		if err != nil {
+			return nil, fmt.Errorf("не удалось получить возраст пользователя: %w", err)
+		}
+	}
+	snapshot, err := s.GetPopularEvents(ctx)
+	if err != nil {
+		return nil, err
+	}
+	allowed := allowedEventAgeLimits(profile.Birthday, s.now())
+	items := make([]PopularEventView, 0, len(snapshot.Events))
+	for _, item := range snapshot.Events {
+		for _, label := range allowed {
+			if item.AgeLimit == label {
+				items = append(items, item)
+				break
+			}
+		}
+	}
+	snapshot.Events = items
+	snapshot.Count = len(items)
+	return snapshot, nil
+}
+
 func (s *popularEventsService) UpdateCache(ctx context.Context) error {
 	s.updateMu.Lock()
 	defer s.updateMu.Unlock()
@@ -163,6 +192,9 @@ func (s *popularEventsService) getPreviousPopularEventIDs(ctx context.Context) [
 	snapshot, err := s.cache.Get(ctx, PopularEventsCacheKey)
 	if errors.Is(err, ErrPopularEventsCacheMiss) {
 		snapshot, err = s.cache.Get(ctx, previousPopularEventsCacheKey)
+	}
+	if errors.Is(err, ErrPopularEventsCacheMiss) {
+		snapshot, err = s.cache.Get(ctx, olderPopularEventsCacheKey)
 	}
 	if errors.Is(err, ErrPopularEventsCacheMiss) {
 		snapshot, err = s.cache.Get(ctx, legacyPopularEventsCacheKey)

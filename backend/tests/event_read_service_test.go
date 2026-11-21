@@ -13,22 +13,30 @@ import (
 type eventReadServiceContextKey struct{}
 
 type eventReadStoreStub struct {
-	searchPage    servicesevents.EventSearchPageView
-	searchErr     error
-	groupView     servicesevents.EventGroupEventsView
-	groupErr      error
-	detailsView   servicesevents.EventDetailsView
-	detailsErr    error
-	searchCalls   int
-	groupCalls    int
-	detailsCalls  int
-	searchContext context.Context
-	groupContext  context.Context
-	detailContext context.Context
-	searchQuery   servicesevents.EventSearchQuery
-	groupQuery    servicesevents.EventGroupEventsQuery
-	detailsQuery  servicesevents.EventDetailsQuery
+	searchPage      servicesevents.EventSearchPageView
+	searchErr       error
+	groupView       servicesevents.EventGroupEventsView
+	groupErr        error
+	detailsView     servicesevents.EventDetailsView
+	detailsErr      error
+	searchCalls     int
+	groupCalls      int
+	detailsCalls    int
+	searchContext   context.Context
+	groupContext    context.Context
+	detailContext   context.Context
+	searchQuery     servicesevents.EventSearchQuery
+	groupQuery      servicesevents.EventGroupEventsQuery
+	detailsQuery    servicesevents.EventDetailsQuery
+	viewerProfile   servicesevents.EventViewerProfile
+	viewerErr       error
+	discoveryCities []servicesevents.EventDiscoveryCity
+	citiesErr       error
 }
+
+type eventReadClockStub struct{ now time.Time }
+
+func (c eventReadClockStub) Now() time.Time { return c.now }
 
 func (s *eventReadStoreStub) SearchEvents(ctx context.Context, query servicesevents.EventSearchQuery) (servicesevents.EventSearchPageView, error) {
 	s.searchCalls++
@@ -49,6 +57,14 @@ func (s *eventReadStoreStub) GetEventDetails(ctx context.Context, query services
 	s.detailContext = ctx
 	s.detailsQuery = query
 	return s.detailsView, s.detailsErr
+}
+
+func (s *eventReadStoreStub) FindEventViewer(context.Context, uint) (servicesevents.EventViewerProfile, error) {
+	return s.viewerProfile, s.viewerErr
+}
+
+func (s *eventReadStoreStub) ListEventCities(context.Context) ([]servicesevents.EventDiscoveryCity, error) {
+	return s.discoveryCities, s.citiesErr
 }
 
 func TestEventReadServiceSearchEventsNormalizesDelegatesAndBuildsPage(t *testing.T) {
@@ -265,6 +281,80 @@ func TestEventReadServiceSearchEventsPropagatesStoreError(t *testing.T) {
 		t.Fatalf("err = %v, want store error", err)
 	}
 }
+
+func TestEventReadServiceSearchEventsBuildsAgeAndPreferredCityPolicy(t *testing.T) {
+	now := time.Date(2032, 3, 1, 8, 0, 0, 0, time.UTC)
+	birthday := time.Date(2016, 3, 1, 0, 0, 0, 0, time.UTC)
+	viewerCityID := uint(2)
+	latitude := 54.7
+	longitude := 20.5
+	nearLatitude := 55.0
+	nearLongitude := 21.0
+	farLatitude := 55.8
+	farLongitude := 37.6
+	store := &eventReadStoreStub{
+		viewerProfile: servicesevents.EventViewerProfile{Birthday: &birthday, CityID: &viewerCityID},
+		discoveryCities: []servicesevents.EventDiscoveryCity{
+			{ID: 3, Latitude: &farLatitude, Longitude: &farLongitude},
+			{ID: 2, Latitude: &latitude, Longitude: &longitude},
+			{ID: 1, Latitude: &nearLatitude, Longitude: &nearLongitude},
+			{ID: 4},
+		},
+	}
+	service := servicesevents.NewEventReadServiceWithClock(&testLogger{}, store, eventReadClockStub{now: now})
+
+	result, err := service.SearchEvents(context.Background(), 9, servicesevents.EventSearchInput{Page: 1, Limit: 20})
+
+	if err != nil {
+		t.Fatalf("SearchEvents returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("result = nil")
+	}
+	if !reflect.DeepEqual(store.searchQuery.AllowedAgeLimits, []string{"0+", "6+", "12+", "16+"}) {
+		t.Fatalf("AllowedAgeLimits = %#v, want limits through 16+", store.searchQuery.AllowedAgeLimits)
+	}
+	if !reflect.DeepEqual(store.searchQuery.PreferredCityIDs, []uint{2, 1, 3}) {
+		t.Fatalf("PreferredCityIDs = %#v, want own city and cities by distance", store.searchQuery.PreferredCityIDs)
+	}
+}
+
+func TestEventReadServiceSearchEventsFailsClosedAgePolicy(t *testing.T) {
+	now := time.Date(2032, 3, 1, 8, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name     string
+		birthday *time.Time
+		want     []string
+	}{
+		{name: "anonymous", want: []string{"0+", "6+", "12+"}},
+		{name: "birthday missing", birthday: nil, want: []string{"0+", "6+", "12+"}},
+		{name: "eleven years old", birthday: eventReadDatePointer(time.Date(2020, 3, 2, 0, 0, 0, 0, time.UTC)), want: []string{"0+", "6+"}},
+		{name: "twelve years old", birthday: eventReadDatePointer(time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC)), want: []string{"0+", "6+", "12+"}},
+		{name: "sixteen years old", birthday: eventReadDatePointer(time.Date(2016, 3, 1, 0, 0, 0, 0, time.UTC)), want: []string{"0+", "6+", "12+", "16+"}},
+		{name: "eighteen years old", birthday: eventReadDatePointer(time.Date(2014, 3, 1, 0, 0, 0, 0, time.UTC)), want: []string{"0+", "6+", "12+", "16+", "18+"}},
+		{name: "leap birthday before birthday in non leap year", birthday: eventReadDatePointer(time.Date(2016, 2, 29, 0, 0, 0, 0, time.UTC)), want: []string{"0+", "6+", "12+", "16+"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &eventReadStoreStub{viewerProfile: servicesevents.EventViewerProfile{Birthday: tt.birthday}}
+			service := servicesevents.NewEventReadServiceWithClock(&testLogger{}, store, eventReadClockStub{now: now})
+			userID := uint(9)
+			if tt.name == "anonymous" {
+				userID = 0
+			}
+
+			if _, err := service.SearchEvents(context.Background(), userID, servicesevents.EventSearchInput{}); err != nil {
+				t.Fatalf("SearchEvents returned error: %v", err)
+			}
+			if !reflect.DeepEqual(store.searchQuery.AllowedAgeLimits, tt.want) {
+				t.Fatalf("AllowedAgeLimits = %#v, want %#v", store.searchQuery.AllowedAgeLimits, tt.want)
+			}
+		})
+	}
+}
+
+func eventReadDatePointer(value time.Time) *time.Time { return &value }
 
 func TestEventReadServiceGetGroupEventsDelegatesAndMapsDTO(t *testing.T) {
 	start := time.Date(2028, 2, 3, 12, 0, 0, 0, time.UTC)

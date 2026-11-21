@@ -16,6 +16,10 @@ func NewGORMPopularEventsStore(postgresRepo repository.PostgresRepository) Popul
 	return &gormPopularEventsStore{postgresRepo: postgresRepo}
 }
 
+func (s *gormPopularEventsStore) FindPopularEventsViewer(ctx context.Context, viewerID uint) (EventViewerProfile, error) {
+	return (&gormEventReadStore{repo: s.postgresRepo}).FindEventViewer(ctx, viewerID)
+}
+
 func (s *gormPopularEventsStore) ListTopPopularEvents(ctx context.Context, now time.Time, limit int) ([]PopularEventRecord, error) {
 	var recruitmentStatus eventmodels.Status
 	if err := s.postgresRepo.Model(&eventmodels.Status{}).
@@ -33,8 +37,11 @@ func (s *gormPopularEventsStore) ListTopPopularEvents(ctx context.Context, now t
 		Preload("AgeLimit").
 		Preload("Status").
 		Preload("Group").
+		Preload("City").
 		Preload("Genres.Genre").
 		Joins("JOIN groups ON events.group_id = groups.id").
+		Joins("JOIN age_limits ON age_limits.id = events.age_limit_id").
+		Where("age_limits.name IN ?", []string{"0+", "6+", "12+"}).
 		Where("groups.is_private = ?", false).
 		Where("events.start_time > ?", now).
 		Where("events.max_users > 0").
@@ -124,7 +131,7 @@ func mapPopularEventRecord(eventModel eventmodels.Event) PopularEventRecord {
 			LocationType: eventModel.EventLocation.Name,
 			AgeLimit:     eventModel.AgeLimit.Name,
 			Status:       eventModel.Status.Name,
-			City:         eventModel.Group.City,
+			City:         eventCityName(eventModel),
 			Genres:       genres,
 			Subscribed:   false,
 		},

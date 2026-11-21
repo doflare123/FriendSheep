@@ -22,7 +22,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Справочные значения берите из GET /api/v2/references: eventTypeId -\u003e eventTypes[].id, locationId -\u003e locations[].id, ageLimit -\u003e ageLimits[].id. Поле status передавать не нужно, при создании ставится \"Набор\".\nСоздает новое событие в группе. Доступно модераторам и администраторам группы.",
+                "description": "Справочные значения берите из GET /api/v2/references: eventTypeId -\u003e eventTypes[].id, locationId -\u003e locations[].id, ageLimit -\u003e ageLimits[].id. Поле status передавать не нужно, при создании ставится \"Набор\".\nДля онлайн-формата обязателен link (HTTP(S) URL). Для офлайн-формата обязательны cityId из /api/v2/references/cities и address; latitude/longitude необязательны и задаются парой. Поля другого формата запрещены.\nСоздает новое событие в группе. Доступно модераторам и администраторам группы.",
                 "consumes": [
                     "application/json"
                 ],
@@ -129,7 +129,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Обновляет событие. Доступно модераторам и администраторам группы.",
+                "description": "Обновляет событие. Доступно модераторам и администраторам группы.\nПроверяется итоговое место проведения. При смене формата несовместимые поля очищаются; онлайн требует link, офлайн — cityId/address. Парные latitude:null и longitude:null удаляют координаты.",
                 "consumes": [
                     "application/json"
                 ],
@@ -499,7 +499,7 @@ const docTemplate = `{
         },
         "/api/v2/events/popular": {
             "get": {
-                "description": "Возвращает топ-10 самых популярных событий",
+                "description": "Возвращает публичный топ-10 популярных событий с маркировками 0+, 6+ и 12+. Персонализированный поиск доступен через /api/v2/events/search.\nПри JWT пользователя младше 12 лет исключается также 12+; результат может содержать меньше 10 событий.",
                 "consumes": [
                     "application/json"
                 ],
@@ -528,7 +528,7 @@ const docTemplate = `{
         },
         "/api/v2/events/search": {
             "get": {
-                "description": "Публичный поиск событий с фильтрами, исключениями и пагинацией. События приватных групп видны только участникам этих групп. Если передать JWT, дополнительно доступны события приватных групп пользователя и режим feed=subscription_news.\nПоддерживаются алиасы query: q/query, categoryIds/categoryId/categories, genreIds/genreId/genres, pageSize/limit, dateFrom/from, dateTo/to, locationType/locationTypes/type, excludeLocationType/excludeLocationTypes/excludeType, feed=subscription_news/subscription-news/новинки подписок.",
+                "description": "Публичный поиск событий с фильтрами, исключениями и пагинацией. События приватных групп видны только участникам этих групп. Если передать JWT, дополнительно доступны события приватных групп пользователя и режим feed=subscription_news.\nВозраст определяется из профиля на текущий день UTC: без даты рождения максимум 12+, младше 12 только 0+/6+, младше 16 максимум 12+, младше 18 максимум 16+. Ограничение применяется до подсчёта и пагинации.\nЯвный cityId ограничивает выдачу городом мероприятия. Иначе офлайн-события идут из города профиля, затем по расстоянию между городами; без города — по числу участников и вместимости. Онлайн-события идут после офлайн. Лента подписок сохраняет порядок по дате создания.\nПоддерживаются алиасы query: q/query, categoryIds/categoryId/categories, genreIds/genreId/genres, pageSize/limit, dateFrom/from, dateTo/to, locationType/locationTypes/type, excludeLocationType/excludeLocationTypes/excludeType, feed=subscription_news/subscription-news/новинки подписок.",
                 "produces": [
                     "application/json"
                 ],
@@ -623,8 +623,14 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Город проведения",
+                        "description": "Устаревший фильтр по точному названию города; используйте cityId для различения одноимённых городов",
                         "name": "city",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID города проведения из справочника; нельзя совмещать с city",
+                        "name": "cityId",
                         "in": "query"
                     },
                     {
@@ -3760,7 +3766,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "address": {
-                    "description": "Дополнительная информация",
                     "type": "string"
                 },
                 "ageLimit": {
@@ -3771,6 +3776,13 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dto.EventAdminParticipantDto"
                     }
+                },
+                "city": {
+                    "type": "string"
+                },
+                "cityId": {
+                    "description": "Дополнительная информация",
+                    "type": "integer"
                 },
                 "country": {
                     "type": "string"
@@ -3827,8 +3839,17 @@ const docTemplate = `{
                 "isCreator": {
                     "type": "boolean"
                 },
+                "latitude": {
+                    "type": "number"
+                },
+                "link": {
+                    "type": "string"
+                },
                 "location": {
                     "type": "integer"
+                },
+                "longitude": {
+                    "type": "number"
                 },
                 "maxUsers": {
                     "type": "integer"
@@ -3906,11 +3927,17 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "address": {
-                    "description": "Дополнительная информация",
                     "type": "string"
                 },
                 "ageLimit": {
                     "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "cityId": {
+                    "description": "Дополнительная информация",
+                    "type": "integer"
                 },
                 "country": {
                     "type": "string"
@@ -3967,8 +3994,17 @@ const docTemplate = `{
                 "isCreator": {
                     "type": "boolean"
                 },
+                "latitude": {
+                    "type": "number"
+                },
+                "link": {
+                    "type": "string"
+                },
                 "location": {
                     "type": "integer"
+                },
+                "longitude": {
+                    "type": "number"
                 },
                 "maxUsers": {
                     "type": "integer"
@@ -4490,6 +4526,10 @@ const docTemplate = `{
                 "ageLimit": {
                     "type": "integer"
                 },
+                "cityId": {
+                    "type": "integer",
+                    "minimum": 1
+                },
                 "country": {
                     "type": "string"
                 },
@@ -4524,8 +4564,17 @@ const docTemplate = `{
                 "imageUrl": {
                     "type": "string"
                 },
+                "latitude": {
+                    "type": "number"
+                },
+                "link": {
+                    "type": "string"
+                },
                 "locationId": {
                     "type": "integer"
+                },
+                "longitude": {
+                    "type": "number"
                 },
                 "maxUsers": {
                     "type": "integer",
@@ -4557,6 +4606,10 @@ const docTemplate = `{
                     "maxLength": 500
                 },
                 "ageLimit": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "cityId": {
                     "type": "integer",
                     "minimum": 1
                 },
@@ -4598,9 +4651,18 @@ const docTemplate = `{
                     "type": "string",
                     "format": "uri"
                 },
+                "latitude": {
+                    "type": "number"
+                },
+                "link": {
+                    "type": "string"
+                },
                 "locationId": {
                     "type": "integer",
                     "minimum": 1
+                },
+                "longitude": {
+                    "type": "number"
                 },
                 "maxUsers": {
                     "type": "integer",
@@ -4911,6 +4973,12 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
                 },
                 "name": {
                     "type": "string"

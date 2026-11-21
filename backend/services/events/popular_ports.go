@@ -10,12 +10,14 @@ var ErrPopularEventsCacheMiss = errors.New("popular events cache miss")
 
 type PopularEventsService interface {
 	GetPopularEvents(ctx context.Context) (*PopularEventsSnapshot, error)
+	GetPopularEventsForViewer(ctx context.Context, viewerID uint) (*PopularEventsSnapshot, error)
 	UpdateCache(ctx context.Context) error
 	Start() error
 	Stop()
 }
 
 type PopularEventsStore interface {
+	FindPopularEventsViewer(ctx context.Context, viewerID uint) (EventViewerProfile, error)
 	ListTopPopularEvents(ctx context.Context, now time.Time, limit int) ([]PopularEventRecord, error)
 }
 

@@ -5,12 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
+	"friendship/models"
 	eventmodels "friendship/models/events"
 	groupmodels "friendship/models/groups"
 	"friendship/repository"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type gormEventReadStore struct {
@@ -22,6 +25,32 @@ func NewGORMEventReadStore(repo repository.PostgresRepository) EventReadStore {
 		return nil
 	}
 	return &gormEventReadStore{repo: repo}
+}
+
+func (s *gormEventReadStore) FindEventViewer(ctx context.Context, userID uint) (EventViewerProfile, error) {
+	var user models.User
+	err := s.repo.Model(&models.User{}).WithContext(normalizeReadContext(ctx)).
+		Select("birthday", "city_id").First(&user, userID).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return EventViewerProfile{}, nil
+	}
+	if err != nil {
+		return EventViewerProfile{}, fmt.Errorf("ошибка чтения параметров поиска пользователя: %w", err)
+	}
+	return EventViewerProfile{Birthday: user.Birthday, CityID: user.CityID}, nil
+}
+
+func (s *gormEventReadStore) ListEventCities(ctx context.Context) ([]EventDiscoveryCity, error) {
+	var cities []models.City
+	if err := s.repo.Model(&models.City{}).WithContext(normalizeReadContext(ctx)).
+		Select("id", "name", "latitude", "longitude").Find(&cities).Error; err != nil {
+		return nil, fmt.Errorf("ошибка чтения координат городов: %w", err)
+	}
+	result := make([]EventDiscoveryCity, 0, len(cities))
+	for _, city := range cities {
+		result = append(result, EventDiscoveryCity{ID: city.ID, Name: city.Name, Latitude: city.Latitude, Longitude: city.Longitude})
+	}
+	return result, nil
 }
 
 func (s *gormEventReadStore) SearchEvents(ctx context.Context, query EventSearchQuery) (EventSearchPageView, error) {
@@ -38,6 +67,7 @@ func (s *gormEventReadStore) SearchEvents(ctx context.Context, query EventSearch
 	}
 
 	itemsQuery := s.buildSearchQuery(ctx, query).
+		Preload("City").
 		Preload("Group").
 		Preload("EventType").
 		Preload("EventLocation").
@@ -50,7 +80,7 @@ func (s *gormEventReadStore) SearchEvents(ctx context.Context, query EventSearch
 
 	var found []eventmodels.Event
 	if err := itemsQuery.
-		Order(eventSearchOrder(query)).
+		Clauses(clause.OrderBy{Expression: eventSearchOrder(query)}).
 		Limit(query.Limit).
 		Offset(int(offset64)).
 		Find(&found).Error; err != nil {
@@ -94,14 +124,21 @@ func (s *gormEventReadStore) GetGroupEvents(ctx context.Context, query EventGrou
 	eventQuery := s.repo.
 		Model(&eventmodels.Event{}).
 		WithContext(normalizeReadContext(ctx)).
+		Preload("City").
 		Preload("Group").
 		Preload("EventType").
 		Preload("EventLocation").
 		Preload("AgeLimit").
 		Preload("Status").
 		Preload("Genres.Genre").
+		Joins("JOIN age_limits ON age_limits.id = events.age_limit_id").
 		Where("group_id = ?", query.GroupID).
 		Order("start_time DESC")
+	allowed := query.AllowedAgeLimits
+	if len(allowed) == 0 {
+		allowed = allowedEventAgeLimits(nil, time.Time{})
+	}
+	eventQuery = eventQuery.Where("age_limits.name IN ?", allowed)
 	if query.ViewerID != 0 {
 		eventQuery = eventQuery.Preload("Users", "user_id = ?", query.ViewerID)
 	}
@@ -119,6 +156,7 @@ func (s *gormEventReadStore) GetEventDetails(ctx context.Context, query EventDet
 	eventQuery := s.repo.
 		Model(&eventmodels.Event{}).
 		WithContext(normalizeReadContext(ctx)).
+		Preload("City").
 		Preload("EventType").
 		Preload("EventLocation").
 		Preload("Status").
@@ -160,7 +198,14 @@ func (s *gormEventReadStore) buildSearchQuery(ctx context.Context, query EventSe
 		Model(&eventmodels.Event{}).
 		WithContext(normalizeReadContext(ctx)).
 		Joins("JOIN groups ON groups.id = events.group_id").
-		Joins("LEFT JOIN event_locations ON event_locations.id = events.event_location_id")
+		Joins("LEFT JOIN event_locations ON event_locations.id = events.event_location_id").
+		Joins("LEFT JOIN cities event_city ON event_city.id = events.city_id").
+		Joins("JOIN age_limits ON age_limits.id = events.age_limit_id")
+	allowed := query.AllowedAgeLimits
+	if len(allowed) == 0 {
+		allowed = allowedEventAgeLimits(nil, time.Time{})
+	}
+	result = result.Where("age_limits.name IN ?", allowed)
 
 	result = applyEventSearchVisibility(result, query.ViewerID)
 	result = applyEventSearchFilters(result, query)
@@ -230,7 +275,13 @@ func applyEventSearchFilters(query *gorm.DB, input EventSearchQuery) *gorm.DB {
 		query = query.Where("LOWER(event_locations.name) NOT IN ?", input.ExcludeLocationTypes)
 	}
 	if input.City != "" {
-		query = query.Where("LOWER(groups.city) LIKE ?", "%"+strings.ToLower(input.City)+"%")
+		query = query.Where("LOWER(event_city.name) = ?", strings.ToLower(input.City))
+	}
+	if input.CityID != nil {
+		query = query.Where("events.city_id = ?", *input.CityID)
+	}
+	if input.CityID != nil || input.City != "" {
+		query = query.Where("LOWER(event_locations.name) IN ?", normalizeLocationTypes([]string{"offline"}))
 	}
 	if input.DateFrom != nil {
 		query = query.Where("events.start_time >= ?", *input.DateFrom)
@@ -259,11 +310,25 @@ func applyEventSearchFilters(query *gorm.DB, input EventSearchQuery) *gorm.DB {
 	return query
 }
 
-func eventSearchOrder(input EventSearchQuery) string {
+func eventSearchOrder(input EventSearchQuery) clause.Expr {
 	if input.OnlySubscriptionNews {
-		return "events.created_at DESC, events.id DESC"
+		return clause.Expr{SQL: "events.created_at DESC, events.id DESC"}
 	}
-	return "events.start_time ASC, events.id DESC"
+	offline := "LOWER(event_locations.name) IN ('offline','off-line','офлайн','оффлайн')"
+	order := "CASE WHEN " + offline + " THEN 0 ELSE 1 END ASC, "
+	var values []interface{}
+	if len(input.PreferredCityIDs) > 0 {
+		order += "CASE events.city_id "
+		for i, cityID := range input.PreferredCityIDs {
+			order += "WHEN ? THEN CAST(? AS INTEGER) "
+			values = append(values, cityID, i)
+		}
+		order += "ELSE CAST(? AS INTEGER) END ASC, "
+		values = append(values, len(input.PreferredCityIDs))
+	}
+	order += "CASE WHEN " + offline + " THEN events.current_users ELSE 0 END DESC, " +
+		"CASE WHEN " + offline + " THEN events.max_users ELSE 0 END DESC, events.start_time ASC, events.id DESC"
+	return clause.Expr{SQL: order, Vars: values}
 }
 
 func (s *gormEventReadStore) findGroupAccessView(ctx context.Context, groupID uint) (groupmodels.Group, bool, error) {
@@ -325,7 +390,7 @@ func mapSearchEvents(items []eventmodels.Event, viewerID uint) []EventSearchItem
 			LocationType:     item.EventLocation.Name,
 			AgeLimit:         item.AgeLimit.Name,
 			Status:           item.Status.Name,
-			City:             item.Group.City,
+			City:             eventCityName(item),
 			Genres:           eventGenresToNames(item.Genres),
 			ViewerSubscribed: eventHasViewerSubscription(item.Users, viewerID),
 		})
@@ -363,6 +428,11 @@ func mapFullEvent(item eventmodels.Event, viewerID uint) EventFullView {
 			Verified: item.Creator.VerifiedUser,
 		},
 		Address:          item.Address,
+		CityID:           item.CityID,
+		City:             eventCityName(item),
+		Link:             item.Link,
+		Latitude:         item.Latitude,
+		Longitude:        item.Longitude,
 		Country:          item.Country,
 		AgeLimit:         item.AgeLimit.Name,
 		Year:             item.Year,
@@ -373,6 +443,13 @@ func mapFullEvent(item eventmodels.Event, viewerID uint) EventFullView {
 		CreatedAt:        item.CreatedAt,
 		UpdatedAt:        item.UpdatedAt,
 	}
+}
+
+func eventCityName(item eventmodels.Event) string {
+	if item.City == nil {
+		return ""
+	}
+	return item.City.Name
 }
 
 func eventGenresToNames(genres []eventmodels.EventGenre) []string {

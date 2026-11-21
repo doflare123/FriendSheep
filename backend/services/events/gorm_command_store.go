@@ -20,6 +20,7 @@ func (s *gormEventCommandStore) FindEventForUpdate(eventID uint) (EventCommandSn
 	var event events.Event
 	err := s.repo.
 		Model(&events.Event{}).
+		Preload("EventLocation").
 		Clauses(clause.Locking{Strength: "UPDATE"}).
 		First(&event, eventID).Error
 	if err != nil {
@@ -37,7 +38,22 @@ func (s *gormEventCommandStore) FindEventForUpdate(eventID uint) (EventCommandSn
 		EndTime:      event.EndTime,
 		Duration:     event.Duration,
 		CurrentUsers: event.CurrentUsers,
+		LocationID:   event.EventLocationID,
+		LocationName: event.EventLocation.Name,
+		CityID:       event.CityID,
+		Address:      event.Address,
+		Link:         event.Link,
+		Latitude:     event.Latitude,
+		Longitude:    event.Longitude,
+		Country:      event.Country,
 	}, nil
+}
+
+func commandCityName(city *models.City) string {
+	if city == nil {
+		return ""
+	}
+	return city.Name
 }
 
 func (s *gormEventCommandStore) FindGroupRole(actorID uint, groupID uint) (string, error) {
@@ -76,6 +92,25 @@ func (s *gormEventCommandStore) EventLocationExists(locationID uint) (bool, erro
 		return false, fmt.Errorf("ошибка проверки формата события: %w", err)
 	}
 	return true, nil
+}
+
+func (s *gormEventCommandStore) FindEventLocationName(locationID uint) (string, bool, error) {
+	var location events.EventLocation
+	if err := s.repo.Select("id", "name").First(&location, locationID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", false, nil
+		}
+		return "", false, fmt.Errorf("ошибка получения формата события: %w", err)
+	}
+	return location.Name, true, nil
+}
+
+func (s *gormEventCommandStore) CityExists(cityID uint) (bool, error) {
+	var count int64
+	if err := s.repo.Model(&models.City{}).Where("id = ?", cityID).Count(&count).Error; err != nil {
+		return false, fmt.Errorf("ошибка проверки города: %w", err)
+	}
+	return count > 0, nil
 }
 
 func (s *gormEventCommandStore) AgeLimitExists(ageLimitID uint) (bool, error) {
@@ -117,6 +152,10 @@ func (s *gormEventCommandStore) CreateEvent(record EventCreateRecord) (uint, err
 		ImageURL:        record.ImageURL,
 		StatusID:        record.StatusID,
 		Address:         record.Address,
+		CityID:          record.CityID,
+		Link:            record.Link,
+		Latitude:        record.Latitude,
+		Longitude:       record.Longitude,
 		Country:         record.Country,
 		AgeLimitID:      record.AgeLimitID,
 		Year:            record.Year,
@@ -181,6 +220,12 @@ func (s *gormEventCommandStore) UpdateEvent(record EventUpdateRecord) error {
 	if record.Country != nil {
 		updates["country"] = *record.Country
 	}
+	if record.LocationDetailsSet {
+		updates["city_id"] = record.CityID
+		updates["link"] = record.Link
+		updates["latitude"] = record.Latitude
+		updates["longitude"] = record.Longitude
+	}
 	if record.AgeLimitID != nil {
 		updates["age_limit_id"] = *record.AgeLimitID
 	}
@@ -236,6 +281,7 @@ func (s *gormEventCommandStore) LoadEventResult(eventID uint, actorID uint) (Eve
 		Preload("Status").
 		Preload("Group").
 		Preload("Creator").
+		Preload("City").
 		Preload("AgeLimit").
 		Preload("Genres.Genre").
 		Preload("Users", "user_id = ?", actorID).
@@ -287,6 +333,11 @@ func (s *gormEventCommandStore) LoadEventResult(eventID uint, actorID uint) (Eve
 			Verified: event.Creator.VerifiedUser,
 		},
 		Address:      event.Address,
+		CityID:       event.CityID,
+		CityName:     commandCityName(event.City),
+		Link:         event.Link,
+		Latitude:     event.Latitude,
+		Longitude:    event.Longitude,
 		Country:      event.Country,
 		AgeLimit:     event.AgeLimit.Name,
 		Year:         event.Year,

@@ -262,6 +262,8 @@ func TestEventCommandServiceCreateEventCreatesEventRelationsAndActionLog(t *test
 		Duration:    120,
 		MaxUsers:    5,
 		Genres:      []uint{genreID},
+		CityID:      eventTestCityID(),
+		Address:     "Тестовый адрес",
 		AgeLimitID:  1,
 	})
 
@@ -298,6 +300,8 @@ func TestEventCommandServiceCreateEventRollsBackWhenGenreMissing(t *testing.T) {
 		Duration:    120,
 		MaxUsers:    5,
 		Genres:      []uint{999},
+		CityID:      eventTestCityID(),
+		Address:     "Тестовый адрес",
 		AgeLimitID:  1,
 	})
 
@@ -335,6 +339,8 @@ func TestEventCommandServiceCreateEventRollsBackWhenAgeLimitMissing(t *testing.T
 		Duration:    120,
 		MaxUsers:    5,
 		Genres:      []uint{genreID},
+		CityID:      eventTestCityID(),
+		Address:     "Тестовый адрес",
 		AgeLimitID:  999,
 	})
 
@@ -452,10 +458,12 @@ func TestEventCommandServiceUpdateEventRecomputesEndTimeReplacesGenresAndWritesA
 	newStart := time.Now().Add(48 * time.Hour).Truncate(time.Second)
 	newDuration := uint16(180)
 	newTitle := "Updated Event Title"
+	link := "https://example.com/online-event"
 
 	eventDTO, err := service.UpdateEvent(context.Background(), 1, eventID, servicesevents.UpdateEventInput{
 		Title:      &newTitle,
 		LocationID: &newLocationID,
+		Link:       &link,
 		StartTime:  &newStart,
 		Duration:   &newDuration,
 		Genres:     []uint{newGenreID},
@@ -645,8 +653,8 @@ func TestEventReadServiceGetEventDetailsReturnsSubscribedStateForGroupMember(t *
 	if eventDTO.IsCreator {
 		t.Fatal("IsCreator = true, want false")
 	}
-	if eventDTO.AgeLimit != "18+" {
-		t.Fatalf("AgeLimit = %q, want 18+", eventDTO.AgeLimit)
+	if eventDTO.AgeLimit != "12+" {
+		t.Fatalf("AgeLimit = %q, want 12+", eventDTO.AgeLimit)
 	}
 }
 
@@ -811,7 +819,7 @@ func TestEventReadServiceGetGroupEventsAllowsPlainMember(t *testing.T) {
 	}
 	item := eventsList[0]
 	if item.Group.ID != groupID || item.Group.Image != "https://example.com/group.png" ||
-		!item.StartTime.Equal(startTime) || item.AgeLimit != "18+" || item.Status != "Planned" {
+		!item.StartTime.Equal(startTime) || item.AgeLimit != "12+" || item.Status != "Planned" {
 		t.Fatalf("group event = %#v, want shared search item metadata", item)
 	}
 }
@@ -990,7 +998,7 @@ func TestEventReadServiceSearchEventsAppliesFiltersExclusionsAndPagination(t *te
 		CategoryIDs:     []uint{1},
 		ExcludeGenreIDs: []uint{horrorGenreID},
 		LocationTypes:   []string{"offline"},
-		City:            "mos",
+		City:            "Moscow",
 		DateFrom:        &dateFrom,
 		DateTo:          &dateTo,
 		Page:            1,
@@ -1102,8 +1110,8 @@ func TestEventReadServiceSearchEventsAppliesEachFilter(t *testing.T) {
 		},
 		{
 			name:    "город",
-			input:   servicesevents.EventSearchInput{City: "  MOS  "},
-			wantIDs: []uint{alphaID, betaID},
+			input:   servicesevents.EventSearchInput{City: "  MOSCOW  "},
+			wantIDs: []uint{alphaID},
 		},
 		{
 			name:    "нижняя граница даты включительна",
@@ -1361,8 +1369,11 @@ func seedEventReferences(t *testing.T, db *gorm.DB) {
 	if err := db.Where("id = ?", 1).FirstOrCreate(&eventmodels.Status{}, eventmodels.Status{ID: 1, Name: "Planned"}).Error; err != nil {
 		t.Fatalf("create event status: %v", err)
 	}
-	if err := db.Where("id = ?", 1).FirstOrCreate(&eventmodels.AgeLimit{}, eventmodels.AgeLimit{ID: 1, Name: "18+"}).Error; err != nil {
+	if err := db.Where("id = ?", 1).FirstOrCreate(&eventmodels.AgeLimit{}, eventmodels.AgeLimit{ID: 1, Name: "12+"}).Error; err != nil {
 		t.Fatalf("create event age limit: %v", err)
+	}
+	if err := db.Where("id = ?", 17).FirstOrCreate(&models.City{}, models.City{ID: 17, Name: "Тестовый город", Region: "Тестовый регион", FIASID: "test-event-city-17"}).Error; err != nil {
+		t.Fatalf("create default event city: %v", err)
 	}
 }
 
@@ -1404,6 +1415,9 @@ func setEventGroupCity(t *testing.T, db *gorm.DB, groupID uint, city string) {
 		Update("city", city).Error; err != nil {
 		t.Fatalf("update group city: %v", err)
 	}
+	if err := db.Where("name = ?", city).FirstOrCreate(&models.City{}, models.City{Name: city, Region: "Тестовый регион", FIASID: "test-event-city-" + strings.ToLower(city)}).Error; err != nil {
+		t.Fatalf("create event city %q: %v", city, err)
+	}
 }
 
 func seedEventGenre(t *testing.T, db *gorm.DB, name string) uint {
@@ -1433,6 +1447,19 @@ func seedEvent(t *testing.T, db *gorm.DB, groupID, creatorID uint, currentUsers,
 
 	seedEventReferences(t, db)
 
+	cityID := uint(17)
+	var group groupmodels.Group
+	if err := db.Select("city").First(&group, groupID).Error; err != nil {
+		t.Fatalf("load event group city: %v", err)
+	}
+	if group.City != "" {
+		var city models.City
+		if err := db.Where("name = ?", group.City).First(&city).Error; err != nil {
+			t.Fatalf("load event city %q: %v", group.City, err)
+		}
+		cityID = city.ID
+	}
+
 	event := eventmodels.Event{
 		Title:           "Test Event",
 		Description:     "Test Event Description",
@@ -1447,11 +1474,18 @@ func seedEvent(t *testing.T, db *gorm.DB, groupID, creatorID uint, currentUsers,
 		MaxUsers:        maxUsers,
 		StatusID:        1,
 		AgeLimitID:      1,
+		CityID:          &cityID,
+		Address:         "Тестовый адрес",
 	}
 	if err := db.Create(&event).Error; err != nil {
 		t.Fatalf("create event: %v", err)
 	}
 	return event.ID
+}
+
+func eventTestCityID() *uint {
+	cityID := uint(17)
+	return &cityID
 }
 
 func setEventSearchFields(t *testing.T, db *gorm.DB, eventID uint, title string, startTime time.Time, eventTypeID, locationID uint) {

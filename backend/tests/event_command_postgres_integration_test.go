@@ -33,6 +33,16 @@ func TestEventCommandUpdateWaitsForMembershipWriteAndSurvivesAuditFailurePostgre
 	groupID := seedEventGroup(t, db, 1, false)
 	seedEventGroupMembershipWithRole(t, db, 1, groupID, groupmodels.RoleAdmin)
 	eventID := seedEvent(t, db, groupID, 1, 1, 5)
+	city := models.City{Name: "Калининград", Region: "Калининградская обл", FIASID: "df679694-d505-4dd3-b514-4ba48c8a97d8"}
+	if err := db.Create(&city).Error; err != nil {
+		t.Fatalf("create event city: %v", err)
+	}
+	if err := db.Model(&eventmodels.Event{}).Where("id = ?", eventID).Updates(map[string]interface{}{
+		"city_id": city.ID,
+		"address": "ул. Театральная, 1",
+	}).Error; err != nil {
+		t.Fatalf("configure structured event location: %v", err)
+	}
 	seedEventParticipant(t, db, eventID, 1)
 	createFailingEventCommandAuditTriggerPostgres(t, db)
 
@@ -118,6 +128,7 @@ func newPostgresEventCommandDB(t *testing.T, dsn string) *gorm.DB {
 		&eventmodels.Status{},
 		&eventmodels.AgeLimit{},
 		&eventmodels.Genre{},
+		&models.City{},
 		&eventmodels.Event{},
 		&eventmodels.EventsUser{},
 		&eventmodels.EventGenre{},

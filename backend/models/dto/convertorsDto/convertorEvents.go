@@ -1,6 +1,7 @@
 package convertorsdto
 
 import (
+	"friendship/models"
 	"friendship/models/dto"
 	"friendship/models/events"
 )
@@ -44,7 +45,12 @@ func ConvertToFullDto(event *events.Event, userID uint, includeParticipants bool
 			Image:    event.Creator.Image,
 			Verified: event.Creator.VerifiedUser,
 		},
+		CityID:       event.CityID,
+		City:         convertorEventCityName(event.City),
 		Address:      event.Address,
+		Link:         event.Link,
+		Latitude:     event.Latitude,
+		Longitude:    event.Longitude,
 		Country:      event.Country,
 		AgeLimit:     event.AgeLimit.Name,
 		Year:         event.Year,
@@ -91,10 +97,17 @@ func ConvertToSearchItemDtoForUser(event *events.Event, userID uint) *dto.EventS
 		LocationType: event.EventLocation.Name,
 		AgeLimit:     event.AgeLimit.Name,
 		Status:       event.Status.Name,
-		City:         event.Group.City,
+		City:         convertorEventCityName(event.City),
 		Genres:       genres,
 		Subscribed:   eventSubscribedByUser(event, userID),
 	}
+}
+
+func convertorEventCityName(city *models.City) string {
+	if city == nil {
+		return ""
+	}
+	return city.Name
 }
 
 func ConvertManyToSearchItemDto(events []events.Event) []dto.EventSearchItemDto {

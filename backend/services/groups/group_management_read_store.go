@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"friendship/models"
 	"friendship/models/dto"
 	convertorsdto "friendship/models/dto/convertorsDto"
 	"friendship/models/events"
@@ -293,8 +294,17 @@ func (s gormGroupManagementReadStore) listGroupMembers(ctx context.Context, grou
 }
 
 func (s gormGroupManagementReadStore) listActiveGroupEvents(ctx context.Context, groupID uint, userID uint) ([]dto.EventSearchItemDto, error) {
+	var viewer models.User
+	if userID != 0 {
+		err := s.store.Model(&models.User{}).WithContext(ctx).Select("birthday").First(&viewer, userID).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("ошибка получения возраста пользователя: %w", err)
+		}
+	}
 	var activeEvents []events.Event
 	err := s.store.
+		Model(&events.Event{}).
+		Preload("City").
 		Preload("Group").
 		Preload("EventType").
 		Preload("EventLocation").
@@ -303,9 +313,11 @@ func (s gormGroupManagementReadStore) listActiveGroupEvents(ctx context.Context,
 		Preload("Genres.Genre").
 		Preload("Users", "user_id = ?", userID).
 		WithContext(ctx).
-		Where("group_id = ? AND status_id IN (?)", groupID, []uint{1, 2}).
-		Where("start_time > ?", time.Now()).
-		Order("start_time ASC").
+		Joins("JOIN age_limits ON age_limits.id = events.age_limit_id").
+		Where("age_limits.name IN ?", events.AllowedAgeLimitNames(viewer.Birthday, time.Now())).
+		Where("events.group_id = ? AND events.status_id IN (?)", groupID, []uint{1, 2}).
+		Where("events.start_time > ?", time.Now()).
+		Order("events.start_time ASC").
 		Find(&activeEvents).Error
 	if err != nil {
 		return nil, fmt.Errorf("list active group events: %w", err)

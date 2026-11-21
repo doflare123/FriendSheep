@@ -21,6 +21,9 @@ type eventCommandStoreStub struct {
 	eventTypeErr    error
 	locationExists  bool
 	locationErr     error
+	locationNames   map[uint]string
+	cityExists      bool
+	cityErr         error
 	ageLimitExists  bool
 	ageLimitErr     error
 	genreCount      int
@@ -76,6 +79,18 @@ func (s *eventCommandStoreStub) EventLocationExists(locationID uint) (bool, erro
 	return s.locationExists, s.locationErr
 }
 
+func (s *eventCommandStoreStub) FindEventLocationName(locationID uint) (string, bool, error) {
+	s.record("find_event_location_name")
+	s.locationID = locationID
+	name, found := s.locationNames[locationID]
+	return name, found, nil
+}
+
+func (s *eventCommandStoreStub) CityExists(uint) (bool, error) {
+	s.record("city_exists")
+	return s.cityExists, s.cityErr
+}
+
 func (s *eventCommandStoreStub) AgeLimitExists(ageLimitID uint) (bool, error) {
 	s.record("age_limit_exists")
 	s.ageLimitID = ageLimitID
@@ -114,6 +129,7 @@ func (s *eventCommandStoreStub) LoadEventResult(eventID uint, actorID uint) (ser
 }
 
 func newEventCommandStoreStub() *eventCommandStoreStub {
+	cityID := uint(17)
 	return &eventCommandStoreStub{
 		snapshot: servicesevents.EventCommandSnapshot{
 			ID:           77,
@@ -122,10 +138,16 @@ func newEventCommandStoreStub() *eventCommandStoreStub {
 			StartTime:    time.Now().Add(24 * time.Hour),
 			Duration:     120,
 			CurrentUsers: 2,
+			LocationID:   4,
+			LocationName: "Offline",
+			CityID:       &cityID,
+			Address:      "Existing command address",
 		},
 		role:            groupmodels.RoleAdmin,
 		eventTypeExists: true,
 		locationExists:  true,
+		locationNames:   map[uint]string{4: "Offline"},
+		cityExists:      true,
 		ageLimitExists:  true,
 		genreCount:      2,
 		createID:        77,
@@ -142,6 +164,7 @@ func newEventCommandStoreStub() *eventCommandStoreStub {
 
 func validCreateEventCommandInput() servicesevents.CreateEventInput {
 	year := 2026
+	cityID := uint(17)
 	return servicesevents.CreateEventInput{
 		Title:        "Command event",
 		Description:  "Long command event description",
@@ -154,6 +177,7 @@ func validCreateEventCommandInput() servicesevents.CreateEventInput {
 		MaxUsers:     10,
 		Genres:       []uint{8, 9},
 		Address:      "Command address",
+		CityID:       &cityID,
 		Country:      "RU",
 		AgeLimitID:   6,
 		Year:         &year,
@@ -190,7 +214,7 @@ func TestEventCommandServiceCreateEventPreservesContextAndDelegatesExactInput(t 
 	if uow.calls != 1 || uow.ctx != ctx {
 		t.Fatalf("unit of work calls = %d, context preserved = %v", uow.calls, uow.ctx == ctx)
 	}
-	wantCalls := []string{"find_group_role", "age_limit_exists", "count_genres", "create_event", "audit", "load_event"}
+	wantCalls := []string{"find_group_role", "find_event_location_name", "city_exists", "age_limit_exists", "count_genres", "create_event", "audit", "load_event"}
 	if !reflect.DeepEqual(store.calls, wantCalls) {
 		t.Fatalf("calls = %v, want %v", store.calls, wantCalls)
 	}
@@ -209,7 +233,9 @@ func TestEventCommandServiceCreateEventPreservesContextAndDelegatesExactInput(t 
 		record.StartTime != input.StartTime || record.EndTime != input.StartTime.Add(90*time.Minute) ||
 		record.Duration != input.Duration || record.MaxUsers != input.MaxUsers || record.CurrentUsers != 1 ||
 		record.ImageURL != input.ImageURL || record.StatusID != 1 || record.Address != input.Address ||
-		record.Country != input.Country || record.AgeLimitID != input.AgeLimitID || record.Year != input.Year ||
+		record.Country != input.Country || record.CityID == nil || input.CityID == nil || *record.CityID != *input.CityID ||
+		record.Link != input.Link || record.Latitude != nil || record.Longitude != nil ||
+		record.AgeLimitID != input.AgeLimitID || record.Year != input.Year ||
 		record.Notes != input.Notes || !reflect.DeepEqual(record.CustomFields, input.CustomFields) ||
 		!reflect.DeepEqual(record.GenreIDs, input.Genres) {
 		t.Fatalf("create record = %#v, input = %#v", record, input)
@@ -275,6 +301,8 @@ func TestEventCommandServiceUpdateEventPreservesContextAndDelegatesExactInput(t 
 		"find_group_role",
 		"event_type_exists",
 		"event_location_exists",
+		"find_event_location_name",
+		"city_exists",
 		"age_limit_exists",
 		"count_genres",
 		"update_event",
@@ -296,7 +324,8 @@ func TestEventCommandServiceUpdateEventPreservesContextAndDelegatesExactInput(t 
 		record.LocationID != input.LocationID || record.StartTime != input.StartTime ||
 		record.Duration != input.Duration || record.MaxUsers != input.MaxUsers || record.AgeLimitID != input.AgeLimit ||
 		!record.ReplaceGenres || !reflect.DeepEqual(record.GenreIDs, input.Genres) ||
-		record.EndTime == nil || !record.EndTime.Equal(wantEndTime) {
+		record.EndTime == nil || !record.EndTime.Equal(wantEndTime) || !record.LocationDetailsSet ||
+		record.CityID == nil || *record.CityID != 17 || record.Address == nil || *record.Address != "Existing command address" {
 		t.Fatalf("update record = %#v, input = %#v", record, input)
 	}
 	if len(audit.entries) != 1 {

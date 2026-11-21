@@ -55,6 +55,9 @@ func validateUpdateEventInput(input UpdateEventInput, now time.Time) error {
 	if err := validateUpdatedMaxLength("address", input.Address, eventAddressMaxLength); err != nil {
 		return err
 	}
+	if err := validateUpdatedPositiveUint("cityId", input.CityID); err != nil {
+		return err
+	}
 	if err := validateUpdatedMaxLength("country", input.Country, eventCountryMaxLength); err != nil {
 		return err
 	}
@@ -76,6 +79,13 @@ func hasUpdateEventChanges(input UpdateEventInput) bool {
 		input.MaxUsers != nil ||
 		input.Genres != nil ||
 		input.Address != nil ||
+		input.CityID != nil ||
+		input.CityIDSet ||
+		input.Link != nil ||
+		input.Latitude != nil ||
+		input.LatitudeSet ||
+		input.Longitude != nil ||
+		input.LongitudeSet ||
 		input.Country != nil ||
 		input.AgeLimit != nil ||
 		input.Year != nil ||

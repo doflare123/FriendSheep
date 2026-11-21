@@ -927,7 +927,7 @@ func TestGroupServiceGetGroupDetailsMarksActiveEventSubscription(t *testing.T) {
 	activeEvent := subscribedDetails.ActiveEvents[0]
 	if activeEvent.ID != eventID || activeEvent.Group.ID != groupID ||
 		activeEvent.Group.Image != "https://example.com/group.png" ||
-		!activeEvent.StartTime.Equal(startTime) || activeEvent.AgeLimit != "18+" ||
+		!activeEvent.StartTime.Equal(startTime) || activeEvent.AgeLimit != "12+" ||
 		activeEvent.Status != "Planned" {
 		t.Fatalf("active event = %#v, want shared search item metadata", activeEvent)
 	}

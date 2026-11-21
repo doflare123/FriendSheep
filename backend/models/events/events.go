@@ -46,9 +46,16 @@ type Event struct {
 	StatusID uint   `gorm:"not null;default:1" json:"statusId"`
 	Status   Status `gorm:"foreignKey:StatusID" json:"status"`
 
-	// Дополнительная информация (из MongoDB)
-	Address    string   `gorm:"type:varchar(500)" json:"address"` // Конкретный адрес/место
-	Country    string   `gorm:"type:varchar(100)" json:"country"`
+	// Место проведения
+	CityID    *uint        `gorm:"index" json:"cityId,omitempty"`
+	City      *models.City `gorm:"foreignKey:CityID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"city,omitempty"`
+	Address   string       `gorm:"type:varchar(500)" json:"address"`
+	Link      string       `gorm:"type:text" json:"link"`
+	Latitude  *float64     `gorm:"type:double precision" json:"latitude,omitempty"`
+	Longitude *float64     `gorm:"type:double precision" json:"longitude,omitempty"`
+	Country   string       `gorm:"type:varchar(100)" json:"country"` // Сохраняется до удаления устаревшего API-поля.
+
+	// Дополнительная информация
 	AgeLimitID uint     `gorm:"index" json:"ageLimitId"`
 	AgeLimit   AgeLimit `gorm:"foreignKey:AgeLimitID"` // "18+", "12+", "6+" и т.д.
 	Year       *int     `gorm:"type:int" json:"year,omitempty"`
