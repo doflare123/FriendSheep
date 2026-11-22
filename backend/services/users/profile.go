@@ -172,6 +172,7 @@ type Profile struct {
 	Verified     bool               `json:"verified"`
 	IsOwner      bool               `json:"isOwner"`
 	Statistics   *CompactStatistics `json:"statistics,omitempty"`
+	TileSettings TileSettings       `json:"tileSettings"`
 	Tiles        []StatisticTile    `json:"tiles"`
 }
 
@@ -214,6 +215,7 @@ func (s *ProfileService) GetProfile(ctx context.Context, viewerID uint, target T
 		Verified:     user.VerifiedUser,
 		IsOwner:      isOwner,
 		Statistics:   &CompactStatistics{},
+		TileSettings: TileSettings{Tiles: []TileKey{}},
 		Tiles:        []StatisticTile{},
 	}
 	if len(visible) == 0 {
@@ -229,6 +231,7 @@ func (s *ProfileService) GetProfile(ctx context.Context, viewerID uint, target T
 		visibleSet[field] = struct{}{}
 	}
 	selectedTiles := visibleSelectedTiles(settings, visibleSet)
+	profile.TileSettings = TileSettings{Tiles: selectedTiles}
 	if !compactStatisticsRequested(visibleSet) && len(selectedTiles) == 0 {
 		return profile, nil
 	}

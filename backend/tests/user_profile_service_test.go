@@ -281,6 +281,51 @@ func TestProfileServiceTileSettingsValidateOrderAndCustomPrivacyFiltersTiles(t *
 	}
 }
 
+func TestProfileServiceReturnsEffectiveTileSettings(t *testing.T) {
+	keys := []users.TileKey{users.TilePlannedMinutes, users.TileGames, users.TileCompletedEvents}
+	store := &profileStoreStub{
+		user:       users.UserRecord{ID: 7, Privacy: users.DefaultPrivacy()},
+		tiles:      users.TileSettings{Tiles: keys},
+		references: []references.ReferenceItem{{ID: 1, Name: "Игры"}},
+	}
+	stats := &profileStatisticsStub{view: statistics.View{Types: []statistics.CountItem{}, Genres: []statistics.CountItem{}, Months: []statistics.MonthCount{}, Weekdays: []statistics.WeekdayCount{}}}
+	service := users.NewProfileService(store, stats)
+
+	owner, err := service.GetProfile(context.Background(), 7, users.OwnTarget())
+	if err != nil || !reflect.DeepEqual(owner.TileSettings.Tiles, keys) {
+		t.Fatalf("owner tile settings/error = %#v/%v", owner.TileSettings, err)
+	}
+
+	openProfile, err := service.GetProfile(context.Background(), 8, users.IDTarget(7))
+	if err != nil || !reflect.DeepEqual(openProfile.TileSettings.Tiles, keys) {
+		t.Fatalf("open tile settings/error = %#v/%v", openProfile.TileSettings, err)
+	}
+
+	store.user.Privacy = users.Privacy{Mode: users.PrivacyModeCustom, VisibleStatistics: []users.StatisticField{users.StatisticCompletedEvents, users.StatisticGames}}
+	customProfile, err := service.GetProfile(context.Background(), 8, users.IDTarget(7))
+	wantCustom := []users.TileKey{users.TileGames, users.TileCompletedEvents}
+	if err != nil || !reflect.DeepEqual(customProfile.TileSettings.Tiles, wantCustom) || len(customProfile.Tiles) != len(wantCustom) {
+		t.Fatalf("custom tile settings/tiles/error = %#v/%#v/%v", customProfile.TileSettings, customProfile.Tiles, err)
+	}
+	for i, tile := range customProfile.Tiles {
+		if tile.Key != customProfile.TileSettings.Tiles[i] {
+			t.Fatalf("visible tile key = %q, want %q", tile.Key, customProfile.TileSettings.Tiles[i])
+		}
+	}
+
+	store.user.Privacy.VisibleStatistics = []users.StatisticField{}
+	emptyProfile, err := service.GetProfile(context.Background(), 8, users.IDTarget(7))
+	encoded, marshalErr := json.Marshal(emptyProfile)
+	if err != nil || marshalErr != nil || !strings.Contains(string(encoded), `"tileSettings":{"tiles":[]}`) {
+		t.Fatalf("empty tile settings/error/JSON = %#v/%v/%v/%s", emptyProfile.TileSettings, err, marshalErr, encoded)
+	}
+
+	store.user.Privacy = users.Privacy{Mode: users.PrivacyModeClosed}
+	if _, err := service.GetProfile(context.Background(), 8, users.IDTarget(7)); !errors.Is(err, users.ErrProfileClosed) {
+		t.Fatalf("closed profile error = %v, want ErrProfileClosed", err)
+	}
+}
+
 func TestProfileServiceTilesPreserveNullUniqueMetadataAndAvoidUnusedReferenceLookup(t *testing.T) {
 	store := &profileStoreStub{user: users.UserRecord{ID: 7, Privacy: users.DefaultPrivacy()}, tiles: users.TileSettings{Tiles: []users.TileKey{users.TileUniquePeopleCount, users.TileCompletedEvents}}}
 	stats := &profileStatisticsStub{view: statistics.View{CompletedEvents: 2, UniquePeopleStatus: "pending", Types: []statistics.CountItem{}, Genres: []statistics.CountItem{}, Months: []statistics.MonthCount{}, Weekdays: []statistics.WeekdayCount{}}}

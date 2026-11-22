@@ -1473,6 +1473,8 @@ definitions:
         $ref: '#/definitions/users.CompactStatistics'
       status:
         type: string
+      tileSettings:
+        $ref: '#/definitions/users.TileSettings'
       tiles:
         items:
           $ref: '#/definitions/users.StatisticTile'
@@ -3420,8 +3422,8 @@ paths:
   /api/v2/users:
     get:
       description: Личность определяется проверенным JWT. Приватность не ограничивает
-        владельцу доступ к компактной статистике; полная статистика доступна отдельно
-        через /api/v2/users/me/statistics.
+        владельцу доступ к компактной статистике и настройке отображаемых плиток;
+        полная статистика доступна отдельно через /api/v2/users/me/statistics.
       produces:
       - application/json
       responses:
@@ -3450,8 +3452,9 @@ paths:
     get:
       description: Положительное число означает ID, строка с @ — уникальный us, включая
         числовой. Ноль и остальные форматы запрещены. Владелец определяется по устойчивому
-        ID. Чужой closed-профиль возвращает 403; open показывает компактную статистику,
-        custom — только выбранные поля. Планы и история не возвращаются.
+        ID. Чужой closed-профиль возвращает 403; open показывает компактную статистику
+        и выбранный порядок плиток, custom — только разрешённые поля и плитки. Планы
+        и история не возвращаются.
       parameters:
       - description: Положительный ID или @us
         in: path
