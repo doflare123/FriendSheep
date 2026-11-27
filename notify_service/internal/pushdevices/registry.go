@@ -228,6 +228,86 @@ func (r *Registry) ListActiveBindings(ctx context.Context, userID uint64) ([]Bin
 	return bindings, nil
 }
 
+// ListBindingsForReconciliation возвращает страницу привязок, для которых
+// требуется сверка с источником сессий. Курсор является installationId последней
+// уже обработанной строки.
+func (r *Registry) ListBindingsForReconciliation(ctx context.Context, afterInstallationID string, limit int) ([]Binding, error) {
+	if (afterInstallationID != "" && !installationIDPattern.MatchString(afterInstallationID)) || limit < 1 || limit > MaxReconciliationPageSize {
+		return nil, domainError(ErrorCodeInvalidRequest, errors.New("некорректная страница сверки push-привязок"))
+	}
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT installation_id, binding_id::text, user_id, session_id, version::text
+		FROM notify_service.push_device_installations
+		WHERE state IN ($1, $2)
+		  AND installation_id > $3
+		ORDER BY installation_id
+		LIMIT $4`, StateActive, StateInvalidAddress, afterInstallationID, limit)
+	if err != nil {
+		return nil, wrapStoreError("не удалось прочитать push-привязки для сверки", err)
+	}
+	defer rows.Close()
+
+	bindings := make([]Binding, 0, limit)
+	for rows.Next() {
+		var binding Binding
+		var storedUserID int64
+		if err := rows.Scan(&binding.InstallationID, &binding.BindingID, &storedUserID, &binding.SessionID, &binding.Version); err != nil {
+			return nil, wrapStoreError("не удалось разобрать push-привязку для сверки", err)
+		}
+		binding.UserID = uint64(storedUserID)
+		bindings = append(bindings, binding)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, wrapStoreError("не удалось завершить чтение push-привязок для сверки", err)
+	}
+	return bindings, nil
+}
+
+// DetachIfCurrent отвязывает только всё ещё совпадающие поколение, пару
+// пользователь/сессия и версию. Отпечаток последнего отклонённого адреса
+// сохраняется, чтобы прежний адрес нельзя было снова активировать.
+func (r *Registry) DetachIfCurrent(ctx context.Context, binding Binding) (bool, error) {
+	if !installationIDPattern.MatchString(binding.InstallationID) || !validateUUIDv4(binding.BindingID) ||
+		binding.UserID == 0 || binding.UserID > math.MaxInt64 || !validateSessionID(binding.SessionID) ||
+		!validateUUIDv4(binding.Version) {
+		return false, domainError(ErrorCodeInvalidRequest, errors.New("некорректная условная отвязка push-привязки"))
+	}
+	newVersion, err := newUUIDv4()
+	if err != nil {
+		return false, wrapStoreError("не удалось создать версию условной отвязки", err)
+	}
+	result, err := r.db.ExecContext(ctx, `
+		UPDATE notify_service.push_device_installations
+		SET state = $7,
+		    version = $6::uuid,
+		    user_id = NULL,
+		    session_id = NULL,
+		    binding_id = NULL,
+		    provider_token_ciphertext = NULL,
+		    provider_token_nonce = NULL,
+		    provider_token_key_id = NULL,
+		    token_fingerprint = NULL,
+		    last_operation_id = NULL,
+		    last_operation_fingerprint = NULL,
+		    updated_at = NOW()
+		WHERE installation_id = $1
+		  AND binding_id = $2::uuid
+		  AND user_id = $3
+		  AND session_id = $4
+		  AND version = $5::uuid
+		  AND state IN ($8, $9)`,
+		binding.InstallationID, binding.BindingID, int64(binding.UserID), binding.SessionID,
+		binding.Version, newVersion, StateDetached, StateActive, StateInvalidAddress)
+	if err != nil {
+		return false, wrapStoreError("не удалось условно отвязать push-привязку", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, wrapStoreError("не удалось проверить условную отвязку push-привязки", err)
+	}
+	return rowsAffected == 1, nil
+}
+
 func (r *Registry) ResolveActiveAddress(ctx context.Context, installationID, bindingID string, userID uint64) (ResolvedAddress, bool, error) {
 	if !installationIDPattern.MatchString(installationID) || !validateUUIDv4(bindingID) || userID == 0 || userID > math.MaxInt64 {
 		return ResolvedAddress{}, false, domainError(ErrorCodeInvalidRequest, nil)

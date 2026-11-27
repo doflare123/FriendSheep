@@ -98,6 +98,14 @@ func TestRedisAuthSessionStoreRotationAndRevocation(t *testing.T) {
 		t.Fatalf("CreateSession: %v", err)
 	}
 	createdSessionIDs = append(createdSessionIDs, created.SessionID)
+	activeForOwner, err := store.HasActiveSessionForUser(ctx, 77, created.SessionID)
+	if err != nil || !activeForOwner {
+		t.Fatalf("HasActiveSessionForUser владельца = %t/%v, ожидалось true/nil", activeForOwner, err)
+	}
+	activeForAnotherUser, err := store.HasActiveSessionForUser(ctx, 78, created.SessionID)
+	if err != nil || activeForAnotherUser {
+		t.Fatalf("HasActiveSessionForUser другого пользователя = %t/%v, ожидалось false/nil", activeForAnotherUser, err)
+	}
 
 	stored, err := client.HGetAll(ctx, store.sessionKey(created.SessionID)).Result()
 	if err != nil {

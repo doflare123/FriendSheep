@@ -16,6 +16,7 @@ import (
 // RequestResponseLogger - расширенный middleware для логирования
 func RequestResponseLogger() gin.HandlerFunc {
 	return gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+		pushRoute := pushRouteForLog(param.Request.URL.Path)
 		// Базовая информация о запросе
 		logEntry := map[string]interface{}{
 			"timestamp":   param.TimeStamp.Format("2006-01-02 15:04:05"),
@@ -29,7 +30,9 @@ func RequestResponseLogger() gin.HandlerFunc {
 		}
 
 		// Добавляем query параметры если есть
-		if param.Request.URL.RawQuery != "" {
+		if pushRoute != "" {
+			logEntry["path"] = pushRoute
+		} else if param.Request.URL.RawQuery != "" {
 			logEntry["query_params"] = param.Request.URL.RawQuery
 		}
 
@@ -51,7 +54,7 @@ func RequestResponseLogger() gin.HandlerFunc {
 		logEntry["level"] = level
 
 		// Добавляем ошибку если есть
-		if param.ErrorMessage != "" {
+		if pushRoute == "" && param.ErrorMessage != "" {
 			logEntry["error"] = param.ErrorMessage
 		}
 
@@ -75,6 +78,11 @@ func DetailedRequestLogger() gin.HandlerFunc {
 		requestID := generateRequestID()
 		c.Header("X-Request-ID", requestID)
 		c.Set("request_id", requestID)
+		if pushRoute := pushRouteForLog(c.Request.URL.Path); pushRoute != "" {
+			c.Next()
+			utils.Log.Printf("HTTP [%s]: %s %s %d %s", requestID, c.Request.Method, pushRoute, c.Writer.Status(), time.Since(start))
+			return
+		}
 
 		// Читаем тело запроса
 		var requestBody []byte
@@ -187,7 +195,7 @@ func DetailedRequestLogger() gin.HandlerFunc {
 
 // ErrorLogger - middleware для логирования панике и ошибок
 func ErrorLogger() gin.HandlerFunc {
-	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
+	return recoveryWithPushRedaction(gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
 		requestID := c.GetString("request_id")
 		if requestID == "" {
 			requestID = generateRequestID()
@@ -207,7 +215,7 @@ func ErrorLogger() gin.HandlerFunc {
 		utils.Log.Printf("PANIC: %s", string(jsonBytes))
 
 		c.AbortWithStatus(500)
-	})
+	}))
 }
 
 // SlowRequestLogger - логирует медленные запросы
@@ -356,11 +364,12 @@ func sanitizeSensitiveData(data interface{}) interface{} {
 // sanitizeHeaders - очищает чувствительные заголовки
 func sanitizeHeaders(headers map[string][]string) map[string][]string {
 	sensitiveHeaders := map[string]bool{
-		"authorization":    true,
-		"x-api-key":        true,
-		"cookie":           true,
-		"set-cookie":       true,
-		"x-internal-token": true,
+		"authorization":         true,
+		"x-api-key":             true,
+		"cookie":                true,
+		"set-cookie":            true,
+		"x-internal-token":      true,
+		"x-installation-secret": true,
 	}
 
 	result := make(map[string][]string)
@@ -369,7 +378,7 @@ func sanitizeHeaders(headers map[string][]string) map[string][]string {
 		if sensitiveHeaders[normalizedKey] {
 			maskedValues := make([]string, len(values))
 			for i, value := range values {
-				if normalizedKey == "x-internal-token" {
+				if normalizedKey == "x-internal-token" || normalizedKey == "x-installation-secret" {
 					maskedValues[i] = "[REDACTED]"
 				} else if len(value) > 10 {
 					maskedValues[i] = value[:6] + "...***"

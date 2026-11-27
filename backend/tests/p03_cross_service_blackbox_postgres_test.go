@@ -146,7 +146,7 @@ func startNotifyServiceForBlackBox(t *testing.T, dsn string, monolithURL string,
 	return startNotifyServiceWithStateForBlackBox(t, dsn, monolithURL, token, true)
 }
 
-func startNotifyServiceWithStateForBlackBox(t *testing.T, dsn string, monolithURL string, token string, reset bool) (string, func()) {
+func startNotifyServiceWithStateForBlackBox(t *testing.T, dsn string, monolithURL string, token string, reset bool, extraEnv ...string) (string, func()) {
 	t.Helper()
 
 	if reset {
@@ -193,6 +193,7 @@ func startNotifyServiceWithStateForBlackBox(t *testing.T, dsn string, monolithUR
 		"NOTIFY_MONOLITH_HTTP_TIMEOUT=2s",
 		"NOTIFY_JOB_LEASE_DURATION=5s",
 	)
+	command.Env = append(command.Env, extraEnv...)
 	if err := command.Start(); err != nil {
 		cancel()
 		t.Fatalf("start notify_service black-box binary: %v", err)

@@ -24,6 +24,8 @@ type Config struct {
 	NotifyServiceToken         string             `mapstructure:"NOTIFY_SERVICE_TOKEN"`
 	NotifyServiceBaseURL       string             `mapstructure:"NOTIFY_SERVICE_BASE_URL"`
 	NotifyServiceHTTPTimeout   time.Duration      `mapstructure:"NOTIFY_SERVICE_HTTP_TIMEOUT"`
+	NotifyPushProviderProject  string             `mapstructure:"NOTIFY_PUSH_PROVIDER_PROJECT"`
+	NotifyPushEnvironment      string             `mapstructure:"NOTIFY_PUSH_ENVIRONMENT"`
 	UniquePeople               UniquePeopleConfig `mapstructure:",squash"`
 	Auth                       AuthConfig         `mapstructure:",squash"`
 	LogLevel                   string             `mapstructure:"LOG_LEVEL"`

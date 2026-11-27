@@ -156,6 +156,26 @@ func TestNormalizeAndValidateConfigRejectsEmptyNotifyServiceToken(t *testing.T) 
 	}
 }
 
+func TestNormalizeAndValidatePushRegistryScope(t *testing.T) {
+	for _, example := range []struct {
+		project string
+		env     string
+		valid   bool
+	}{
+		{project: "", env: "", valid: true},
+		{project: "friendsheep-test", env: "test", valid: true},
+		{project: "friendsheep-test", env: "", valid: false},
+		{project: "Uppercase", env: "test", valid: false},
+	} {
+		cfg := validConfigForTest(DefaultRateLimitConfig())
+		cfg.NotifyPushProviderProject, cfg.NotifyPushEnvironment = example.project, example.env
+		err := cfg.NormalizeAndValidate()
+		if (err == nil) != example.valid || err != nil && !strings.Contains(err.Error(), "NOTIFY_PUSH_PROVIDER_PROJECT") {
+			t.Errorf("пара %q/%q: %v", example.project, example.env, err)
+		}
+	}
+}
+
 func TestNormalizeAndValidateConfigRejectsInvalidTrustedProxy(t *testing.T) {
 	tests := []string{
 		"not-an-ip",

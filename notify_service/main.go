@@ -67,12 +67,41 @@ func run() error {
 				return errors.New("неподдерживаемое соединение с базой данных notify_service")
 			}
 			var registry httpserver.PushDevices
+			var pushDeviceManager *pushdevices.Manager
 			if cfg.PushRegistry != nil {
 				devices, err := pushdevices.NewRegistry(db, *cfg.PushRegistry)
 				if err != nil {
 					return err
 				}
 				registry = devices
+				sessionChecker, err := pushdevices.NewHTTPMonolithSessionChecker(
+					cfg.MonolithBaseURL,
+					cfg.InternalToken,
+					cfg.MonolithHTTPTimeout,
+					nil,
+				)
+				if err != nil {
+					return err
+				}
+				pushDeviceManager, err = pushdevices.NewManager(
+					logger,
+					devices,
+					sessionChecker,
+					pushdevices.DefaultReconciliationInterval,
+					pushdevices.MaxReconciliationPageSize,
+				)
+				if err != nil {
+					return err
+				}
+				if err := pushDeviceManager.Start(ctx); err != nil {
+					return err
+				}
+				defer func() {
+					if err := pushDeviceManager.Stop(cfg.HTTPShutdownTimeout); err != nil {
+						logger.Warn("push device manager завершился по таймауту", "ошибка", err)
+						serveErr = errors.Join(serveErr, err)
+					}
+				}()
 			}
 			lifecycleManager := lifecycle.NewManager(cfg, logger, db, nil)
 			if err := lifecycleManager.Start(ctx); err != nil {

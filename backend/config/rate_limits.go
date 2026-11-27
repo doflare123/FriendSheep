@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -15,6 +16,8 @@ type HTTPConfig struct {
 	TrustedProxiesRaw string   `mapstructure:"TRUSTED_PROXIES"`
 	TrustedProxies    []string `mapstructure:"-"`
 }
+
+var notifyPushScopePattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,63}$`)
 
 type RateLimitPolicyQuota struct {
 	Limit  int
@@ -196,6 +199,8 @@ func applyConfigDefaults() {
 	viper.SetDefault("NOTIFY_SERVICE_TOKEN", "")
 	viper.SetDefault("NOTIFY_SERVICE_BASE_URL", "")
 	viper.SetDefault("NOTIFY_SERVICE_HTTP_TIMEOUT", "5s")
+	viper.SetDefault("NOTIFY_PUSH_PROVIDER_PROJECT", "")
+	viper.SetDefault("NOTIFY_PUSH_ENVIRONMENT", "")
 	viper.SetDefault("JWT_ACCESS_TTL", "20m")
 	viper.SetDefault("AUTH_REFRESH_TTL", "720h")
 	viper.SetDefault("JWT_CLOCK_SKEW", "30s")
@@ -262,6 +267,10 @@ func (c *Config) NormalizeAndValidate() error {
 	}
 	if c.NotifyServiceHTTPTimeout <= 0 || c.NotifyServiceHTTPTimeout > 30*time.Second {
 		errs = append(errs, fmt.Errorf("NOTIFY_SERVICE_HTTP_TIMEOUT must be between 1ns and 30s"))
+	}
+	if (c.NotifyPushProviderProject != "" || c.NotifyPushEnvironment != "") &&
+		(!notifyPushScopePattern.MatchString(c.NotifyPushProviderProject) || !notifyPushScopePattern.MatchString(c.NotifyPushEnvironment)) {
+		errs = append(errs, fmt.Errorf("NOTIFY_PUSH_PROVIDER_PROJECT и NOTIFY_PUSH_ENVIRONMENT задаются вместе и должны соответствовать [a-z][a-z0-9-]{0,63}"))
 	}
 	if len(strings.TrimSpace(c.JWTSecretKey)) < 32 {
 		errs = append(errs, fmt.Errorf("SECRET_KEY_JWT must contain at least 32 characters"))

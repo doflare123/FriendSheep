@@ -919,6 +919,41 @@ definitions:
     required:
     - refresh_token
     type: object
+  handlers.RegisterPushDeviceRequest:
+    properties:
+      expectedVersion:
+        example: d0a00000-0000-4000-8000-000000000001
+        type: string
+        x-nullable: true
+      notificationsEnabled:
+        example: true
+        type: boolean
+      operationId:
+        example: c0a00000-0000-4000-8000-000000000001
+        type: string
+      platform:
+        enum:
+        - android
+        - ios
+        example: android
+        type: string
+      providerToken:
+        example: example-fcm-android-1
+        maxLength: 4096
+        type: string
+      schemaVersion:
+        enum:
+        - 1
+        example: 1
+        type: integer
+    required:
+    - expectedVersion
+    - notificationsEnabled
+    - operationId
+    - platform
+    - providerToken
+    - schemaVersion
+    type: object
   handlers.SessionEmailInput:
     properties:
       email:
@@ -1103,6 +1138,27 @@ definitions:
         type: string
       readAt:
         type: string
+    type: object
+  notifications.PushDeviceMutationResult:
+    properties:
+      installationId:
+        type: string
+      schemaVersion:
+        enum:
+        - 1
+        type: integer
+      state:
+        enum:
+        - active
+        - detached
+        type: string
+      version:
+        type: string
+    required:
+    - installationId
+    - schemaVersion
+    - state
+    - version
     type: object
   notifications.UnreadCount:
     properties:
@@ -3898,6 +3954,133 @@ paths:
       summary: Загрузить аватар своего профиля
       tags:
       - Users
+  /api/v2/users/me/push-devices/{installationId}:
+    delete:
+      description: Идемпотентно отвязывает установку от текущего пользователя и его
+        действующей сессии.
+      parameters:
+      - description: ID установки
+        in: path
+        name: installationId
+        required: true
+        type: string
+      - description: Секрет установки
+        in: header
+        name: X-Installation-Secret
+        required: true
+        type: string
+      - description: UUID v4 операции
+        in: header
+        name: X-Push-Operation-ID
+        required: true
+        type: string
+      - description: Ожидаемая версия UUID v4 или none
+        in: header
+        name: X-Push-Expected-Version
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notifications.PushDeviceMutationResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отключить push-устройство
+      tags:
+      - Notifications
+    put:
+      consumes:
+      - application/json
+      description: Идемпотентно регистрирует или обновляет FCM-адрес установки для
+        текущего пользователя и его действующей сессии.
+      parameters:
+      - description: ID установки
+        in: path
+        name: installationId
+        required: true
+        type: string
+      - description: Секрет установки
+        in: header
+        name: X-Installation-Secret
+        required: true
+        type: string
+      - description: Команда регистрации
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterPushDeviceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notifications.PushDeviceMutationResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Зарегистрировать push-устройство
+      tags:
+      - Notifications
   /api/v2/users/me/statistics:
     get:
       description: 'Учитывает состав завершённых мероприятий, а не физическое посещение.

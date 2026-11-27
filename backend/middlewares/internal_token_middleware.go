@@ -18,9 +18,13 @@ func NewInternalTokenMiddleware(configuredToken string) gin.HandlerFunc {
 	configured := strings.TrimSpace(configuredToken) != ""
 
 	return func(c *gin.Context) {
-		provided := c.GetHeader(InternalTokenHeader)
-		actual := sha256.Sum256([]byte(provided))
-		if !configured || provided == "" || subtle.ConstantTimeCompare(actual[:], expected[:]) != 1 {
+		provided := c.Request.Header.Values(InternalTokenHeader)
+		if !configured || len(provided) != 1 || provided[0] == "" {
+			utils.AbortJSONError(c, http.StatusUnauthorized, "invalid_internal_token", utils.WithMessage("Неверный токен внутреннего сервиса"))
+			return
+		}
+		actual := sha256.Sum256([]byte(provided[0]))
+		if subtle.ConstantTimeCompare(actual[:], expected[:]) != 1 {
 			utils.AbortJSONError(c, http.StatusUnauthorized, "invalid_internal_token", utils.WithMessage("Неверный токен внутреннего сервиса"))
 			return
 		}

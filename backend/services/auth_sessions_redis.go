@@ -61,7 +61,7 @@ type redisAuthSessionStore struct {
 	userSessionsPrefix string
 }
 
-func NewRedisAuthSessionStore(redisRepo repository.RedisRepository, cfg AuthSessionStoreConfig) (AuthSessionStore, error) {
+func NewRedisAuthSessionStore(redisRepo repository.RedisRepository, cfg AuthSessionStoreConfig) (*redisAuthSessionStore, error) {
 	if redisRepo == nil {
 		return nil, errAuthSessionStoreNil
 	}
@@ -265,6 +265,33 @@ func (s *redisAuthSessionStore) HasActiveSession(ctx context.Context, sessionID 
 	}
 
 	return true, nil
+}
+
+func (s *redisAuthSessionStore) HasActiveSessionForUser(ctx context.Context, userID uint64, sessionID string) (bool, error) {
+	if s == nil || s.client == nil {
+		return false, errAuthSessionStoreNil
+	}
+	if userID == 0 || sessionID == "" {
+		return false, nil
+	}
+	values, err := s.client.HMGet(ctx, s.sessionKey(sessionID), authSessionUserIDField, authSessionRevokedField).Result()
+	if err != nil {
+		return false, fmt.Errorf("не удалось проверить пару пользователя и сессии: %w", err)
+	}
+	if len(values) != 2 {
+		return false, fmt.Errorf("некорректный ответ хранилища сессий")
+	}
+	if values[0] != strconv.FormatUint(userID, 10) {
+		return false, nil
+	}
+	switch values[1] {
+	case "0":
+		return true, nil
+	case "1":
+		return false, nil
+	default:
+		return false, fmt.Errorf("некорректное состояние сессии")
+	}
 }
 
 func (s *redisAuthSessionStore) lookupSessionUserID(ctx context.Context, sessionID string) (uint, error) {

@@ -47,6 +47,18 @@ func (s *Server) initRouters() {
 	}
 	notificationH := handlers.NewNotificationsHandler(inboxClient)
 	routes.RegisterNotificationRoutes(s.engine, notificationH, jwtMiddleware.RequireAuth())
+	var pushRegistry notifications.PushDeviceRegistry
+	if s.cfg.NotifyPushProviderProject != "" {
+		pushRegistry, err = notifications.NewHTTPPushDeviceRegistryClient(
+			s.cfg.NotifyServiceBaseURL, s.cfg.NotifyServiceToken, s.cfg.NotifyServiceHTTPTimeout,
+			s.cfg.NotifyPushProviderProject, s.cfg.NotifyPushEnvironment,
+		)
+		if err != nil {
+			s.logger.Fatal("Не удалось настроить клиент реестра push-устройств", "ошибка", err)
+		}
+	}
+	routes.RegisterPushDeviceRoutes(s.engine, handlers.NewPushDevicesHandler(pushRegistry), jwtMiddleware.RequireAuth())
+	routes.RegisterInternalPushSessionRoutes(s.engine, handlers.NewPushSessionHandler(authSessionStore), middlewares.NewInternalTokenMiddleware(s.cfg.NotifyServiceToken))
 	uniqueConfig := statistics.DefaultUniquePeopleConfig()
 	uniqueConfig.ClaimBatch = s.cfg.UniquePeople.ClaimBatch
 	uniqueConfig.Concurrency = s.cfg.UniquePeople.Concurrency

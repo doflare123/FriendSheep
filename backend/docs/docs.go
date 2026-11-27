@@ -3376,6 +3376,196 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v2/users/me/push-devices/{installationId}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Идемпотентно регистрирует или обновляет FCM-адрес установки для текущего пользователя и его действующей сессии.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Зарегистрировать push-устройство",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID установки",
+                        "name": "installationId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Секрет установки",
+                        "name": "X-Installation-Secret",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Команда регистрации",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.RegisterPushDeviceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/notifications.PushDeviceMutationResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Идемпотентно отвязывает установку от текущего пользователя и его действующей сессии.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Отключить push-устройство",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID установки",
+                        "name": "installationId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Секрет установки",
+                        "name": "X-Installation-Secret",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID v4 операции",
+                        "name": "X-Push-Operation-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Ожидаемая версия UUID v4 или none",
+                        "name": "X-Push-Expected-Version",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/notifications.PushDeviceMutationResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v2/users/me/statistics": {
             "get": {
                 "security": [
@@ -4941,6 +5131,52 @@ const docTemplate = `{
                 }
             }
         },
+        "handlers.RegisterPushDeviceRequest": {
+            "type": "object",
+            "required": [
+                "expectedVersion",
+                "notificationsEnabled",
+                "operationId",
+                "platform",
+                "providerToken",
+                "schemaVersion"
+            ],
+            "properties": {
+                "expectedVersion": {
+                    "type": "string",
+                    "x-nullable": true,
+                    "example": "d0a00000-0000-4000-8000-000000000001"
+                },
+                "notificationsEnabled": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "operationId": {
+                    "type": "string",
+                    "example": "c0a00000-0000-4000-8000-000000000001"
+                },
+                "platform": {
+                    "type": "string",
+                    "enum": [
+                        "android",
+                        "ios"
+                    ],
+                    "example": "android"
+                },
+                "providerToken": {
+                    "type": "string",
+                    "maxLength": 4096,
+                    "example": "example-fcm-android-1"
+                },
+                "schemaVersion": {
+                    "type": "integer",
+                    "enum": [
+                        1
+                    ],
+                    "example": 1
+                }
+            }
+        },
         "handlers.SessionEmailInput": {
             "type": "object",
             "required": [
@@ -5217,6 +5453,36 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "readAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "notifications.PushDeviceMutationResult": {
+            "type": "object",
+            "required": [
+                "installationId",
+                "schemaVersion",
+                "state",
+                "version"
+            ],
+            "properties": {
+                "installationId": {
+                    "type": "string"
+                },
+                "schemaVersion": {
+                    "type": "integer",
+                    "enum": [
+                        1
+                    ]
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "detached"
+                    ]
+                },
+                "version": {
                     "type": "string"
                 }
             }

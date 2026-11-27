@@ -178,7 +178,8 @@ func InitServer() (*Server, error) {
 	)
 	logger.Info("Popular events service initialized")
 
-	r := gin.Default()
+	r := gin.New()
+	r.Use(middlewares.DefaultRequestLogger(), middlewares.DefaultRecovery(), middlewares.PushNoStore())
 	if err := configureTrustedProxies(r, conf.HTTP.TrustedProxies); err != nil {
 		logger.Error("Error configuring trusted proxies", "error", err)
 		return nil, err
