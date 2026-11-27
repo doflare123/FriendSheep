@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"notify_service/internal/pushdevices"
 )
 
 const (
@@ -69,6 +71,7 @@ type Config struct {
 	WorkerRetryMaxBackoff      time.Duration
 	JobLeaseDuration           time.Duration
 	SourceBatchLimit           int
+	PushRegistry               *pushdevices.CryptoConfig
 }
 
 func LoadFromEnv() (Config, error) {
@@ -170,6 +173,11 @@ func Load(getenv Getenv) (Config, error) {
 		*item.target = parsed
 	}
 
+	registry, err := loadPushRegistry(getenv)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.PushRegistry = registry
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
 	}
@@ -251,6 +259,11 @@ func (c Config) Validate() error {
 	}
 	if c.UniquePeopleConcurrency < 1 || c.UniquePeopleConcurrency > maxUniquePeopleConcurrency {
 		return fmt.Errorf("NOTIFY_UNIQUE_PEOPLE_CONCURRENCY должен быть от 1 до %d", maxUniquePeopleConcurrency)
+	}
+	if c.PushRegistry != nil {
+		if err := c.PushRegistry.Validate(); err != nil {
+			return fmt.Errorf("некорректная конфигурация реестра устройств: %w", err)
+		}
 	}
 	return nil
 }

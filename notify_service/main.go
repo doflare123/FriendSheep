@@ -16,6 +16,7 @@ import (
 	"notify_service/internal/httpserver"
 	"notify_service/internal/lifecycle"
 	"notify_service/internal/logging"
+	"notify_service/internal/pushdevices"
 	"notify_service/internal/reminders"
 	"notify_service/internal/statistics"
 	"notify_service/internal/uniquepeople"
@@ -65,6 +66,14 @@ func run() error {
 			if !ok {
 				return errors.New("неподдерживаемое соединение с базой данных notify_service")
 			}
+			var registry httpserver.PushDevices
+			if cfg.PushRegistry != nil {
+				devices, err := pushdevices.NewRegistry(db, *cfg.PushRegistry)
+				if err != nil {
+					return err
+				}
+				registry = devices
+			}
 			lifecycleManager := lifecycle.NewManager(cfg, logger, db, nil)
 			if err := lifecycleManager.Start(ctx); err != nil {
 				return err
@@ -106,7 +115,7 @@ func run() error {
 				}
 			}()
 
-			server := httpserver.New(cfg, logger, reminderManager, reminderManager)
+			server := httpserver.New(cfg, logger, reminderManager, reminderManager, registry)
 			logger.Info("HTTP-сервер запускается", "адрес", cfg.Address())
 			return server.ListenAndServe(ctx)
 		},

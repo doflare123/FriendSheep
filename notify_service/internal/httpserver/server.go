@@ -33,14 +33,14 @@ type Server struct {
 	logger          *slog.Logger
 }
 
-func New(cfg config.Config, logger *slog.Logger, readiness Readiness, notifications Notifications) *Server {
+func New(cfg config.Config, logger *slog.Logger, readiness Readiness, notifications Notifications, pushDevices ...PushDevices) *Server {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	return &Server{
 		httpServer: &http.Server{
 			Addr:              cfg.Address(),
-			Handler:           newHandler(logger, readiness, notifications, cfg.InternalToken, cfg.DatabaseReadyTimeout),
+			Handler:           newHandler(logger, readiness, notifications, cfg.InternalToken, cfg.DatabaseReadyTimeout, pushDevices...),
 			ReadTimeout:       cfg.HTTPReadTimeout,
 			ReadHeaderTimeout: cfg.HTTPReadHeaderTimeout,
 			WriteTimeout:      cfg.HTTPWriteTimeout,
@@ -51,11 +51,15 @@ func New(cfg config.Config, logger *slog.Logger, readiness Readiness, notificati
 	}
 }
 
-func NewHandler(logger *slog.Logger, readiness Readiness, notifications Notifications, internalToken string) http.Handler {
-	return newHandler(logger, readiness, notifications, internalToken, 2*time.Second)
+func NewHandler(logger *slog.Logger, readiness Readiness, notifications Notifications, internalToken string, pushDevices ...PushDevices) http.Handler {
+	return newHandler(logger, readiness, notifications, internalToken, 2*time.Second, pushDevices...)
 }
 
-func newHandler(logger *slog.Logger, readiness Readiness, notifications Notifications, internalToken string, readinessTimeout time.Duration) http.Handler {
+func newHandler(logger *slog.Logger, readiness Readiness, notifications Notifications, internalToken string, readinessTimeout time.Duration, pushDevices ...PushDevices) http.Handler {
+	var registry PushDevices
+	if len(pushDevices) > 0 {
+		registry = pushDevices[0]
+	}
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -136,6 +140,7 @@ func newHandler(logger *slog.Logger, readiness Readiness, notifications Notifica
 		})
 		mux.Handle("/internal/", requireInternalToken(internalToken, internal))
 	}
+	registerPushDeviceRoutes(mux, internalToken, registry)
 	return requestLogger(logger, mux)
 }
 
@@ -228,8 +233,8 @@ func parseUserID(w http.ResponseWriter, r *http.Request) (uint64, bool) {
 
 func requireInternalToken(expected string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := strings.TrimSpace(r.Header.Get("X-Internal-Token"))
-		if expected == "" || subtle.ConstantTimeCompare([]byte(token), []byte(expected)) != 1 {
+		tokens := r.Header.Values("X-Internal-Token")
+		if len(tokens) != 1 || expected == "" || subtle.ConstantTimeCompare([]byte(strings.TrimSpace(tokens[0])), []byte(expected)) != 1 {
 			writeError(w, http.StatusUnauthorized, reminders.ErrorCodeInvalidInternalToken)
 			return
 		}

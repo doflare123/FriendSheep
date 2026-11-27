@@ -140,6 +140,8 @@ func TestMigrateStoresChecksumInHistory(t *testing.T) {
 		1: "000001_initial_schema.sql",
 		2: "000002_event_lifecycle_scheduler.sql",
 		4: "000004_event_statistics.sql",
+		5: "000005_push_device_registry.sql",
+		6: "000006_push_device_rejected_token.sql",
 	} {
 		body, err := migrations.Files.ReadFile(name)
 		if err != nil {

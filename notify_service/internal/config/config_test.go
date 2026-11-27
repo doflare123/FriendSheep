@@ -54,6 +54,73 @@ func TestLoadUsesSafeDefaults(t *testing.T) {
 	}
 }
 
+func TestLoadKeepsPushRegistryDisabledWhenItsEntireConfigurationIsAbsent(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := config.Load(mapEnvironment(map[string]string{
+		"NOTIFY_DATABASE_URL":      validDatabaseURL(),
+		"NOTIFY_MONOLITH_BASE_URL": validMonolithURL(),
+		"NOTIFY_SERVICE_TOKEN":     validInternalToken(),
+	}))
+	if err != nil {
+		t.Fatalf("Load() отклонил конфигурацию с выключенным push-реестром: %v", err)
+	}
+	if cfg.PushRegistry != nil {
+		t.Fatalf("PushRegistry = %#v, ожидался nil при отсутствии всей группы переменных", cfg.PushRegistry)
+	}
+}
+
+func TestLoadRequiresCompleteAndDistinctPushRegistryConfiguration(t *testing.T) {
+	t.Parallel()
+
+	base := map[string]string{
+		"NOTIFY_DATABASE_URL":                   validDatabaseURL(),
+		"NOTIFY_MONOLITH_BASE_URL":              validMonolithURL(),
+		"NOTIFY_SERVICE_TOKEN":                  validInternalToken(),
+		"NOTIFY_PUSH_ALLOWED_SCOPES":            "friendship-test:test,friendship-prod:production",
+		"NOTIFY_PUSH_ENCRYPTION_KEY_ID":         "key-2026-11",
+		"NOTIFY_PUSH_ENCRYPTION_KEY":            "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+		"NOTIFY_PUSH_TOKEN_FINGERPRINT_KEY":     "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+		"NOTIFY_PUSH_OPERATION_FINGERPRINT_KEY": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+	}
+
+	cfg, err := config.Load(mapEnvironment(base))
+	if err != nil {
+		t.Fatalf("Load() отклонил корректную конфигурацию push-реестра: %v", err)
+	}
+	if cfg.PushRegistry == nil {
+		t.Fatal("Load() не собрал конфигурацию push-реестра")
+	}
+	if cfg.PushRegistry.EncryptionKeyID != "key-2026-11" || len(cfg.PushRegistry.EncryptionKey) != 32 || len(cfg.PushRegistry.TokenFingerprintKey) != 32 || len(cfg.PushRegistry.OperationFingerprintKey) != 32 || len(cfg.PushRegistry.AllowedScopes) != 2 {
+		t.Fatalf("PushRegistry содержит неверные данные: %#v", cfg.PushRegistry)
+	}
+
+	for name, change := range map[string]func(map[string]string){
+		"частичная группа":    func(values map[string]string) { delete(values, "NOTIFY_PUSH_OPERATION_FINGERPRINT_KEY") },
+		"неканонический ключ": func(values map[string]string) { values["NOTIFY_PUSH_ENCRYPTION_KEY"] += "=" },
+		"повторный ключ": func(values map[string]string) {
+			values["NOTIFY_PUSH_TOKEN_FINGERPRINT_KEY"] = values["NOTIFY_PUSH_ENCRYPTION_KEY"]
+		},
+		"пустой scope":       func(values map[string]string) { values["NOTIFY_PUSH_ALLOWED_SCOPES"] = "" },
+		"некорректный scope": func(values map[string]string) { values["NOTIFY_PUSH_ALLOWED_SCOPES"] = "UPPER:test" },
+		"повторный scope": func(values map[string]string) {
+			values["NOTIFY_PUSH_ALLOWED_SCOPES"] = "friendship-test:test,friendship-test:test"
+		},
+	} {
+		name, change := name, change
+		t.Run(name, func(t *testing.T) {
+			values := make(map[string]string, len(base))
+			for key, value := range base {
+				values[key] = value
+			}
+			change(values)
+			if _, err := config.Load(mapEnvironment(values)); err == nil {
+				t.Fatal("Load() принял некорректную конфигурацию push-реестра")
+			}
+		})
+	}
+}
+
 func TestLoadReadsExplicitEnvironment(t *testing.T) {
 	t.Parallel()
 
