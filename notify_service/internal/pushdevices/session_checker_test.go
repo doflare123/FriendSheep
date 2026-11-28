@@ -118,6 +118,15 @@ func TestHTTPMonolithSessionCheckerRejectsMalformedAndOversizedResponses(t *test
 		{name: "alias active", body: func(writer http.ResponseWriter) {
 			_, _ = writer.Write([]byte(`{"schemaVersion":1,"active":false,"Active":true}`))
 		}, code: SessionCheckErrorMalformedResponse},
+		{name: "null active", body: func(writer http.ResponseWriter) {
+			_, _ = writer.Write([]byte(`{"schemaVersion":1,"active":null}`))
+		}, code: SessionCheckErrorMalformedResponse},
+		{name: "missing active", body: func(writer http.ResponseWriter) {
+			_, _ = writer.Write([]byte(`{"schemaVersion":1}`))
+		}, code: SessionCheckErrorMalformedResponse},
+		{name: "wrong active type", body: func(writer http.ResponseWriter) {
+			_, _ = writer.Write([]byte(`{"schemaVersion":1,"active":"false"}`))
+		}, code: SessionCheckErrorMalformedResponse},
 		{name: "oversized", body: func(writer http.ResponseWriter) {
 			_, _ = writer.Write(make([]byte, maxSessionCheckResponseBytes+1))
 		}, code: SessionCheckErrorResponseTooLarge},

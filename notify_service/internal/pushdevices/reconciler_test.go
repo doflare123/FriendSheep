@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
@@ -63,6 +65,61 @@ func TestReconcilerSweepsPagesAndSkipsTemporaryErrors(t *testing.T) {
 	}
 	if len(store.detached) != 1 || store.detached[0] != bindings[1] {
 		t.Fatalf("отвязки = %#v", store.detached)
+	}
+}
+
+func TestReconcilerDetachesOnlyConfirmedInactiveHTTPSession(t *testing.T) {
+	tests := []struct {
+		name             string
+		response         string
+		wantDetached     int
+		wantTemporaryErr int
+	}{
+		{
+			name:             "null active is malformed and keeps binding",
+			response:         `{"schemaVersion":1,"active":null}`,
+			wantTemporaryErr: 1,
+		},
+		{
+			name:         "false active detaches binding",
+			response:     `{"schemaVersion":1,"active":false}`,
+			wantDetached: 1,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+				writer.Header().Set("Content-Type", "application/json")
+				_, _ = writer.Write([]byte(test.response))
+			}))
+			defer server.Close()
+
+			checker, err := NewHTTPMonolithSessionChecker(server.URL, "internal-secret", time.Second, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			binding := testBinding("install-a", 1)
+			store := &reconciliationStoreStub{bindings: []Binding{binding}}
+			reconciler, err := NewReconciler(slog.New(slog.NewTextHandler(io.Discard, nil)), store, checker, time.Hour, 1)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			result, err := reconciler.Sweep(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result != (ReconciliationResult{Checked: 1, Detached: test.wantDetached, TemporaryError: test.wantTemporaryErr}) {
+				t.Fatalf("Sweep() = %#v", result)
+			}
+			if len(store.detached) != test.wantDetached {
+				t.Fatalf("число отвязок = %d, ожидалось %d", len(store.detached), test.wantDetached)
+			}
+			if test.wantDetached == 1 && store.detached[0] != binding {
+				t.Fatalf("отвязанная привязка = %#v, ожидалась %#v", store.detached[0], binding)
+			}
+		})
 	}
 }
 

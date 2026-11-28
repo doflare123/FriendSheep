@@ -176,11 +176,9 @@ func decodeSessionCheckResponse(encoded []byte) (bool, error) {
 			}
 			schemaVersion = &value
 		case "active":
-			var value bool
-			if err := decoder.Decode(&value); err != nil {
+			if err := decoder.Decode(&active); err != nil {
 				return false, err
 			}
-			active = &value
 		default:
 			return false, errors.New("ответ проверки сессии содержит неизвестное поле")
 		}
